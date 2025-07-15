@@ -1,0 +1,5 @@
+// {"kind":"typecheck","signature":"language::TypeChecker::performTypoCorrection(language::DeclContext*, language::DeclRefKind, language::Type, language::optionset::OptionSet<language::NameLookupFlags, unsigned int>, language::TypoCorrectionResults&, language::GenericSignature, unsigned int)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a<b {
+  @propertyWrapper class c {wrappedValue:b var projectedValue: a? {
+      @c var wrappedValue: b wrappedValue.d

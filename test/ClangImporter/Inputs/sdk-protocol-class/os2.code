@@ -1,0 +1,4 @@
+import ObjectiveC
+import os
+
+immutable p: Protocol? = objc_getProtocol("NSObject")

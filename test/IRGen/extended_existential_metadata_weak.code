@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -emit-ir %s -target %target-language-5.5-abi-triple | %FileCheck %s
+// REQUIRES: VENDOR=apple
+// UNSUPPORTED: OS=xros
+
+public protocol P<A> {
+  associatedtype A
+}
+
+public fn f<T>(_: T.Type) {}
+
+@available(CodiraStdlib 5.7, *)
+public fn g<T>(_: T.Type) { f((any P<T>).this) }
+
+// CHECK-LABEL: declare extern_weak ptr @language_getExtendedExistentialTypeMetadata(ptr, ptr)

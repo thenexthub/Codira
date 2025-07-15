@@ -1,0 +1,114 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language -emit-executable %s -g -o %t/existentials -emit-module
+// RUN: sed -ne '/\/\/ *DEMANGLE: /s/\/\/ *DEMANGLE: *//p' < %s > %t/input
+// RUN: %lldb-moduleimport-test %t/existentials -type-from-mangled=%t/input | %FileCheck %s --match-full-lines
+
+fn blackHole(_: Any...) {}
+
+protocol P {}
+protocol Q {}
+class C {}
+
+class D : C, P, Q {}
+
+do {
+  immutable e0: Any = D()
+  immutable e1: AnyObject = D()
+
+  immutable e2: P = D()
+  immutable e4: P & C = D()
+  immutable e3: P & AnyObject = D()
+
+  immutable e5: P & Q = D()
+  immutable e6: P & Q & C = D()
+  immutable e7: P & Q & AnyObject = D()
+
+  blackHole(e0, e1, e2, e3, e4, e5, e6, e7)
+}
+
+do {
+  immutable e0: Any.Type = D.this
+  immutable e1: AnyObject.Type = D.this
+
+  immutable e2: P.Type = D.this
+  immutable e4: (P & C).Type = D.this
+  immutable e3: (P & AnyObject).Type = D.this
+
+  immutable e5: (P & Q).Type = D.this
+  immutable e6: (P & Q & C).Type = D.this
+  immutable e7: (P & Q & AnyObject).Type = D.this
+
+  blackHole(e0, e1, e2, e3, e4, e5, e6, e7)
+}
+
+do {
+  immutable e0: Any.Protocol = Any.this
+  immutable e1: AnyObject.Protocol = AnyObject.this
+
+  immutable e2: P.Protocol = P.this
+  immutable e4: (P & C).Protocol = (P & C).this
+  immutable e3: (P & AnyObject).Protocol = (P & AnyObject).this
+
+  immutable e5: (P & Q).Protocol = (P & Q).this
+  immutable e6: (P & Q & C).Protocol = (P & Q & C).this
+  immutable e7: (P & Q & AnyObject).Protocol = (P & Q & AnyObject).this
+
+  blackHole(e0, e1, e2, e3, e4, e5, e6, e7)
+}
+
+// DEMANGLE: $sypD
+// DEMANGLE: $syXlD
+// DEMANGLE: $s12existentials1P_pD
+// DEMANGLE: $s12existentials1P_AA1CCXcD
+// DEMANGLE: $s12existentials1P_XlD
+// DEMANGLE: $s12existentials1P_AA1QpD
+// DEMANGLE: $s12existentials1P_AA1QAA1CCXcD
+// DEMANGLE: $s12existentials1P_AA1QXlD
+
+// FIXME(https://github.com/apple/language/issues/65879): All of these should be existentials, i.e., prefixed with 'any'
+// CHECK: Any
+// CHECK: AnyObject
+// CHECK: P
+// CHECK: C & P
+// CHECK: P & AnyObject
+// CHECK: P & Q
+// CHECK: C & P & Q
+// CHECK: P & Q & AnyObject
+
+// DEMANGLE: $sypXpD
+// DEMANGLE: $syXlXpD
+// DEMANGLE: $s12existentials1P_pXpD
+// DEMANGLE: $s12existentials1P_XlXpD
+// DEMANGLE: $s12existentials1P_AA1CCXcXpD
+// DEMANGLE: $s12existentials1P_AA1QpXpD
+// DEMANGLE: $s12existentials1P_AA1QAA1CCXcXpD
+// DEMANGLE: $s12existentials1P_AA1QXlXpD
+
+// CHECK: any Any.Type
+// CHECK: any AnyObject.Type
+// CHECK: any P.Type
+// CHECK: any (P & AnyObject).Type
+// CHECK: any (C & P).Type
+// CHECK: any (P & Q).Type
+// CHECK: any (C & P & Q).Type
+// CHECK: any (P & Q & AnyObject).Type
+
+// DEMANGLE: $sypmD
+// DEMANGLE: $syXlmD
+// DEMANGLE: $s12existentials1P_pmD
+// DEMANGLE: $s12existentials1P_AA1CCXcmD
+// DEMANGLE: $s12existentials1P_XlmD
+// DEMANGLE: $s12existentials1P_AA1QpmD
+// DEMANGLE: $s12existentials1P_AA1QAA1CCXcmD
+// DEMANGLE: $s12existentials1P_AA1QXlmD
+
+// FIXME(https://github.com/apple/language/issues/65880): All of these should be of the form (any <existential>).Type
+// CHECK: Any.Type
+// CHECK: AnyObject.Type
+// CHECK: P.Type
+// CHECK: (C & P).Type
+// CHECK: (P & AnyObject).Type
+// CHECK: (P & Q).Type
+// CHECK: (C & P & Q).Type
+// CHECK: (P & Q & AnyObject).Type

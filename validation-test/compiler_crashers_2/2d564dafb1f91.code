@@ -1,0 +1,6 @@
+// {"kind":"typecheck","signature":"language::constraints::ConstraintSystem::getTypeOfMemberReference(language::Type, language::ValueDecl*, language::DeclContext*, bool, language::FunctionRefInfo, language::constraints::ConstraintLocator*, toolchain::SmallVectorImpl<std::__1::pair<language::GenericTypeParamType*, language::TypeVariableType*>>*, language::constraints::PreparedOverload*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a {
+  macro b()
+  var c = b
+}

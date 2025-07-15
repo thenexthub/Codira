@@ -1,0 +1,16 @@
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=A | %FileCheck %s
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=B | %FileCheck %s
+// CHECK: Decl[InstanceMethod]/CurrNominal: f()[#Void#]{{; name=.+$}}
+class C1 {
+  fn f() {
+    #^A^#
+  deinit {}
+}
+
+class C2 {
+  fn f() {
+    guard immutable x = Optional(1) else {
+      #^B^#
+  }
+  deinit {}
+}

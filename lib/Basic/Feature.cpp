@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Feature.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 using namespace language;
 
@@ -29,21 +30,21 @@ bool Feature::isAvailableInProduction() const {
     return AvailableInProd;
 #include "language/Basic/Features.def"
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
-llvm::StringRef Feature::getName() const {
+toolchain::StringRef Feature::getName() const {
   switch (kind) {
 #define LANGUAGE_FEATURE(FeatureName, SENumber, Description)                   \
   case Feature::FeatureName:                                                   \
     return #FeatureName;
 #include "language/Basic/Features.def"
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
-std::optional<Feature> Feature::getUpcomingFeature(llvm::StringRef name) {
-  return llvm::StringSwitch<std::optional<Feature>>(name)
+std::optional<Feature> Feature::getUpcomingFeature(toolchain::StringRef name) {
+  return toolchain::StringSwitch<std::optional<Feature>>(name)
 #define LANGUAGE_FEATURE(FeatureName, SENumber, Description)
 #define UPCOMING_FEATURE(FeatureName, SENumber, Version)                       \
   .Case(#FeatureName, Feature::FeatureName)
@@ -51,8 +52,8 @@ std::optional<Feature> Feature::getUpcomingFeature(llvm::StringRef name) {
       .Default(std::nullopt);
 }
 
-std::optional<Feature> Feature::getExperimentalFeature(llvm::StringRef name) {
-  return llvm::StringSwitch<std::optional<Feature>>(name)
+std::optional<Feature> Feature::getExperimentalFeature(toolchain::StringRef name) {
+  return toolchain::StringSwitch<std::optional<Feature>>(name)
 #define LANGUAGE_FEATURE(FeatureName, SENumber, Description)
 #define EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)                     \
   .Case(#FeatureName, Feature::FeatureName)
@@ -72,18 +73,21 @@ std::optional<unsigned> Feature::getLanguageVersion() const {
   }
 }
 
-bool Feature::isAdoptable() const {
+bool Feature::isMigratable() const {
   switch (kind) {
-#define ADOPTABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)
-#define ADOPTABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)
+#define MIGRATABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)
+#define MIGRATABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)
+#define MIGRATABLE_OPTIONAL_LANGUAGE_FEATURE(FeatureName, SENumber, Name)
 #define LANGUAGE_FEATURE(FeatureName, SENumber, Description)                   \
   case Feature::FeatureName:
 #include "language/Basic/Features.def"
     return false;
 #define LANGUAGE_FEATURE(FeatureName, SENumber, Description)
-#define ADOPTABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)             \
+#define MIGRATABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)            \
   case Feature::FeatureName:
-#define ADOPTABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)           \
+#define MIGRATABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)          \
+  case Feature::FeatureName:
+#define MIGRATABLE_OPTIONAL_LANGUAGE_FEATURE(FeatureName, SENumber, Name)      \
   case Feature::FeatureName:
 #include "language/Basic/Features.def"
     return true;
@@ -101,5 +105,5 @@ bool Feature::includeInModuleInterface() const {
     return false;
 #include "language/Basic/Features.def"
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }

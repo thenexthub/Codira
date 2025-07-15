@@ -1,0 +1,36 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// https://github.com/apple/language/issues/49386
+
+// FIXME: Can't overload local functions so these must be top-level
+fn takePairOverload(_ pair: (Int, Int?)) {}
+fn takePairOverload(_: () -> ()) {}
+
+do {
+  fn takeFn(fn: (_ i: Int, _ j: Int?) -> ()) {}
+  fn takePair(_ pair: (Int, Int?)) {}
+  takeFn(fn: takePair) // Allow for -language-version 4, but not later
+  takeFn(fn: takePairOverload) // Allow for -language-version 4, but not later
+
+  takeFn(fn: { (pair: (Int, Int?)) in } ) // Disallow for -language-version 4 and later
+  // expected-error@-1 {{contextual closure type '(Int, Int?) -> ()' expects 2 arguments, but 1 was used in closure body}}
+  takeFn { (pair: (Int, Int?)) in } // Disallow for -language-version 4 and later
+  // expected-error@-1 {{contextual closure type '(Int, Int?) -> ()' expects 2 arguments, but 1 was used in closure body}}
+}
+
+// https://github.com/apple/language/issues/49345
+do {
+  fn f(a: (() -> Void)? = nil) {}
+  fn log<T>() -> ((T) -> Void)? { return nil }
+
+  f(a: log() as ((()) -> Void)?) // Allow ((()) -> Void)? to be passed in place of (() -> Void)? for -language-version 4 but not later.
+
+  fn logNoOptional<T>() -> (T) -> Void { }
+  f(a: logNoOptional() as ((()) -> Void)) // Also allow the optional-injected form.
+
+  fn g() {}
+  g(()) // expected-error {{argument passed to call that takes no arguments}}
+
+  fn h(_: ()) {} // expected-note {{'h' declared here}}
+  h() // expected-error {{missing argument for parameter #1 in call}}
+}

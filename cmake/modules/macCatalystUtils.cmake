@@ -1,6 +1,6 @@
 # macCatalystUtils.cmake
 #
-# Utility functions for macCatalyst support in Swift.
+# Utility functions for macCatalyst support in Codira.
 
 
 # Include guard
@@ -20,7 +20,7 @@ set(MACCATALYST_BUILD_FLAVORS "ios-like" "macos-like" "zippered" "unzippered-twi
 # Sets out_var with the macCatalyst build flavor if macCatalyst is enabled and building
 # for the OSX sdk.
 function(get_maccatalyst_build_flavor out_var sdk flavor)
-  if(SWIFT_ENABLE_MACCATALYST AND sdk STREQUAL "OSX")
+  if(LANGUAGE_ENABLE_MACCATALYST AND sdk STREQUAL "OSX")
     if(flavor IN_LIST MACCATALYST_BUILD_FLAVORS)
       set("${out_var}" "${flavor}" PARENT_SCOPE)
     elseif(NOT flavor STREQUAL "")
@@ -37,13 +37,13 @@ endfunction()
 
 # Form a versioned target triple for the given SDK.
 function(get_versioned_target_triple target_out_var sdk arch version)
-  if (SWIFT_SDK_${sdk}_IS_SIMULATOR)
+  if (LANGUAGE_SDK_${sdk}_IS_SIMULATOR)
     # The version goes before the "-simulator".
-    set(target "${SWIFT_SDK_${sdk}_ARCH_${arch}_TRIPLE}")
+    set(target "${LANGUAGE_SDK_${sdk}_ARCH_${arch}_TRIPLE}")
     string(REPLACE "-simulator" "" target "${target}")
     set(target "${target}${version}-simulator")
   else ()
-    set(target "${SWIFT_SDK_${sdk}_ARCH_${arch}_TRIPLE}${version}")
+    set(target "${LANGUAGE_SDK_${sdk}_ARCH_${arch}_TRIPLE}${version}")
   endif()
 
   set(${target_out_var} "${target}" PARENT_SCOPE)
@@ -74,12 +74,12 @@ function(get_target_triple target_out_var target_variant_out_var sdk arch)
     "${sdk}" "${TARGET_MACCATALYST_BUILD_FLAVOR}")
 
   if(maccatalyst_build_flavor STREQUAL "ios-like")
-    set(target "${arch}-apple-ios${SWIFT_DARWIN_DEPLOYMENT_VERSION_MACCATALYST}-macabi")
+    set(target "${arch}-apple-ios${LANGUAGE_DARWIN_DEPLOYMENT_VERSION_MACCATALYST}-macabi")
   elseif(maccatalyst_build_flavor STREQUAL "macos-like")
     # Use the default macOS triple.
   elseif(maccatalyst_build_flavor STREQUAL "zippered")
     set(target "${arch}-apple-macosx${deployment_version}")
-    set(target_variant "${arch}-apple-ios${SWIFT_DARWIN_DEPLOYMENT_VERSION_MACCATALYST}-macabi")
+    set(target_variant "${arch}-apple-ios${LANGUAGE_DARWIN_DEPLOYMENT_VERSION_MACCATALYST}-macabi")
   elseif(maccatalyst_build_flavor STREQUAL "unzippered-twin")
     # Use the default triple for now
   endif()

@@ -1,4 +1,4 @@
-//===--- CaptureProp.swift ------------------------------------------------===//
+//===--- CaptureProp.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,33 +11,34 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "CaptureProp",
     runFunction: run_CaptureProp,
     tags: [.validation, .api, .refcount],
     legacyFactor: 10)
 
-func sum(_ x:Int, y:Int) -> Int {
+fn sum(_ x:Int, y:Int) -> Int {
   return x + y
 }
 
 @inline(never)
-func benchCaptureProp<S : Sequence
+fn benchCaptureProp<S : Sequence
 >(
   _ s: S, _ f: (S.Element, S.Element) -> S.Element) -> S.Element {
 
   var it = s.makeIterator()
-  let initial = it.next()!
+  immutable initial = it.next()!
   return IteratorSequence(it).reduce(initial, f)
 }
 
-public func run_CaptureProp(_ n: Int) {
-  let a = 1...10_000
+public fn run_CaptureProp(_ n: Int) {
+  immutable a = 1...10_000
   for _ in 1...10*n {
     _ = benchCaptureProp(a, sum)
   }

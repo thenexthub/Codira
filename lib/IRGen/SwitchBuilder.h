@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_SWITCHBUILDER_H
-#define SWIFT_IRGEN_SWITCHBUILDER_H
+#ifndef LANGUAGE_IRGEN_SWITCHBUILDER_H
+#define LANGUAGE_IRGEN_SWITCHBUILDER_H
 
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
+#include "toolchain/IR/Function.h"
+#include "toolchain/IR/Instructions.h"
 
 #include "IRBuilder.h"
 #include "IRGenFunction.h"
@@ -36,10 +37,10 @@ private:
 
 protected:
   IRBuilder Builder;
-  llvm::Value *Subject;
+  toolchain::Value *Subject;
 
   /// Protected initializer. Clients should use the `create` factory method.
-  SwitchBuilder(IRGenFunction &IGF, llvm::Value *Subject, unsigned NumCases)
+  SwitchBuilder(IRGenFunction &IGF, toolchain::Value *Subject, unsigned NumCases)
       :
 #ifndef NDEBUG
         CasesToAdd(NumCases),
@@ -64,12 +65,12 @@ public:
   // Create a SwitchBuilder instance for a switch that will have the given
   // number of cases.
   static std::unique_ptr<SwitchBuilder> create(IRGenFunction &IGF,
-                                               llvm::Value *Subject,
+                                               toolchain::Value *Subject,
                                                SwitchDefaultDest Default,
                                                unsigned NumCases);
 
   /// Add a case to the switch.
-  virtual void addCase(llvm::ConstantInt *value, llvm::BasicBlock *dest) {
+  virtual void addCase(toolchain::ConstantInt *value, toolchain::BasicBlock *dest) {
 #ifndef NDEBUG
     assert(CasesToAdd > 0 && "Added too many cases");
     --CasesToAdd;
@@ -83,13 +84,13 @@ class BrSwitchBuilder final : public SwitchBuilder {
 private:
   friend class SwitchBuilder;
 
-  BrSwitchBuilder(IRGenFunction &IGF, llvm::Value *Subject, unsigned NumCases)
+  BrSwitchBuilder(IRGenFunction &IGF, toolchain::Value *Subject, unsigned NumCases)
       : SwitchBuilder(IGF, Subject, NumCases) {
     assert(NumCases == 1 && "should have only one branch");
   }
 
 public:
-  void addCase(llvm::ConstantInt *value, llvm::BasicBlock *dest) override {
+  void addCase(toolchain::ConstantInt *value, toolchain::BasicBlock *dest) override {
     SwitchBuilder::addCase(value, dest);
     Builder.CreateBr(dest);
   }
@@ -100,9 +101,9 @@ public:
 class CondBrSwitchBuilder final : public SwitchBuilder {
 private:
   friend class SwitchBuilder;
-  llvm::BasicBlock *FirstDest;
+  toolchain::BasicBlock *FirstDest;
 
-  CondBrSwitchBuilder(IRGenFunction &IGF, llvm::Value *Subject,
+  CondBrSwitchBuilder(IRGenFunction &IGF, toolchain::Value *Subject,
                       SwitchDefaultDest Default, unsigned NumCases)
       : SwitchBuilder(IGF, Subject, NumCases),
         FirstDest(Default.getInt() == IsUnreachable ? nullptr
@@ -112,7 +113,7 @@ private:
   }
 
 public:
-  void addCase(llvm::ConstantInt *value, llvm::BasicBlock *dest) override {
+  void addCase(toolchain::ConstantInt *value, toolchain::BasicBlock *dest) override {
     SwitchBuilder::addCase(value, dest);
 
     // If we don't have a first destination yet, save it.
@@ -132,7 +133,7 @@ public:
 
     // Otherwise, we have both destinations for the branch and a value to
     // test against. We can make the instruction now.
-    if (cast<llvm::IntegerType>(Subject->getType())->getBitWidth() == 1) {
+    if (cast<toolchain::IntegerType>(Subject->getType())->getBitWidth() == 1) {
       // If the subject is already i1, we can use it directly as the branch
       // condition.
       if (value->isZero())
@@ -152,9 +153,9 @@ public:
 class SwitchSwitchBuilder final : public SwitchBuilder {
 private:
   friend class SwitchBuilder;
-  llvm::SwitchInst *TheSwitch;
+  toolchain::SwitchInst *TheSwitch;
 
-  SwitchSwitchBuilder(IRGenFunction &IGF, llvm::Value *Subject,
+  SwitchSwitchBuilder(IRGenFunction &IGF, toolchain::Value *Subject,
                       SwitchDefaultDest Default, unsigned NumCases)
       : SwitchBuilder(IGF, Subject, NumCases) {
     TheSwitch =
@@ -162,14 +163,14 @@ private:
   }
 
 public:
-  void addCase(llvm::ConstantInt *value, llvm::BasicBlock *dest) override {
+  void addCase(toolchain::ConstantInt *value, toolchain::BasicBlock *dest) override {
     SwitchBuilder::addCase(value, dest);
     TheSwitch->addCase(value, dest);
   }
 };
 
 inline std::unique_ptr<SwitchBuilder>
-SwitchBuilder::create(IRGenFunction &IGF, llvm::Value *Subject,
+SwitchBuilder::create(IRGenFunction &IGF, toolchain::Value *Subject,
                       SwitchDefaultDest Default, unsigned NumCases) {
   // Pick a builder based on how many total reachable destinations we intend
   // to have.
@@ -205,6 +206,6 @@ SwitchBuilder::create(IRGenFunction &IGF, llvm::Value *Subject,
 }
 
 } // end irgen namespace
-} // end swift namespace
+} // end language namespace
 
 #endif

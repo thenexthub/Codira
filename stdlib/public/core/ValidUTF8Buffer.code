@@ -1,4 +1,4 @@
-//===--- ValidUTF8Buffer.swift - Bounded Collection of Valid UTF-8 --------===//
+//===--- ValidUTF8Buffer.code - Bounded Collection of Valid UTF-8 --------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Stores valid UTF8 inside an unsigned integer.
@@ -28,7 +29,7 @@ public struct _ValidUTF8Buffer {
 
   @inlinable
   internal init(_biasedBits: UInt32) {
-    self._biasedBits = _biasedBits
+    this._biasedBits = _biasedBits
   }
 
   @inlinable
@@ -51,7 +52,7 @@ extension _ValidUTF8Buffer: Sequence {
     public init(_ x: _ValidUTF8Buffer) { _biasedBits = x._biasedBits }
 
     @inlinable
-    public mutating func next() -> Element? {
+    public mutating fn next() -> Element? {
       if _biasedBits == 0 { return nil }
       defer { _biasedBits >>= 8 }
       return Element(truncatingIfNeeded: _biasedBits) &- 1
@@ -59,8 +60,8 @@ extension _ValidUTF8Buffer: Sequence {
   }
 
   @inlinable
-  public func makeIterator() -> Iterator {
-    return Iterator(self)
+  public fn makeIterator() -> Iterator {
+    return Iterator(this)
   }
 }
 
@@ -71,14 +72,14 @@ extension _ValidUTF8Buffer: Collection {
     internal var _biasedBits: UInt32
 
     @inlinable
-    internal init(_biasedBits: UInt32) { self._biasedBits = _biasedBits }
+    internal init(_biasedBits: UInt32) { this._biasedBits = _biasedBits }
 
     @inlinable
-    public static func == (lhs: Index, rhs: Index) -> Bool {
+    public static fn == (lhs: Index, rhs: Index) -> Bool {
       return lhs._biasedBits == rhs._biasedBits
     }
     @inlinable
-    public static func < (lhs: Index, rhs: Index) -> Bool {
+    public static fn < (lhs: Index, rhs: Index) -> Bool {
       return lhs._biasedBits > rhs._biasedBits
     }
   }
@@ -104,7 +105,7 @@ extension _ValidUTF8Buffer: Collection {
   }
 
   @inlinable
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     _debugPrecondition(i._biasedBits != 0)
     return Index(_biasedBits: i._biasedBits >> 8)
   }
@@ -117,8 +118,8 @@ extension _ValidUTF8Buffer: Collection {
 
 extension _ValidUTF8Buffer: BidirectionalCollection {
   @inlinable
-  public func index(before i: Index) -> Index {
-    let offset = _ValidUTF8Buffer(_biasedBits: i._biasedBits).count
+  public fn index(before i: Index) -> Index {
+    immutable offset = _ValidUTF8Buffer(_biasedBits: i._biasedBits).count
     _debugPrecondition(offset != 0)
     return Index(_biasedBits: _biasedBits &>> (offset &<< 3 - 8))
   }
@@ -129,7 +130,7 @@ extension _ValidUTF8Buffer: RandomAccessCollection {
 
   @inlinable
   @inline(__always)
-  public func distance(from i: Index, to j: Index) -> Int {
+  public fn distance(from i: Index, to j: Index) -> Int {
     _debugPrecondition(_isValid(i))
     _debugPrecondition(_isValid(j))
     return (
@@ -139,9 +140,9 @@ extension _ValidUTF8Buffer: RandomAccessCollection {
 
   @inlinable
   @inline(__always)
-  public func index(_ i: Index, offsetBy n: Int) -> Index {
-    let startOffset = distance(from: startIndex, to: i)
-    let newOffset = startOffset + n
+  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+    immutable startOffset = distance(from: startIndex, to: i)
+    immutable newOffset = startOffset + n
     _debugPrecondition(newOffset >= 0)
     _debugPrecondition(newOffset <= count)
     return Index(_biasedBits: _biasedBits._fullShiftRight(newOffset &<< 3))
@@ -166,7 +167,7 @@ extension _ValidUTF8Buffer: RangeReplaceableCollection {
 
   @inlinable
   @inline(__always)
-  public mutating func append(_ e: Element) {
+  public mutating fn append(_ e: Element) {
     _debugPrecondition(count + 1 <= capacity)
     _internalInvariant(
       e != 192 && e != 193 && !(245...255).contains(e), "invalid UTF8 byte")
@@ -176,37 +177,37 @@ extension _ValidUTF8Buffer: RangeReplaceableCollection {
   @inlinable
   @inline(__always)
   @discardableResult
-  public mutating func removeFirst() -> Element {
+  public mutating fn removeFirst() -> Element {
     _debugPrecondition(!isEmpty)
-    let result = Element(truncatingIfNeeded: _biasedBits) &- 1
+    immutable result = Element(truncatingIfNeeded: _biasedBits) &- 1
     _biasedBits = _biasedBits._fullShiftRight(8)
     return result
   }
 
   @inlinable
-  internal func _isValid(_ i: Index) -> Bool {
+  internal fn _isValid(_ i: Index) -> Bool {
     return i == endIndex || indices.contains(i)
   }
 
   @inlinable
   @inline(__always)
-  public mutating func replaceSubrange<C: Collection>(
+  public mutating fn replaceSubrange<C: Collection>(
     _ target: Range<Index>, with replacement: C
   ) where C.Element == Element {
     _debugPrecondition(_isValid(target.lowerBound))
     _debugPrecondition(_isValid(target.upperBound))
     var r = _ValidUTF8Buffer()
-    for x in self[..<target.lowerBound] { r.append(x) }
+    for x in this[..<target.lowerBound] { r.append(x) }
     for x in replacement                { r.append(x) }
-    for x in self[target.upperBound...] { r.append(x) }
-    self = r
+    for x in this[target.upperBound...] { r.append(x) }
+    this = r
   }
 }
 
 extension _ValidUTF8Buffer {
   @inlinable
   @inline(__always)
-  public mutating func append(contentsOf other: _ValidUTF8Buffer) {
+  public mutating fn append(contentsOf other: _ValidUTF8Buffer) {
     _debugPrecondition(count + other.count <= capacity)
     _biasedBits |= UInt32(
       truncatingIfNeeded: other._biasedBits) &<< (count &<< 3)
@@ -221,9 +222,9 @@ extension _ValidUTF8Buffer {
 
   @inlinable
   internal var _bytes: (bytes: UInt64, count: Int) {
-    let count = self.count
-    let mask: UInt64 = 1 &<< (UInt64(truncatingIfNeeded: count) &<< 3) &- 1
-    let unbiased = UInt64(truncatingIfNeeded: _biasedBits) &- 0x0101010101010101
+    immutable count = this.count
+    immutable mask: UInt64 = 1 &<< (UInt64(truncatingIfNeeded: count) &<< 3) &- 1
+    immutable unbiased = UInt64(truncatingIfNeeded: _biasedBits) &- 0x0101010101010101
     return (unbiased & mask, count)
   }
 }

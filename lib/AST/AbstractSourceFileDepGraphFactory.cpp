@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/AbstractSourceFileDepGraphFactory.h"
@@ -22,13 +23,13 @@
 #include "language/AST/FineGrainedDependencies.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/FileSystem.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/ReferenceDependencyKeys.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/YAMLParser.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/YAMLParser.h"
 
 using namespace language;
 using namespace fine_grained_dependencies;
@@ -38,10 +39,10 @@ using namespace fine_grained_dependencies;
 //==============================================================================
 
 AbstractSourceFileDepGraphFactory::AbstractSourceFileDepGraphFactory(
-    bool hadCompilationError, StringRef swiftDeps, Fingerprint fileFingerprint,
+    bool hadCompilationError, StringRef languageDeps, Fingerprint fileFingerprint,
     bool emitDotFileAfterConstruction, DiagnosticEngine &diags,
-    llvm::vfs::OutputBackend &backend)
-    : hadCompilationError(hadCompilationError), swiftDeps(swiftDeps.str()),
+    toolchain::vfs::OutputBackend &backend)
+    : hadCompilationError(hadCompilationError), languageDeps(languageDeps.str()),
       fileFingerprint(fileFingerprint),
       emitDotFileAfterConstruction(emitDotFileAfterConstruction), diags(diags),
       backend(backend) {}
@@ -54,7 +55,7 @@ SourceFileDepGraph AbstractSourceFileDepGraphFactory::construct() {
   }
   assert(g.verify());
   if (emitDotFileAfterConstruction)
-    g.emitDotFile(backend, swiftDeps, diags);
+    g.emitDotFile(backend, languageDeps, diags);
   return std::move(g);
 }
 
@@ -64,7 +65,7 @@ SourceFileDepGraph AbstractSourceFileDepGraphFactory::construct() {
 void AbstractSourceFileDepGraphFactory::addSourceFileNodesToGraph() {
   g.findExistingNodePairOrCreateAndAddIfNew(
       DependencyKey::createKeyForWholeSourceFile(DeclAspect::interface,
-                                                 swiftDeps),
+                                                 languageDeps),
       Fingerprint{fileFingerprint});
 }
 
@@ -99,12 +100,12 @@ void AbstractSourceFileDepGraphFactory::addAUsedDecl(
   // function to be more precise.
 
   // Example of a miscompile:
-  // In main.swift
-  // func foo(_: Any) { print("Hello Any") }
+  // In main.code
+  // fn foo(_: Any) { print("Hello Any") }
   //    foo(123)
   // Then add the following line to another file:
-  // func foo(_: Int) { print("Hello Int") }
-  // Although main.swift needs to get recompiled, the commented-out code below
+  // fn foo(_: Int) { print("Hello Int") }
+  // Although main.code needs to get recompiled, the commented-out code below
   // prevents that.
 
   auto nullableUse = g.findExistingNode(useKey);

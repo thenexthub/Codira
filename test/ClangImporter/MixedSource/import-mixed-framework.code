@@ -1,0 +1,64 @@
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/mixed-framework/Mixed.framework %t
+
+// Don't crash if a generated header is present but the languagemodule is missing.
+// RUN: not %target-language-frontend(mock-sdk: %clang-importer-sdk) -F %t -typecheck %s
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -emit-module -o %t/Mixed.framework/Modules/Mixed.codemodule/%target-languagemodule-name %S/Inputs/mixed-framework/Mixed.code -import-underlying-module -F %t -module-name Mixed -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -F %t -typecheck %s -verify
+
+import Mixed
+
+immutable instance = CodiraClass(x: 42)
+_ = instance.pureCodiraMethod(nil)
+
+immutable clangStruct = PureClangType(x: 1, y: 2)
+instance.categoryMethod(clangStruct)
+
+immutable x: BogusClass? = nil // expected-error {{'BogusClass' is unavailable: cannot find Codira declaration for this class}}
+
+_ = PureCodiraClass.verify()
+_ = Mixed.PureCodiraClass.verify()
+
+immutable _: CustomName = convertToProto(CustomNameClass())
+
+_ = CodiraClassWithCustomName() // expected-error {{'CodiraClassWithCustomName' has been renamed to 'CustomNameClass'}}
+
+fn testAnyObject(_ obj: AnyObject) {
+  obj.method()
+  _ = obj.integerProperty
+  obj.extensionMethod()
+  obj.categoryMethod(clangStruct)
+  obj.protoMethod()
+  _ = obj.protoProperty
+}
+
+consumeImplicitlyObjCClass(ImplicitlyObjCClass())
+
+consumeExplicitlyObjCClass(ExplicitlyObjCClass())
+
+consumeHasSameCustomNameClass(HasSameCustomNameClass())
+
+consumeNativeTypeHasDifferentCustomNameClass(CodiraNativeTypeHasDifferentCustomNameClass())
+consumeObjCNativeTypeHasDifferentCustomNameClass(NativeTypeHasDifferentCustomNameClass())
+consumeNativeTypeHasDifferentCustomNameClass(NativeTypeHasDifferentCustomNameClass()) // expected-error {{cannot convert value of type 'NativeTypeHasDifferentCustomNameClass' to expected argument type 'CodiraNativeTypeHasDifferentCustomNameClass'}}
+consumeObjCNativeTypeHasDifferentCustomNameClass(CodiraNativeTypeHasDifferentCustomNameClass()) // expected-error {{cannot convert value of type 'CodiraNativeTypeHasDifferentCustomNameClass' to expected argument type 'NativeTypeHasDifferentCustomNameClass'}}
+
+consumeNativeTypeIsNonObjCClass(CodiraNativeTypeIsNonObjCClass())
+consumeNativeTypeIsNonObjCClass(NativeTypeIsNonObjCClass()) // expected-error {{cannot convert value of type 'NativeTypeIsNonObjCClass' to expected argument type 'CodiraNativeTypeIsNonObjCClass'}}
+
+consumeForwardImplicitlyObjCClass(ForwardImplicitlyObjCClass())
+
+consumeForwardExplicitlyObjCClass(ForwardExplicitlyObjCClass())
+
+consumeForwardHasSameCustomNameClass(ForwardHasSameCustomNameClass())
+
+consumeForwardNativeTypeHasDifferentCustomNameClass(CodiraForwardNativeTypeHasDifferentCustomNameClass())
+consumeObjCForwardNativeTypeHasDifferentCustomNameClass(ForwardNativeTypeHasDifferentCustomNameClass())
+consumeForwardNativeTypeHasDifferentCustomNameClass(ForwardNativeTypeHasDifferentCustomNameClass()) // expected-error {{cannot convert value of type 'ForwardNativeTypeHasDifferentCustomNameClass' to expected argument type 'CodiraForwardNativeTypeHasDifferentCustomNameClass'}}
+consumeObjCForwardNativeTypeHasDifferentCustomNameClass(CodiraForwardNativeTypeHasDifferentCustomNameClass()) // expected-error {{cannot convert value of type 'CodiraForwardNativeTypeHasDifferentCustomNameClass' to expected argument type 'ForwardNativeTypeHasDifferentCustomNameClass'}}
+
+consumeForwardNativeTypeIsNonObjCClass(CodiraForwardNativeTypeIsNonObjCClass())
+consumeForwardNativeTypeIsNonObjCClass(ForwardNativeTypeIsNonObjCClass()) // expected-error {{cannot convert value of type 'ForwardNativeTypeIsNonObjCClass' to expected argument type 'CodiraForwardNativeTypeIsNonObjCClass'}}
+
+consumeForwardNativeTypeIsUnambiguouslyNonObjCClass(ForwardNativeTypeIsUnambiguouslyNonObjCClass())

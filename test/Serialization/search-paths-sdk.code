@@ -1,0 +1,19 @@
+// REQUIRES: VENDOR=apple
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/mock-sdk/usr/lib/language/SystemLibrary.codemodule)
+// RUN: %empty-directory(%t/secret)
+
+// RUN: %target-language-frontend -emit-module %S/../Inputs/empty.code -o %t/secret/SecretLibrary.codemodule
+// RUN: %target-language-frontend -emit-module %S/../Inputs/empty.code -o %t/mock-sdk/usr/lib/language/SystemLibrary.codemodule/%target-languagemodule-name -module-name SystemLibrary -I %t/secret -serialize-debugging-options
+
+// We pick up search paths from normal imports...
+// RUN: %target-language-frontend -typecheck %s -I %t/mock-sdk/usr/lib/language/
+
+// We do not pick up search paths from any imports in Codira 6 mode
+// RUN: %target-language-frontend -typecheck %s -I %t/mock-sdk/usr/lib/language/ -verify -show-diagnostics-after-fatal -language-version 6
+
+// ...but not from content in the SDK.
+// RUN: %target-language-frontend -typecheck %s -sdk %t/mock-sdk -verify -show-diagnostics-after-fatal
+
+import SystemLibrary
+import SecretLibrary // expected-error {{no such module 'SecretLibrary'}}

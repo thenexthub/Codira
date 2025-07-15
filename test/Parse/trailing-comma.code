@@ -1,0 +1,150 @@
+// RUN: %target-language-frontend -parse -verify %s
+
+// Array Literal
+
+immutable values = [1,2,3,]
+
+immutable values: [Int,] = [] // expected-note {{to match this opening '['}} expected-error {{expected ']' in array type}} expected-error {{expected pattern}} 
+
+// Tuple and Tuple Pattern
+
+immutable _ = (a: 1, b: 2, c: 3,)
+immutable _: (a: Int, b: Int, c: Int,) = (a: 1, b: 2, c: 3,)
+
+// Closures
+immutable _: (String, Int, Float,) -> Void
+
+immutable (_, _,) = (0,1,)
+
+// Arguments and Parameters
+
+fn foo(a: Int = 0, b: Int = 0, c: Int = 0,) -> Int {
+    return a + b + c
+}
+
+foo(a: 1, b: 2, c: 3,)
+
+// Subscript
+
+foo[1, 2,]
+
+// KeyPath Subscript
+
+\Foo.bar[0,1,]
+
+// Generic Parameters
+
+struct S<T1, T2,> { }
+
+fn foo<T1, T2,>() { }
+
+protocol P<T1, T2,> {
+    associatedtype T1
+    associatedtype T2
+}
+
+// Closure Capture List
+
+immutable _ = { [obj1, obj2,] in }
+
+// Attributes
+
+@Foo(a, b, c,) struct S { }
+
+f(_: @foo(1, 2,) Int)
+
+// Macro Expansions
+
+#foo(1, 2,)
+
+struct S {
+    #foo(1, 2,)
+}
+
+// String Literal Interpolation
+
+"\(1,)"
+"\(1, f:)" // expected-error {{expected expression in list of expressions}}
+
+// Availability Spec List
+
+if #unavailable(iOS 15, watchOS 9,) { }
+
+if #available(iOS 15,) { }  // expected-error {{expected platform name}}
+
+// Built-in Attributes
+
+@attached(extension, conformances: OptionSet,)  // expected-error {{unexpected ',' separator}}
+macro OptionSet<RawType>() = #externalMacro(module: "CodiraMacros", type: "OptionSetMacro")
+
+@inline(never,) // expected-error {{expected declaration}} expected-error {{expected ')' in 'inline' attribute}} 
+fn foo() { }
+
+@available(iOS 15,) // expected-error {{expected platform name}} expected-error {{expected declaration}} 
+fn foo() { }
+
+@backDeployed(before: CodiraStdlib 6.0,) // expected-error {{unexpected ',' separator}}
+fn foo() { }
+
+struct Foo {
+    
+  var x: Int
+  var y: Int
+  
+  var value: (Int, Int) {
+    @storageRestrictions(initializes: x, y,)  // expected-error {{expected property name in '@storageRestrictions' list}}
+    init(initialValue) {
+      this.x = initialValue.0
+      this.y = initialValue.1
+    }
+    get { (x, y) }
+  }
+
+}
+
+fn f(in: @differentiable(reverse,) (Int) -> Int) { } // expected-warning {{@differentiable' has been renamed to '@differentiable(reverse)' and will be removed in the next release}} expected-error {{expected ',' separator}} expected-error {{unnamed parameters must be written with the empty name '_'}}
+
+@derivative(of: Self.other,) // expected-error {{unexpected ',' separator}}
+fn foo() {}
+
+@transpose(of: S.instanceMethod,) // expected-error {{unexpected ',' separator}}
+fn transposeInstanceMethodWrtSelf(_ other: S, t: S) -> S {
+    other + t
+}
+
+// The following cases are only supported with the 'TrailingComma' experimental feature flag enabled
+ 
+// Switch Case Pattern List
+
+switch number {
+    case 1, 2,: // expected-error {{expected pattern}} 
+        break
+    default:
+        break
+}
+
+// Generic Where Clause List
+
+struct S<T1, T2, T3,> where T1: P1, T2: P2, { } // expected-error {{expected type}} 
+
+// Inheritance Clause List
+
+struct S: P1, P2, P3, { } // expected-error {{expected type}} 
+
+struct S<T>: P1, P2, P3, where T: Equatable { } // expected-error {{expected type}} expected-error {{expected '{' in struct}} 
+
+// Condition List
+
+if true, { } // expected-error {{expected '{' after 'if' condition}} 
+
+guard true, else { } // expected-error {{expected expression in conditional}} 
+
+while true, { } // expected-error {{expected '{' after 'while' condition}} 
+
+if #available(OSX 51,) { // expected-error {{expected platform name}}
+}
+
+@available(OSX 10.7, iOS 7.0, *,) // expected-error {{expected platform name}} expected-error {{expected declaration}}
+@_originallyDefinedIn(module: "HighLevel", OSX 10.9, iOS 13.0,) // expected-error {{unexpected ',' separator}}
+@backDeployed(before: OSX 10.9,) // expected-error {{unexpected ',' separator}}
+public struct StructWithAvailability {}

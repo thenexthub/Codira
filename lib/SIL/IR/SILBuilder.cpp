@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILBuilder.h"
@@ -22,7 +23,7 @@
 
 using namespace language;
 
-extern llvm::cl::opt<bool> SILPrintDebugInfo;
+extern toolchain::cl::opt<bool> SILPrintDebugInfo;
 
 //===----------------------------------------------------------------------===//
 // SILBuilder Implementation
@@ -266,7 +267,7 @@ SILBasicBlock *SILBuilder::splitBlockForFallthrough() {
 }
 
 std::optional<SILDebugVariable>
-SILBuilder::substituteAnonymousArgs(llvm::SmallString<4> Name,
+SILBuilder::substituteAnonymousArgs(toolchain::SmallString<4> Name,
                                     std::optional<SILDebugVariable> Var,
                                     SILLocation Loc) {
   if (Var && shouldDropVariable(*Var, Loc))
@@ -278,7 +279,7 @@ SILBuilder::substituteAnonymousArgs(llvm::SmallString<4> Name,
   if (VD && !VD->getName().empty())
     return Var;
 
-  llvm::raw_svector_ostream(Name) << '_' << (Var->ArgNo - 1);
+  toolchain::raw_svector_ostream(Name) << '_' << (Var->ArgNo - 1);
   Var->Name = Name;
   return Var;
 }
@@ -528,7 +529,7 @@ SILValue SILBuilder::emitObjCToThickMetatype(SILLocation Loc, SILValue Op,
                                              SILType Ty) {
   // If the operand is a 'metatype' instruction accessing a known static type's
   // metadata, create a 'metatype' instruction that directly produces the
-  // Swift metatype representation instead.
+  // Codira metatype representation instead.
   if (auto metatypeInst = dyn_cast<MetatypeInst>(Op)) {
     auto origLoc = metatypeInst->getLoc();
     return createMetatype(origLoc, Ty);
@@ -565,7 +566,7 @@ void SILBuilder::emitDestructureValueOperation(
   // Otherwise, we want to destructure add the destructure and return.
   if (getFunction().hasOwnership()) {
     auto *i = emitDestructureValueOperation(loc, v);
-    llvm::copy(i->getResults(), std::back_inserter(results));
+    toolchain::copy(i->getResults(), std::back_inserter(results));
     return;
   }
 
@@ -573,7 +574,7 @@ void SILBuilder::emitDestructureValueOperation(
   SmallVector<Projection, 16> projections;
   Projection::getFirstLevelProjections(v->getType(), getModule(),
                                        getTypeExpansionContext(), projections);
-  llvm::transform(projections, std::back_inserter(results),
+  toolchain::transform(projections, std::back_inserter(results),
                   [&](const Projection &p) -> SILValue {
                     return p.createObjectProjection(*this, loc, v).get();
                   });
@@ -595,7 +596,7 @@ void SILBuilder::emitDestructureAddressOperation(
   SmallVector<Projection, 16> projections;
   Projection::getFirstLevelProjections(v->getType(), getModule(),
                                        getTypeExpansionContext(), projections);
-  llvm::transform(projections, std::back_inserter(results),
+  toolchain::transform(projections, std::back_inserter(results),
                   [&](const Projection &p) -> SILValue {
                     return p.createAddressProjection(*this, loc, v).get();
                   });
@@ -614,7 +615,7 @@ void SILBuilder::emitDestructureAddressOperation(
   SmallVector<Projection, 16> projections;
   Projection::getFirstLevelProjections(v->getType(), getModule(),
                                        getTypeExpansionContext(), projections);
-  for (auto pair : llvm::enumerate(projections)) {
+  for (auto pair : toolchain::enumerate(projections)) {
     results(pair.index(),
             pair.value().createAddressProjection(*this, loc, v).get());
   }
@@ -622,7 +623,7 @@ void SILBuilder::emitDestructureAddressOperation(
 
 void SILBuilder::emitDestructureValueOperation(
     SILLocation loc, SILValue operand,
-    function_ref<void(unsigned, SILValue)> func) {
+    function_ref<void(unsigned, SILValue)> fn) {
   // Do a quick check to see if we have a tuple without elements. In that
   // case, bail early since we are not going to ever invoke Func.
   if (auto tupleType = operand->getType().getAs<TupleType>())
@@ -632,8 +633,8 @@ void SILBuilder::emitDestructureValueOperation(
   SmallVector<SILValue, 8> results;
   emitDestructureValueOperation(loc, operand, results);
 
-  for (auto p : llvm::enumerate(results)) {
-    func(p.index(), p.value());
+  for (auto p : toolchain::enumerate(results)) {
+    fn(p.index(), p.value());
   }
 }
 
@@ -645,7 +646,7 @@ DebugValueInst *SILBuilder::createDebugValue(SILLocation Loc, SILValue src,
   if (shouldDropVariable(Var, Loc))
     return nullptr;
 
-  llvm::SmallString<4> Name;
+  toolchain::SmallString<4> Name;
 
   SILDebugLocation DebugLoc;
   if (overrideLoc) {
@@ -667,7 +668,7 @@ DebugValueInst *SILBuilder::createDebugValueAddr(
   if (shouldDropVariable(Var, Loc))
     return nullptr;
 
-  llvm::SmallString<4> Name;
+  toolchain::SmallString<4> Name;
 
   // Debug location overrides cannot apply to debug addr instructions.
   DebugLocOverrideRAII LocOverride{*this, std::nullopt};
@@ -760,9 +761,9 @@ SILPhiArgument *SILBuilder::createSwitchOptional(
 /// trivial terminator result would be very complex with no practical benefit.
 static ValueOwnershipKind deriveForwardingOwnership(SILValue operand,
                                                     SILType targetType,
-                                                    SILFunction &func) {
+                                                    SILFunction &fn) {
   if (operand->getOwnershipKind() != OwnershipKind::None ||
-      targetType.isTrivial(func)) {
+      targetType.isTrivial(fn)) {
     return operand->getOwnershipKind();
   }
   return OwnershipKind::Owned;
@@ -783,7 +784,7 @@ SwitchEnumInst *SILBuilder::createSwitchEnum(
 
 CheckedCastBranchInst *SILBuilder::createCheckedCastBranch(
     SILLocation Loc, bool isExact,
-    CastingIsolatedConformances isolatedConformances,
+    CheckedCastInstOptions options,
     SILValue op, CanType srcFormalTy,
     SILType destLoweredTy, CanType destFormalTy, SILBasicBlock *successBB,
     SILBasicBlock *failureBB, ProfileCounter target1Count,
@@ -791,14 +792,14 @@ CheckedCastBranchInst *SILBuilder::createCheckedCastBranch(
   auto forwardingOwnership =
       deriveForwardingOwnership(op, destLoweredTy, getFunction());
   return createCheckedCastBranch(
-      Loc, isExact, isolatedConformances, op, srcFormalTy, destLoweredTy,
+      Loc, isExact, options, op, srcFormalTy, destLoweredTy,
       destFormalTy, successBB,
       failureBB, forwardingOwnership, target1Count, target2Count);
 }
 
 CheckedCastBranchInst *SILBuilder::createCheckedCastBranch(
     SILLocation Loc, bool isExact,
-    CastingIsolatedConformances isolatedConformances,
+    CheckedCastInstOptions options,
     SILValue op, CanType srcFormalTy,
     SILType destLoweredTy, CanType destFormalTy, SILBasicBlock *successBB,
     SILBasicBlock *failureBB, ValueOwnershipKind forwardingOwnershipKind,
@@ -808,7 +809,7 @@ CheckedCastBranchInst *SILBuilder::createCheckedCastBranch(
          "failureBB's argument doesn't match incoming argument type");
 
   return insertTerminator(CheckedCastBranchInst::create(
-      getSILDebugLocation(Loc), isExact, isolatedConformances, op, srcFormalTy,
+      getSILDebugLocation(Loc), isExact, options, op, srcFormalTy,
       destLoweredTy, destFormalTy, successBB, failureBB, getFunction(),
       target1Count, target2Count, forwardingOwnershipKind));
 }
@@ -834,17 +835,17 @@ SILValue SILBuilder::createZeroInitValue(SILLocation loc, SILType loweredTy) {
 }
 
 void SILBuilderWithScope::insertAfter(SILInstruction *inst,
-                                      function_ref<void(SILBuilder &)> func) {
+                                      function_ref<void(SILBuilder &)> fn) {
   if (isa<TermInst>(inst)) {
     for (const SILSuccessor &succ : inst->getParent()->getSuccessors()) {
       SILBasicBlock *succBlock = succ;
       ASSERT(succBlock->getSinglePredecessorBlock() == inst->getParent() &&
              "the terminator instruction must not have critical successors");
       SILBuilderWithScope builder(succBlock->begin());
-      func(builder);
+      fn(builder);
     }
   } else {
     SILBuilderWithScope builder(std::next(inst->getIterator()));
-    func(builder);
+    fn(builder);
   }
 }

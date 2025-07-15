@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/Frameworks/lib.framework/Modules/lib.codemodule
+// RUN: mkdir -p %t/Frameworks/lib2.framework/Modules/lib2.codemodule
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -emit-module-source-info -module-name lib2 -o %t/Frameworks/lib2.framework/Modules/lib2.codemodule/%module-target-triple.codemodule %t/lib2.code -disable-experimental-string-processing -parse-stdlib
+// RUN: %target-language-frontend -emit-module -emit-module-source-info -module-name lib -o %t/Frameworks/lib.framework/Modules/lib.codemodule/%module-target-triple.codemodule %t/lib.code -Fsystem %t/Frameworks -disable-experimental-string-processing -parse-stdlib
+
+// RUN: %target-language-frontend -typecheck -index-system-modules -index-ignore-stdlib -index-store-path %t/idx -Fsystem %t/Frameworks %t/main.code -disable-deserialization-recovery -disable-experimental-string-processing -parse-stdlib
+
+//--- main.code
+import lib
+
+//--- lib.code
+@_implementationOnly import lib2
+
+struct InternalS {
+  fn structFunc(p: Lib2S) {}
+}
+
+extension InternalS {
+  fn extensionFunc(p: Lib2S) {}
+}
+
+//--- lib2.code
+public struct Lib2S {}

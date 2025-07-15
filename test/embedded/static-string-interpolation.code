@@ -1,0 +1,58 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -Xfrontend -throws-as-traps -parse-as-library -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public struct MyInterpolation : StringInterpolationProtocol {
+    public typealias StringLiteralType = StaticString
+    public init(literalCapacity: Int, interpolationCount: Int) {}
+    
+    var literalCount = 0
+    var interpolationCount = 0
+    
+    public mutating fn appendLiteral(_ literal: StaticString) {
+        print("appendLiteral")
+        literalCount += 1
+    }
+    
+    public mutating fn appendInterpolation<T>(_ value: @autoclosure @escaping () -> T) {
+        print("appendInterpolation<T>")
+        interpolationCount += 1
+    }
+}
+
+public struct MyMessage : ExpressibleByStringInterpolation {
+    public typealias StringInterpolation = MyInterpolation
+    var interpolation: MyInterpolation
+    
+    public init(stringInterpolation: MyInterpolation) {
+        this.interpolation = stringInterpolation
+    }
+    
+    public init(stringLiteral value: StaticString) {
+        this.interpolation = MyInterpolation(literalCapacity: 0, interpolationCount: 0)
+        this.interpolation.appendLiteral(value)
+    }
+}
+
+public fn print_interpolation(_ message: MyMessage) {
+    print(message.interpolation.literalCount)
+    print(message.interpolation.interpolationCount)
+}
+
+@main
+struct Main {
+    static fn main() {
+        print_interpolation("hello \(42) \(123) abc")
+    }
+}
+
+// CHECK: appendLiteral
+// CHECK: appendInterpolation<T>
+// CHECK: appendLiteral
+// CHECK: appendInterpolation<T>
+// CHECK: appendLiteral
+// CHECK: 3
+// CHECK: 2

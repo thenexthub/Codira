@@ -1,0 +1,73 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-languagexx-frontend -emit-ir -I %t/Inputs -validate-tbd-against-ir=none %t/test.code | %FileCheck %s
+
+//--- Inputs/module.modulemap
+module DestroyedUsingDelete {
+  header "test.h"
+  requires cplusplus
+}
+//--- Inputs/test.h
+
+extern void referencedSymbol();
+inline void emittedIntoCodiraObject() { referencedSymbol(); }
+
+class BaseClass {
+public:
+    inline ~BaseClass() {
+        emittedIntoCodiraObject();
+    }
+
+    int x;
+};
+
+class Container {
+public:
+    Container() : pointer(new BaseClass) {}
+    Container(const Container &other) : pointer(new BaseClass) {}
+    ~Container() { delete pointer; }
+
+    inline int method() const {
+        return 42;
+    }
+private:
+    BaseClass *pointer;
+};
+
+class ForwardClassDecl;
+
+template<class T>
+class ContainerWithForward {
+public:
+    inline ~ContainerWithForward() {
+        if (sizeof(T) > 0)
+            referencedSymbol();
+    }
+};
+
+class ClassWithOutOfLineDestructor {
+public:
+    ~ClassWithOutOfLineDestructor();
+
+    ContainerWithForward<ForwardClassDecl> field;
+};
+
+ClassWithOutOfLineDestructor *getClassWithOutOfLineDestructorValue();
+
+inline void testMethodDestructorFwdDecl() {
+    delete getClassWithOutOfLineDestructorValue();
+}
+
+//--- test.code
+
+import DestroyedUsingDelete
+
+public fn test() {
+  immutable i = Container()
+  i.method()
+  testMethodDestructorFwdDecl()
+}
+
+// Make sure we reach destructor accessible from `delete` statement.
+
+// CHECK: define linkonce_odr{{( dso_local)?}} void @{{_Z22emittedIntoCodiraObjectv|"\?emittedIntoCodiraObject@@YAXXZ"}}

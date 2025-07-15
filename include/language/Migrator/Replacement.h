@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_REPLACEMENT_H
-#define SWIFT_MIGRATOR_REPLACEMENT_H
+#ifndef LANGUAGE_MIGRATOR_REPLACEMENT_H
+#define LANGUAGE_MIGRATOR_REPLACEMENT_H
 namespace language {
 namespace migrator {
 
@@ -52,4 +53,4 @@ struct Replacement {
 } // end namespace migrator
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_REPLACEMENT_H
+#endif // LANGUAGE_MIGRATOR_REPLACEMENT_H

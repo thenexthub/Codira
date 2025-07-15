@@ -1,0 +1,3 @@
+// {"signature":"diagnoseDictionaryLiteralDuplicateKeyEntries(language::Expr const*, language::DeclContext const*)::DiagnoseWalker::walkToExprPre(language::Expr*)"}
+// RUN: not %target-language-frontend -typecheck %s
+[ 1.01: "" 1.01: ""

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_INTERNAL_XPC_H
-#define LLVM_SOURCEKITD_INTERNAL_XPC_H
+#ifndef TOOLCHAIN_SOURCEKITD_INTERNAL_XPC_H
+#define TOOLCHAIN_SOURCEKITD_INTERNAL_XPC_H
 
 #include "sourcekitd/Internal.h"
 

@@ -1,4 +1,4 @@
-//===--- Decl.h - Swift Language Declaration ASTs ---------------*- C++ -*-===//
+//===--- Decl.h - Codira Language Declaration ASTs ---------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some data types used for 'rethrows' and `reasync` checking.
@@ -25,15 +26,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_EFFECTS_H
-#define SWIFT_EFFECTS_H
+#ifndef LANGUAGE_EFFECTS_H
+#define LANGUAGE_EFFECTS_H
 
 #include "language/AST/Type.h"
 #include "language/Basic/OptionSet.h"
 
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -48,7 +49,7 @@ enum class EffectKind : uint8_t {
 };
 using PossibleEffects = OptionSet<EffectKind>;
 
-void simple_display(llvm::raw_ostream &out, const EffectKind kind);
+void simple_display(toolchain::raw_ostream &out, const EffectKind kind);
 
 class ValueDecl;
 
@@ -74,7 +75,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const PolymorphicEffectRequirementList reqs);
 
 enum class PolymorphicEffectKind : uint8_t {
@@ -105,7 +106,7 @@ enum class PolymorphicEffectKind : uint8_t {
   Invalid
 };
 
-void simple_display(llvm::raw_ostream &out, PolymorphicEffectKind value);
+void simple_display(toolchain::raw_ostream &out, PolymorphicEffectKind value);
 
 } // end namespace language
 

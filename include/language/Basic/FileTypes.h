@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FILETYPES_H
-#define SWIFT_BASIC_FILETYPES_H
+#ifndef LANGUAGE_BASIC_FILETYPES_H
+#define LANGUAGE_BASIC_FILETYPES_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 namespace file_types {
@@ -60,16 +61,16 @@ bool isTextual(ID Id);
 /// threaded compilation.
 bool isAfterLLVM(ID Id);
 
-/// Returns true if the type is a file that contributes to the Swift module
+/// Returns true if the type is a file that contributes to the Codira module
 /// being compiled.
 ///
-/// These need to be passed to the Swift frontend
-bool isPartOfSwiftCompilation(ID Id);
+/// These need to be passed to the Codira frontend
+bool isPartOfCodiraCompilation(ID Id);
 
 /// Returns true of the type of the output is produced from a diagnostic engine.
 bool isProducedFromDiagnostics(ID Id);
 
-static inline void forAllTypes(llvm::function_ref<void(file_types::ID)> fn) {
+static inline void forAllTypes(toolchain::function_ref<void(file_types::ID)> fn) {
   for (uint8_t i = 0; i < static_cast<uint8_t>(TY_INVALID); ++i)
     fn(static_cast<ID>(i));
 }
@@ -78,16 +79,16 @@ static inline void forAllTypes(llvm::function_ref<void(file_types::ID)> fn) {
 /// support incremental compilation. Invoke the passed-in function for every
 /// such file type.
 static inline void
-forEachIncrementalOutputType(llvm::function_ref<void(file_types::ID)> fn) {
-  fn(file_types::TY_SwiftDeps);
+forEachIncrementalOutputType(toolchain::function_ref<void(file_types::ID)> fn) {
+  fn(file_types::TY_CodiraDeps);
 }
 
 } // end namespace file_types
 } // end namespace language
 
-namespace llvm {
-template <> struct DenseMapInfo<swift::file_types::ID> {
-  using ID = swift::file_types::ID;
+namespace toolchain {
+template <> struct DenseMapInfo<language::file_types::ID> {
+  using ID = language::file_types::ID;
   static inline ID getEmptyKey() { return ID::TY_INVALID; }
   static inline ID getTombstoneKey() {
     return static_cast<ID>(ID::TY_INVALID + 1);
@@ -95,6 +96,6 @@ template <> struct DenseMapInfo<swift::file_types::ID> {
   static unsigned getHashValue(ID Val) { return (unsigned)Val * 37U; }
   static bool isEqual(ID LHS, ID RHS) { return LHS == RHS; }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

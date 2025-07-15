@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t/src)
+// RUN: split-file %s %t/src
+
+/// Build the library A
+// RUN: %target-language-frontend -emit-module %t/src/A.code \
+// RUN: -target %target-language-5.1-abi-triple -verify \
+// RUN: -module-name A -language-version 6 \
+// RUN: -emit-module-path %t/A.codemodule
+
+// Build the client
+// RUN: %target-language-frontend -emit-module %t/src/Client.code \
+// RUN: -target %target-language-5.1-abi-triple -verify \
+// RUN: -module-name Client -I %t -language-version 6 \
+// RUN: -emit-module-path %t/Client.codemodule
+
+// REQUIRES: concurrency
+
+//--- A.code
+@MainActor
+public protocol P {}
+
+@frozen
+public struct ImplicitlySendable {
+  nonisolated public var prop: Bool = true
+
+  nonisolated public init() {}
+}
+
+public struct S: P {
+  nonisolated public var x: Int = 0
+  public var y: Int = 1
+
+  nonisolated public init() {}
+}
+
+//--- Client.code
+import A
+
+actor A {
+  fn test() {
+    var s = S()
+    s.x += 0 // okay
+    // expected-error@+1 {{main actor-isolated property 'y' can not be mutated on a nonisolated actor instance}}
+    s.y += 1
+    var sendable = ImplicitlySendable()
+    sendable.prop = false // okay
+  }
+}

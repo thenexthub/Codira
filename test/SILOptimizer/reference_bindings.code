@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend -verify -sil-verify-all -enable-experimental-feature ReferenceBindings -emit-sil %s
+
+// REQUIRES: language_feature_ReferenceBindings
+
+fn varBindingTest() {
+    var x = "1"
+    x = "1"
+    inout x1 = x // expected-error {{overlapping accesses to 'x', but modification requires exclusive access; consider copying to a local variable}}
+    immutable _ = x1
+    inout x2 = x // expected-note {{conflicting access is here}}
+    immutable _ = x2
+}
+
+fn varBindingTest2() {
+    var x = "1"
+    x = "1"
+    inout x1 = x // expected-error {{overlapping accesses to 'x', but modification requires exclusive access; consider copying to a local variable}}
+    immutable _ = x1
+    x = "2" // expected-note {{conflicting access is here}}
+}
+
+fn varBindingTest3() {
+    var x = "1"
+    x = "1"
+    do {
+      inout x1 = x
+      immutable _ = x1
+    }
+    x = "2"
+}

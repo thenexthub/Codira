@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: env LANGUAGE_LOADED_MODULE_TRACE_FILE=%t/trace %target-build-language -module-name loaded_module_trace_header -c %s -o- -import-objc-header %S/Inputs/loaded_module_trace_header.h -module-cache-path %t/cache > /dev/null
+// RUN: %FileCheck %s < %t/trace
+
+// REQUIRES: objc_interop
+
+// CHECK: {
+// CHECK: "name":"loaded_module_trace_header"
+// CHECK: "arch":"{{[^"]*}}"
+// CHECK: "languagemodules":[
+// CHECK-DAG: "{{[^"]*}}/ObjectiveC.codemodule{{(\\/[^"]+[.]language(module|interface))?}}"
+// CHECK-DAG: "{{[^"]*}}/Dispatch.codemodule{{(\\/[^"]+[.]language(module|interface))?}}"
+// CHECK-DAG: "{{[^"]*}}/Darwin.codemodule{{(\\/[^"]+[.]language(module|interface))?}}"
+// CHECK-DAG: "{{[^"]*}}/Foundation.codemodule{{(\\/[^"]+[.]language(module|interface))?}}"
+// CHECK-DAG: "{{[^"]*}}/Codira.codemodule{{(\\/[^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "{{[^"]*}}/CodiraOnoneSupport.codemodule{{(\\/[^"]+[.]languagemodule)?}}"
+// CHECK: ]
+// CHECK: "languagemodulesDetailedInfo":[
+// CHECK: {
+// CHECK-DAG: "name":"Codira"
+// CHECK-DAG: "path":"{{[^"]*\\[/\\]}}Codira.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "isImportedDirectly":true
+// CHECK-DAG: "supportsLibraryEvolution":true
+// CHECK: }
+// CHECK: {
+// CHECK-DAG: "name":"CodiraOnoneSupport"
+// CHECK-DAG: "path":"{{[^"]*\\[/\\]}}CodiraOnoneSupport.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "isImportedDirectly":true
+// CHECK-DAG: "supportsLibraryEvolution":true
+// CHECK: }
+// CHECK: ]

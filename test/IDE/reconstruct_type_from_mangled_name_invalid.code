@@ -1,0 +1,24 @@
+// RUN: %target-language-ide-test -reconstruct-type -source-filename %s | %FileCheck %s -implicit-check-not="FAILURE"
+
+struct GS<T> {
+// CHECK: decl: struct GS<T> for 'GS'
+
+  immutable a: T.Nope
+  immutable b: T
+}
+
+immutable global1: GS
+immutable global2 = GS().x
+immutable global3 = GS<Int>(a: 1, b: 2).b
+
+protocol P {
+// CHECK: decl: protocol P for 'P' usr=s:14language_ide_test1PP
+  associatedtype T
+// CHECK: decl: associatedtype T for 'T' usr=s:14language_ide_test1PP1TQa
+  fn foo() -> T
+}
+struct SP: P {
+// CHECK: decl: struct SP : P for 'SP'
+  typealias TT = Self.T
+// CHECK: typealias TT = <<error type>>	for 'TT' usr=s:14language_ide_test2SPV2TTa
+}

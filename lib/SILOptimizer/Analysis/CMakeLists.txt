@@ -1,4 +1,4 @@
-target_sources(swiftSILOptimizer PRIVATE
+target_sources(languageSILOptimizer PRIVATE
   ARCAnalysis.cpp
   AccessSummaryAnalysis.cpp
   AccessStorageAnalysis.cpp

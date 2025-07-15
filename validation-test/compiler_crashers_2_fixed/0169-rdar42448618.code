@@ -1,0 +1,19 @@
+// RUN: not %target-language-frontend -emit-ir %s
+
+protocol ObservableType {
+  associatedtype E
+}
+
+extension ObservableType where E == Any {
+  static fn zip<O1>(_ source1: O1) { fatalError() }
+}
+
+extension ObservableType {
+  static fn zip<O1, O2>(_ source1: O1, _ source2: O2) { fatalError() }
+}
+
+class Observable<Element> : ObservableType {
+  public typealias E = Element
+}
+
+Observable.zip(1, 2)

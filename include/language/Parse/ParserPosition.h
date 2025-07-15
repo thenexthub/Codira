@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Parser position where Parser can jump to.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSE_PARSERPOSITION_H
-#define SWIFT_PARSE_PARSERPOSITION_H
+#ifndef LANGUAGE_PARSE_PARSERPOSITION_H
+#define LANGUAGE_PARSE_PARSERPOSITION_H
 
 #include "language/Basic/SourceLoc.h"
 #include "language/Parse/LexerState.h"

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILARGUMENTCONVENTION_H
-#define SWIFT_SIL_SILARGUMENTCONVENTION_H
+#ifndef LANGUAGE_SIL_SILARGUMENTCONVENTION_H
+#define LANGUAGE_SIL_SILARGUMENTCONVENTION_H
 
 #include "language/AST/Types.h"
 
@@ -81,7 +82,7 @@ struct SILArgumentConvention {
       Value = SILArgumentConvention::Pack_Inout;
       return;
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 
   operator ConventionType() const { return Value; }
@@ -108,7 +109,7 @@ struct SILArgumentConvention {
       case SILArgumentConvention::Pack_Out:
         return false;
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 
   template <bool InCallee>
@@ -131,7 +132,7 @@ struct SILArgumentConvention {
     case SILArgumentConvention::Pack_Out:
       return false;
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 
   bool isOwnedConventionInCallee() const { return isOwnedConvention<true>(); }
@@ -158,7 +159,7 @@ struct SILArgumentConvention {
     case SILArgumentConvention::Pack_Out:
       return false;
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 
   bool isGuaranteedConventionInCallee() const {
@@ -189,7 +190,7 @@ struct SILArgumentConvention {
     case SILArgumentConvention::Pack_Out:
       return false;
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 
   /// Returns true if \p Value is an indirect-out parameter.
@@ -212,7 +213,7 @@ struct SILArgumentConvention {
     case SILArgumentConvention::Pack_Guaranteed:
       return false;
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 };
 

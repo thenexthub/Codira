@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides some common code for emitting record types.
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENRECORD_H
-#define SWIFT_IRGEN_GENRECORD_H
+#ifndef LANGUAGE_IRGEN_GENRECORD_H
+#define LANGUAGE_IRGEN_GENRECORD_H
 
 #include "BitPatternBuilder.h"
 #include "IRGenFunction.h"
@@ -31,8 +32,8 @@
 #include "Outlining.h"
 #include "TypeInfo.h"
 #include "StructLayout.h"
-#include "llvm/Support/MathExtras.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/Support/MathExtras.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include "language/AST/DiagnosticsIRGen.h"
 
 namespace language {
@@ -117,8 +118,8 @@ enum FieldsAreABIAccessible_t : bool {
 template <class Impl, class Base, class FieldImpl_,
           bool IsLoadable = std::is_base_of<LoadableTypeInfo, Base>::value>
 class RecordTypeInfoImpl : public Base,
-    private llvm::TrailingObjects<Impl, FieldImpl_> {
-  friend class llvm::TrailingObjects<Impl, FieldImpl_>;
+    private toolchain::TrailingObjects<Impl, FieldImpl_> {
+  friend class toolchain::TrailingObjects<Impl, FieldImpl_>;
 
 public:
   using FieldImpl = FieldImpl_;
@@ -146,7 +147,7 @@ protected:
 
   void fillWithZerosIfSensitive(IRGenFunction &IGF, Address address, SILType T) const {
     if (T.isSensitive()) {
-      llvm::Value *size = asImpl().getSize(IGF, T);
+      toolchain::Value *size = asImpl().getSize(IGF, T);
       IGF.emitClearSensitive(address, size);
     }
   }
@@ -265,8 +266,8 @@ public:
     // If we're bitwise-takable, use memcpy.
     if (this->isBitwiseTakable(ResilienceExpansion::Maximal)) {
       IGF.Builder.CreateMemCpy(
-          dest.getAddress(), llvm::MaybeAlign(dest.getAlignment().getValue()),
-          src.getAddress(), llvm::MaybeAlign(src.getAlignment().getValue()),
+          dest.getAddress(), toolchain::MaybeAlign(dest.getAlignment().getValue()),
+          src.getAddress(), toolchain::MaybeAlign(src.getAlignment().getValue()),
           asImpl().Impl::getSize(IGF, T));
     } else if (!AreFieldsABIAccessible) {
       // If the fields are not ABI-accessible, use the value witness table.
@@ -378,13 +379,13 @@ public:
   
   // Perform an operation using the field that provides extra inhabitants for
   // the aggregate, whether that field is known statically or dynamically.
-  llvm::Value *withExtraInhabitantProvidingField(IRGenFunction &IGF,
+  toolchain::Value *withExtraInhabitantProvidingField(IRGenFunction &IGF,
          Address structAddr,
          SILType structType,
-         llvm::Value *knownStructNumXI,
-         llvm::Type *resultTy,
-         llvm::function_ref<llvm::Value* (const FieldImpl &field,
-                                          llvm::Value *numXI)> body) const {
+         toolchain::Value *knownStructNumXI,
+         toolchain::Type *resultTy,
+         toolchain::function_ref<toolchain::Value* (const FieldImpl &field,
+                                          toolchain::Value *numXI)> body) const {
     // If we know one field consistently provides extra inhabitants, delegate
     // to that field.
     if (auto field = asImpl().getFixedExtraInhabitantProvidingField(IGF.IGM)){
@@ -424,15 +425,15 @@ public:
     
     // Loop through checking to see whether we picked the fixed candidate
     // (if any) or one of the unknown-layout fields.
-    llvm::Value *instantiatedCount
+    toolchain::Value *instantiatedCount
       = (knownStructNumXI
            ? knownStructNumXI
            : emitLoadOfExtraInhabitantCount(IGF, structType));
     
     auto contBB = IGF.createBasicBlock("chose_field_for_xi");
-    llvm::PHINode *contPhi = nullptr;
+    toolchain::PHINode *contPhi = nullptr;
     if (resultTy != IGF.IGM.VoidTy)
-      contPhi = llvm::PHINode::Create(resultTy,
+      contPhi = toolchain::PHINode::Create(resultTy,
                                       asImpl().getFields().size());
     
     // If two fields have the same type, they have the same extra inhabitant
@@ -445,7 +446,7 @@ public:
 
       ConditionalDominanceScope condition(IGF);
 
-      llvm::Value *fieldCount;
+      toolchain::Value *fieldCount;
       if (isa<FixedTypeInfo>(field.getTypeInfo())) {
         // Skip fixed fields except for the candidate with the most known
         // extra inhabitants we picked above.
@@ -736,7 +737,7 @@ public:
     return mask.build().value();
   }
 
-  llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
+  toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
                                        Address structAddr,
                                        SILType structType,
                                        bool isOutlined) const override {
@@ -750,7 +751,7 @@ public:
   }
 
   void storeExtraInhabitant(IRGenFunction &IGF,
-                            llvm::Value *index,
+                            toolchain::Value *index,
                             Address structAddr,
                             SILType structType,
                             bool isOutlined) const override {
@@ -968,7 +969,7 @@ public:
       auto &fieldInfo = fields.back();
       fieldInfo.Begin = explosionSize;
       bool overflow = false;
-      explosionSize = llvm::SaturatingAdd(explosionSize, loadableFieldTI->getExplosionSize(), &overflow);
+      explosionSize = toolchain::SaturatingAdd(explosionSize, loadableFieldTI->getExplosionSize(), &overflow);
       if (overflow) {
         IGM.Context.Diags.diagnose(SourceLoc(), diag::explosion_size_oveflow);
       }

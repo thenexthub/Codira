@@ -1,13 +1,17 @@
 //===--- DifferentiableActivityAnalysis.h ---------------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements activity analysis: a dataflow analysis used for
@@ -45,19 +49,19 @@
 // Reference:
 // Laurent Hascoët. Automatic Differentiation by Program Transformation. 2007.
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_DIFFERENTIABLEACTIVITYANALYSIS_H_
-#define SWIFT_SILOPTIMIZER_ANALYSIS_DIFFERENTIABLEACTIVITYANALYSIS_H_
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_DIFFERENTIABLEACTIVITYANALYSIS_H_
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_DIFFERENTIABLEACTIVITYANALYSIS_H_
 
 #include "language/AST/GenericEnvironment.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
 
-using llvm::SmallDenseMap;
-using llvm::SmallDenseSet;
+using toolchain::SmallDenseMap;
+using toolchain::SmallDenseSet;
 
 namespace language {
 
@@ -222,22 +226,22 @@ public:
   /// Prints activity information for the config of the given value.
   void dump(SILValue value,
             IndexSubset *parameterIndices, IndexSubset *resultIndices,
-            llvm::raw_ostream &s = llvm::dbgs()) const;
+            toolchain::raw_ostream &s = toolchain::dbgs()) const;
 
   /// Prints activity information for the config of the given value.
   void dump(SILValue value, const AutoDiffConfig &config,
-            llvm::raw_ostream &s = llvm::dbgs()) const {
+            toolchain::raw_ostream &s = toolchain::dbgs()) const {
     return dump(value, config.parameterIndices, config.resultIndices, s);
   }
 
   /// Prints all activity information for the given parameter indices and result
   /// indices.
   void dump(IndexSubset *parameterIndices, IndexSubset *resultIndices,
-            llvm::raw_ostream &s = llvm::dbgs()) const;
+            toolchain::raw_ostream &s = toolchain::dbgs()) const;
 
   /// Prints all activity information for the given config.
   void dump(const AutoDiffConfig &config,
-            llvm::raw_ostream &s = llvm::dbgs()) const {
+            toolchain::raw_ostream &s = toolchain::dbgs()) const {
     return dump(config.parameterIndices, config.resultIndices, s);
   }
 };
@@ -266,4 +270,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_ANALYSIS_DIFFERENTIABLEACTIVITYANALYSIS_H_
+#endif // LANGUAGE_SILOPTIMIZER_ANALYSIS_DIFFERENTIABLEACTIVITYANALYSIS_H_

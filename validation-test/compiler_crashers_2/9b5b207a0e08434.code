@@ -1,0 +1,10 @@
+// {"signature":"language::rewriting::RewriteSystem::buildRewritePathForJoiningTerms(language::rewriting::MutableTerm, language::rewriting::MutableTerm, language::rewriting::RewritePath*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a : b
+  protocol c {
+    associatedtype d
+    associatedtype e: f where e.g == Self
+  }
+  protocol f: a
+    protocol b {
+      associatedtype g: c where g.d == Self!

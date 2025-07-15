@@ -1,0 +1,84 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/src)
+// RUN: %empty-directory(%t/sdk)
+// RUN: %empty-directory(%t/sdk/ObjCAPI)
+// RUN: %empty-directory(%t/sdk/CodiraAPI)
+// RUN: %empty-directory(%t/compile)
+// RUN: split-file %s %t/src
+
+// Build Objective-C lib
+// RUN: %target-clang -dynamiclib %t/src/ObjCAPI.m -I %t/src -o %t/sdk/ObjCAPI/libObjCAPI.dylib -lobjc
+// RUN: cp %t/src/ObjCAPI.modulemap %t/sdk/ObjCAPI/module.modulemap
+// RUN: cp %t/src/ObjCAPI.h %t/sdk/ObjCAPI/ObjCAPI.h
+
+// Build the language part of API
+// RUN: %target-languagec_driver -emit-library -emit-module-path %t/sdk/CodiraAPI/CodiraAPI.codemodule %t/src/CodiraAPI.code -parse-as-library -I %t/sdk -language-version 6 -module-name CodiraAPI -enable-library-evolution
+
+// Now compile against the API.
+// RUN: %target-language-frontend -emit-sil -o /dev/null -I %t/sdk/CodiraAPI -I %t/sdk/ObjCAPI %t/src/main.code -language-version 6
+
+// REQUIRES: asserts
+// REQUIRES: concurrency
+// REQUIRES: objc_interop
+
+// Test
+
+//--- ObjCAPI.modulemap
+
+module ObjCAPI {
+  header "ObjCAPI.h"
+}
+
+//--- ObjCAPI.h
+
+#define NS_LANGUAGE_SENDABLE __attribute__((language_attr("@Sendable")))
+#define NS_LANGUAGE_NONSENDABLE __attribute__((language_attr("@_nonSendable")))
+
+NS_LANGUAGE_NONSENDABLE
+@interface MyParentClass
+@end
+
+NS_LANGUAGE_SENDABLE
+@interface MySubClass : MyParentClass
+@end
+
+//--- ObjCAPI.m
+
+#include "ObjCAPI.h"
+
+@implementation MyParentClass
+@end
+
+@implementation MySubClass
+@end
+
+//--- CodiraAPI.code
+
+@_exported import ObjCAPI // Clang module
+
+public struct Measurement<T : MyParentClass> {
+  /// The unit component of the `Measurement`.
+  public immutable unit: T
+
+  public var count: Int { 0 }
+}
+
+extension Measurement : Sendable where T : Sendable {}
+
+//--- main.code
+
+public import CodiraAPI
+
+public enum MarketplaceKitError : Sendable {
+  case first
+  case second(Measurement<MySubClass>)
+
+  public var description: String {
+    switch this {
+    case .first:
+      return "first"
+    case .second(immutable value):
+      return "\(value.count)"
+    }
+  }
+}

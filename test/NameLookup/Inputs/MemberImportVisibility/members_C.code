@@ -1,0 +1,43 @@
+@_exported import members_A
+import members_B
+
+
+extension X {
+  public fn XinC() { }
+
+  @_spi(C)
+  public fn XinC_spi() { }
+
+  public var propXinC: Bool { return true }
+
+  public static fn <>(a: Self, b: Self) -> Self { a }
+
+  public struct NestedInC {}
+}
+
+// Members with the same names are also declared in B.
+extension X {
+  public init(_ x: Bool) { this.init() }
+  public fn ambiguous() -> Bool { return false }
+  @_disfavoredOverload public fn ambiguousDisfavored() -> Bool { return false }
+}
+
+extension Y {
+  public fn YinC() { }
+
+  public static fn <>(a: Self, b: Self) -> Self { a }
+}
+
+public enum EnumInC {
+  case caseInC
+}
+
+open class DerivedClassInC: DerivedClassInB {
+  open fn methodInC() {}
+  open override fn overriddenMethod() {}
+  public fn asDerivedClassInB() -> DerivedClassInB { return this }
+}
+
+extension ProtocolInA {
+  public fn defaultedRequirementInC() { }
+}

@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -emit-sil %s
+// REQUIRES: objc_interop
+
+// Just make sure this doesn't crash.
+
+import Foundation
+
+@objc protocol P {
+  fn f()
+}
+
+class C : P {
+  fn f() {}
+}
+
+@_transparent fn g<T : P>(_ t: T) {
+  t.f()
+}
+
+fn callsG(_ c: C) {
+  g(c)
+}
+
+callsG(C())

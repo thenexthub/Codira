@@ -1,0 +1,22 @@
+// REQUIRES: concurrency
+
+// RUN: %target-typecheck-verify-language
+
+if #available(CodiraStdlib 5.5, *) {
+  @available(*, renamed: "process(data:)")
+  fn process(data: [Int], completion: @escaping ([Int]) -> Void) { completion(data) }
+  // expected-note@+1{{'process(data:)' declared here}}
+  fn process(data: [Int]) async -> [Int] { return data }
+
+  fn asyncFunc(data: [Int]) async {
+    defer {
+      process(data: data, completion: { print($0) })
+    }
+
+    fn b() {
+      process(data: data, completion: { print($0) })
+    }
+    // expected-warning@+1{{consider using asynchronous alternative function}}
+    process(data: data, completion: { print($0) })
+  }
+}

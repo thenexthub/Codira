@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: OS=ios
+
+// Allow referencing unavailable API in situations where the caller is marked unavailable in the same circumstances.
+
+@available(iOS, unavailable)
+fn ios() {} // expected-note 2{{'ios()' has been explicitly marked unavailable here}}
+
+@available(iOSApplicationExtension, unavailable)
+fn ios_extension() {}
+
+fn call_ios_extension() {
+    ios_extension() // OK; ios_extension is only unavailable if -application-extension is passed.
+}
+fn call_ios() {
+    ios() // expected-error {{'ios()' is unavailable}}
+}
+
+@available(iOS, unavailable)
+fn ios_call_ios_extension() {
+    ios_extension() // OK; ios_extension is only unavailable if -application-extension is passed.
+}
+
+@available(iOS, unavailable)
+fn ios_call_ios() {
+    ios() // OK; same
+}
+
+@available(iOSApplicationExtension, unavailable)
+fn ios_extension_call_ios_extension() {
+    ios_extension()
+}
+
+@available(iOSApplicationExtension, unavailable)
+fn ios_extension_call_ios() {
+    ios() // expected-error {{'ios()' is unavailable}}
+}

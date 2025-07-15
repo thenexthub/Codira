@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_DEADENDBLOCKSANALYSIS_H
-#define SWIFT_SILOPTIMIZER_DEADENDBLOCKSANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_DEADENDBLOCKSANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_DEADENDBLOCKSANALYSIS_H
 
 #include "language/SIL/BasicBlockUtils.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"

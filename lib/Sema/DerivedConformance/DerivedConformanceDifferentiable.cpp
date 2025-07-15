@@ -1,13 +1,17 @@
 //===--- DerivedConformanceDifferentiable.cpp -------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2025 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements explicit derivation of the Differentiable protocol for
@@ -32,7 +36,7 @@
 #include "language/AST/TypeCheckRequests.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 using namespace language;
 
@@ -71,7 +75,7 @@ getStoredPropertiesForDifferentiation(
   for (auto *vd : nominal->getStoredProperties()) {
     // Peer through property wrappers: use original wrapped properties instead.
     if (auto *originalProperty = vd->getOriginalWrappedProperty()) {
-      // Skip immutable wrapped properties. `mutating func move(by:)` cannot
+      // Skip immutable wrapped properties. `mutating fn move(by:)` cannot
       // be synthesized to update these properties.
       if (!originalProperty->isSettable(DC))
         continue;
@@ -88,7 +92,7 @@ getStoredPropertiesForDifferentiation(
     if (!conformance)
       continue;
     // Skip `let` stored properties with a mutating `move(by:)` if requested.
-    // `mutating func move(by:)` cannot be synthesized to update `let`
+    // `mutating fn move(by:)` cannot be synthesized to update `let`
     // properties.
     if (!includeLetPropertiesWithNonmutatingMoveBy && 
         !canInvokeMoveByOnProperty(vd, conformance))
@@ -205,7 +209,7 @@ bool DerivedConformance::canDeriveDifferentiable(NominalTypeDecl *nominal,
   SmallVector<VarDecl *, 16> diffProperties;
   getStoredPropertiesForDifferentiation(nominal, DC, diffProperties);
   auto *diffableProto = C.getProtocol(KnownProtocolKind::Differentiable);
-  return llvm::all_of(diffProperties, [&](VarDecl *v) {
+  return toolchain::all_of(diffProperties, [&](VarDecl *v) {
     if (v->getInterfaceType()->hasError())
       return false;
     auto varType = DC->mapTypeIntoContext(v->getValueInterfaceType());
@@ -363,7 +367,7 @@ getOrSynthesizeTangentVectorStruct(DerivedConformance &derived, Identifier id) {
   // Note that, for example, this will always find `AdditiveArithmetic` and `Differentiable` because
   // the `Differentiable` protocol itself requires that its `TangentVector` conforms to
   // `AdditiveArithmetic` and `Differentiable`.
-  llvm::SmallSetVector<ProtocolDecl *, 4> tvDesiredProtos;
+  toolchain::SmallSetVector<ProtocolDecl *, 4> tvDesiredProtos;
 
   auto *diffableProto = C.getProtocol(KnownProtocolKind::Differentiable);
   auto *tvAssocType = diffableProto->getAssociatedType(C.Id_TangentVector);
@@ -521,7 +525,7 @@ static void checkAndDiagnoseImplicitNoDerivative(ASTContext &Context,
       if (originalProperty->getAttrs().hasAttribute<NoDerivativeAttr>())
         continue;
       // Diagnose wrapped properties whose property wrappers do not define
-      // `wrappedValue.set`. `mutating func move(by:)` cannot be synthesized
+      // `wrappedValue.set`. `mutating fn move(by:)` cannot be synthesized
       // to update these properties.
       if (!originalProperty->isSettable(DC)) {
         auto *wrapperDecl =

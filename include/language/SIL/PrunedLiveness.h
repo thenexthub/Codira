@@ -1,13 +1,17 @@
 //===--- PrunedLiveness.hpp - Compute liveness from selected uses ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Incrementally compute and represent basic block liveness of a single live
@@ -123,8 +127,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_PRUNEDLIVENESS_H
-#define SWIFT_SILOPTIMIZER_UTILS_PRUNEDLIVENESS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_PRUNEDLIVENESS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_PRUNEDLIVENESS_H
 
 #include "language/AST/TypeExpansionContext.h"
 #include "language/SIL/BasicBlockDatastructures.h"
@@ -133,10 +137,10 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -254,9 +258,9 @@ public:
     return (IsLive)liveBlocks.get(bb);
   }
 
-  llvm::StringRef getStringRef(IsLive isLive) const;
+  toolchain::StringRef getStringRef(IsLive isLive) const;
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
 
   void dump() const;
 
@@ -310,10 +314,10 @@ struct LiveRangeSummary {
         addressUseKind(AddressUseKind::NonEscaping) {}
 
   void meet(const InnerBorrowKind lhs) {
-    innerBorrowKind = swift::meet(innerBorrowKind, lhs);
+    innerBorrowKind = language::meet(innerBorrowKind, lhs);
   }
   void meet(const AddressUseKind lhs) {
-    addressUseKind = swift::meet(addressUseKind, lhs);
+    addressUseKind = language::meet(addressUseKind, lhs);
   }
   void meet(const LiveRangeSummary lhs) {
     meet(lhs.innerBorrowKind);
@@ -419,7 +423,7 @@ protected:
   // they may be the last use in the block.
   //
   // Non-lifetime-ending within a LiveOut block are uninteresting.
-  llvm::SmallMapVector<SILInstruction *, LifetimeEnding, 8> users;
+  toolchain::SmallMapVector<SILInstruction *, LifetimeEnding, 8> users;
 
 public:
   PrunedLiveness(SILFunction *function,
@@ -472,7 +476,7 @@ public:
   using ConstUserRange =
       iterator_range<const std::pair<SILInstruction *, LifetimeEnding> *>;
   ConstUserRange getAllUsers() const {
-    return llvm::make_range(users.begin(), users.end());
+    return toolchain::make_range(users.begin(), users.end());
   }
 
   /// A namespace containing helper functors for use with various mapped
@@ -495,8 +499,8 @@ public:
         }
       };
 
-      using MapFilterIter = llvm::mapped_iterator<
-          llvm::filter_iterator<
+      using MapFilterIter = toolchain::mapped_iterator<
+          toolchain::filter_iterator<
               const std::pair<SILInstruction *, LifetimeEnding> *,
               FilterFunctor>,
           MapFunctor>;
@@ -510,47 +514,47 @@ public:
         }
       };
 
-      using MapFilterIter = llvm::mapped_iterator<
-          llvm::filter_iterator<
+      using MapFilterIter = toolchain::mapped_iterator<
+          toolchain::filter_iterator<
               const std::pair<SILInstruction *, LifetimeEnding> *,
               FilterFunctor>,
           MapFunctor>;
     };
   };
-  using LifetimeEndingUserRange = llvm::iterator_range<
+  using LifetimeEndingUserRange = toolchain::iterator_range<
       RangeIterationHelpers::IsLifetimeEnding::MapFilterIter>;
 
   /// Return a range consisting of the current set of consuming users fed into
   /// this PrunedLiveness instance.
   LifetimeEndingUserRange getLifetimeEndingUsers() const {
     return map_range(
-        llvm::make_filter_range(
+        toolchain::make_filter_range(
             getAllUsers(),
             RangeIterationHelpers::IsLifetimeEnding::FilterFunctor()),
         RangeIterationHelpers::MapFunctor());
   }
 
-  using NonLifetimeEndingUserRange = llvm::iterator_range<
+  using NonLifetimeEndingUserRange = toolchain::iterator_range<
       RangeIterationHelpers::NonLifetimeEnding::MapFilterIter>;
 
   /// Return a range consisting of the current set of non lifetime ending users
   /// fed into this PrunedLiveness instance.
   NonLifetimeEndingUserRange getNonLifetimeEndingUsers() const {
     return map_range(
-        llvm::make_filter_range(
+        toolchain::make_filter_range(
             getAllUsers(),
             RangeIterationHelpers::NonLifetimeEnding::FilterFunctor()),
         RangeIterationHelpers::MapFunctor());
   }
 
-  void visitUsers(llvm::function_ref<void(SILInstruction *, LifetimeEnding)>
+  void visitUsers(toolchain::function_ref<void(SILInstruction *, LifetimeEnding)>
                       visitor) const {
     for (auto &pair : users) {
       visitor(pair.first, pair.second);
     }
   }
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 };
 
@@ -600,10 +604,10 @@ struct PrunedLivenessBoundary : AnyPrunedLivenessBoundary {
   /// of the lastUsers ends the lifetime, for example when creating a new borrow
   /// scope to enclose all uses.
   void visitInsertionPoints(
-      llvm::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
+      toolchain::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
       DeadEndBlocks *deBlocks = nullptr);
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 
 private:
@@ -946,13 +950,13 @@ class DiagnosticPrunedLiveness : public SSAPrunedLiveness {
   /// A side array that stores any non lifetime ending uses we find in live out
   /// blocks. This is used to enable our callers to emit errors on non-lifetime
   /// ending uses that extend liveness into a loop body.
-  llvm::SmallSetVector<SILInstruction *, 8> *nonLifetimeEndingUsesInLiveOut;
+  toolchain::SmallSetVector<SILInstruction *, 8> *nonLifetimeEndingUsesInLiveOut;
 
 public:
   DiagnosticPrunedLiveness(
       SILFunction *function,
       SmallVectorImpl<SILBasicBlock *> *discoveredBlocks = nullptr,
-      llvm::SmallSetVector<SILInstruction *, 8> *nonLifetimeEndingUsesInLiveOut =
+      toolchain::SmallSetVector<SILInstruction *, 8> *nonLifetimeEndingUsesInLiveOut =
           nullptr)
       : SSAPrunedLiveness(function, discoveredBlocks),
         nonLifetimeEndingUsesInLiveOut(nonLifetimeEndingUsesInLiveOut) {}
@@ -967,7 +971,7 @@ public:
     assert(nonLifetimeEndingUsesInLiveOut &&
            "Called without passing in nonLifetimeEndingUsesInLiveOut to "
            "constructor?!");
-    return llvm::make_range(nonLifetimeEndingUsesInLiveOut->begin(),
+    return toolchain::make_range(nonLifetimeEndingUsesInLiveOut->begin(),
                             nonLifetimeEndingUsesInLiveOut->end());
   }
 

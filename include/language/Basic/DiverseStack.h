@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -22,12 +23,12 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_DIVERSESTACK_H
-#define SWIFT_BASIC_DIVERSESTACK_H
+#ifndef LANGUAGE_BASIC_DIVERSESTACK_H
+#define LANGUAGE_BASIC_DIVERSESTACK_H
 
 #include "language/Basic/Malloc.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/PointerLikeTypeTraits.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/PointerLikeTypeTraits.h"
 #include <cassert>
 #include <cstring>
 #include <utility>
@@ -393,7 +394,7 @@ public:
 /// A helper class for copying value off a DiverseStack.
 template <class T>
 class DiverseValueBuffer {
-  llvm::SmallVector<char, sizeof(T) + 10 * sizeof(void*)> data;
+  toolchain::SmallVector<char, sizeof(T) + 10 * sizeof(void*)> data;
 
 public:
   DiverseValueBuffer(const T &value) {
@@ -408,11 +409,11 @@ public:
 } // end namespace language
 
 /// Allow stable_iterators to be put in things like TinyPtrVectors.
-namespace llvm {
+namespace toolchain {
   template <>
   struct PointerLikeTypeTraits<
-                      swift::DiverseStackBase::stable_iterator::AsPointer> {
-    using AsPointer = swift::DiverseStackBase::stable_iterator::AsPointer;
+                      language::DiverseStackBase::stable_iterator::AsPointer> {
+    using AsPointer = language::DiverseStackBase::stable_iterator::AsPointer;
   public:
     static inline void *getAsVoidPointer(AsPointer ptr) {
       return ptr.getAsVoidPointer();
@@ -427,4 +428,4 @@ namespace llvm {
   };
 }
 
-#endif // SWIFT_BASIC_DIVERSESTACK_H
+#endif // LANGUAGE_BASIC_DIVERSESTACK_H

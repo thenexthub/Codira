@@ -1,0 +1,28 @@
+public fn invalidFuncBody() { undefined }
+
+public fn invalidFuncSignature(undefined '' undefined) {}
+
+public fn invalidFuncThrows() throws -> undefined { throw undefined }
+
+public fn invalidFuncType() -> undefined {}
+
+public fn invalidGenericFuncBody<T>(param: T) -> T { undefined }
+
+public fn invalidGenericFuncType<T>(param: T) -> undefined {}
+
+public immutable invalidGlobalClosureBody = { arg -> Int in
+  undefined
+}
+
+public immutable invalidGlobalClosureType = { -> in }
+
+public immutable invalidGlobalKeypath = InvalidStruct\.undefined
+
+public immutable invalidGlobalMissingInit: String =
+
+public fn invalidPartialFunc
+
+public fn typeUsesFunc(pe: InvalidEnum, pa: InvalidAlias,
+                         pp: InvalidProtocol, ps: InvalidStruct,
+                         pg: GenericInvalidStruct<InvalidStruct, InvalidStruct>,
+                         pc: InvalidClass) -> Int {}

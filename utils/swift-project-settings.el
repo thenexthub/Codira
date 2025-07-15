@@ -1,38 +1,38 @@
-;===--- swift-project-settings.el - Swift project's format conventions ---===;
+;===--- language-project-settings.el - Codira project's format conventions ---===;
 ;
-; This source file is part of the Swift.org open source project
+; This source file is part of the Codira.org open source project
 ;
-; Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+; Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 ; Licensed under Apache License v2.0 with Runtime Library Exception
 ;
-; See https://swift.org/LICENSE.txt for license information
-; See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+; See https://language.org/LICENSE.txt for license information
+; See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ;
 ;===----------------------------------------------------------------------===;
 ;
 ;  Emacs-lisp support for automatically formatting things according to this
 ;  project's conventions.  To prevent this file from being automatically
-;  loaded, add (provide 'swift-project-settings) to your .emacs
+;  loaded, add (provide 'language-project-settings) to your .emacs
 ;
 ;===----------------------------------------------------------------------===;
 
 
-;; Associate .swift files with swift-mode
+;; Associate .code files with language-mode
 (setq auto-mode-alist
-   (append '(("\\.swift$" . swift-mode) ("\\.gyb$" python-mode t)) auto-mode-alist))
+   (append '(("\\.code$" . language-mode) ("\\.gyb$" python-mode t)) auto-mode-alist))
 
-;; Make sure we know where to find swift-mode
-(autoload 'swift-mode (concat (file-name-directory load-file-name) "swift-mode")
-  "Major mode for editing SWIFT source files.
-  \\{swift-mode-map}
-  Runs swift-mode-hook on startup."
+;; Make sure we know where to find language-mode
+(autoload 'language-mode (concat (file-name-directory load-file-name) "language-mode")
+  "Major mode for editing LANGUAGE source files.
+  \\{language-mode-map}
+  Runs language-mode-hook on startup."
   :interactive
   )
 
 (require 'cc-styles)
 
-;; This style is appropriate for indenting Swift's C++ source
-(c-add-style "swift"
+;; This style is appropriate for indenting Codira's C++ source
+(c-add-style "language"
              '((c-basic-offset . 2)
                (c-offsets-alist
                 (namespace-open . 0)
@@ -44,7 +44,7 @@
                 (inline-open . +)
                 (inexpr-class . +)
                 (defun-open . 0)
-                (func-decl-cont . +)
+                (fn-decl-cont . +)
                 (knr-argdecl . 0)
                 (topmost-intro-cont . c-lineup-topmost-intro-cont)
                 (annotation-top-cont . 0)
@@ -111,24 +111,24 @@
 
 ;; When this file is loaded in response to visiting a file in the
 ;; project, it won't have had its major mode set up according to the
-;; project settings yet.  For example, Swift files may come up in
-;; Fundamental mode, and C++ files won't use the swift style, unless
+;; project settings yet.  For example, Codira files may come up in
+;; Fundamental mode, and C++ files won't use the language style, unless
 ;; we do something.  This hack causes the file to be re-mode-ed.
 (unless (eq major-mode 'dired-mode) (set-auto-mode))
 
-(defun swift-project-comment-end ()
+(defun language-project-comment-end ()
   "If comment-end is non-empty returns it, stripped of leading whitespace.  Returns nil otherwise"
   (replace-regexp-in-string
    "\\` +" ""
    (if (and comment-end (> (length comment-end) 0)) comment-end v1)))
 
-(define-skeleton swift-header
-  "Insert the Swift header at the top of a file
+(define-skeleton language-header
+  "Insert the Codira header at the top of a file
 
 Note: this skeleton presently assumes that comment-start creates
 a comment until end-of-line.  Handling paired comment syntax is
 possible, but more work, and someone needs to decide what such an
-Swift header should look like.
+Codira header should look like.
 "
   ;; prompt
   "Short description (RET for none): "
@@ -137,7 +137,7 @@ Swift header should look like.
   ;; nobody is crazy enough to define a language where whitespace
   ;; determines whether something is a comment, but c++ mode and
   ;; friends have a space at the end of comment-start, which messes up
-  ;; the Swift header format.
+  ;; the Codira header format.
   ;;
   ;; When there's no comment syntax defined, we use "//"; precedent is
   ;; in the project's README file.
@@ -152,7 +152,7 @@ Swift header should look like.
   ;; v3 is t if there was a short description
   '(setq v3 (> (length str) 0))
 
-  '(setq v4 (or (swift-project-comment-end) v1))
+  '(setq v4 (or (language-project-comment-end) v1))
 
   ;; Generate dashes to fill out the rest of the top line
   (make-string (max (- 65 (+ (if v3 (+ 3 (length str)) 0) (length v2))) 3) ?-)
@@ -174,6 +174,7 @@ Swift header should look like.
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 "))
   ;; if there was a short description, add a section for a longer
@@ -194,8 +195,8 @@ Swift header should look like.
 ")
     )))
 
-(define-skeleton swift-divider
-  "Insert a Swift //===--- ... ---===// divider
+(define-skeleton language-divider
+  "Insert a Codira //===--- ... ---===// divider
 "
   ;; prompt
   "Text (RET for none): "
@@ -204,13 +205,13 @@ Swift header should look like.
   ;; nobody is crazy enough to define a language where whitespace
   ;; determines whether something is a comment, but c++ mode and
   ;; friends have a space at the end of comment-start, which messes up
-  ;; the Swift header format.
+  ;; the Codira header format.
   ;;
   ;; When there's no comment syntax defined, we use "//"; precedent is
   ;; in the project's README file.
   '(setq v1 (replace-regexp-in-string " +\\'" "" (or comment-start "//")))
 
-  '(setq v2 (or (swift-project-comment-end) v1))
+  '(setq v2 (or (language-project-comment-end) v1))
 
   v1 "===--- "
   str & " " | -1
@@ -225,26 +226,26 @@ Swift header should look like.
   "===" v2
 )
 
-(defvar swift-project-auto-insert-alist
-  ;; Currently we match any file and insert the Swift header.  We can
+(defvar language-project-auto-insert-alist
+  ;; Currently we match any file and insert the Codira header.  We can
   ;; make the regexp more specific or filter based on mode if this
   ;; doesn't work out.
-  '((("" . "Swift header") . swift-header))
-  "auto-insert-alist entries that are just for the Swift project"
+  '((("" . "Codira header") . language-header))
+  "auto-insert-alist entries that are just for the Codira project"
   )
 
-(defadvice auto-insert (around swift-project-auto-insert activate)
-  "Modify auto-insert so that swift-project-auto-insert-alist
-takes precedence for files in the Swift project"
-  ;; Assume that files with c-file-style set to "swift" are
-  ;; part of the Swift project.  Because it's set in
+(defadvice auto-insert (around language-project-auto-insert activate)
+  "Modify auto-insert so that language-project-auto-insert-alist
+takes precedence for files in the Codira project"
+  ;; Assume that files with c-file-style set to "language" are
+  ;; part of the Codira project.  Because it's set in
   ;; .dir-locals.el, this will apply to all files, not just
   ;; those using cc-mode
-  (if (and (boundp 'c-file-style) (equal c-file-style "swift"))
+  (if (and (boundp 'c-file-style) (equal c-file-style "language"))
       (let ((auto-insert-alist
-             (append swift-project-auto-insert-alist auto-insert-alist))
+             (append language-project-auto-insert-alist auto-insert-alist))
             ;; The default is to ask when creating a new file.  Inside
-            ;; this project, we always want the Swift header, so only
+            ;; this project, we always want the Codira header, so only
             ;; prompt if the user has set auto-insert to /always/
             ;; prompt.
             (auto-insert-query (if (eq auto-insert-query 'function) nil auto-insert-query)))
@@ -252,69 +253,69 @@ takes precedence for files in the Swift project"
     ad-do-it))
 
 (require 'compile) ;; for compilation-error-regexp-alist et al.
-(push 'swift-stdlibunittest-possibly-expected-assertion compilation-error-regexp-alist)
-(push `(swift-stdlibunittest-possibly-expected-assertion "^\\(\\(?:stdout\\|stderr\\)>>> *\\)?.*\\(?:failed\\(?: at\\|.*file\\)\\|.*: file\\) \\([^,]*\\), line \\([0-9]+\\)$"
+(push 'language-stdlibunittest-possibly-expected-assertion compilation-error-regexp-alist)
+(push `(language-stdlibunittest-possibly-expected-assertion "^\\(\\(?:stdout\\|stderr\\)>>> *\\)?.*\\(?:failed\\(?: at\\|.*file\\)\\|.*: file\\) \\([^,]*\\), line \\([0-9]+\\)$"
               2 3 ,(not :column) 0)
       compilation-error-regexp-alist-alist)
 
-(push 'swift-stdlibunittest-stackframe compilation-error-regexp-alist)
-(push `(swift-stdlibunittest-stackframe "^\\(?:\\(?:stdout\\|stderr\\)>>> *\\)?#[0-9]+: \\(.+\\):\\([0-9]+\\)\\(?: +.*\\)?$"
+(push 'language-stdlibunittest-stackframe compilation-error-regexp-alist)
+(push `(language-stdlibunittest-stackframe "^\\(?:\\(?:stdout\\|stderr\\)>>> *\\)?#[0-9]+: \\(.+\\):\\([0-9]+\\)\\(?: +.*\\)?$"
               1 2 ,(not :column) ,(not :just-a-warning))
       compilation-error-regexp-alist-alist)
 
-(push 'swift-stdlibunittest-failure compilation-error-regexp-alist)
-(push `(swift-stdlibunittest-failure "^\\(?:\\(?:stdout\\|stderr\\)>>> *\\)?check failed at \\(.*?\\), line \\([0-9]+\\)$"
+(push 'language-stdlibunittest-failure compilation-error-regexp-alist)
+(push `(language-stdlibunittest-failure "^\\(?:\\(?:stdout\\|stderr\\)>>> *\\)?check failed at \\(.*?\\), line \\([0-9]+\\)$"
               1 2 ,(not :column) ,(not :just-a-warning))
       compilation-error-regexp-alist-alist)
 
-(defvar swift-project-directory
+(defvar language-project-directory
   (file-name-directory (directory-file-name (file-name-directory load-file-name)))
-  "Directory where the swift project containing this file is located.
-Defaults to the parent directory of `swift-project-settings.el'.
+  "Directory where the language project containing this file is located.
+Defaults to the parent directory of `language-project-settings.el'.
 The setting for file-local values of this variable comes from
 .dir-locals.el in the project's root directory")
-(put 'swift-project-directory 'safe-local-variable 'stringp)
+(put 'language-project-directory 'safe-local-variable 'stringp)
 
-(defun swift-project-default-build-directory (project-directory)
+(defun language-project-default-build-directory (project-directory)
   "Returns the default build directory given a project directory name, `DIR/../build'"
   (concat (file-name-directory (directory-file-name project-directory)) "build/"))
 
 ;; This name doesn't end in "function" to avoid being unconditionally marked as risky.
-(defcustom swift-project-build-directory-fn 'swift-project-default-build-directory
-  "A function that, given a swift project directory name,
+(defcustom language-project-build-directory-fn 'language-project-default-build-directory
+  "A function that, given a language project directory name,
 computes the directory where your build leaves build products.
-Flymake support may search here for a swift compiler to use, for example.
-Defaults to `(concat swift-project-directory \"../build\")'."
+Flymake support may search here for a language compiler to use, for example.
+Defaults to `(concat language-project-directory \"../build\")'."
   :type 'function
 )
 
-(defun swift-project-executable-find (command)
+(defun language-project-executable-find (command)
   "Find the newest executable with the given name in the utils/ directory or in any build directory, falling back to the exec-path as a last resort.
 Given an absolute path, returns it verbatim.  This is a pretty
-good heuristic for locating things to use when working on swift
-itself, and is used as the value of swift-find-executable-fn"
+good heuristic for locating things to use when working on language
+itself, and is used as the value of language-find-executable-fn"
   (if (file-name-absolute-p command) command
-    (let* ((utility (concat swift-project-directory "utils/" command))
+    (let* ((utility (concat language-project-directory "utils/" command))
            (newest (and (file-executable-p utility) utility)))
       (dolist (x (file-expand-wildcards
-               (concat (funcall swift-project-build-directory-fn swift-project-directory)
-                       "*/swift-*/bin/" command)))
+               (concat (funcall language-project-build-directory-fn language-project-directory)
+                       "*/language-*/bin/" command)))
         (when (and (file-executable-p x) (or (null newest) (file-newer-than-file-p x newest)))
           (setq newest x)))
       (or newest (executable-find command)))))
 
-(defvar swift-project-sdk-path
+(defvar language-project-sdk-path
   (substring (shell-command-to-string "xcrun --show-sdk-path") 0 -1)
-  "The path to the swift SDK to use for syntax checking, etc.")
+  "The path to the language SDK to use for syntax checking, etc.")
 
-(defvar swift-project--gyb-temp-file-directory nil)
-(defun swift-project-gyb-temp-file-directory ()
+(defvar language-project--gyb-temp-file-directory nil)
+(defun language-project-gyb-temp-file-directory ()
   "A directory used for gyb-processed files"
-  (or swift-project--gyb-temp-file-directory
-      (setq swift-project--gyb-temp-file-directory
-            (make-temp-file "swift-project-gyb" :DIRECTORY))))
+  (or language-project--gyb-temp-file-directory
+      (setq language-project--gyb-temp-file-directory
+            (make-temp-file "language-project-gyb" :DIRECTORY))))
 
-(defun swift-project-gyb-output-file-name (input-file-name)
+(defun language-project-gyb-output-file-name (input-file-name)
   "Given the name of a .gyb file, return the name of the temporary file we'll use for its expanded result."
   (file-name-sans-extension
    (expand-file-name
@@ -323,117 +324,117 @@ itself, and is used as the value of swift-find-executable-fn"
             "!" "!!"
             (if (file-name-absolute-p input-file-name) input-file-name
               (expand-file-name input-file-name))))
-    (swift-project-gyb-temp-file-directory))))
+    (language-project-gyb-temp-file-directory))))
 
-(defun swift-project-gybbed-file (input-file-name)
+(defun language-project-gybbed-file (input-file-name)
   "Given the name of a .gyb file, process it with gyb and return an output file name.
 Given any other file name, just return that name."
   (if (not (string-equal (file-name-extension input-file-name) "gyb"))
       input-file-name
-    (let ((result (swift-project-gyb-output-file-name input-file-name)))
+    (let ((result (language-project-gyb-output-file-name input-file-name)))
       (prog1 result
         (unless (file-newer-than-file-p result input-file-name)
           (with-temp-buffer
-            (let* ((gyb (swift-project-executable-find "gyb"))
+            (let* ((gyb (language-project-executable-find "gyb"))
                    (status (call-process gyb nil t nil "-DCMAKE_SIZEOF_VOID_P=8" input-file-name)))
               (unless (eq status 0)
                 (error "%s exited with status %s" gyb status)))
             ;; Use write-region instead of write-file to avoid spewing messages.
             (write-region nil nil result nil 566)))))))
 
-(defconst swift-project-stdlib-compile-order
-  "Algorithm ArrayBody ArrayBuffer ArrayBufferProtocol ArrayCast Arrays ArrayType Assert AssertCommon BidirectionalCollection Bool BridgeObjectiveC BridgeStorage Builtin BuiltinMath Character CocoaArray Collection CollectionAlgorithms Comparable CompilerProtocols ClosedRange ContiguousArrayBuffer CString CTypes DebuggerSupport DropWhile Dump EmptyCollection Equatable ErrorType Existential Filter FixedPoint FlatMap Flatten FloatingPoint FloatingPointParsing FloatingPointTypes Hashable HashedCollections AnyHashable HashedCollectionsAnyHashableExtensions Hashing HeapBuffer ImplicitlyUnwrappedOptional Index Indices InputStream IntegerArithmetic IntegerParsing Integers Join LazyCollection LazySequence LifetimeManager ManagedBuffer Map MemoryLayout Mirrors Misc MutableCollection NewtypeWrapper ObjCMirrors ObjectIdentifier Optional OptionSet OutputStream Pointer Policy PrefixWhile Print RandomAccessCollection Range RangeReplaceableCollection ReflectionLegacy Repeat REPL Reverse Runtime SipHash Sequence SequenceAlgorithms SequenceWrapper SetAlgebra ShadowProtocols Shims Slice Sort StaticString Stride StringCharacterView String StringBridge StringBuffer StringComparable StringCore StringHashable StringInterpolation StringLegacy StringRangeReplaceableCollection StringIndexConversions StringUnicodeScalarView StringUTF16 StringUTF8 SwiftNativeNSArray UnavailableStringAPIs Unicode UnicodeScalar UnicodeTrie Unmanaged UnsafeBitMap UnsafeBufferPointer UnsafeRawBufferPointer UnsafePointer UnsafeRawPointer WriteBackMutableSlice Availability CollectionOfOne ExistentialCollection Mirror CommandLine SliceBuffer Tuple UnfoldSequence VarArgs Zip"
+(defconst language-project-stdlib-compile-order
+  "Algorithm ArrayBody ArrayBuffer ArrayBufferProtocol ArrayCast Arrays ArrayType Assert AssertCommon BidirectionalCollection Bool BridgeObjectiveC BridgeStorage Builtin BuiltinMath Character CocoaArray Collection CollectionAlgorithms Comparable CompilerProtocols ClosedRange ContiguousArrayBuffer CString CTypes DebuggerSupport DropWhile Dump EmptyCollection Equatable ErrorType Existential Filter FixedPoint FlatMap Flatten FloatingPoint FloatingPointParsing FloatingPointTypes Hashable HashedCollections AnyHashable HashedCollectionsAnyHashableExtensions Hashing HeapBuffer ImplicitlyUnwrappedOptional Index Indices InputStream IntegerArithmetic IntegerParsing Integers Join LazyCollection LazySequence LifetimeManager ManagedBuffer Map MemoryLayout Mirrors Misc MutableCollection NewtypeWrapper ObjCMirrors ObjectIdentifier Optional OptionSet OutputStream Pointer Policy PrefixWhile Print RandomAccessCollection Range RangeReplaceableCollection ReflectionLegacy Repeat REPL Reverse Runtime SipHash Sequence SequenceAlgorithms SequenceWrapper SetAlgebra ShadowProtocols Shims Slice Sort StaticString Stride StringCharacterView String StringBridge StringBuffer StringComparable StringCore StringHashable StringInterpolation StringLegacy StringRangeReplaceableCollection StringIndexConversions StringUnicodeScalarView StringUTF16 StringUTF8 CodiraNativeNSArray UnavailableStringAPIs Unicode UnicodeScalar UnicodeTrie Unmanaged UnsafeBitMap UnsafeBufferPointer UnsafeRawBufferPointer UnsafePointer UnsafeRawPointer WriteBackMutableSlice Availability CollectionOfOne ExistentialCollection Mirror CommandLine SliceBuffer Tuple UnfoldSequence VarArgs Zip"
 
-"Unfortunately, the order in which we send files to the Swift compiler actually matters.  We search this list to determine where each source file should go."
+"Unfortunately, the order in which we send files to the Codira compiler actually matters.  We search this list to determine where each source file should go."
 )
 
-(defun swift-project-stdlib-compile-order (filename)
+(defun language-project-stdlib-compile-order (filename)
   "Return an integer representing where in the required
 compilation order the given file should appear."
   (save-match-data
     (if (string-match
          (concat "\\<" (regexp-quote (replace-regexp-in-string "^\\(?:.*[/!]\\)?\\([^.]*\\).*" "\\1" filename)) "\\>")
-         swift-project-stdlib-compile-order)
+         language-project-stdlib-compile-order)
         (match-beginning 0) 0)))
 
-(defconst swift-project-common-swiftc-args
-  (list "-typecheck" "-sdk" swift-project-sdk-path
-        "-F" (concat (file-name-as-directory swift-project-sdk-path) "../../../Developer/Library/Frameworks")
+(defconst language-project-common-languagec-args
+  (list "-typecheck" "-sdk" language-project-sdk-path
+        "-F" (concat (file-name-as-directory language-project-sdk-path) "../../../Developer/Library/Frameworks")
         "-D" "INTERNAL_CHECKS_ENABLED"
         "-no-link-objc-runtime")
-  "The common arguments we'll pass to swiftc for syntax-checking
-everything in the Swift project" )
+  "The common arguments we'll pass to languagec for syntax-checking
+everything in the Codira project" )
 
-(defconst swift-project-single-frontend-swiftc-args
-  (append swift-project-common-swiftc-args
+(defconst language-project-single-frontend-languagec-args
+  (append language-project-common-languagec-args
            (list "-whole-module-optimization" "-parse-as-library"))
-  "The arguments we'll pass to swiftc for syntax-checking
+  "The arguments we'll pass to languagec for syntax-checking
 libraries that require a single frontend invocation" )
 
-(defconst swift-project-stdlib-aux-swiftc-args
-  (append swift-project-single-frontend-swiftc-args
+(defconst language-project-stdlib-aux-languagec-args
+  (append language-project-single-frontend-languagec-args
           (list "-sil-serialize-vtables" "-parse-stdlib"))
-  "swiftc arguments for library components that are compiled as
+  "languagec arguments for library components that are compiled as
   though they are part of the standard library even though
   they're not strictly in that binary."  )
 
-(defconst swift-project-stdlib-swiftc-args
+(defconst language-project-stdlib-languagec-args
   (append
-   swift-project-stdlib-aux-swiftc-args (list "-nostdimport" "-module-name" "Swift"))
-  "The arguments we'll pass to swiftc for syntax-checking the
+   language-project-stdlib-aux-languagec-args (list "-nostdimport" "-module-name" "Codira"))
+  "The arguments we'll pass to languagec for syntax-checking the
 standard library" )
 
-(defun swift-project-files-to-compile-with (relative-file)
+(defun language-project-files-to-compile-with (relative-file)
   "Given RELATIVE-FILE, a project-relative path, returns a list
 of other files that are compiled along with it."
   (if (and (string-match-p "^test/\|^validation-test/" relative-file)
            (not (string-match-p "^test/multifile" relative-file)))
     nil
-    (directory-files (concat swift-project-directory (file-name-directory relative-file))))
+    (directory-files (concat language-project-directory (file-name-directory relative-file))))
 )
 
-(defun swift-project-swiftc-arguments (relative-file)
+(defun language-project-languagec-arguments (relative-file)
   "Given RELATIVE-FILE, a project-relative path, returns a list
-of arguments that are passed to swiftc when compiling it."
+of arguments that are passed to languagec when compiling it."
   (cond ((string-match-p "^stdlib/public/core/" relative-file)
-         swift-project-stdlib-swiftc-args)
+         language-project-stdlib-languagec-args)
         ((string-match-p
-          "^stdlib/\(public/SwiftOnoneSupport\|internal\|private/SwiftPrivate\(ThreadExtras\|LibcExtras\)?\)/"
+          "^stdlib/\(public/CodiraOnoneSupport\|internal\|private/CodiraPrivate\(ThreadExtras\|LibcExtras\)?\)/"
           relative-file)
-         swift-project-stdlib-aux-swiftc-args)
-        (t swift-project-single-frontend-swiftc-args)))
+         language-project-stdlib-aux-languagec-args)
+        (t language-project-single-frontend-languagec-args)))
 
-(defun swift-project-swift-syntax-check (swiftc temp-file)
+(defun language-project-language-syntax-check (languagec temp-file)
   "Return a flymake command-line list for syntax-checking the
-current buffer, potentially along with the other .swift and .swift.gyb
+current buffer, potentially along with the other .code and .code.gyb
 files in the same directory."
-  (let ((project-relative-buffer-file (file-relative-name (buffer-file-name) swift-project-directory)))
-    (swift-project-gyb-syntax-check1
-     swiftc temp-file
-     (swift-project-files-to-compile-with project-relative-buffer-file)
-     (swift-project-swiftc-arguments project-relative-buffer-file))))
+  (let ((project-relative-buffer-file (file-relative-name (buffer-file-name) language-project-directory)))
+    (language-project-gyb-syntax-check1
+     languagec temp-file
+     (language-project-files-to-compile-with project-relative-buffer-file)
+     (language-project-languagec-arguments project-relative-buffer-file))))
 
-(defun swift-project-gyb-syntax-check1 (swiftc temp-file other-files swiftc-arguments)
+(defun language-project-gyb-syntax-check1 (languagec temp-file other-files languagec-arguments)
   "Return a flymake command-line list for syntax-checking the
-current buffer along with the other .swift and .swift.gyb
+current buffer along with the other .code and .code.gyb
 files in the same directory."
-  (let* (gyb-targets swift-sources)
+  (let* (gyb-targets language-sources)
     (dolist (x (cons temp-file other-files))
       (unless (file-equal-p x (buffer-file-name))
-        (when (string-match-p "\\.swift$\\|\\.swift\\.gyb$" (if (string-equal x temp-file) (buffer-file-name) x))
-          (let ((swift-file (swift-project-gybbed-file x)))
-            (setq swift-sources (cons swift-file swift-sources))
+        (when (string-match-p "\\.code$\\|\\.code\\.gyb$" (if (string-equal x temp-file) (buffer-file-name) x))
+          (let ((language-file (language-project-gybbed-file x)))
+            (setq language-sources (cons language-file language-sources))
             (when (string-equal "gyb" (file-name-extension x))
-              (setq gyb-targets (cons swift-file gyb-targets)))))))
-    (setq swift-sources
-          (sort swift-sources
-                (lambda (x y) (< (swift-project-stdlib-compile-order x)
-                                 (swift-project-stdlib-compile-order y)))))
-    `(,(swift-project-executable-find "line-directive")
-      (,@gyb-targets "--" ,swiftc ,@swiftc-arguments ,@swift-sources))))
+              (setq gyb-targets (cons language-file gyb-targets)))))))
+    (setq language-sources
+          (sort language-sources
+                (lambda (x y) (< (language-project-stdlib-compile-order x)
+                                 (language-project-stdlib-compile-order y)))))
+    `(,(language-project-executable-find "line-directive")
+      (,@gyb-targets "--" ,languagec ,@languagec-arguments ,@language-sources))))
 
 (require 'flymake)
-(add-to-list 'flymake-allowed-file-name-masks '(".+\\.swift.gyb$" flymake-swift-init))
+(add-to-list 'flymake-allowed-file-name-masks '(".+\\.code.gyb$" flymake-language-init))
 
-(provide 'swift-project-settings)
-;; end of swift-project-settings.el
+(provide 'language-project-settings)
+;; end of language-project-settings.el

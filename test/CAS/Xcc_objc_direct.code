@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -module-cache-path %t/clang-module-cache -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   %t/test.code -o %t/deps.json -language-version 5 -cache-compile-job -cas-path %t/cas -Xcc -fobjc-disable-direct-methods-for-testing \
+// RUN:   -file-compilation-dir %t \
+// RUN:   -I %t/include -module-load-mode prefer-serialized
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:CodiraShims > %t/shims.cmd
+// RUN: %language_frontend_plain @%t/shims.cmd
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:B > %t/B.cmd
+// RUN: %language_frontend_plain @%t/B.cmd
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json A > %t/A.cmd
+// RUN: %language_frontend_plain @%t/A.cmd
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+
+// RUN: %target-language-frontend \
+// RUN:   -typecheck -cache-compile-job -cas-path %t/cas \
+// RUN:   -language-version 5 -disable-implicit-language-modules \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -module-name Test -explicit-language-module-map-file @%t/map.casid \
+// RUN:   %t/test.code @%t/MyApp.cmd
+
+//--- test.code
+private import A
+
+//--- include/A.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name A -O -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib -user-module-version 1.0
+import B
+public fn a() {}
+
+//--- include/module.modulemap
+module B {
+  header "B.h"
+  export *
+}
+
+//--- include/B.h
+void b(void);

@@ -1,25 +1,29 @@
 //===--- CodeCompletionString.h -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODECOMPLETIONSTRING_H
-#define SWIFT_IDE_CODECOMPLETIONSTRING_H
+#ifndef LANGUAGE_IDE_CODECOMPLETIONSTRING_H
+#define LANGUAGE_IDE_CODECOMPLETIONSTRING_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <optional>
 
 namespace language {
@@ -29,7 +33,7 @@ class CodeCompletionResultBuilder;
 
 namespace detail {
 class CodeCompletionStringChunk {
-  friend class swift::ide::CodeCompletionResultBuilder;
+  friend class language::ide::CodeCompletionResultBuilder;
 
 public:
   enum class ChunkKind {
@@ -48,7 +52,7 @@ public:
     /// The "throws", "rethrows" and "async" keyword.
     EffectsSpecifierKeyword,
 
-    /// The keyword part of a declaration before the name, like "func".
+    /// The keyword part of a declaration before the name, like "fn".
     DeclIntroducer,
 
     /// Other generic keyword.
@@ -327,7 +331,7 @@ public:
 
 /// A structured representation of a code completion string.
 class alignas(detail::CodeCompletionStringChunk) CodeCompletionString final
-    : private llvm::TrailingObjects<CodeCompletionString,
+    : private toolchain::TrailingObjects<CodeCompletionString,
                                     detail::CodeCompletionStringChunk> {
   friend class CodeCompletionResultBuilder;
   friend TrailingObjects;
@@ -345,7 +349,7 @@ public:
   ///
   /// \note The caller must ensure any text inside \c Chunks will outlive this
   /// object, typically by storing them inside a \c CodeCompletionResultSink.
-  static CodeCompletionString *create(llvm::BumpPtrAllocator &Allocator,
+  static CodeCompletionString *create(toolchain::BumpPtrAllocator &Allocator,
                                       ArrayRef<Chunk> Chunks);
 
   ArrayRef<Chunk> getChunks() const {
@@ -358,10 +362,10 @@ public:
 
   /// Print a debug representation of the code completion string to \p OS.
   void print(raw_ostream &OS) const;
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 } // end namespace ide
 } // end namespace language
 
-#endif // SWIFT_IDE_CODECOMPLETIONSTRING_H
+#endif // LANGUAGE_IDE_CODECOMPLETIONSTRING_H

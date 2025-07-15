@@ -1,3 +1,0 @@
-import CSystemModule
-
-print("\(foo())")

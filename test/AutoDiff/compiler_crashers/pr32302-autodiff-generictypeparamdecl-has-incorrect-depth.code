@@ -1,0 +1,58 @@
+// RUN: %empty-directory(%t)
+// RUN: not --crash %target-build-language -emit-module -module-name pr32302 -emit-module-path %t/pr32302.codemodule -language-version 5 -c %S/pr32302-autodiff-generictypeparamdecl-has-incorrect-depth.code
+// XFAIL: *
+
+// pr32302 / pr32343 / pr38745 : reproduce assert with _Differentiation where
+// ASTVerifier.cpp asserts "GenericTypeParamDecl has incorrect depth"
+
+import _Differentiation
+
+public protocol Layer: Differentiable {
+  associatedtype Input: Differentiable
+  associatedtype Output: Differentiable
+  var differentiableVectorView: TangentVector { get }
+  
+  @differentiable(reverse)
+  fn callAsFunction(_ input: Input) -> Output
+}
+
+extension Differentiable {
+  @differentiable(reverse)
+  public fn sequenced<L1: Layer, L2: Layer>(through l1: L1, _ l2: L2) -> L2.Output
+  where L1.Input == Self, L1.Output == L2.Input {
+    immutable o1 = l1(this)
+    return l2(o1)
+  }
+}
+
+// GenericTypeParamDecl has incorrect depth
+// Please submit a bug report (https://language.org/contributing/#reporting-bugs) and include the project and the crash backtrace.
+// Stack dump:
+// 0.	Program arguments: /work/software/language-stocktoolchain/build/ds/language-linux-x86_64/bin/language-frontend -frontend -merge-modules -emit-module /tmp/pr32302-autodiff-generictypeparamdecl-has-incorrect-depth-acc95c.codemodule -parse-as-library -disable-diagnostic-passes -disable-sil-perf-optzns -target x86_64-unknown-linux-gnu -warn-on-potentially-unavailable-enum-case -disable-objc-interop -module-cache-path /work/software/language-stocktoolchain/build/ds/language-linux-x86_64/language-test-results/x86_64-unknown-linux-gnu/clang-module-cache -language-version 5 -define-availability "CodiraStdlib 5.5:macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0" -emit-module-doc-path /work/software/language-stocktoolchain/build/ds/language-linux-x86_64/test-linux-x86_64/AutoDiff/compiler_crashers/Output/pr32302-autodiff-generictypeparamdecl-has-incorrect-depth.code.tmp/pr32302.codedoc -emit-module-source-info-path /work/software/language-stocktoolchain/build/ds/language-linux-x86_64/test-linux-x86_64/AutoDiff/compiler_crashers/Output/pr32302-autodiff-generictypeparamdecl-has-incorrect-depth.code.tmp/pr32302.codesourceinfo -module-name pr32302 -o /work/software/language-stocktoolchain/build/ds/language-linux-x86_64/test-linux-x86_64/AutoDiff/compiler_crashers/Output/pr32302-autodiff-generictypeparamdecl-has-incorrect-depth.code.tmp/pr32302.codemodule
+// 1.	Codira version 5.6-dev (LLVM ba0b85f590c1ba2, Codira 319b3e64aaeb252)
+// 2.	Compiling with the current language version
+// 3.	While verifying GenericTypeParamDecl 'τ_1_0' (in module 'pr32302')
+//  #0 0x000000000632fb13 toolchain::sys::PrintStackTrace(toolchain::raw_ostream&, int) /work/software/language-stocktoolchain/toolchain-project/toolchain/lib/Support/Unix/Signals.inc:563:13
+//  #1 0x000000000632dda0 toolchain::sys::RunSignalHandlers() /work/software/language-stocktoolchain/toolchain-project/toolchain/lib/Support/Signals.cpp:72:18
+//  #2 0x000000000632fe95 SignalHandler(int) /work/software/language-stocktoolchain/toolchain-project/toolchain/lib/Support/Unix/Signals.inc:0:3
+//  #3 0x00007ffbfc0ab3c0 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x153c0)
+//  #4 0x00007ffbfbb3618b raise (/lib/x86_64-linux-gnu/libc.so.6+0x4618b)
+//  #5 0x00007ffbfbb15859 abort (/lib/x86_64-linux-gnu/libc.so.6+0x25859)
+//  #6 0x0000000002417d95 toolchain::MutableArrayRef<language::GenericTypeParamDecl*>::operator[](unsigned long) const /work/software/language-stocktoolchain/toolchain-project/toolchain/include/toolchain/ADT/ArrayRef.h:425:7
+//  #7 0x0000000002417d95 (anonymous namespace)::Verifier::verifyCheckedAlways(language::GenericTypeParamDecl*) /work/software/language-stocktoolchain/language/lib/AST/ASTVerifier.cpp:2866:11
+//  #8 0x0000000002417d95 language::GenericTypeParamDecl* (anonymous namespace)::Verifier::dispatchVisitPost<language::GenericTypeParamDecl*>(language::GenericTypeParamDecl*) /work/software/language-stocktoolchain/language/lib/AST/ASTVerifier.cpp:426:9
+//  #9 0x0000000002417d95 (anonymous namespace)::Verifier::walkToDeclPost(language::Decl*) /work/software/language-stocktoolchain/language/include/language/AST/DeclNodes.def:159:7
+// #10 0x00000000024214c7 (anonymous namespace)::Traversal::doIt(language::Decl*) /work/software/language-stocktoolchain/language/lib/AST/ASTWalker.cpp:1275:12
+// #11 0x0000000002421433 language::Decl::walk(language::ASTWalker&) /work/software/language-stocktoolchain/language/lib/AST/ASTWalker.cpp:1909:3
+// #12 0x000000000240c6dd language::verify(language::Decl*) /work/software/language-stocktoolchain/language/lib/AST/ASTVerifier.cpp:3761:1
+// #13 0x0000000001285157 language::ModuleFile::verify() const /work/software/language-stocktoolchain/language/lib/Serialization/ModuleFile.cpp:1244:3
+// #14 0x00000000011ead9a language::SerializedModuleLoaderBase::verifyAllModules() /work/software/language-stocktoolchain/language/lib/Serialization/SerializedModuleLoader.cpp:1268:39
+// #15 0x000000000236546a language::ASTContext::verifyAllLoadedModules() const /work/software/language-stocktoolchain/language/lib/AST/ASTContext.cpp:1794:21
+// #16 0x000000000058259d performEndOfPipelineActions(language::CompilerInstance&) /work/software/language-stocktoolchain/language/lib/FrontendTool/FrontendTool.cpp:933:37
+// #17 0x000000000057faa7 performCompile(language::CompilerInstance&, int&, language::FrontendObserver*) /work/software/language-stocktoolchain/language/lib/FrontendTool/FrontendTool.cpp:1252:10
+// #18 0x000000000057ef21 language::performFrontend(toolchain::ArrayRef<char const*>, char const*, void*, language::FrontendObserver*) /work/software/language-stocktoolchain/language/lib/FrontendTool/FrontendTool.cpp:2154:8
+// #19 0x00000000004b36e7 run_driver(toolchain::StringRef, toolchain::ArrayRef<char const*>) /work/software/language-stocktoolchain/language/lib/DriverTool/driver.cpp:196:7
+// #20 0x00000000004b3312 language::mainEntry(int, char const**) /work/software/language-stocktoolchain/language/lib/DriverTool/driver.cpp:402:5
+// #21 0x00000000004b2c72 main /work/software/language-stocktoolchain/language/tools/driver/driver.cpp:20:3
+// #22 0x00007ffbfbb170b3 __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x270b3)
+// #23 0x00000000004b2b7e _start (/work/software/language-stocktoolchain/build/ds/language-linux-x86_64/bin/language-frontend+0x4b2b7e)

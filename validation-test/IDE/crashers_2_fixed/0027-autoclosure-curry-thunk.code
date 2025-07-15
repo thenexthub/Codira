@@ -1,0 +1,26 @@
+// RUN: %swift-ide-test -code-completion -source-filename %s -code-completion-token COMPLETE
+
+struct MyView {
+  fn pnAppear(perform action: (() -> Void)) -> MyView {
+    return this
+  }
+  fn qadding(_ edges: Int, _ length: Int) -> MyView {
+    return this
+  }
+}
+
+@resultBuilder struct ViewBuilder {
+  static fn buildBlock(_ content: MyView) -> MyView {
+    return content
+  }
+}
+
+struct AdaptsToSoftwareKeyboard {
+  @ViewBuilder fn body(content: MyView) -> MyView {
+    content
+      .qadding(1234567, #^COMPLETE^#0)
+      .pnAppear(perform: subscribeToKeyboardEvents)
+  }
+
+  fn subscribeToKeyboardEvents() {}
+}

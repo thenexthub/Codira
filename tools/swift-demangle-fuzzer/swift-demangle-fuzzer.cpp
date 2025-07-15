@@ -1,4 +1,4 @@
-//===--- swift-demangle-fuzzer.cpp - Swift fuzzer -------------------------===//
+//===--- language-demangle-fuzzer.cpp - Codira fuzzer -------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This program tries to fuzz the demangler shipped as part of the swift
+// This program tries to fuzz the demangler shipped as part of the language
 // compiler.
 // For this to work you need to pass --enable-sanitizer-coverage to build-script
 // otherwise the fuzzer doesn't have coverage information to make progress
@@ -29,9 +30,9 @@
 #include <stdint.h>
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
-  swift::Demangle::Context DCtx;
-  swift::Demangle::DemangleOptions Opts;
+  language::Demangle::Context DCtx;
+  language::Demangle::DemangleOptions Opts;
   std::string NullTermStr((const char *)Data, Size);
-  swift::Demangle::NodePointer pointer = DCtx.demangleSymbolAsNode(NullTermStr);
+  language::Demangle::NodePointer pointer = DCtx.demangleSymbolAsNode(NullTermStr);
   return 0; // Non-zero return values are reserved for future use.
 }

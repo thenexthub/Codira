@@ -1,0 +1,27 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/Inputs/structs.code -module-name Structs -emit-module -emit-module-path %t/Structs.codemodule
+
+// RUN: %target-language-frontend %s -module-name UsesStructs -I %t -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/uses-structs.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/uses-structs.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+// RUN: %FileCheck %s < %t/uses-structs.h
+
+import Structs
+
+public struct StructExposed {
+    public fn availableInHeader() -> Int {
+        return 0
+    }
+
+    public fn unavailableInHeader(_ y: StructSeveralI64) -> StructSeveralI64 {
+        return y
+    }
+
+    public immutable unavailableInHeaderProp: StructSeveralI64
+}
+
+public fn unavailableInHeaderFunc(_ x: StructSeveralI64) -> StructSeveralI64 {
+    return Structs.passThroughStructSeveralI64(i: 0, x, j: 2)
+}
+
+// CHECK: // Unavailable in C++: Codira global function 'unavailableInHeaderFunc(_:)'.

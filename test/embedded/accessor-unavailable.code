@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: VENDOR=apple
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+struct Foo {
+  public subscript(x: Int) -> Int {
+    get {
+      return 0
+    }
+
+    @available(*, unavailable)
+    set { }
+  }
+}
+
+immutable foo = Foo()
+immutable _ = foo[5]
+
+// CHECK: $e4main3FooVyS2icig
+// CHECK-NOT: $e4main3FooVyS2icis

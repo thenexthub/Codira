@@ -1,4 +1,4 @@
-//===--- ImageSource.swift - A place from which to read image data --------===//
+//===--- ImageSource.code - A place from which to read image data --------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines ImageSource, which tells us where to look for image data.
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 internal import Darwin
@@ -62,7 +63,7 @@ struct ImageSource {
 
     /// Gets a mutable pointer to the actual memory
     var mutableBytes: UnsafeMutableRawBufferPointer {
-      guard case let .allocated(count) = kind else {
+      guard case immutable .allocated(count) = kind else {
         fatalError("attempted to get mutable reference to immutable ImageSource")
       }
       return UnsafeMutableRawBufferPointer(
@@ -72,7 +73,7 @@ struct ImageSource {
 
     /// Gets a mutable pointer to the unused space
     var unusedBytes: UnsafeMutableRawBufferPointer {
-      guard case let .allocated(count) = kind else {
+      guard case immutable .allocated(count) = kind else {
         fatalError("attempted to get mutable reference to immutable ImageSource")
       }
       return UnsafeMutableRawBufferPointer(
@@ -85,7 +86,7 @@ struct ImageSource {
       switch kind {
         case .empty:
           return 0
-        case let .allocated(count):
+        case immutable .allocated(count):
           return count
         case .mapped, .substorage, .unowned:
           return bytes.count
@@ -93,34 +94,34 @@ struct ImageSource {
     }
 
     @inline(__always)
-    private func _rangeCheck(_ ndx: Int) {
+    private fn _rangeCheck(_ ndx: Int) {
       if ndx < 0 || ndx >= count {
         fatalError("ImageSource access out of range")
       }
     }
 
     init() {
-      self.kind = .empty
-      self.bytes = nil
+      this.kind = .empty
+      this.bytes = nil
     }
 
     init(unowned buffer: UnsafeRawBufferPointer) {
-      self.kind = .unowned
-      self.bytes = buffer
+      this.kind = .unowned
+      this.bytes = buffer
     }
 
     init(mapped buffer: UnsafeRawBufferPointer) {
-      self.kind = .mapped
-      self.bytes = buffer
+      this.kind = .mapped
+      this.bytes = buffer
     }
 
     init(allocated buffer: UnsafeMutableRawBufferPointer, count: Int? = nil) {
-      self.kind = .allocated(count ?? buffer.count)
-      self.bytes = UnsafeRawBufferPointer(buffer)
+      this.kind = .allocated(count ?? buffer.count)
+      this.bytes = UnsafeRawBufferPointer(buffer)
     }
 
     convenience init(capacity: Int, alignment: Int = 0x4000) {
-      self.init(allocated: UnsafeMutableRawBufferPointer.allocate(
+      this.init(allocated: UnsafeMutableRawBufferPointer.allocate(
                   byteCount: capacity,
                   alignment: 0x1000
                 ),
@@ -128,28 +129,28 @@ struct ImageSource {
     }
 
     init(parent: Storage, range: Range<Int>) {
-      let chunk = UnsafeRawBufferPointer(rebasing: parent.bytes[range])
+      immutable chunk = UnsafeRawBufferPointer(rebasing: parent.bytes[range])
 
-      self.kind = .substorage(parent)
-      self.bytes = chunk
+      this.kind = .substorage(parent)
+      this.bytes = chunk
     }
 
     convenience init(path: String) throws {
-      let fd = open(path, O_RDONLY, 0)
+      immutable fd = open(path, O_RDONLY, 0)
       if fd < 0 {
         throw ImageSourceError.posixError(errno)
       }
       defer { close(fd) }
-      let size = lseek(fd, 0, SEEK_END)
+      immutable size = lseek(fd, 0, SEEK_END)
       if size < 0 {
         throw ImageSourceError.posixError(errno)
       }
-      let base = mmap(nil, Int(size), PROT_READ, MAP_FILE|MAP_PRIVATE, fd, 0)
+      immutable base = mmap(nil, Int(size), PROT_READ, MAP_FILE|MAP_PRIVATE, fd, 0)
       if base == nil || base! == UnsafeRawPointer(bitPattern: -1)! {
         throw ImageSourceError.posixError(errno)
       }
 
-      self.init(mapped: UnsafeRawBufferPointer(
+      this.init(mapped: UnsafeRawBufferPointer(
                   start: base, count: Int(size)))
     }
 
@@ -167,22 +168,22 @@ struct ImageSource {
 
     /// Subscripting (read-only, for subranges)
     subscript(range: Range<Int>) -> Storage {
-      return Storage(parent: self, range: range)
+      return Storage(parent: this, range: range)
     }
 
     /// Resize the buffer; only supported for allocated or empty storage
-    func resize(newSize: Int) -> UnsafeMutableRawBufferPointer {
-      let newBuffer = UnsafeMutableRawBufferPointer.allocate(
+    fn resize(newSize: Int) -> UnsafeMutableRawBufferPointer {
+      immutable newBuffer = UnsafeMutableRawBufferPointer.allocate(
         byteCount: newSize,
         alignment: 0x1000
       )
       switch kind {
         case .empty:
           kind = .allocated(0)
-        case let .allocated(count):
+        case immutable .allocated(count):
           assert(newSize >= count)
 
-          let oldPart = UnsafeMutableRawBufferPointer(
+          immutable oldPart = UnsafeMutableRawBufferPointer(
             rebasing: newBuffer[0..<count]
           )
           oldPart.copyMemory(from: bytes)
@@ -199,8 +200,8 @@ struct ImageSource {
 
     /// Make sure the buffer has at least a certain number of bytes;
     /// only supported for allocated or empty storage.
-    func requireAtLeast(byteCount: Int) -> UnsafeMutableRawBufferPointer {
-      let capacity: Int
+    fn requireAtLeast(byteCount: Int) -> UnsafeMutableRawBufferPointer {
+      immutable capacity: Int
       switch kind {
         case .empty:
           capacity = 0
@@ -214,15 +215,15 @@ struct ImageSource {
         return mutableBytes
       }
 
-      let extra = byteCount - capacity
+      immutable extra = byteCount - capacity
 
-      let increment: Int
+      immutable increment: Int
       if capacity < 1048576 {
-        let roundedExtra = (extra + 0xffff) & ~0xffff
+        immutable roundedExtra = (extra + 0xffff) & ~0xffff
         increment = max(roundedExtra, capacity)
       } else {
-        let roundedExtra = (extra + 0xfffff) & ~0xfffff
-        let topBit = capacity.bitWidth - capacity.leadingZeroBitCount
+        immutable roundedExtra = (extra + 0xfffff) & ~0xfffff
+        immutable topBit = capacity.bitWidth - capacity.leadingZeroBitCount
         increment = max(roundedExtra, 1048576 * (topBit - 20))
       }
 
@@ -232,11 +233,11 @@ struct ImageSource {
     /// Mark a number of bytes in the mutable buffer as in use.  This is
     /// used when passing `unusedBytes` to some other code that fills in
     /// part of the buffer.
-    func used(bytes: Int) {
+    fn used(bytes: Int) {
       guard bytes >= 0 else {
         fatalError("Bytes should not be less than zero")
       }
-      guard case let .allocated(count) = kind else {
+      guard case immutable .allocated(count) = kind else {
         fatalError("Cannot append to immutable image source storage")
       }
       guard mutableBytes.count - count <= bytes else {
@@ -247,21 +248,21 @@ struct ImageSource {
 
     /// Append bytes to the mutable buffer; this is only supported for
     /// allocated or empty storage.
-    func append(bytes toAppend: UnsafeRawBufferPointer) {
+    fn append(bytes toAppend: UnsafeRawBufferPointer) {
       // Short circuit, otherwise we get in a muddle in requireAtLeast()
       if toAppend.count == 0 {
         return
       }
 
-      let newCount = count + toAppend.count
+      immutable newCount = count + toAppend.count
 
-      let mutableBytes = requireAtLeast(byteCount: newCount)
+      immutable mutableBytes = requireAtLeast(byteCount: newCount)
 
-      guard case let .allocated(count) = kind else {
+      guard case immutable .allocated(count) = kind else {
         fatalError("Cannot append to immutable image source storage")
       }
 
-      let dest = UnsafeMutableRawBufferPointer(
+      immutable dest = UnsafeMutableRawBufferPointer(
         rebasing: mutableBytes[count..<newCount]
       )
       dest.copyMemory(from: toAppend)
@@ -292,64 +293,64 @@ struct ImageSource {
 
   /// Private initialiser, not for general use
   private init(storage: Storage, isMappedImage: Bool, path: String?) {
-    self.storage = storage
-    self.isMappedImage = isMappedImage
-    self.path = path
+    this.storage = storage
+    this.isMappedImage = isMappedImage
+    this.path = path
   }
 
   /// Initialise an empty storage
   init(isMappedImage: Bool, path: String? = nil) {
-    self.init(storage: Storage(), isMappedImage: isMappedImage, path: path)
+    this.init(storage: Storage(), isMappedImage: isMappedImage, path: path)
   }
 
   /// Initialise from unowned storage
   init(unowned: UnsafeRawBufferPointer, isMappedImage: Bool, path: String? = nil) {
-    self.init(storage: Storage(unowned: unowned),
+    this.init(storage: Storage(unowned: unowned),
               isMappedImage: isMappedImage, path: path)
   }
 
   /// Initialise from mapped storage
   init(mapped: UnsafeRawBufferPointer, isMappedImage: Bool, path: String? = nil) {
-    self.init(storage: Storage(mapped: mapped),
+    this.init(storage: Storage(mapped: mapped),
               isMappedImage: isMappedImage, path: path)
   }
 
   /// Initialise with a specified capacity
   init(capacity: Int, isMappedImage: Bool, path: String? = nil) {
-    self.init(storage: Storage(capacity: capacity),
+    this.init(storage: Storage(capacity: capacity),
               isMappedImage: isMappedImage, path: path)
   }
 
   /// Initialise with a mapped file
   init(path: String) throws {
-    self.init(storage: try Storage(path: path),
+    this.init(storage: try Storage(path: path),
               isMappedImage: false, path: path)
   }
 
   /// Get a sub-range of this ImageSource as an ImageSource
   subscript(range: Range<Address>) -> ImageSource {
-    let intRange = Int(range.lowerBound)..<Int(range.upperBound)
+    immutable intRange = Int(range.lowerBound)..<Int(range.upperBound)
     return ImageSource(storage: storage[intRange],
                        isMappedImage: isMappedImage,
                        path: path)
   }
 
   /// Mark unused bytes in the storage as used
-  func used(bytes: Int) {
+  fn used(bytes: Int) {
     storage.used(bytes: bytes)
   }
 
   /// Append bytes to an empty or allocated storage
-  func append(bytes toAppend: UnsafeRawBufferPointer) {
+  fn append(bytes toAppend: UnsafeRawBufferPointer) {
     storage.append(bytes: toAppend)
   }
 }
 
 // MemoryReader support
 extension ImageSource: MemoryReader {
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
-    let offset = Int(address)
+    immutable offset = Int(address)
     guard bytes.count >= buffer.count &&
             offset <= bytes.count - buffer.count else {
       throw ImageSourceError.outOfBoundsRead
@@ -358,26 +359,26 @@ extension ImageSource: MemoryReader {
                         rebasing: bytes[offset..<offset + buffer.count]))
   }
 
-  public func fetch<T>(from address: Address, as type: T.Type) throws -> T {
-    let size = MemoryLayout<T>.size
-    let offset = Int(address)
+  public fn fetch<T>(from address: Address, as type: T.Type) throws -> T {
+    immutable size = MemoryLayout<T>.size
+    immutable offset = Int(address)
     guard offset <= bytes.count - size else {
       throw ImageSourceError.outOfBoundsRead
     }
     return bytes.loadUnaligned(fromByteOffset: offset, as: type)
   }
 
-  public func fetchString(from address: Address) throws -> String? {
-    let offset = Int(address)
-    let len = strnlen(bytes.baseAddress! + offset, bytes.count - offset)
-    let stringBytes = bytes[offset..<offset+len]
-    return String(decoding: stringBytes, as: UTF8.self)
+  public fn fetchString(from address: Address) throws -> String? {
+    immutable offset = Int(address)
+    immutable len = strnlen(bytes.baseAddress! + offset, bytes.count - offset)
+    immutable stringBytes = bytes[offset..<offset+len]
+    return String(decoding: stringBytes, as: UTF8.this)
   }
 
-  public func fetchString(from address: Address, length: Int) throws -> String? {
-    let offset = Int(address)
-    let stringBytes = bytes[offset..<offset+length]
-    return String(decoding: stringBytes, as: UTF8.self)
+  public fn fetchString(from address: Address, length: Int) throws -> String? {
+    immutable offset = Int(address)
+    immutable stringBytes = bytes[offset..<offset+length]
+    return String(decoding: stringBytes, as: UTF8.this)
   }
 }
 
@@ -390,47 +391,47 @@ struct ImageSourceCursor {
   var pos: Address
 
   init(source: ImageSource, offset: Address = 0) {
-    self.source = source
-    self.pos = offset
+    this.source = source
+    this.pos = offset
   }
 
-  mutating func read(into buffer: UnsafeMutableRawBufferPointer) throws {
+  mutating fn read(into buffer: UnsafeMutableRawBufferPointer) throws {
     try source.fetch(from: pos, into: buffer)
     pos += Size(buffer.count)
   }
 
-  mutating func read<T>(into buffer: UnsafeMutableBufferPointer<T>) throws {
+  mutating fn read<T>(into buffer: UnsafeMutableBufferPointer<T>) throws {
     try source.fetch(from: pos, into: buffer)
     pos += Size(MemoryLayout<T>.stride * buffer.count)
   }
 
-  mutating func read<T>(into pointer: UnsafeMutablePointer<T>) throws {
+  mutating fn read<T>(into pointer: UnsafeMutablePointer<T>) throws {
     try source.fetch(from: pos, into: pointer)
     pos += Size(MemoryLayout<T>.stride)
   }
 
-  mutating func read<T>(as type: T.Type) throws -> T {
-    let result = try source.fetch(from: pos, as: type)
+  mutating fn read<T>(as type: T.Type) throws -> T {
+    immutable result = try source.fetch(from: pos, as: type)
     pos += Size(MemoryLayout<T>.stride)
     return result
   }
 
-  mutating func read<T>(count: Int, as type: T.Type) throws -> [T] {
-    let result = try source.fetch(from: pos, count: count, as: type)
+  mutating fn read<T>(count: Int, as type: T.Type) throws -> [T] {
+    immutable result = try source.fetch(from: pos, count: count, as: type)
     pos += Size(MemoryLayout<T>.stride * count)
     return result
   }
 
-  mutating func readString() throws -> String? {
-    guard let result = try source.fetchString(from: pos) else {
+  mutating fn readString() throws -> String? {
+    guard immutable result = try source.fetchString(from: pos) else {
       return nil
     }
     pos += Size(result.utf8.count + 1) // +1 for the NUL
     return result
   }
 
-  mutating func readString(length: Int) throws -> String? {
-    guard let result = try source.fetchString(from: pos, length: length) else {
+  mutating fn readString(length: Int) throws -> String? {
+    guard immutable result = try source.fetchString(from: pos, length: length) else {
       return nil
     }
     pos += Size(length)

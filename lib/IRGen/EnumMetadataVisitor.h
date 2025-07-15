@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP class useful for visiting all of the fields in an
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_ENUMMETADATAVISITOR_H
-#define SWIFT_IRGEN_ENUMMETADATAVISITOR_H
+#ifndef LANGUAGE_IRGEN_ENUMMETADATAVISITOR_H
+#define LANGUAGE_IRGEN_ENUMMETADATAVISITOR_H
 
 #include "NominalMetadataVisitor.h"
 #include "GenEnum.h"

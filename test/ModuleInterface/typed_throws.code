@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+
+public enum MyError: Error {
+  case fail
+}
+
+// CHECK: public fn throwsMyError() throws(Test.MyError)
+public fn throwsMyError() throws(MyError) { }
+
+// CHECK: public fn takesClosureThrowingMyError(_ closure: () throws(Test.MyError) -> Codira.Void)
+public fn takesClosureThrowingMyError(_ closure: () throws(MyError) -> Void) {}
+
+public struct HasThrowingInit {
+  // CHECK: public init() throws(Test.MyError)
+  public init() throws(MyError) { }
+}

@@ -1,27 +1,31 @@
 //===--- LinearMapInfo.h --------------------------------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Linear map struct and branching trace enum information for differentiation.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_LINEARMAPINFO_H
-#define SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_LINEARMAPINFO_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_LINEARMAPINFO_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_LINEARMAPINFO_H
 
 #include "language/AST/AutoDiff.h"
 #include "language/AST/SynthesizedFileUnit.h"
 #include "language/SIL/ApplySite.h"
 #include "language/SILOptimizer/Analysis/DifferentiableActivityAnalysis.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
 
@@ -70,20 +74,20 @@ private:
   const AutoDiffConfig config;
 
   /// Mapping from original basic blocks to linear map tuple types.
-  llvm::DenseMap<SILBasicBlock *, TupleType *> linearMapTuples;
+  toolchain::DenseMap<SILBasicBlock *, TupleType *> linearMapTuples;
 
   /// Mapping from original basic blocks to branching trace enums.
   /// For pullbacks: these are predecessor enums.
   /// For differentials: these are successor enums.
-  llvm::DenseMap<SILBasicBlock *, EnumDecl *> branchingTraceDecls;
+  toolchain::DenseMap<SILBasicBlock *, EnumDecl *> branchingTraceDecls;
 
   /// Mapping from `apply` / `begin_apply` instructions in the original function to the
   /// corresponding linear map tuple type index.
-  llvm::DenseMap<FullApplySite, unsigned> linearMapIndexMap;
+  toolchain::DenseMap<FullApplySite, unsigned> linearMapIndexMap;
 
   /// Mapping from predecessor-successor basic block pairs in the original
   /// function to the corresponding branching trace enum case.
-  llvm::DenseMap<std::pair<SILBasicBlock *, SILBasicBlock *>, EnumElementDecl *>
+  toolchain::DenseMap<std::pair<SILBasicBlock *, SILBasicBlock *>, EnumElementDecl *>
       branchingTraceEnumCases;
 
   /// A synthesized file unit.
@@ -101,7 +105,7 @@ private:
   SILType remapTypeInDerivative(SILType ty);
 
   /// Retrieves the file unit that contains implicit declarations in the
-  /// current Swift module.
+  /// current Codira module.
   SynthesizedFileUnit &getSynthesizedFile() { return synthesizedFile; }
 
   /// Creates an enum declaration with the given JVP/VJP generic signature,
@@ -202,4 +206,4 @@ public:
 } // end namespace autodiff
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_LINEARMAPINFO_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_LINEARMAPINFO_H

@@ -1,0 +1,7 @@
+// {"kind":"typecheck","signature":"language::recordRequiredImportAccessLevelForDecl(language::Decl const*, language::DeclContext const*, language::AccessLevel, std::__1::function<void (language::AttributedImport<language::ImportedModule>)>)"}
+// RUN: %empty-directory(%t)
+// RUN: not --crash %target-language-frontend -typecheck -sdk %t %s
+// REQUIRES: OS=macosx
+import Distributed
+distributed actor a {
+}

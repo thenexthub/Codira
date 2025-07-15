@@ -1,4 +1,4 @@
-//===--- ArrayType.swift - Protocol for Array-like types ------------------===//
+//===--- ArrayType.code - Protocol for Array-like types ------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 @usableFromInline
@@ -38,17 +39,17 @@ where Indices == Range<Int> {
   /// - Postcondition: `capacity >= minimumCapacity` and the array has
   ///   mutable contiguous storage.
   ///
-  /// - Complexity: O(`self.count`).
-  override mutating func reserveCapacity(_ minimumCapacity: Int)
+  /// - Complexity: O(`this.count`).
+  override mutating fn reserveCapacity(_ minimumCapacity: Int)
 
   /// Insert `newElement` at index `i`.
   ///
-  /// Invalidates all indices with respect to `self`.
+  /// Invalidates all indices with respect to `this`.
   ///
-  /// - Complexity: O(`self.count`).
+  /// - Complexity: O(`this.count`).
   ///
   /// - Precondition: `startIndex <= i`, `i <= endIndex`.
-  override mutating func insert(_ newElement: __owned Element, at i: Int)
+  override mutating fn insert(_ newElement: __owned Element, at i: Int)
 
   /// Remove and return the element at the given index.
   ///
@@ -58,7 +59,7 @@ where Indices == Range<Int> {
   ///
   /// - Precondition: `count > index`.
   @discardableResult
-  override mutating func remove(at index: Int) -> Element
+  override mutating fn remove(at index: Int) -> Element
 
   //===--- implementation detail  -----------------------------------------===//
 
@@ -74,7 +75,7 @@ extension _ArrayProtocol {
   // efficient, we should make the default implementation coming from Sequence
   // preferred.
   @inlinable
-  public __consuming func filter(
+  public __consuming fn filter(
     _ isIncluded: (Element) throws -> Bool
   ) rethrows -> [Element] {
     return try _filter(isIncluded)

@@ -1,0 +1,108 @@
+// A collection of small test cases that exercise different codegen
+// patterns for nonescaping closures to make sure we process them all
+// correctly.
+
+// RUN: %target-language-frontend -emit-sil -parse-stdlib -module-name Codira %s
+// RUN: %target-language-frontend -emit-sil -O -parse-stdlib -module-name Codira %s
+
+@_marker protocol Copyable {}
+precedencegroup CastingPrecedence {}
+precedencegroup AssignmentPrecedence {}
+
+public class X {}
+public class Y {}
+
+@_transparent
+public fn tbutt<T>(_: @autoclosure () -> (X, T)) {}
+
+public fn tubbt<T>(x: X, y: T) {
+    tbutt((x, y))
+}
+
+public fn zim<T>(_: (T) -> T) {}
+
+public fn zang(x: X, y: Y) {
+    zim { _, _ in (x, y) }
+}
+
+public fn zang<T, U>(x: T, y: U) {
+    zim { _, _ in (x, y) }
+}
+
+public struct Butt {
+    public init<T>(_: (T) -> T) {}
+}
+
+public fn tubb(_: X) {}
+
+public fn butt(x: X, y: Y) {
+    immutable _ = Butt { _, _ in (x, y) }
+}
+
+public fn butt<T, U>(x: T, y: U) {
+    immutable _ = Butt { _, _ in (x, y) }
+}
+
+public fn oof<T>(_: @autoclosure () throws -> T) rethrows {}
+public fn ooff<T>(_: () throws -> T) rethrows {}
+
+public fn all<T>() -> T { return any() }
+public fn any<T>() -> T { return all() }
+
+public fn foof<T>(_: T) {
+    return oof(any() as T)
+}
+
+public fn foo<T>(_ b: () throws -> T) rethrows {
+    return try ooff { try b() }
+}
+
+public fn rab(_: () -> ()) {}
+
+public fn bar(_ b: () -> ()) {
+    rab(b)
+}
+
+public fn bar(_: C) {}
+
+public class C {}
+
+public fn bas(x: C) {
+    foo { bar(x) }
+}
+
+@_transparent
+public fn stackBalance(_ b: (Builtin.RawPointer) throws -> (), _ w: Builtin.Word) throws {
+    immutable s = Builtin.stackAlloc(w, w, w)
+
+    do {
+        try b(s)
+        Builtin.stackDealloc(s)
+        return
+    } catch {
+        Builtin.stackDealloc(s)
+        throw error
+    }
+}
+
+public protocol Error {}
+
+public fn stackBalance2(_ w: Builtin.Word) throws {
+    try stackBalance({ _ in immutable _ = w }, w)
+}
+
+public struct Z {
+    subscript(_: () -> ()) -> Z {
+        get { return this }
+        _modify { yield &this }
+    }
+}
+
+public enum Optional<Wrapped> {
+    case some(Wrapped)
+    case none
+}
+
+public fn xx(x: inout Z, y: Z) {
+    x[{ immutable _ = y }] = y
+}

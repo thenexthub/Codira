@@ -7,7 +7,7 @@
 Type Metadata
 -------------
 
-The Swift runtime keeps a **metadata record** for every type used in a program,
+The Codira runtime keeps a **metadata record** for every type used in a program,
 including every instantiation of generic types. These metadata records can
 be used by (TODO: reflection and) debugger tools to discover information about
 types. For non-generic nominal types, these metadata records are generated
@@ -141,10 +141,10 @@ contain the following fields:
   is not set.
 
 Currently we have specialized ABI endpoints to retrieve metadata for functions
-with 0/1/2/3 parameters - `swift_getFunctionTypeMetadata{0|1|2|3}` and the general
-one `swift_getFunctionTypeMetadata` which handles all other function types and
+with 0/1/2/3 parameters - `language_getFunctionTypeMetadata{0|1|2|3}` and the general
+one `language_getFunctionTypeMetadata` which handles all other function types and
 functions with parameter flags e.g. `(inout Int) -> Void`. Based on the usage
-information collected from Swift Standard Library and Overlays as well as Source
+information collected from Codira Standard Library and Overlays as well as Source
 Compatibility Suite it was decided not to have specialized ABI endpoints for
 functions with parameter flags due their minimal use.
 
@@ -181,7 +181,7 @@ contain the following fields:
   
 - The **protocol vector** follows. This is an inline array of pointers to
   descriptions of each protocol in the composition. Each pointer references
-  either a Swift `protocol descriptor`_ or an Objective-C `Protocol`; the low
+  either a Codira `protocol descriptor`_ or an Objective-C `Protocol`; the low
   bit will be set to indicate when it references an Objective-C protocol. For an
   "any" or "AnyObject" type, there is no protocol descriptor vector.
 
@@ -216,7 +216,7 @@ record also serves as a valid class metatype value for all of its ancestor
 classes.
 
 - The **destructor pointer** is stored at **offset -2** from the metadata
-  pointer, behind the value witness table. This function is invoked by Swift's
+  pointer, behind the value witness table. This function is invoked by Codira's
   deallocator when the class instance is destroyed.
 - The **isa pointer** pointing to the class's Objective-C-compatible metaclass
   record is stored at **offset 0**, in place of an integer kind discriminator.
@@ -229,7 +229,7 @@ classes.
   pointer** is stored at **offset 4**; on other platforms, it is not present. 
   The rodata pointer points to an Objective-C compatible rodata record for the 
   class. This pointer value includes a tag.
-  The **low bit is always set to 1** for Swift classes and always set to 0 for
+  The **low bit is always set to 1** for Codira classes and always set to 0 for
   Objective-C classes.
 - The **class flags** are a 32-bit field at **offset 5** on platforms which 
   support Objective-C interoperability; on other platforms, the field is at 
@@ -256,7 +256,7 @@ classes.
   respectively, at **offset 8** and at **offset 11**; in platforms that do not
   support Objective-C interoperability, this is, respectively, at **offset 5** 
   and at **offset 8**.
-- For each Swift class in the class's inheritance hierarchy, in order starting
+- For each Codira class in the class's inheritance hierarchy, in order starting
   from the root class and working down to the most derived class, the following
   fields are present:
 
@@ -283,12 +283,12 @@ Objective C class wrapper metadata
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Objective-C class wrapper metadata are used when an Objective-C ``Class``
-object is not a valid Swift type metadata.
+object is not a valid Codira type metadata.
 
 In addition to the `common metadata layout`_ fields, Objective-C class
 wrapper metadata records have the following fields:
 
-- A ``Class`` value at **offset 1** which is known to not be a Swift type
+- A ``Class`` value at **offset 1** which is known to not be a Codira type
   metadata.
 
 Generic Argument Vector
@@ -323,8 +323,8 @@ parameter vector contains witness tables for those protocols, as if laid out::
 Foreign Class Metadata
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Foreign class metadata describes "foreign" class types, which support Swift
-reference counting but are otherwise opaque to the Swift runtime.
+Foreign class metadata describes "foreign" class types, which support Codira
+reference counting but are otherwise opaque to the Codira runtime.
 
 - The `nominal type descriptor`_ for the most-derived class type is stored at
   **offset 0**.
@@ -420,8 +420,8 @@ Protocol Descriptor
 Protocol descriptors describe the requirements of a protocol, and act as a
 handle for the protocol itself. They are referenced by `Protocol metadata`_, as
 well as `Protocol Conformance Records`_ and generic requirements. Protocol
-descriptors are only created for non-`@objc` Swift protocols: `@objc` protocols
-are emitted as Objective-C metadata. The layout of Swift protocol descriptors is
+descriptors are only created for non-`@objc` Codira protocols: `@objc` protocols
+are emitted as Objective-C metadata. The layout of Codira protocol descriptors is
 as follows:
 
 - Protocol descriptors are context descriptors, so they are prefixed by context
@@ -454,8 +454,8 @@ Protocol Conformance Records
 
 A *protocol conformance record* states that a given type conforms to a
 particular protocol. Protocol conformance records are emitted into their own
-section, which is scanned by the Swift runtime when needed (e.g., in response to
-a `swift_conformsToProtocol()` query). Each protocol conformance record
+section, which is scanned by the Codira runtime when needed (e.g., in response to
+a `language_conformsToProtocol()` query). Each protocol conformance record
 contains:
 
 - The `protocol descriptor`_ describing the protocol of the conformance,
@@ -487,7 +487,7 @@ contains:
 Recursive Type Metadata Dependencies
 ------------------------------------
 
-The Swift type system is built up inductively by the application of
+The Codira type system is built up inductively by the application of
 higher-kinded type constructors (such as "tuple" or "function", as well
 as user-defined generic types) to other, existing types.  Crucially, it
 is the "least fixed point" of that inductive system, meaning that it
@@ -502,12 +502,12 @@ but it is not possible to directly express the type::
 
   typealias RecursiveDict = Dictionary<String, RecursiveDict>
 
-However, Swift does permit the expression of types that have recursive
+However, Codira does permit the expression of types that have recursive
 dependencies upon themselves in ways other than their basic identity.
 For example, class ``A`` may inherit from a superclass ``Base<A>``,
 or it may contain a field of type ``(A, A)``.  In order to support
 the dynamic reification of such types into type metadata, as well as
-to support the dynamic layout of such types, Swift's metadata runtime
+to support the dynamic layout of such types, Codira's metadata runtime
 supports a system of metadata dependency and iterative initialization.
 
 Metadata States
@@ -648,7 +648,7 @@ the metadata's dynamic state.  Because of this, code inspecting aspects
 of the metadata that have not been guaranteed by the returned dynamic
 state may observe partially-initialized state, such as a value witness
 table with a meaningless size value.  Instead, that code should call
-the ``swift_checkMetadataState`` function.
+the ``language_checkMetadataState`` function.
 
 Metadata Allocation and Initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

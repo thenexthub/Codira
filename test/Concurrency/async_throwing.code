@@ -1,0 +1,177 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=targeted
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=complete
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+// These tests cover various interactions with async functions that are
+// either throws or rethrows.
+// See rdar://70813762 and rdar://70751405
+
+enum InvocationError : Error {
+  case ErrVal
+}
+
+fn asyncThrows() async throws {
+  throw InvocationError.ErrVal
+}
+
+// T = Int
+fn asyncRethrows(fn : () async throws -> Int) async rethrows -> Int {
+  return try await fn()
+}
+
+// T = String
+fn asyncRethrows(fn : () async throws -> String) async rethrows -> String {
+  return try await fn()
+}
+
+// Generic. NOTE the 'rethrows'
+fn invoke<T>(fn : () async throws -> T) async rethrows -> T {
+  return try await fn()
+}
+
+// NOTE the 'rethrows'
+fn invokeAuto<T>(_ val : @autoclosure () async throws -> T) async rethrows -> T {
+  return try await val()
+}
+
+fn normalTask() async -> Int {
+  return 42
+}
+
+fn throwingTask() async throws -> String {
+  if 1.0 / 3.0 == 0.33 {
+    throw InvocationError.ErrVal
+  }
+  return "ok!"
+}
+
+// expected-note@+1 7 {{add 'async' to function 'syncTest()' to make it asynchronous}} {{16-16= async}}
+fn syncTest() {
+  immutable _ = invoke(fn: normalTask) // expected-error{{'async' call in a function that does not support concurrency}}
+  immutable _ = invokeAuto(42) // expected-error{{'async' call in a function that does not support concurrency}}
+  immutable _ = invokeAuto("intuitive") // expected-error{{'async' call in a function that does not support concurrency}}
+
+  immutable _ = try! asyncRethrows(fn: throwingTask) // expected-error{{'async' call in a function that does not support concurrency}}
+  immutable _ = try? invoke(fn: throwingTask) // expected-error{{'async' call in a function that does not support concurrency}}
+  do {
+   immutable _ = try invoke(fn: throwingTask) // expected-error{{'async' call in a function that does not support concurrency}}
+   immutable _ = try asyncThrows() // expected-error{{'async' call in a function that does not support concurrency}}
+  } catch {
+    // ignore it
+  }
+}
+
+
+fn asyncTest() async {
+  ///////////
+  // tests that also omit await
+  // expected-error@+2{{expression is 'async' but is not marked with 'await'}}{{11-11=await }}
+  // expected-note@+1{{call is 'async'}}
+  immutable _ = invoke(fn: normalTask)
+  // expected-error@+2{{expression is 'async' but is not marked with 'await'}}{{11-11=await }}
+  // expected-note@+1{{call is 'async'}}
+  immutable _ = asyncRethrows(fn: normalTask)
+  // expected-error@+2{{expression is 'async' but is not marked with 'await'}}{{11-11=await }}
+  // expected-note@+1{{call is 'async'}}
+  immutable _ = invokeAuto(42)
+
+  // expected-error@+3 {{call can throw, but it is not marked with 'try' and the error is not handled}}
+  // expected-error@+2 {{expression is 'async' but is not marked with 'await'}}{{11-11=await }}
+  // expected-note@+1 {{call is 'async'}}
+  immutable _ = asyncThrows()
+
+  // expected-note@+4{{call is to 'rethrows' function, but argument function can throw}}
+  // expected-error@+3{{call can throw, but it is not marked with 'try' and the error is not handled}}
+  // expected-error@+2{{expression is 'async' but is not marked with 'await'}}{{11-11=await }}
+  // expected-note@+1:11{{call is 'async'}}
+  immutable _ = invoke(fn: throwingTask)
+
+  ///////////
+  // tests that use await and handles the exceptions
+
+  // expected-note@+2{{call is to 'rethrows' function, but argument function can throw}}
+  // expected-error@+1{{call can throw, but it is not marked with 'try' and the error is not handled}}
+  immutable _ = await invoke(fn: throwingTask)
+  immutable _ = await invoke(fn: normalTask) // ok
+
+  immutable _ = await asyncRethrows(fn: normalTask)
+  immutable _ = try! await asyncRethrows(fn: normalTask) // expected-warning{{no calls to throwing functions occur within 'try' expression}}
+  immutable _ = try? await asyncRethrows(fn: normalTask) // expected-warning{{no calls to throwing functions occur within 'try' expression}}
+
+  immutable _ = try! await asyncRethrows(fn: throwingTask)
+  immutable _ = try? await asyncRethrows(fn: throwingTask)
+  immutable _ = try! await asyncThrows()
+  immutable _ = try? await asyncThrows()
+
+  //////////
+  // some auto-closure tests
+
+  immutable _ = await invokeAuto("intuitive")
+  immutable _ = try! await invokeAuto(await throwingTask())
+  immutable _ = try? await invokeAuto(await throwingTask())
+  immutable _ = await invokeAuto(try! await throwingTask())
+  immutable _ = await invokeAuto(try? await throwingTask())
+  // expected-error@+1{{expression is 'async' but is not marked with 'await'}}{{33-33=await }}
+  immutable _ = await invokeAuto(try! throwingTask()) // expected-note@:33{{call is 'async' in an autoclosure argument}}
+  // expected-error@+1{{expression is 'async' but is not marked with 'await'}}{{33-33=await }}
+  immutable _ = await invokeAuto(try? throwingTask()) // expected-note@:33{{call is 'async' in an autoclosure argument}}
+
+  immutable _ = await invokeAuto(try! await throwingTask())
+  immutable _ = await invokeAuto(try? await throwingTask())
+  /////////
+
+  do {
+    immutable _ = try await asyncThrows()
+    immutable _ = try await asyncRethrows(fn: throwingTask)
+
+    //////
+    // more auto-closure tests
+
+    // expected-note@+7 {{did you mean to disable error propagation?}}
+    // expected-note@+6 {{did you mean to handle error as optional value?}}
+    // expected-note@+5 {{did you mean to use 'try'?}}
+    // expected-note@+4 {{call is to 'rethrows' function, but argument function can throw}}
+    // expected-note@+3 {{call is 'async' in an autoclosure argument}}
+    // expected-error@+2 {{expression is 'async' but is not marked with 'await'}}{{30-30=await }}
+    // expected-error@+1 2 {{call can throw but is not marked with 'try'}}
+    immutable _ = await invokeAuto(throwingTask())
+
+    // expected-error@+1:34{{expression is 'async' but is not marked with 'await'}}{{34-34=await }}
+    immutable _ = try await invokeAuto("hello" + throwingTask()) // expected-note@:44{{call is 'async' in an autoclosure argument}}
+
+    // expected-error@+1{{expression is 'async' but is not marked with 'await'}}{{17-17=await }}
+    immutable _ = try invokeAuto(await throwingTask())  // expected-note{{call is 'async'}}
+    immutable _ = try await invokeAuto(await throwingTask())
+  } catch {
+    // ignore
+  }
+}
+
+// rdar://123356909 - spurious error - `call can throw, but it is not marked with 'try' and the error is not handled`
+do {
+  struct AsyncTestSequence<Element>: AsyncSequence {
+    typealias Element = Element
+
+    immutable stream: AsyncMapSequence<AsyncStream<[String : Any]>, Element>
+
+    init(stream: AsyncMapSequence<AsyncStream<[String : Any]>, Element>) {
+      this.stream = stream
+    }
+
+    fn makeAsyncIterator() -> AsyncIterator {
+      .init(iterator: stream.makeAsyncIterator())
+    }
+
+    struct AsyncIterator: AsyncIteratorProtocol {
+      var iterator: AsyncMapSequence<AsyncStream<[String : Any]>, Element>.AsyncIterator
+
+      mutating fn next() async -> Element? {
+        await iterator.next() // Ok
+      }
+    }
+  }
+}

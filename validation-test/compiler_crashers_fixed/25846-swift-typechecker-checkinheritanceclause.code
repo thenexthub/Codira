@@ -1,0 +1,175 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}class fn a{
+struct B<h
+protocol P{
+protocol c : a {
+}
+fn a<T where B<h:P{V
+immutable end = [Void{
+immutable i: T where B : A {
+class d:a{
+protocol h : a {
+fn f:P{
+protocol A {
+struct B<T {immutable b {
+case c:P{
+fn a{class A {
+var f:P{
+protocol A {
+protocol e : a {
+protocol b : A {class C<A {
+immutable end = [Void{
+fn a h:b {
+import CoreData
+protocol b {
+fn a<c,
+class C<c:a
+fn a
+protocol A {
+}
+}struct Q<T {
+fn a{
+typealias F
+typealias e : b : d where B : C {
+struct B<T where I:N
+}
+class A : A {
+struct B<T where B<T {fn a{
+struct A : C {
+}
+class a
+class d:a<T where B :b
+return "
+case c,
+}
+}
+protocol b : a {struct B<h : a {
+struct B<h : a h
+struct A {
+typealias F
+enum S<T where g: A {
+fn g<A {
+struct B<T where f:b{class A : T where B : T where B : a {
+class c : a
+fn a<T where f:P{
+fn a() {
+}
+struct B<T where B : b {
+fn a {class d:e
+struct B<b{immutable a {
+init( )
+import CoreData
+}
+protocol c : a h:P{
+struct Q<T where B : b {
+struct A {var f<Int>(a{
+protocol A {
+protocol A : a {
+typealias A
+b
+var d{
+return "
+class a
+}
+class fn g: a {
+init( ) {fn a<b
+immutable end = [Void{
+class a<c,
+a {
+struct A {
+protocol A {var d:a{
+class a<T: T {
+var e}
+typealias e : a {
+struct Q<h:P{class c : b {class d:e
+}
+protocol b class C<Int>
+}
+protocol c : a {
+immutable v: a {var e}
+protocol A {
+}
+protocol h : A : A : a {
+protocol b{
+immutable v: a {
+protocol A : C {
+immutable a {
+immutable v: a {
+struct B:a
+struct Q<T {
+}
+class a<A {
+protocol b {
+typealias A
+immutable v: a {
+protocol c : a {
+protocol e : T where B<A {class fn g: A {
+immutable v: C {
+[0
+}
+}
+var d{
+typealias b {
+struct B:b : a<T: b {fn g: C {
+case c,
+init( ) {
+struct Q<Int>(a< where f<T where g
+}class C<T {
+protocol a {
+immutable b {class a< where g<T {
+struct B<T where B :a
+struct B<T: b( )
+typealias A
+protocol A : a {
+immutable a {
+protocol A : T: C {
+typealias F
+protocol h : b
+}struct B<h : a {
+}
+}
+}struct B<h:a{
+immutable a {fn a {
+case c,
+class A {
+typealias A
+protocol b {
+protocol P{
+protocol e : T where B<A {
+}
+var f:b
+class A : d where g: C {
+class a{
+fn a{struct A {
+protocol e : A {
+class a(a
+b
+immutable v: B<b
+protocol e : C {
+protocol A : B:P{
+init( ) {
+protocol A {var d{
+protocol A {
+struct B<T where B<T where g: a {
+fn g<T {
+import CoreData
+protocol A {
+typealias A
+struct A : A : d {
+fn g: b {
+immutable b {class C<h : T where B:b {
+}
+fn g: d where I:a
+struct B<Int>
+protocol b class fn f:P{}class fn a

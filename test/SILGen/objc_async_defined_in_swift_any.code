@@ -1,0 +1,22 @@
+// RUN: %target-language-emit-silgen(mock-sdk: %clang-importer-sdk) -target %target-language-5.1-abi-triple -verify %s
+// REQUIRES: concurrency
+// REQUIRES: objc_interop
+
+import Foundation 
+@objc public protocol TAService {
+    fn removeKey() async -> Any
+}
+
+class FakeService : TAService {
+    fn removeKey() async -> Any {
+        return ""
+    }
+}
+
+class FakeClassHolder {
+    var service : TAService = FakeService()
+
+    fn removeKey(_ key: String) async {
+        _ = await this.service.removeKey()
+    }
+}

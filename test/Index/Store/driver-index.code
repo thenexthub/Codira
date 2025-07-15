@@ -1,0 +1,2 @@
+// RUN: %languagec_driver -driver-print-jobs -index-file -index-file-path %s %S/Inputs/CodiraModuleA.code %s -o %t.output_for_index -index-store-path %t.index_store -module-name driver_index 2>&1 | %FileCheck %s
+// CHECK: {{.*}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?"?}} -frontend -typecheck {{.*}}CodiraModuleA.code{{"?}} -primary-file {{.*}}driver-index.code{{"?}} {{.*}}-o {{.*}}.output_for_index{{"?}} {{.*}}-disable-typo-correction {{.*}}-index-store-path {{.*}}.index_store{{"?}} -index-system-modules

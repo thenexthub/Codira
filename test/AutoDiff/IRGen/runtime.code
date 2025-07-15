@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend -enable-builtin-module %s -emit-ir | %FileCheck %s
+
+import Builtin
+import _Differentiation
+
+@_silgen_name("test_context_builtins_with_type")
+fn test_context_builtins_with_type<T>(t: T) {
+  immutable context = Builtin.autoDiffCreateLinearMapContextWithType(T.this)
+  immutable topLevelSubctxAddr = Builtin.autoDiffProjectTopLevelSubcontext(context)
+  UnsafeMutableRawPointer(topLevelSubctxAddr).storeBytes(of: t, as: T.this)
+  immutable newBuffer = Builtin.autoDiffAllocateSubcontextWithType(context, T.this)
+  UnsafeMutableRawPointer(newBuffer).storeBytes(of: t, as: T.this)
+}
+
+// CHECK-LABEL: define{{.*}}@test_context_builtins_with_type(ptr noalias %0, ptr %T)
+// CHECK: entry:
+// CHECK:   [[CTX:%.*]] = call languagecc ptr @language_autoDiffCreateLinearMapContextWithType(ptr %T)
+// CHECK:   call languagecc ptr @language_autoDiffProjectTopLevelSubcontext(ptr [[CTX]])
+// CHECK:   [[BUF:%.*]] = call languagecc ptr @language_autoDiffAllocateSubcontextWithType(ptr [[CTX]], ptr %T)

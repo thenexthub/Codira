@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines types relating to the local caching of type data,
@@ -25,15 +26,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_LOCALTYPEDATA_H
-#define SWIFT_IRGEN_LOCALTYPEDATA_H
+#ifndef LANGUAGE_IRGEN_LOCALTYPEDATA_H
+#define LANGUAGE_IRGEN_LOCALTYPEDATA_H
 
 #include "LocalTypeDataKind.h"
 #include "DominancePoint.h"
 #include "MetadataPath.h"
 #include "MetadataRequest.h"
 #include "language/AST/Type.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 #include <utility>
 
 namespace language {
@@ -72,7 +73,7 @@ private:
 
   private:
     enum { KindMask = 0x1, ConditionalMask = 0x2 };
-    llvm::PointerIntPair<CacheEntry*, 2, unsigned> NextAndFlags;
+    toolchain::PointerIntPair<CacheEntry*, 2, unsigned> NextAndFlags;
 
   public:
     Kind getKind() const {
@@ -145,7 +146,7 @@ private:
 
   public:
     explicit AbstractSource(CanType type, ProtocolConformanceRef conformance,
-                            llvm::Value *value)
+                            toolchain::Value *value)
       : Type(type), Conformance(conformance.getOpaqueValue()),
         Value(MetadataResponse::forComplete(value)) {
       assert(Conformance != nullptr);
@@ -255,13 +256,13 @@ private:
     }
   };
 
-  llvm::DenseMap<LocalTypeDataKey, CacheEntryChain> Map;
+  toolchain::DenseMap<LocalTypeDataKey, CacheEntryChain> Map;
 
   std::vector<AbstractSource> AbstractSources;
 
   void addAbstractForFulfillments(IRGenFunction &IGF,
                                   FulfillmentMap &&fulfillments,
-                            llvm::function_ref<AbstractSource()> createSource);
+                            toolchain::function_ref<AbstractSource()> createSource);
 
 
 public:

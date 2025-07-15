@@ -1,4 +1,4 @@
-//===--- PassPipeline.cpp - Swift Compiler SIL Pass Entrypoints -----------===//
+//===--- PassPipeline.cpp - Codira Compiler SIL Pass Entrypoints -----------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 ///  \file
@@ -34,36 +35,36 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorOr.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorOr.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool>
-    SILViewCFG("sil-view-cfg", llvm::cl::init(false),
-               llvm::cl::desc("Enable the sil cfg viewer pass"));
+static toolchain::cl::opt<bool>
+    SILViewCFG("sil-view-cfg", toolchain::cl::init(false),
+               toolchain::cl::desc("Enable the sil cfg viewer pass"));
 
-static llvm::cl::opt<bool> SILViewCanonicalCFG(
-    "sil-view-canonical-cfg", llvm::cl::init(false),
-    llvm::cl::desc("Enable the sil cfg viewer pass after diagnostics"));
+static toolchain::cl::opt<bool> SILViewCanonicalCFG(
+    "sil-view-canonical-cfg", toolchain::cl::init(false),
+    toolchain::cl::desc("Enable the sil cfg viewer pass after diagnostics"));
 
-static llvm::cl::opt<bool> SILPrintCanonicalModule(
-    "sil-print-canonical-module", llvm::cl::init(false),
-    llvm::cl::desc("Print the textual SIL module after diagnostics"));
+static toolchain::cl::opt<bool> SILPrintCanonicalModule(
+    "sil-print-canonical-module", toolchain::cl::init(false),
+    toolchain::cl::desc("Print the textual SIL module after diagnostics"));
 
-static llvm::cl::opt<bool> SILPrintFinalOSSAModule(
-    "sil-print-final-ossa-module", llvm::cl::init(false),
-    llvm::cl::desc("Print the textual SIL module before lowering from OSSA"));
+static toolchain::cl::opt<bool> SILPrintFinalOSSAModule(
+    "sil-print-final-ossa-module", toolchain::cl::init(false),
+    toolchain::cl::desc("Print the textual SIL module before lowering from OSSA"));
 
-static llvm::cl::opt<bool> SILViewSILGenCFG(
-    "sil-view-silgen-cfg", llvm::cl::init(false),
-    llvm::cl::desc("Enable the sil cfg viewer pass before diagnostics"));
+static toolchain::cl::opt<bool> SILViewSILGenCFG(
+    "sil-view-silgen-cfg", toolchain::cl::init(false),
+    toolchain::cl::desc("Enable the sil cfg viewer pass before diagnostics"));
 
 //===----------------------------------------------------------------------===//
 //                          Diagnostic Pass Pipeline
@@ -120,15 +121,18 @@ static void addMandatoryDiagnosticOptPipeline(SILPassPipelinePlan &P) {
   // This guarantees that stack-promotable boxes have [static] enforcement.
   P.addAccessEnforcementSelection();
 
-  P.addAllocBoxToStack();
+#ifdef LANGUAGE_ENABLE_LANGUAGE_IN_LANGUAGE
+  P.addMandatoryAllocBoxToStack();
+#else
+  P.addLegacyAllocBoxToStack();
+#endif
   P.addNoReturnFolding();
   P.addBooleanLiteralFolding();
   addDefiniteInitialization(P);
 
   P.addAddressLowering();
 
-  // Before we run later semantic optimizations, eliminate simple functions that
-  // we specialized to ensure that we do not emit diagnostics twice.
+  // TODO: remove this once CapturePromotion deletes specialized functions itself.
   P.addDiagnosticDeadFunctionElimination();
 
   P.addFlowIsolation();
@@ -212,7 +216,7 @@ static void addMandatoryDiagnosticOptPipeline(SILPassPipelinePlan &P) {
   P.addMandatoryRedundantLoadElimination();
 
   // This phase performs optimizations necessary for correct interoperation of
-  // Swift os log APIs with C os_log ABIs.
+  // Codira os log APIs with C os_log ABIs.
   // Pass dependencies: this pass depends on MandatoryInlining and Mandatory
   // Linking happening before this pass and ConstantPropagation happening after
   // this pass.
@@ -248,7 +252,7 @@ static void addMandatoryDiagnosticOptPipeline(SILPassPipelinePlan &P) {
     P.addDiagnoseLifetimeIssues();
   }
 
-  // Canonical swift requires all non cond_br critical edges to be split.
+  // Canonical language requires all non cond_br critical edges to be split.
   P.addSplitNonCondBrCriticalEdges();
 
   P.addMandatoryPerformanceOptimizations();
@@ -257,16 +261,16 @@ static void addMandatoryDiagnosticOptPipeline(SILPassPipelinePlan &P) {
 
   // MandatoryPerformanceOptimizations might create specializations that are not
   // used, and by being unused they are might have unspecialized applies.
-  // Eliminate them via the DeadFunctionAndGlobalElimination in embedded Swift
+  // Eliminate them via the DeadFunctionAndGlobalElimination in embedded Codira
   // to avoid getting metadata/existential use errors in them. We don't want to
-  // run this pass in regular Swift: Even unused functions are expected to be
+  // run this pass in regular Codira: Even unused functions are expected to be
   // available in debug (-Onone) builds for debugging and development purposes.
-  if (P.getOptions().EmbeddedSwift) {
+  if (P.getOptions().EmbeddedCodira) {
     P.addDeadFunctionAndGlobalElimination();
   }
 
   P.addDiagnoseUnknownConstValues();
-  P.addEmbeddedSwiftDiagnostics();
+  P.addEmbeddedCodiraDiagnostics();
   P.addPerformanceDiagnostics();
 }
 
@@ -407,7 +411,7 @@ void addHighLevelLoopOptPasses(SILPassPipelinePlan &P) {
   P.addCOWArrayOpts();
   // Cleanup.
   P.addDCE();
-  P.addSwiftArrayPropertyOpt();
+  P.addCodiraArrayPropertyOpt();
 }
 
 // Primary FunctionPass pipeline.
@@ -434,7 +438,7 @@ void addFunctionPasses(SILPassPipelinePlan &P,
   P.addDCE();
 
   // Optimize copies from a temporary (an "l-value") to a destination.
-  P.addTempLValueOpt();
+  P.addTempLValueElimination();
 
   // Split up opaque operations (copy_addr, retain_value, etc.).
   P.addLowerAggregateInstrs();
@@ -450,11 +454,11 @@ void addFunctionPasses(SILPassPipelinePlan &P,
   P.addMem2Reg();
 
   // Run the existential specializer Pass.
-  if (!P.getOptions().EmbeddedSwift) {
+  if (!P.getOptions().EmbeddedCodira) {
     // MandatoryPerformanceOptimizations already took care of all specializations
-    // in embedded Swift mode, running the existential specializer might introduce
+    // in embedded Codira mode, running the existential specializer might introduce
     // more generic calls from non-generic functions, which breaks the assumptions
-    // of embedded Swift.
+    // of embedded Codira.
     P.addExistentialSpecializer();
   }
 
@@ -476,7 +480,7 @@ void addFunctionPasses(SILPassPipelinePlan &P,
     P.addDCE();
     P.addCOWArrayOpts();
     P.addDCE();
-    P.addSwiftArrayPropertyOpt();
+    P.addCodiraArrayPropertyOpt();
     
     // This string optimization can catch additional opportunities, which are
     // exposed once optimized String interpolations (from the high-level string
@@ -490,10 +494,10 @@ void addFunctionPasses(SILPassPipelinePlan &P,
   // current function (after optimizing any new callees).
   P.addDevirtualizer();
   // MandatoryPerformanceOptimizations already took care of all specializations
-  // in embedded Swift mode, running the generic specializer might introduce
+  // in embedded Codira mode, running the generic specializer might introduce
   // more generic calls from non-generic functions, which breaks the assumptions
-  // of embedded Swift.
-  if (!P.getOptions().EmbeddedSwift) {
+  // of embedded Codira.
+  if (!P.getOptions().EmbeddedCodira) {
     P.addGenericSpecializer();
     // Run devirtualizer after the specializer, because many
     // class_method/witness_method instructions may use concrete types now.
@@ -583,7 +587,7 @@ void addFunctionPasses(SILPassPipelinePlan &P,
   P.addEarlyCodeMotion();
   P.addReleaseHoisting();
   P.addARCSequenceOpts();
-  P.addTempRValueOpt();
+  P.addTempRValueElimination();
 
   P.addSimplifyCFG();
   if (OpLevel == OptimizationLevelKind::LowLevel) {
@@ -639,7 +643,7 @@ static void addPerfEarlyModulePassPipeline(SILPassPipelinePlan &P) {
   P.addDeadFunctionAndGlobalElimination();
 
   // Cleanup after SILGen: remove trivial copies to temporaries.
-  P.addTempRValueOpt();
+  P.addTempRValueElimination();
   // Cleanup after SILGen: remove unneeded borrows/copies.
   if (P.getOptions().CopyPropagation == CopyPropagationOption::On) {
     P.addComputeSideEffects();
@@ -659,7 +663,7 @@ static void addPerfEarlyModulePassPipeline(SILPassPipelinePlan &P) {
   // Cleanup after SILGen: remove trivial copies to temporaries. This version of
   // temp-rvalue opt is here so that we can hit copies from non-ossa code that
   // is linked in from the stdlib.
-  P.addTempRValueOpt();
+  P.addTempRValueElimination();
 
   // Add the outliner pass (Osize).
   P.addOutliner();
@@ -667,7 +671,7 @@ static void addPerfEarlyModulePassPipeline(SILPassPipelinePlan &P) {
 
 // The "high-level" pipeline serves two purposes:
 //
-// 1. Optimize the standard library Swift module prior to serialization. This
+// 1. Optimize the standard library Codira module prior to serialization. This
 // reduces the amount of work during compilation of all non-stdlib clients.
 //
 // 2. Optimize caller functions before inlining semantic calls inside
@@ -677,10 +681,10 @@ static void addHighLevelFunctionPipeline(SILPassPipelinePlan &P) {
   P.startPipeline("HighLevel,Function+EarlyLoopOpt",
                   true /*isFunctionPassPipeline*/);
 
-  // Skip EagerSpecializer on embedded Swift, which already specializes
+  // Skip EagerSpecializer on embedded Codira, which already specializes
   // everything. Otherwise this would create metatype references for functions
-  // with @_specialize attribute and those are incompatible with Emebdded Swift.
-  if (!P.getOptions().EmbeddedSwift) {
+  // with @_specialize attribute and those are incompatible with Emebdded Codira.
+  if (!P.getOptions().EmbeddedCodira) {
     P.addEagerSpecializer();
   }
 
@@ -768,8 +772,8 @@ static void addClosureSpecializePassPipeline(SILPassPipelinePlan &P) {
   P.addCapturePropagation();
 
   // Specialize closure.
-  if (P.getOptions().EnableExperimentalSwiftBasedClosureSpecialization) {
-    P.addExperimentalSwiftBasedClosureSpecialization();
+  if (P.getOptions().EnableExperimentalCodiraBasedClosureSpecialization) {
+    P.addExperimentalCodiraBasedClosureSpecialization();
   } else {
     P.addClosureSpecializer();
   }
@@ -886,7 +890,7 @@ static void addLastChanceOptPassPipeline(SILPassPipelinePlan &P) {
   // Verify AccessStorage once again after optimizing and lowering OSSA.
 #ifndef NDEBUG
   // Temporarily disabled because it triggers a false alarm when building
-  // SwiftDocC on linux: rdar://141270464
+  // CodiraDocC on linux: rdar://141270464
   // TODO: re-enable when the problem is fixed.
   // P.addAccessPathVerification();
 #endif
@@ -938,7 +942,7 @@ SILPassPipelinePlan::getIRGenPreparePassPipeline(const SILOptions &Options) {
   P.addPartialApplySimplification();
    */
   // Hoist generic alloc_stack instructions to the entry block to enable better
-  // llvm-ir generation for dynamic alloca instructions.
+  // toolchain-ir generation for dynamic alloca instructions.
   P.addAllocStackHoisting();
   // Change large loadable types to be passed indirectly across function
   // boundaries as required by the ABI.
@@ -973,12 +977,12 @@ SILPassPipelinePlan::getPerformancePassPipeline(const SILOptions &Options) {
   // Eliminate immediately dead functions and then clone functions from the
   // stdlib.
   //
-  // This also performs early OSSA based optimizations on *all* swift code.
+  // This also performs early OSSA based optimizations on *all* language code.
   addPerfEarlyModulePassPipeline(P);
 
   // Then run an iteration of the high-level SSA passes.
   //
-  // FIXME: When *not* emitting a .swiftmodule, skip the high-level function
+  // FIXME: When *not* emitting a .codemodule, skip the high-level function
   // pipeline to save compile time.
   addHighLevelFunctionPipeline(P);
 
@@ -1072,7 +1076,7 @@ SILPassPipelinePlan::getOnonePassPipeline(const SILOptions &Options) {
   // inlinable functions from imported ones.
   P.addOnonePrespecializations();
 
-  // For embedded Swift: CMO is used to serialize libraries.
+  // For embedded Codira: CMO is used to serialize libraries.
   P.addCrossModuleOptimization();
 
   // First serialize the SIL if we are asked to.
@@ -1085,6 +1089,9 @@ SILPassPipelinePlan::getOnonePassPipeline(const SILOptions &Options) {
   // Now that we have serialized, propagate debug info.
   P.addMovedAsyncVarDebugInfoPropagator();
 
+  // Even at Onone it's important to remove copies of structs, especially if they are large.
+  P.addMandatoryTempRValueElimination();
+
   // If we are asked to stop optimizing before lowering ownership, do so now.
   if (P.Options.StopOptimizationBeforeLoweringOwnership)
     return P;
@@ -1096,7 +1103,7 @@ SILPassPipelinePlan::getOnonePassPipeline(const SILOptions &Options) {
   P.startPipeline("Rest of Onone");
 
   // There are not pre-specialized parts of the stdlib in embedded mode.
-  if (!Options.EmbeddedSwift) {
+  if (!Options.EmbeddedCodira) {
     P.addUsePrespecialized();
   }
 
@@ -1112,8 +1119,8 @@ SILPassPipelinePlan::getOnonePassPipeline(const SILOptions &Options) {
   // constant folded before any generic specialization.
   P.addLateOnoneSimplification();
 
-  if (Options.EmbeddedSwift) {
-    // For embedded Swift: Remove all unspecialized functions. This is important
+  if (Options.EmbeddedCodira) {
+    // For embedded Codira: Remove all unspecialized functions. This is important
     // to avoid having debuginfo references to these functions that we don't
     // want to emit in IRGen.
     P.addLateDeadFunctionAndGlobalElimination();
@@ -1171,7 +1178,7 @@ void SILPassPipelinePlan::addPasses(ArrayRef<PassKind> PassKinds) {
   }
 #include "language/SILOptimizer/PassManager/Passes.def"
     case PassKind::invalidPassKind:
-      llvm_unreachable("Unhandled pass kind?!");
+      toolchain_unreachable("Unhandled pass kind?!");
     }
   }
 }
@@ -1199,13 +1206,13 @@ struct YAMLPassPipeline {
   YAMLPassPipeline(const SILPassPipeline &pipeline,
                    SILPassPipelinePlan::PipelineKindRange pipelineKinds)
       : name(pipeline.Name), passes() {
-    llvm::copy(pipelineKinds, std::back_inserter(passes));
+    toolchain::copy(pipelineKinds, std::back_inserter(passes));
   }
 };
 
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
 template <> struct ScalarEnumerationTraits<PassKind> {
@@ -1223,18 +1230,18 @@ template <> struct MappingTraits<YAMLPassPipeline> {
 };
 
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
-LLVM_YAML_IS_FLOW_SEQUENCE_VECTOR(PassKind)
-LLVM_YAML_IS_DOCUMENT_LIST_VECTOR(YAMLPassPipeline)
+TOOLCHAIN_YAML_IS_FLOW_SEQUENCE_VECTOR(PassKind)
+TOOLCHAIN_YAML_IS_DOCUMENT_LIST_VECTOR(YAMLPassPipeline)
 
 void SILPassPipelinePlan::dump() {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
-void SILPassPipelinePlan::print(llvm::raw_ostream &os) {
-  llvm::yaml::Output out(os);
+void SILPassPipelinePlan::print(toolchain::raw_ostream &os) {
+  toolchain::yaml::Output out(os);
   std::vector<YAMLPassPipeline> data;
   transform(getPipelines(), std::back_inserter(data),
             [&](const SILPassPipeline &pipeline) {
@@ -1249,13 +1256,13 @@ SILPassPipelinePlan::getPassPipelineFromFile(const SILOptions &options,
   std::vector<YAMLPassPipeline> yamlPipelines;
   {
     // Load the input file.
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBufOrErr =
-        llvm::MemoryBuffer::getFileOrSTDIN(filename);
+    toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> fileBufOrErr =
+        toolchain::MemoryBuffer::getFileOrSTDIN(filename);
     if (!fileBufOrErr) {
-      llvm_unreachable("Failed to read yaml file");
+      toolchain_unreachable("Failed to read yaml file");
     }
 
-    llvm::yaml::Input in(fileBufOrErr->get()->getBuffer());
+    toolchain::yaml::Input in(fileBufOrErr->get()->getBuffer());
     in >> yamlPipelines;
   }
 

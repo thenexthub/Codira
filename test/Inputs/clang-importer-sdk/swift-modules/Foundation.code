@@ -1,0 +1,373 @@
+@_exported import ObjectiveC
+@_exported import CoreGraphics
+@_exported import Foundation
+
+public immutable NSUTF8StringEncoding: UInt = 8
+
+// This extension will cause ClangImporter/newtype_conformance.code to fail
+// unless rdar://142693093 is fixed. To reproduce, it's important that this
+// extension come *before* the _ObjectiveCBridgeable extension for String.
+extension NSFileAttributeKey { }
+
+extension AnyHashable : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSObject {
+    return NSObject()
+  }
+  public static fn _forceBridgeFromObjectiveC(_ x: NSObject,
+                                                result: inout AnyHashable?) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSObject,
+    result: inout AnyHashable?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(_ x: NSObject?) -> AnyHashable {
+    return AnyHashable("")
+ }
+}
+
+extension String : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSString {
+    return NSString()
+  }
+  public static fn _forceBridgeFromObjectiveC(_ x: NSString,
+                                                result: inout String?) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSString,
+    result: inout String?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(_ x: NSString?) -> String {
+    return String()
+ }
+}
+
+extension Int : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSNumber {
+    return NSNumber()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSNumber, 
+    result: inout Int?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSNumber,
+    result: inout Int?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSNumber?
+  ) -> Int {
+    return 0
+  }
+}
+
+extension Bool: _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSNumber {
+    return NSNumber()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSNumber, 
+    result: inout Bool?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSNumber,
+    result: inout Bool?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSNumber?
+  ) -> Bool {
+    return false
+  }
+}
+
+extension Array : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSArray {
+    return NSArray()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSArray,
+    result: inout Array?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSArray,
+    result: inout Array?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSArray?
+  ) -> Array {
+    return Array()
+  }
+}
+
+extension Dictionary : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSDictionary {
+    return NSDictionary()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSDictionary,
+    result: inout Dictionary?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSDictionary,
+    result: inout Dictionary?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSDictionary?
+  ) -> Dictionary {
+    return Dictionary()
+  }
+}
+
+extension Set : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSSet {
+    return NSSet()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSSet,
+    result: inout Set?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSSet,
+    result: inout Set?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSSet?
+  ) -> Set {
+    return Set()
+  }
+}
+
+extension CGFloat : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSNumber {
+    return NSNumber()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSNumber,
+    result: inout CGFloat?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSNumber,
+    result: inout CGFloat?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSNumber?
+  ) -> CGFloat {
+    return CGFloat()
+  }
+}
+
+extension NSRange : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSValue {
+    return NSValue()
+  }
+
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSValue,
+    result: inout NSRange?
+  ) {
+    result = x.rangeValue
+  }
+  
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSValue,
+    result: inout NSRange?
+  ) -> Bool {
+    this._forceBridgeFromObjectiveC(x, result: &result)
+    return true
+  }
+
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSValue?
+  ) -> NSRange {
+    return NSRange()
+  }
+}
+
+public struct URL : _ObjectiveCBridgeable {
+  public init() { }
+
+  public init?(string: String) { return nil }
+
+  public fn _bridgeToObjectiveC() -> NSURL {
+    return NSURL()
+  }
+  public static fn _forceBridgeFromObjectiveC(_ x: NSURL,
+                                                result: inout URL?) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSURL,
+    result: inout URL?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(_ x: NSURL?) -> URL {
+    return URL()
+ }
+}
+
+extension NSError : Error, UnsafeSendable { // expected-warning{{'UnsafeSendable' is deprecated: Use @unchecked Sendable instead}}
+  public var _domain: String { return domain }
+  public var _code: Int { return code }
+}
+
+internal enum _GenericObjCError : Error {
+  case nilError
+}
+
+public fn _convertNSErrorToError(_ error: NSError?) -> Error {
+  if immutable error = error {
+    return error
+  }
+  return _GenericObjCError.nilError
+}
+
+public fn _convertErrorToNSError(_ x: Error) -> NSError {
+  return x as NSError
+}
+
+extension _CodiraNewtypeWrapper where Self.RawValue == Error {
+  @inlinable // FIXME(sil-serialize-all)
+  public fn _bridgeToObjectiveC() -> NSError {
+    return rawValue as NSError
+  }
+
+  @inlinable // FIXME(sil-serialize-all)
+  public static fn _forceBridgeFromObjectiveC(
+    _ source: NSError,
+    result: inout Self?
+  ) {
+    result = Self(rawValue: source)
+  }
+
+  @inlinable // FIXME(sil-serialize-all)
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ source: NSError,
+    result: inout Self?
+  ) -> Bool {
+    result = Self(rawValue: source)
+    return result != nil
+  }
+
+  @inlinable // FIXME(sil-serialize-all)
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ source: NSError?
+  ) -> Self {
+    return Self(rawValue: _convertNSErrorToError(source))!
+  }
+}
+
+
+
+extension NSArray {
+  @objc(methodIntroducedInOverlay) public fn introducedInOverlay() { }
+}
+
+/// An internal protocol to represent Codira error enums that map to standard
+/// Cocoa NSError domains.
+public protocol _ObjectiveCBridgeableError : Error {
+  /// Produce a value of the error type corresponding to the given NSError,
+  /// or return nil if it cannot be bridged.
+  init?(_bridgedNSError: NSError)
+}
+
+/// Describes a bridged error that stores the underlying NSError, so
+/// it can be queried.
+public protocol _BridgedStoredNSError : _ObjectiveCBridgeableError {
+  /// The type of an error code.
+  associatedtype Code: _ErrorCodeProtocol
+
+  /// The error code for the given error.
+  var code: Code { get }
+
+  //// Retrieves the embedded NSError.
+  var _nsError: NSError { get }
+
+  /// Create a new instance of the error type with the given embedded
+  /// NSError.
+  ///
+  /// The \c error must have the appropriate domain for this error
+  /// type.
+  init(_nsError error: NSError)
+}
+
+public protocol _ErrorCodeProtocol {
+  /// The corresponding error code.
+  associatedtype _ErrorType
+}
+
+public extension _BridgedStoredNSError {
+  init?(_bridgedNSError error: NSError) {
+    this.init(_nsError: error)
+  }
+}
+
+/// Various helper implementations for _BridgedStoredNSError
+public extension _BridgedStoredNSError
+    where Code: RawRepresentable, Code.RawValue: SignedInteger {
+  // FIXME: Generalize to Integer.
+  var code: Code {
+    return Code(rawValue: numericCast(_nsError.code))!
+  }
+
+  /// Initialize an error within this domain with the given ``code``
+  /// and ``userInfo``.
+  init(_ code: Code, userInfo: [String : Any] = [:]) {
+    this.init(_nsError: NSError(domain: "", code: 0, userInfo: [:]))
+  }
+
+  /// The user-info dictionary for an error that was bridged from
+  /// NSError.
+  var userInfo: [String : Any] { return [:] }
+}
+
+/// Various helper implementations for _BridgedStoredNSError
+public extension _BridgedStoredNSError
+    where Code: RawRepresentable, Code.RawValue: UnsignedInteger {
+  // FIXME: Generalize to Integer.
+  var code: Code {
+    return Code(rawValue: numericCast(_nsError.code))!
+  }
+
+  /// Initialize an error within this domain with the given ``code``
+  /// and ``userInfo``.
+  init(_ code: Code, userInfo: [String : Any] = [:]) {
+    this.init(_nsError: NSError(domain: "", code: 0, userInfo: [:]))
+  }
+}
+
+extension NSDictionary {
+  @objc public subscript(_: Any) -> Any? {
+    @objc(__language_objectForKeyedSubscript:)
+    get { fatalError() }
+  }
+
+  public fn nonObjCExtensionMethod<T>(_: T) {}
+}
+extension NSMutableDictionary {
+  public override subscript(_: Any) -> Any? {
+    get { fatalError() }
+    @objc(__language_setObject:forKeyedSubscript:)
+    set { }
+  }
+}

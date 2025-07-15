@@ -1,4 +1,4 @@
-//===--- Debug.h - Swift Concurrency debug helpers --------------*- C++ -*-===//
+//===--- Debug.h - Codira Concurrency debug helpers --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Debugging and inspection support.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_DEBUG_H
-#define SWIFT_CONCURRENCY_DEBUG_H
+#ifndef LANGUAGE_CONCURRENCY_DEBUG_H
+#define LANGUAGE_CONCURRENCY_DEBUG_H
 
 #include <cstdint>
 
@@ -30,39 +31,39 @@ namespace language {
 // dispatch.
 
 /// The metadata pointer used for job objects.
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_jobMetadata;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_jobMetadata;
 
 /// The metadata pointer used for async task objects.
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_asyncTaskMetadata;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_asyncTaskMetadata;
 
 /// The size of an AsyncTask, in bytes.
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const size_t _swift_concurrency_debug_asyncTaskSize;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const size_t _language_concurrency_debug_asyncTaskSize;
 
 /// A fake metadata pointer placed at the start of async task slab allocations.
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_asyncTaskSlabMetadata;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_asyncTaskSlabMetadata;
 
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_non_future_adapter;
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_future_adapter;
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_task_wait_throwing_resume_adapter;
-SWIFT_EXPORT_FROM(swift_Concurrency)
-const void *const _swift_concurrency_debug_task_future_wait_resume_adapter;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_non_future_adapter;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_future_adapter;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_task_wait_throwing_resume_adapter;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+const void *const _language_concurrency_debug_task_future_wait_resume_adapter;
 
 /// Whether the runtime we are inspecting supports priority escalation
-SWIFT_EXPORT_FROM(swift_Concurrency)
-bool _swift_concurrency_debug_supportsPriorityEscalation;
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+bool _language_concurrency_debug_supportsPriorityEscalation;
 
 /// The current version of internal data structures that lldb may decode.
 /// The version numbers used so far are:
-/// 1 - The initial version number when this variable was added, in swift 6.1.
-SWIFT_EXPORT_FROM(swift_Concurrency)
-uint32_t _swift_concurrency_debug_internal_layout_version;
+/// 1 - The initial version number when this variable was added, in language 6.1.
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+uint32_t _language_concurrency_debug_internal_layout_version;
 
 } // namespace language
 

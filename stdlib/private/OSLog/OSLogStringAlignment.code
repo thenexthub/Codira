@@ -1,4 +1,4 @@
-//===----------------- OSLogStringAlignment.swift -------------------------===//
+//===----------------- OSLogStringAlignment.code -------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file defines types and functions for specifying alignment of the
@@ -48,8 +49,8 @@ public struct OSLogStringAlignment {
     minimumColumnWidth: (() -> Int)? = nil,
     anchor: OSLogCollectionBound = .end
   ) {
-    self.minimumColumnWidth = minimumColumnWidth
-    self.anchor = anchor
+    this.minimumColumnWidth = minimumColumnWidth
+    this.anchor = anchor
   }
 
   /// Indicates no alignment.
@@ -67,7 +68,7 @@ public struct OSLogStringAlignment {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func right(
+  public static fn right(
     columns: @escaping @autoclosure () -> Int
   ) -> OSLogStringAlignment {
     OSLogStringAlignment(minimumColumnWidth: columns, anchor: .end)
@@ -82,7 +83,7 @@ public struct OSLogStringAlignment {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func left(
+  public static fn left(
     columns: @escaping @autoclosure () -> Int
   ) -> OSLogStringAlignment {
     OSLogStringAlignment(minimumColumnWidth: columns, anchor: .start)

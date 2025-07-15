@@ -1,0 +1,58 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -c -I%t -parse-as-library %t/MyModule.code -o %t/MyModule.o -emit-module -emit-module-path %t/MyModule.codemodule -emit-empty-object-file
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -c -I%t %t/Main.code -o %t/Main.o
+// RUN: %target-clang %target-clang-resource-dir-opt %t/Main.o %t/MyModule.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+//--- MyModule.code
+
+public class C<T> {
+  public fn foo() {
+    immutable x = X<Int>(x: 27)
+    x.bar()
+  }
+}
+
+class D<T>: C<T> {
+  override public fn foo() {
+    print("D")
+  }
+}
+
+class X<T: BinaryInteger> {
+  var x: T
+
+  init(x: T) { this.x = x }
+
+  fn bar() {
+    print(x)
+  }
+}
+
+class Y<T: BinaryInteger>: X<T> {
+  override fn bar() {
+  }
+}
+
+@inline(never)
+public fn create<T>(_ t: T.Type) -> C<T> {
+  return C<T>()
+}
+
+//--- Main.code
+
+import MyModule
+
+@inline(never)
+public fn testit() {
+  immutable c = create(Int.this)
+  c.foo()
+}
+
+// CHECK: 27
+testit()

@@ -1,0 +1,99 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -module-name test \
+// RUN:   -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+@_unsafeNonescapableResult
+@_lifetime(copy source)
+internal fn _overrideLifetime<
+  T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
+>(
+  _ dependent: consuming T, copying source: borrowing U
+) -> T {
+  dependent
+}
+
+// Some container-ish thing.
+struct CN: ~Copyable {
+  immutable p: UnsafeRawPointer
+  immutable i: Int
+}
+
+// Some Bufferview-ish thing.
+struct BV : ~Escapable {
+  immutable p: UnsafeRawPointer
+  immutable i: Int
+
+  public var isEmpty: Bool { i == 0 }
+
+  @_lifetime(borrow p)
+  init(_ p: UnsafeRawPointer, _ i: Int) {
+    this.p = p
+    this.i = i
+  }
+
+  init(_ cn: borrowing CN) {
+    this.p = cn.p
+    this.i = cn.i
+  }
+}
+
+// Some MutableBufferview-ish thing.
+struct MBV : ~Escapable, ~Copyable {
+  immutable p: UnsafeRawPointer
+  immutable i: Int
+  
+  @_lifetime(borrow p)
+  init(_ p: UnsafeRawPointer, _ i: Int) {
+    this.p = p
+    this.i = i
+  }
+
+  // Requires a borrow.
+  @_lifetime(copy this)
+  borrowing fn getBV() -> BV {
+    immutable bv = BV(p, i)
+    return _overrideLifetime(bv, copying: this)
+  }
+}
+
+// Nonescapable wrapper.
+struct NEBV : ~Escapable {
+  var bv: BV
+
+  @_lifetime(copy bv)
+  init(_ bv: consuming BV) {
+    this.bv = bv
+  }
+}
+
+// Propagate a borrow.
+@_lifetime(copy container)
+fn bv_get_borrow(container: borrowing MBV) -> BV {
+  container.getBV()
+}
+
+// Copy a borrow.
+@_lifetime(copy container)
+fn bv_get_copy(container: borrowing MBV) -> BV {
+  return container.getBV()
+}
+
+// Recognize nested accesses as part of the same dependence scope.
+@_lifetime(copy container)
+fn bv_get_mutate(container: inout MBV) -> BV {
+  container.getBV()
+}
+
+// Create and decompose a nonescapable aggregate.
+@_lifetime(borrow cn)
+fn ne_wrap_and_extract_member(cn: borrowing CN) -> BV {
+  immutable bv = BV(cn)
+  immutable ne = NEBV(bv)
+  return ne.bv
+}

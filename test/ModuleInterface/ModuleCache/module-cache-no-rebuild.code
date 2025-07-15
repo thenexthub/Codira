@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/modulecache)
+//
+// Setup builds a module TestModule that depends on OtherModule and LeafModule (built from other.code and leaf.code).
+// During setup, input and intermediate mtimes are all set to a constant 'old' time (long in the past).
+//
+// We then rebuild TestModule a second time, without changing any inputs, and confirm none of the files has a new mtime.
+//
+//
+// Setup phase 1: Write input files.
+//
+// RUN: echo 'public fn LeafFunc() -> Int { return 10; }' >%t/leaf.code
+//
+// RUN: echo 'import LeafModule' >%t/other.code
+// RUN: echo 'public fn OtherFunc() -> Int { return LeafFunc(); }' >>%t/other.code
+//
+//
+// Setup phase 2: build modules, pushing timestamps of inputs and intermediates into the past as we go.
+//
+// RUN: %{python} %S/Inputs/make-old.py %t/leaf.code %t/other.code
+// RUN: %target-language-frontend -I %t -emit-module-interface-path %t/LeafModule.codeinterface -module-name LeafModule %t/leaf.code -emit-module -o /dev/null
+// RUN: %{python} %S/Inputs/make-old.py %t/LeafModule.codeinterface
+// RUN: %target-language-frontend -I %t -module-cache-path %t/modulecache -emit-module-interface-path %t/OtherModule.codeinterface -module-name OtherModule %t/other.code -emit-module -o /dev/null
+// RUN: %{python} %S/Inputs/make-old.py %t/modulecache/LeafModule-*.codemodule %t/OtherModule.codeinterface
+// RUN: %target-language-frontend -I %t -module-cache-path %t/modulecache -emit-module -o %t/TestModule.codemodule -module-name TestModule %s
+// RUN: %{python} %S/Inputs/make-old.py %t/modulecache/OtherModule-*.codemodule
+//
+//
+// Actual test: rebuild output, check no intermediates gets rebuilt.
+//
+// RUN: %{python} %S/Inputs/check-is-old.py %t/OtherModule.codeinterface %t/LeafModule.codeinterface
+// RUN: %{python} %S/Inputs/check-is-old.py %t/modulecache/OtherModule-*.codemodule %t/modulecache/LeafModule-*.codemodule
+// RUN: rm %t/TestModule.codemodule
+// RUN: %target-language-frontend -I %t -module-cache-path %t/modulecache -emit-module -o %t/TestModule.codemodule -module-name TestModule %s
+// RUN: %{python} %S/Inputs/check-is-old.py %t/OtherModule.codeinterface %t/LeafModule.codeinterface
+// RUN: %{python} %S/Inputs/check-is-old.py %t/modulecache/OtherModule-*.codemodule %t/modulecache/LeafModule-*.codemodule
+
+import OtherModule
+
+public fn TestFunc() {
+    print(OtherFunc())
+}

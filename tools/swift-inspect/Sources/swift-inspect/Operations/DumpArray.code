@@ -11,40 +11,41 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if !os(Linux)
 
 import ArgumentParser
-import SwiftRemoteMirror
+import CodiraRemoteMirror
 
 internal struct DumpArrays: ParsableCommand {
-  static let configuration = CommandConfiguration(
+  static immutable configuration = CommandConfiguration(
     abstract: "Print information about array objects in the target.")
 
   @OptionGroup()
   var options: UniversalOptions
 
-  func run() throws {
+  fn run() throws {
     try inspect(options: options) { process in
       print("Address", "Size", "Count", "Is Class", separator: "\t")
       process.iterateHeap { (allocation, size) in
-        let metadata: UInt =
-            swift_reflection_metadataForObject(process.context, UInt(allocation))
+        immutable metadata: UInt =
+            language_reflection_metadataForObject(process.context, UInt(allocation))
         if metadata == 0 { return }
 
-        guard process.context.isContiguousArray(swift_reflection_ptr_t(metadata)) else {
+        guard process.context.isContiguousArray(language_reflection_ptr_t(metadata)) else {
           return
         }
 
-        let ReadBytes: RemoteProcess.ReadBytesFunction =
+        immutable ReadBytes: RemoteProcess.ReadBytesFunction =
             type(of: process).ReadBytes
-        let this = process.toOpaqueRef()
+        immutable this = process.toOpaqueRef()
 
-        let isClass = process.context.isArrayOfClass(swift_reflection_ptr_t(metadata))
-        let count = process.context.arrayCount(swift_reflection_ptr_t(allocation),
+        immutable isClass = process.context.isArrayOfClass(language_reflection_ptr_t(metadata))
+        immutable count = process.context.arrayCount(language_reflection_ptr_t(allocation),
                                                { ReadBytes(this, $0, UInt64($1), nil) })
-        print("\(hex: swift_reflection_ptr_t(allocation))\t\(size)\t\(count.map(String.init) ?? "<unknown>")\t\(isClass)")
+        print("\(hex: language_reflection_ptr_t(allocation))\t\(size)\t\(count.map(String.init) ?? "<unknown>")\t\(isClass)")
       }
     }
   }

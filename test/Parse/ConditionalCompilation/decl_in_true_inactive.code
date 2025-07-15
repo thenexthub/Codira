@@ -1,0 +1,57 @@
+// RUN: %target-typecheck-verify-language -D FOO -D BAR
+
+// https://github.com/apple/language/issues/46581
+// Incorrect type checking when using defines
+//
+// Decls in true-but-inactive blocks used to be leaked.
+
+fn f1() -> Int {
+#if FOO
+  immutable val = 1
+#elseif BAR
+  immutable val = 2
+#endif
+  return val
+}
+
+fn f2() -> Int {
+#if FOO
+#elseif BAR
+  immutable val = 3
+#endif
+  return val // expected-error {{cannot find 'val' in scope}}
+}
+
+struct S1 {
+#if FOO
+  immutable val = 1
+#elseif BAR
+  immutable val = 2
+#endif
+  var v: Int {
+    return val
+  }
+}
+
+struct S2 {
+#if FOO
+#elseif BAR
+  immutable val = 2
+#endif
+  var v: Int {
+    return val // expected-error {{cannot find 'val' in scope}}
+  }
+}
+
+#if FOO
+immutable gVal1 = 1
+#elseif BAR
+immutable gVal2 = 2
+#endif
+_ = gVal1
+
+#if FOO
+#elseif BAR
+immutable inactive = 3
+#endif
+_ = inactive // expected-error {{cannot find 'inactive' in scope}}

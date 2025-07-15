@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Config.h"
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include "language/Basic/Lazy.h"
 #include "language/Runtime/Metadata.h"
 #include "language/Runtime/ObjCBridge.h"
@@ -30,10 +31,10 @@ using namespace language;
 /// Class of sentinel objects used to represent the `nil` value of nested
 /// optionals.
 ///
-/// NOTE: older runtimes called this _SwiftNull. The two must
+/// NOTE: older runtimes called this _CodiraNull. The two must
 /// coexist, so it was renamed. The old name must not be used in the new
 /// runtime.
-@interface __SwiftNull : NSObject {
+@interface __CodiraNull : NSObject {
 @public
   unsigned depth;
 }
@@ -41,17 +42,17 @@ using namespace language;
 
 
 
-@implementation __SwiftNull : NSObject
+@implementation __CodiraNull : NSObject
 
 - (id)description {
   char *str = NULL;
   const char *clsName = class_getName([self class]);
-  int fmtResult = swift_asprintf(&str, "<%s %p depth = %u>", clsName,
+  int fmtResult = language_asprintf(&str, "<%s %p depth = %u>", clsName,
                                                        (void*)self,
                                                        self->depth);
   (void)fmtResult;
   assert(fmtResult != -1 && "unable to format description of null");
-  id result = swift_stdlib_NSStringFromUTF8(str, strlen(str));
+  id result = language_stdlib_NSStringFromUTF8(str, strlen(str));
   free(str);
   return result;
 }
@@ -60,17 +61,17 @@ using namespace language;
 
 namespace {
 
-struct SwiftNullSentinelCache {
+struct CodiraNullSentinelCache {
   std::vector<id> Cache;
   Mutex Lock;
 };
 
-static Lazy<SwiftNullSentinelCache> Sentinels;
+static Lazy<CodiraNullSentinelCache> Sentinels;
 
 static id getSentinelForDepth(unsigned depth) {
   // For unnested optionals, use NSNull.
   if (depth == 1)
-    return SWIFT_LAZY_CONSTANT(id_const_cast([objc_getClass("NSNull") null]));
+    return LANGUAGE_LAZY_CONSTANT(id_const_cast([objc_getClass("NSNull") null]));
   // Otherwise, make up our own sentinel.
   // See if we created one for this depth.
   auto &theSentinels = Sentinels.get();
@@ -92,7 +93,7 @@ static id getSentinelForDepth(unsigned depth) {
     auto &cached = theSentinels.Cache[depthIndex];
     // Make sure another writer didn't sneak in.
     if (!cached) {
-      auto sentinel = [[__SwiftNull alloc] init];
+      auto sentinel = [[__CodiraNull alloc] init];
       sentinel->depth = depth;
       cached = sentinel;
     }
@@ -104,8 +105,8 @@ static id getSentinelForDepth(unsigned depth) {
 
 /// Return the sentinel object to use to represent `nil` for a given Optional
 /// type.
-SWIFT_RUNTIME_STDLIB_API SWIFT_CC(swift)
-id _swift_Foundation_getOptionalNilSentinelObject(const Metadata *Wrapped) {
+LANGUAGE_RUNTIME_STDLIB_API LANGUAGE_CC(language)
+id _language_Foundation_getOptionalNilSentinelObject(const Metadata *Wrapped) {
   // Figure out the depth of optionality we're working with.
   unsigned depth = 1;
   while (Wrapped->getKind() == MetadataKind::Optional) {

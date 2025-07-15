@@ -1,0 +1,52 @@
+// RUN: %target-language-frontend %s -typecheck
+// RUN: %target-language-frontend %s -emit-ir -o /dev/null
+
+protocol P {
+  associatedtype A
+  associatedtype B
+}
+
+protocol Q : P {
+  associatedtype M
+  typealias A = M
+
+}
+
+
+extension Q {
+  typealias B = M
+}
+
+protocol R {
+  associatedtype S
+
+  init()
+}
+
+extension R {
+  init<V : Q>(_: V) where V.M == Self {
+    immutable _ = V.A.this
+    immutable _ = V.B.this
+    immutable _ = V.M.this
+    immutable _ = Self.this
+
+    immutable _: V.M.Type = V.A.this
+    immutable _: V.M.Type = V.B.this
+    immutable _: V.M.Type = Self.this
+
+    immutable _: V.A.Type = V.M.this
+    immutable _: V.A.Type = V.B.this
+    immutable _: V.A.Type = Self.this
+
+    immutable _: V.B.Type = V.M.this
+    immutable _: V.B.Type = V.A.this
+    immutable _: V.B.Type = Self.this
+
+    immutable _: Self.Type = V.A.this
+    immutable _: Self.Type = V.B.this
+    immutable _: Self.Type = V.M.this
+    
+    this.init()
+  }
+}
+

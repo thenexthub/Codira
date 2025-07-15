@@ -9,7 +9,7 @@ from list_reducer import TESTRESULT_KEEPPREFIX
 from list_reducer import TESTRESULT_KEEPSUFFIX
 from list_reducer import TESTRESULT_NOFAILURE
 
-import swift_tools
+import language_tools
 
 
 class ReduceMiscompilingPasses(list_reducer.ListReducer):
@@ -118,8 +118,8 @@ def pass_bug_reducer(tools, config, passes, sil_opt_invoker, reduce_sil):
 
     print("*** User requested that we try to reduce SIL. Lets try.")
     input_file = sil_opt_invoker.input_file
-    nm = swift_tools.SILNMInvoker(config, tools)
-    sil_extract_invoker = swift_tools.SILFuncExtractorInvoker(config,
+    nm = language_tools.SILNMInvoker(config, tools)
+    sil_extract_invoker = language_tools.SILFuncExtractorInvoker(config,
                                                               tools,
                                                               input_file)
 
@@ -133,8 +133,8 @@ def pass_bug_reducer(tools, config, passes, sil_opt_invoker, reduce_sil):
 def invoke_pass_bug_reducer(args):
     """Given a path to a sib file with canonical sil, attempt to find a
        perturbed list of passes that the perf pipeline"""
-    tools = swift_tools.SwiftTools(args.swift_build_dir)
-    config = swift_tools.SILToolInvokerConfig(args)
+    tools = language_tools.CodiraTools(args.code_build_dir)
+    config = language_tools.SILToolInvokerConfig(args)
 
     passes = []
     if args.pass_list is None:
@@ -148,7 +148,7 @@ def invoke_pass_bug_reducer(args):
     extra_args = []
     if args.extra_args is not None:
         extra_args = args.extra_args
-    sil_opt_invoker = swift_tools.SILOptInvoker(config, tools,
+    sil_opt_invoker = language_tools.SILOptInvoker(config, tools,
                                                 args.input_file,
                                                 extra_args)
     pass_bug_reducer(tools, config, passes, sil_opt_invoker, args.reduce_sil)
@@ -156,7 +156,7 @@ def invoke_pass_bug_reducer(args):
 
 def add_parser_arguments(parser):
     """Add parser arguments for opt_bug_reducer"""
-    parser.set_defaults(func=invoke_pass_bug_reducer)
+    parser.set_defaults(fn=invoke_pass_bug_reducer)
     parser.add_argument('input_file', help='The input file to optimize')
     parser.add_argument('--module-cache', help='The module cache to use')
     parser.add_argument('--sdk', help='The sdk to pass to sil-opt')

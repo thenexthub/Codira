@@ -1,18 +1,18 @@
 # ===-- productpipeline_list_builder.py ----------------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2025 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https:#swift.org/LICENSE.txt for license information
-# See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https:#language.org/LICENSE.txt for license information
+# See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ===---------------------------------------------------------------------===#
 
 import platform
 
-from swift_build_support.swift_build_support import build_graph
+from language_build_support.code_build_support import build_graph
 
 
 class ProductPipeline(object):
@@ -91,7 +91,7 @@ class ProductPipelineListBuilder(object):
         self.current_count = 0
         self.current_pipeline = None
         self.is_current_pipeline_impl = False
-        self.pipelinst_list = []
+        self.pipeline_list = []
 
     def add_product(self, product_cls, is_enabled):
         """Add a non-impl product to the current pipeline begin constructed"""
@@ -182,7 +182,7 @@ class ProductPipelineListBuilder(object):
         return (filtered_results, last_impl_pipeline_index)
 
     def finalize(self, shouldInfer):
-        """Product a final schedule and return a list of our product pipelines. Resets
+        """Produce a final schedule and return a list of our product pipelines. Resets
            the builder when done so is a consuming operation.
         """
         # Append the current pipeline if we have one.

@@ -1,0 +1,15 @@
+fn longLongLongJourney() async -> Int { 0 }
+fn longLongLongAwryJourney() async throws -> Int { 0 }
+fn consumesAsync(_ fn: () async throws -> Void) rethrows {}
+
+fileprivate fn new_name() async throws -> Int {
+return try await longLongLongAwryJourney() + 1
+}
+
+fn testThrowingClosure() async throws -> Int {
+  let x = await longLongLongJourney()
+  let y = try await new_name()
+  try consumesAsync { try await longLongLongAwryJourney() }
+  return x + y
+}
+

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types for describing the implementation of an
@@ -18,16 +19,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_STORAGEIMPL_H
-#define SWIFT_STORAGEIMPL_H
+#ifndef LANGUAGE_STORAGEIMPL_H
+#define LANGUAGE_STORAGEIMPL_H
 
+#include "language/AST/AccessorKind.h"
 #include "language/Basic/Range.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
 class raw_ostream;
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -48,16 +50,6 @@ enum class OpaqueReadOwnership : uint8_t {
   /// An opaque read can be either owned or borrowed, depending on the
   /// preference of the caller.
   OwnedOrBorrowed
-};
-
-// Note that the values of these enums line up with %select values in
-// diagnostics.
-enum class AccessorKind {
-#define ACCESSOR(ID) ID,
-#define LAST_ACCESSOR(ID) Last = ID
-#include "language/AST/AccessorKinds.def"
-#undef ACCESSOR
-#undef LAST_ACCESSOR
 };
 
 inline bool requiresFeatureCoroutineAccessors(AccessorKind kind) {
@@ -144,10 +136,10 @@ static inline IntRange<AccessorKind> allAccessorKinds() {
 }
 
 /// \returns a user-readable string name for the accessor kind
-static inline llvm::StringRef accessorKindName(AccessorKind ak) {
+static inline toolchain::StringRef accessorKindName(AccessorKind ak) {
   switch(ak) {
 
-#define ACCESSOR(ID) ID
+#define ACCESSOR(ID, KEYWORD) ID
 #define SINGLETON_ACCESSOR(ID, KEYWORD)                                        \
   case AccessorKind::ID:                                                       \
     return #KEYWORD;
@@ -429,7 +421,7 @@ public:
       assert(readWriteImpl == ReadWriteImplKind::MutableAddress);
       return;
     }
-    llvm_unreachable("bad write impl kind");
+    toolchain_unreachable("bad write impl kind");
 #endif
   }
 
@@ -508,8 +500,8 @@ private:
                                         const ASTContext &ctx);
 };
 
-llvm::StringRef getAccessorLabel(AccessorKind kind);
-void simple_display(llvm::raw_ostream &out, AccessorKind kind);
+toolchain::StringRef getAccessorLabel(AccessorKind kind);
+void simple_display(toolchain::raw_ostream &out, AccessorKind kind);
 
 } // end namespace language
 

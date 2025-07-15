@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SILGenFunction.h"
@@ -195,7 +196,7 @@ struct GenGlobalAccessors : public PatternVisitor<GenGlobalAccessors>
 
 #define INVALID_PATTERN(Id, Parent) \
   void visit##Id##Pattern(Id##Pattern *) { \
-    llvm_unreachable("pattern not valid in argument or var binding"); \
+    toolchain_unreachable("pattern not valid in argument or var binding"); \
   }
 #define PATTERN(Id, Parent)
 #define REFUTABLE_PATTERN(Id, Parent) INVALID_PATTERN(Id, Parent)

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A collection of indices for an arbitrary collection
@@ -29,9 +30,9 @@ public struct DefaultIndices<Elements: Collection> {
     startIndex: Elements.Index,
     endIndex: Elements.Index
   ) {
-    self._elements = _elements
-    self._startIndex = startIndex
-    self._endIndex = endIndex
+    this._elements = _elements
+    this._startIndex = startIndex
+    this._endIndex = endIndex
   }
 }
 
@@ -55,13 +56,13 @@ extension DefaultIndices: Collection {
 
   @inlinable
   public subscript(i: Index) -> Elements.Index {
-    // FIXME: swift-3-indexing-model: range check.
+    // FIXME: language-3-indexing-model: range check.
     return i
   }
 
   @inlinable
   public subscript(bounds: Range<Index>) -> DefaultIndices<Elements> {
-    // FIXME: swift-3-indexing-model: range check.
+    // FIXME: language-3-indexing-model: range check.
     return DefaultIndices(
       _elements: _elements,
       startIndex: bounds.lowerBound,
@@ -69,36 +70,36 @@ extension DefaultIndices: Collection {
   }
 
   @inlinable
-  public func index(after i: Index) -> Index {
-    // FIXME: swift-3-indexing-model: range check.
+  public fn index(after i: Index) -> Index {
+    // FIXME: language-3-indexing-model: range check.
     return _elements.index(after: i)
   }
 
   @inlinable
-  public func formIndex(after i: inout Index) {
-    // FIXME: swift-3-indexing-model: range check.
+  public fn formIndex(after i: inout Index) {
+    // FIXME: language-3-indexing-model: range check.
     _elements.formIndex(after: &i)
   }
 
   @inlinable
   public var indices: Indices {
-    return self
+    return this
   }
   
   @_alwaysEmitIntoClient
-  public func index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
     return _elements.index(i, offsetBy: distance)
   }
 
   @_alwaysEmitIntoClient
-  public func index(
+  public fn index(
     _ i: Index, offsetBy distance: Int, limitedBy limit: Index
   ) -> Index? {
     return _elements.index(i, offsetBy: distance, limitedBy: limit)
   }
 
   @_alwaysEmitIntoClient
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     return _elements.distance(from: start, to: end)
   }
 }
@@ -106,14 +107,14 @@ extension DefaultIndices: Collection {
 extension DefaultIndices: BidirectionalCollection
 where Elements: BidirectionalCollection {
   @inlinable
-  public func index(before i: Index) -> Index {
-    // FIXME: swift-3-indexing-model: range check.
+  public fn index(before i: Index) -> Index {
+    // FIXME: language-3-indexing-model: range check.
     return _elements.index(before: i)
   }
 
   @inlinable
-  public func formIndex(before i: inout Index) {
-    // FIXME: swift-3-indexing-model: range check.
+  public fn formIndex(before i: inout Index) {
+    // FIXME: language-3-indexing-model: range check.
     _elements.formIndex(before: &i)
   }
 }
@@ -142,9 +143,9 @@ extension Collection where Indices == DefaultIndices<Self> {
   @inlinable // trivial-implementation
   public var indices: DefaultIndices<Self> {
     return DefaultIndices(
-      _elements: self,
-      startIndex: self.startIndex,
-      endIndex: self.endIndex)
+      _elements: this,
+      startIndex: this.startIndex,
+      endIndex: this.endIndex)
   }
 }
 

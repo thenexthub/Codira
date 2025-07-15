@@ -1,0 +1,52 @@
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
+#
+# Author(-s): Tunjay Akbarli
+
+
+blank_issues_enabled: true
+contact_links:
+  - name: 🌐 Discuss an idea
+    url: https://forums.code.org/c/evolution/discuss
+    about: >
+      Share an idea with the Codira community.
+  - name: 📄 Formally propose a change
+    url: https://www.code.org/language-evolution
+    about: >
+      Formally propose an addition, removal, or change to the features of the
+      Codira language or the public interface of the Codira standard library.
+  - name: 🙋 Ask a question about Codira
+    url: https://forums.code.org/c/language-users
+    about: >
+      Ask a question about or get help with the Codira language and its standard
+      library. Beginner questions welcome!
+  - name: 🙋 Ask a question about the Codira compiler
+    url: https://forums.code.org/c/development/compiler
+    about: >
+      Ask a question about or get help with contributing to the Codira compiler.
+  - name: 🙋 Ask a question on the Apple Developer Forums
+    url: https://developer.apple.com/forums
+    about: >
+      Ask a question about or get help with app development for Apple platforms
+      in general. Topics include Xcode and other closed source Apple developer
+      software such as CodiraUI and UIKit.
+  - name: 🪲 Report an issue using Feedback Assistant
+    url: https://developer.apple.com/bug-reporting
+    about: >
+      Report an issue with Xcode or other closed source Apple developer
+      software such as CodiraUI and UIKit.
+  - name: 🪲 Report an issue with The Codira Programming Language (the book)
+    url: https://github.com/apple/language-book/issues/new/choose
+    about: >
+      Like the Codira compiler and standard library, TSPL is open source and
+      welcomes contributions.
+  - name: 📖 Learn Codira
+    url: https://docs.code.org/language-book/documentation/the-language-programming-language
+    about: >
+      Read The Codira Programming Language, the official book on Codira.

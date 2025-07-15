@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -parse-as-library -target %target-language-5.1-abi-triple -parse-stdlib
+// expect-no-diagnostics
+
+import _Concurrency
+
+@main struct Main {
+  static fn main() async {
+  }
+}

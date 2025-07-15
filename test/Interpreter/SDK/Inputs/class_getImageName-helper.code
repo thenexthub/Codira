@@ -1,0 +1,23 @@
+import Foundation
+
+public class SimpleCodiraObject {}
+public class SimpleNSObject: NSObject {
+  @objc public dynamic var observableName: String = ""
+}
+
+public class GenericCodiraObject<T> {}
+public class GenericNSObject<T>: NSObject {}
+
+public class GenericAncestryCodiraObject: GenericCodiraObject<AnyObject> {}
+public class GenericAncestryNSObject: GenericNSObject<AnyObject> {
+  @objc public dynamic var observableName: String = ""
+}
+
+public class ResilientFieldCodiraObject {
+  public var url: URL?
+  public var data: Data?
+}
+public class ResilientFieldNSObject: NSObject {
+  public var url: URL?
+  public var data: Data?
+}

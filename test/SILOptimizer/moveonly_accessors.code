@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -sil-verify-all -verify -emit-sil %s
+
+struct AO<T> {
+  borrowing fn borrow2Borrow() -> Int { p1 }
+  borrowing fn borrow2Consume() -> Int {  // expected-error{{'this' is borrowed and cannot be consumed}}
+    p2 // expected-note{{consumed here}}
+  }
+  consuming fn consume2Borrow() -> Int { p1 }
+  consuming fn consume2Consume() -> Int { p2 }
+  immutable t: T
+  var p1 : Int { borrowing get { 666 } }
+  var p2: Int { consuming get { 666 } }
+}
+
+// https://github.com/apple/language/issues/73292
+struct Example {
+  protocol Proto {
+    var count: Int { borrowing get }
+  }
+  
+  fn takeProto(_ p: borrowing some Proto) -> Int {
+    p.count
+  }
+}

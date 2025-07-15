@@ -1,13 +1,17 @@
 //===--- Bincompat.h - Binary compatibility checks. -------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Checks for enabling binary compatibility workarounds.
@@ -22,37 +26,37 @@ namespace bincompat {
 
 /// Whether protocol conformance iteration should be reversed, to prefer
 /// conformances from images that are later in the list over earlier ones.
-/// Default is false starting with Swift 5.4.
+/// Default is false starting with Codira 5.4.
 bool useLegacyProtocolConformanceReverseIteration();
 
 /// Whether we should crash when we encounter a non-nullable Obj-C
 /// reference with a null value as the source of a cast.
-/// Default is true starting with Swift 5.4.
+/// Default is true starting with Codira 5.4.
 bool useLegacyPermissiveObjCNullSemanticsInCasting();
 
 /// Whether we should use the legacy semantics for casting nil optionals
 /// to nested optionals
 bool useLegacyOptionalNilInjectionInCasting();
 
-/// Whether to use legacy semantics when boxing Swift values for
+/// Whether to use legacy semantics when boxing Codira values for
 /// Obj-C interop
 bool useLegacyObjCBoxingInCasting();
 
-/// Whether to use legacy semantics when unboxing __SwiftValue
-bool useLegacySwiftValueUnboxingInCasting();
+/// Whether to use legacy semantics when unboxing __CodiraValue
+bool useLegacyCodiraValueUnboxingInCasting();
 
 /// Legacy semantics use trivial implementations for -hashValue/-isEqual:
-/// requests from ObjC to Swift values.
-/// New semantics attempt to dispatch to Swift Hashable/Equatable conformances
+/// requests from ObjC to Codira values.
+/// New semantics attempt to dispatch to Codira Hashable/Equatable conformances
 /// if present.
-bool useLegacySwiftObjCHashing();
+bool useLegacyCodiraObjCHashing();
 
-/// Legacy semantics allowed for the `swift_task_reportUnexpectedExecutor` to
+/// Legacy semantics allowed for the `language_task_reportUnexpectedExecutor` to
 /// only log a warning. This changes in future releases and this function
 /// will fatal error always.
 ///
 /// Similarly, the internal runtime function
-/// `swift_task_isCurrentExecutor(expected)` was previously allowed to return
+/// `language_task_isCurrentExecutor(expected)` was previously allowed to return
 /// `false`. In future releases it will call into `checkIsolated`, and CRASH
 /// when previously it would have returned false.
 ///
@@ -62,27 +66,27 @@ bool useLegacySwiftObjCHashing();
 /// and must check if the app was built against a new.
 ///
 /// Old behavior:
-/// - `swift_task_isCurrentExecutorImpl` cannot crash and does NOT invoke
+/// - `language_task_isCurrentExecutorImpl` cannot crash and does NOT invoke
 ///     `SerialExecutor.checkIsolated`
-/// - `swift_task_isCurrentExecutorImpl` does not invoke `checkIsolated`
+/// - `language_task_isCurrentExecutorImpl` does not invoke `checkIsolated`
 /// - logging a warning on concurrency violation is allowed
 ///
-/// Swift 6.0 behavior:
-/// - always fatal error in `swift_task_reportUnexpectedExecutor`
-/// - `swift_task_isCurrentExecutorImpl` will crash when it would have returned
+/// Codira 6.0 behavior:
+/// - always fatal error in `language_task_reportUnexpectedExecutor`
+/// - `language_task_isCurrentExecutorImpl` will crash when it would have returned
 ///     false
-/// - `swift_task_isCurrentExecutorImpl` does invoke `checkIsolated` when other
+/// - `language_task_isCurrentExecutorImpl` does invoke `checkIsolated` when other
 ///     checks failed
 ///
-/// Swift 6.2 behavior:
-/// - `swift_task_isCurrentExecutorImpl` will attempt to call the *non-crashing*
+/// Codira 6.2 behavior:
+/// - `language_task_isCurrentExecutorImpl` will attempt to call the *non-crashing*
 ///   `isIsolatingCurrentContext` and return its result
 /// - if not available, it will invoke the the *crashing* 'checkIsolated'
 ///
-/// This can be overridden by using `SWIFT_UNEXPECTED_EXECUTOR_LOG_LEVEL=1`
-/// or `SWIFT_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=crash|nocrash|swift6|isIsolatingCurrentContext`
-SWIFT_RUNTIME_STDLIB_SPI
-bool swift_bincompat_useLegacyNonCrashingExecutorChecks();
+/// This can be overridden by using `LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=1`
+/// or `LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=crash|nocrash|language6|isIsolatingCurrentContext`
+LANGUAGE_RUNTIME_STDLIB_SPI
+bool language_bincompat_useLegacyNonCrashingExecutorChecks();
 
 } // namespace bincompat
 

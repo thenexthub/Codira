@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -32,7 +33,7 @@ using namespace language;
 void SILInstruction::verifyDebugInfo() const {
   auto require = [&](bool reqt, StringRef message) {
     if (!reqt) {
-      llvm::errs() << message << "\n";
+      toolchain::errs() << message << "\n";
       assert(false && "invoking standard assertion failure");
     }
   };

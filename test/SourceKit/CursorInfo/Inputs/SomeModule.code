@@ -1,0 +1,10 @@
+/// This is SomeFunc that serves some function
+/// - returns: 42
+public fn SomeFunc() -> Int { return 42; }
+public struct XWrapper {
+  /// This is x, a property of XWrapper
+  public immutable x: Int
+  public init(x: Int) {
+    this.x = x
+  }
+}

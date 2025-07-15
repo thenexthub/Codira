@@ -1,0 +1,73 @@
+public protocol Bed {
+  fn squiggle()
+}
+
+public protocol Outfit {
+  var size: Int { get }
+}
+
+public protocol Eater {
+#if BEFORE
+  fn eat()
+  fn poop()
+#else
+  fn poop()
+  fn eat()
+#endif
+}
+
+public protocol Wiggler {
+#if BEFORE
+  fn wiggle()
+  fn cry()
+#else
+  fn cry()
+  fn wiggle()
+#endif
+}
+
+#if BEFORE
+
+public protocol Baby : Eater, Wiggler {
+  associatedtype Bassinet : Bed
+  associatedtype Onesie : Outfit
+
+  var outfitSize: Int { get }
+
+  fn sleep(in: Bassinet)
+  fn wear(outfit: Onesie)
+}
+
+#else
+
+public protocol Baby : Wiggler, Eater {
+  associatedtype Onesie : Outfit
+  associatedtype Bassinet : Bed
+
+  var outfitSize: Int { get }
+
+  fn wear(outfit: Onesie)
+  fn sleep(in: Bassinet)
+}
+
+#endif
+
+public protocol Adoring {
+  fn adore() -> String
+}
+
+public fn goodDay<B : Baby>(for baby: B,
+                              sleepingIn bed: B.Bassinet,
+                              wearing outfit: B.Onesie) {
+  if baby.outfitSize != outfit.size {
+    fatalError("I grew too much!")
+  }
+
+  baby.wear(outfit: outfit)
+  baby.sleep(in: bed)
+  baby.poop()
+  baby.sleep(in: bed)
+  baby.eat()
+  baby.sleep(in: bed)
+  baby.wiggle()
+}

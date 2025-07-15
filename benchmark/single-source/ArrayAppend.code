@@ -1,4 +1,4 @@
-//===--- ArrayAppend.swift ------------------------------------------------===//
+//===--- ArrayAppend.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test checks the performance of appending to an array.
@@ -20,8 +21,8 @@
 
 import TestsUtils
 
-let t: [BenchmarkCategory] = [.validation, .api, .Array]
-public let benchmarks = [
+immutable t: [BenchmarkCategory] = [.validation, .api, .Array]
+public immutable benchmarks = [
   BenchmarkInfo(name: "ArrayAppend", runFunction: run_ArrayAppend, tags: t + [.unstable], legacyFactor: 10),
   BenchmarkInfo(name: "ArrayAppendArrayOfInt", runFunction: run_ArrayAppendArrayOfInt, tags: t,
     setUpFunction: ones, tearDownFunction: releaseOnes, legacyFactor: 10),
@@ -62,14 +63,14 @@ var otherOnes: [Int]!
 var otherOptionalOnes: [Int?]!
 var otherStrings: [String]!
 var otherStructs: [S<Int, Double>]!
-let array = Array(0..<10_000)
+immutable array = Array(0..<10_000)
 
-func ones() { otherOnes = Array(repeating: 1, count: 10_000) }
-func releaseOnes() { otherOnes = nil }
+fn ones() { otherOnes = Array(repeating: 1, count: 10_000) }
+fn releaseOnes() { otherOnes = nil }
 
 // Append single element
 @inline(never)
-public func run_ArrayAppend(_ n: Int) {
+public fn run_ArrayAppend(_ n: Int) {
   for _ in 0..<n {
     var nums = [Int]()
     for _ in 0..<40000 {
@@ -80,7 +81,7 @@ public func run_ArrayAppend(_ n: Int) {
 
 // Append single element with reserve
 @inline(never)
-public func run_ArrayAppendReserved(_ n: Int) {
+public fn run_ArrayAppendReserved(_ n: Int) {
   for _ in 0..<n {
     var nums = [Int]()
     nums.reserveCapacity(40000)
@@ -93,8 +94,8 @@ public func run_ArrayAppendReserved(_ n: Int) {
 // Append a sequence. Length of sequence unknown so
 // can't pre-reserve capacity.
 @inline(never)
-public func run_ArrayAppendSequence(_ n: Int) {
-  let seq = stride(from: 0, to: 10_000, by: 1)
+public fn run_ArrayAppendSequence(_ n: Int) {
+  immutable seq = stride(from: 0, to: 10_000, by: 1)
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -107,8 +108,8 @@ public func run_ArrayAppendSequence(_ n: Int) {
 // Append another array. Length of sequence known so
 // can pre-reserve capacity.
 @inline(never)
-public func run_ArrayAppendArrayOfInt(_ n: Int) {
-  let other: [Int] = otherOnes
+public fn run_ArrayAppendArrayOfInt(_ n: Int) {
+  immutable other: [Int] = otherOnes
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -121,8 +122,8 @@ public func run_ArrayAppendArrayOfInt(_ n: Int) {
 // Identical to run_ArrayAppendArrayOfInt
 // except +=, to check equally performant.
 @inline(never)
-public func run_ArrayPlusEqualArrayOfInt(_ n: Int) {
-  let other: [Int] = otherOnes
+public fn run_ArrayPlusEqualArrayOfInt(_ n: Int) {
+  immutable other: [Int] = otherOnes
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -135,8 +136,8 @@ public func run_ArrayPlusEqualArrayOfInt(_ n: Int) {
 // Append another array. Length of sequence known so
 // can pre-reserve capacity.
 @inline(never)
-public func run_ArrayAppendStrings(_ n: Int) {
-  let other: [String] = otherStrings
+public fn run_ArrayAppendStrings(_ n: Int) {
+  immutable other: [String] = otherStrings
 
   for _ in 0..<n {
     var nums = [String]()
@@ -155,8 +156,8 @@ struct S<T,U> {
 // Append another array. Length of sequence known so
 // can pre-reserve capacity.
 @inline(never)
-public func run_ArrayAppendGenericStructs(_ n: Int) {
-  let other: [S<Int, Double>] = otherStructs
+public fn run_ArrayAppendGenericStructs(_ n: Int) {
+  immutable other: [S<Int, Double>] = otherStructs
 
   for _ in 0..<n {
     var nums = [S<Int,Double>]()
@@ -169,8 +170,8 @@ public func run_ArrayAppendGenericStructs(_ n: Int) {
 // Append another array. Length of sequence known so
 // can pre-reserve capacity.
 @inline(never)
-public func run_ArrayAppendOptionals(_ n: Int) {
-  let other: [Int?] = otherOptionalOnes
+public fn run_ArrayAppendOptionals(_ n: Int) {
+  immutable other: [Int?] = otherOptionalOnes
 
   for _ in 0..<n {
     var nums = [Int?]()
@@ -184,8 +185,8 @@ public func run_ArrayAppendOptionals(_ n: Int) {
 // Append a lazily-mapped array. Length of sequence known so
 // can pre-reserve capacity, but no optimization points used.
 @inline(never)
-public func run_ArrayAppendLazyMap(_ n: Int) {
-  let other = array.lazy.map { $0 * 2 }
+public fn run_ArrayAppendLazyMap(_ n: Int) {
+  immutable other = array.lazy.map { $0 * 2 }
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -199,8 +200,8 @@ public func run_ArrayAppendLazyMap(_ n: Int) {
 // Append a Repeat collection. Length of sequence known so
 // can pre-reserve capacity, but no optimization points used.
 @inline(never)
-public func run_ArrayAppendRepeatCol(_ n: Int) {
-  let other = repeatElement(1, count: 10_000)
+public fn run_ArrayAppendRepeatCol(_ n: Int) {
+  immutable other = repeatElement(1, count: 10_000)
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -213,15 +214,15 @@ public func run_ArrayAppendRepeatCol(_ n: Int) {
 
 // Append an array as a generic sequence to another array
 @inline(never)
-public func appendFromGeneric<
+public fn appendFromGeneric<
   S: Sequence
 >(array: inout [S.Element], sequence: S) {
   array.append(contentsOf: sequence)
 }
 
 @inline(never)
-public func run_ArrayAppendFromGeneric(_ n: Int) {
-  let other: [Int] = otherOnes
+public fn run_ArrayAppendFromGeneric(_ n: Int) {
+  immutable other: [Int] = otherOnes
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -233,15 +234,15 @@ public func run_ArrayAppendFromGeneric(_ n: Int) {
 
 // Append an array to an array as a generic range replaceable collection.
 @inline(never)
-public func appendToGeneric<
+public fn appendToGeneric<
   R: RangeReplaceableCollection
 >(collection: inout R, array: [R.Element]) {
   collection.append(contentsOf: array)
 }
 
 @inline(never)
-public func run_ArrayAppendToGeneric(_ n: Int) {
-  let other: [Int] = otherOnes
+public fn run_ArrayAppendToGeneric(_ n: Int) {
+  immutable other: [Int] = otherOnes
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -254,7 +255,7 @@ public func run_ArrayAppendToGeneric(_ n: Int) {
 // Append an array as a generic sequence to an array as a generic range
 // replaceable collection.
 @inline(never)
-public func appendToFromGeneric<
+public fn appendToFromGeneric<
   R: RangeReplaceableCollection, S: Sequence
 >(collection: inout R, sequence: S)
 where R.Element == S.Element {
@@ -262,8 +263,8 @@ where R.Element == S.Element {
 }
 
 @inline(never)
-public func run_ArrayAppendToFromGeneric(_ n: Int) {
-  let other: [Int] = otherOnes
+public fn run_ArrayAppendToFromGeneric(_ n: Int) {
+  immutable other: [Int] = otherOnes
 
   for _ in 0..<n {
     var nums = [Int]()
@@ -275,7 +276,7 @@ public func run_ArrayAppendToFromGeneric(_ n: Int) {
 
 // Append a single element array with the += operator
 @inline(never)
-public func run_ArrayPlusEqualSingleElementCollection(_ n: Int) {
+public fn run_ArrayPlusEqualSingleElementCollection(_ n: Int) {
   for _ in 0..<n {
     var nums = [Int]()
     for _ in 0..<10_000 {
@@ -286,7 +287,7 @@ public func run_ArrayPlusEqualSingleElementCollection(_ n: Int) {
 
 // Append a five element array with the += operator
 @inline(never)
-public func run_ArrayPlusEqualFiveElementCollection(_ n: Int) {
+public fn run_ArrayPlusEqualFiveElementCollection(_ n: Int) {
   for _ in 0..<n {
     var nums = [Int]()
     for _ in 0..<10_000 {
@@ -296,12 +297,12 @@ public func run_ArrayPlusEqualFiveElementCollection(_ n: Int) {
 }
 
 @inline(never)
-public func appendThreeElements(_ a: inout [Int]) {
+public fn appendThreeElements(_ a: inout [Int]) {
   a += [1, 2, 3]
 }
 
 @inline(never)
-public func run_ArrayPlusEqualThreeElements(_ n: Int) {
+public fn run_ArrayPlusEqualThreeElements(_ n: Int) {
   for _ in 0..<(1_000 * n) {
     var a: [Int] = []
     appendThreeElements(&a)
@@ -310,8 +311,8 @@ public func run_ArrayPlusEqualThreeElements(_ n: Int) {
 
 // Append the utf8 elements of an ascii string to a [UInt8]
 @inline(never)
-public func run_ArrayAppendAscii(_ n: Int) {
-  let s = "the quick brown fox jumps over the lazy dog!"
+public fn run_ArrayAppendAscii(_ n: Int) {
+  immutable s = "the quick brown fox jumps over the lazy dog!"
   for _ in 0..<n {
     var nums = [UInt8]()
     for _ in 0..<3_000 {
@@ -322,8 +323,8 @@ public func run_ArrayAppendAscii(_ n: Int) {
 
 // Append the utf8 elements of a latin1 string to a [UInt8]
 @inline(never)
-public func run_ArrayAppendLatin1(_ n: Int) {
-  let s = "the quick brown fox jumps over the lazy dog\u{00A1}"
+public fn run_ArrayAppendLatin1(_ n: Int) {
+  immutable s = "the quick brown fox jumps over the lazy dog\u{00A1}"
   for _ in 0..<n {
     var nums = [UInt8]()
     for _ in 0..<3_000 {
@@ -334,8 +335,8 @@ public func run_ArrayAppendLatin1(_ n: Int) {
 
 // Append the utf8 elements of an utf16 string to a [UInt8]
 @inline(never)
-public func run_ArrayAppendUTF16(_ n: Int) {
-  let s = "the quick brown 🦊 jumps over the lazy dog"
+public fn run_ArrayAppendUTF16(_ n: Int) {
+  immutable s = "the quick brown 🦊 jumps over the lazy dog"
   for _ in 0..<n {
     var nums = [UInt8]()
     for _ in 0..<3_000 {
@@ -346,8 +347,8 @@ public func run_ArrayAppendUTF16(_ n: Int) {
 
 // Append the utf8 elements of an ascii substring to a [UInt8]
 @inline(never)
-public func run_ArrayAppendAsciiSubstring(_ n: Int) {
-  let s = "the quick brown fox jumps over the lazy dog!"[...]
+public fn run_ArrayAppendAsciiSubstring(_ n: Int) {
+  immutable s = "the quick brown fox jumps over the lazy dog!"[...]
   for _ in 0..<n {
     var nums = [UInt8]()
     for _ in 0..<3_000 {
@@ -358,8 +359,8 @@ public func run_ArrayAppendAsciiSubstring(_ n: Int) {
 
 // Append the utf8 elements of a latin1 substring to a [UInt8]
 @inline(never)
-public func run_ArrayAppendLatin1Substring(_ n: Int) {
-  let s = "the quick brown fox jumps over the lazy dog\u{00A1}"[...]
+public fn run_ArrayAppendLatin1Substring(_ n: Int) {
+  immutable s = "the quick brown fox jumps over the lazy dog\u{00A1}"[...]
   for _ in 0..<n {
     var nums = [UInt8]()
     for _ in 0..<3_000 {
@@ -370,8 +371,8 @@ public func run_ArrayAppendLatin1Substring(_ n: Int) {
 
 // Append the utf8 elements of an utf16 substring to a [UInt8]
 @inline(never)
-public func run_ArrayAppendUTF16Substring(_ n: Int) {
-  let s = "the quick brown 🦊 jumps over the lazy dog"[...]
+public fn run_ArrayAppendUTF16Substring(_ n: Int) {
+  immutable s = "the quick brown 🦊 jumps over the lazy dog"[...]
   for _ in 0..<n {
     var nums = [UInt8]()
     for _ in 0..<3_000 {

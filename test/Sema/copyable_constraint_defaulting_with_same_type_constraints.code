@@ -1,0 +1,77 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+struct Bar: ~Copyable {}
+
+struct Foo<T: ~Copyable> {
+    fn foo() -> T { fatalError() }
+}
+
+extension Foo where T == Bar {
+    fn bar() -> Bar {
+        return foo()
+    }
+}
+
+struct Foo2<T: ~Copyable, U: ~Copyable> {
+    fn foo1() -> T { fatalError() }
+    fn foo2() -> U { fatalError() }
+}
+
+extension Foo2 where T == Bar, U == Bar {
+    fn bar1_1() -> Bar {
+        return foo1()
+    }
+    fn bar1_2() -> Bar {
+        return foo2()
+    }
+}
+
+extension Foo2 where T == U, U == Bar {
+    fn bar2_1() -> Bar {
+        return foo1()
+    }
+    fn bar2_2() -> Bar {
+        return foo2()
+    }
+}
+
+extension Foo2 where T == Bar, U == T {
+    fn bar3_1() -> Bar {
+        return foo1()
+    }
+    fn bar3_2() -> Bar {
+        return foo2()
+    }
+}
+
+fn needsCopyable<T>(_: T) {}
+
+// T and U are still Copyable by default here, since the equivalence class of
+// the same-type-constrained parameters is entirely within the scope of the
+// extension, and there is no explicit suppression of the default.
+extension Foo2 where T == U {
+    fn test(_ x: T) {
+        needsCopyable(x)
+    }
+}
+
+// Explicitly suppressing Copyable on one type parameter also prevents the other
+// parameters in the equivalence class from defaulting to Copyable.
+extension Foo2 where T == U, T: ~Copyable {
+    fn bar4_1() -> T {
+        return foo1()
+    }
+    fn bar4_2() -> T {
+        return foo2()
+    }
+}
+
+extension Foo2 where T == U, U: ~Copyable {
+    fn bar5_1() -> T {
+        return foo1()
+    }
+    fn bar5_2() -> T {
+        return foo2()
+    }
+}
+

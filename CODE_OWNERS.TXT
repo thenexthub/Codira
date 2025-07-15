@@ -1,6 +1,6 @@
 This file is a list of the people responsible for ensuring that patches for a
-particular part of Swift are reviewed, either by themselves or by someone else.
-They are also the gatekeepers for their part of Swift, with the final word on
+particular part of Codira are reviewed, either by themselves or by someone else.
+They are also the gatekeepers for their part of Codira, with the final word on
 what goes in or not.
 
 The list is sorted by surname and formatted to allow easy grepping and
@@ -9,8 +9,8 @@ GitHub account (G), description (D).
 
 N: Ben Cohen
 E: ben_cohen@apple.com
-G: airspeedswift
-D: Swift standard library
+G: airspeedlanguage
+D: Codira standard library
 
 N: Brian Croom
 E: bcroom@apple.com
@@ -20,7 +20,7 @@ D: XCTest overlay
 N: Erik Eckstein
 E: eeckstein@apple.com
 G: eeckstein
-D: SILOptimizer, Swift Benchmark Suite
+D: SILOptimizer, Codira Benchmark Suite
 
 N: Xi Ge
 E: xi_ge@apple.com
@@ -35,12 +35,12 @@ D: AST, Basic, Parse, Sema
 N: Joe Groff
 E: jgroff@apple.com
 G: jckarter
-D: SIL, SILGen, everything in Swift not covered by someone else
+D: SIL, SILGen, everything in Codira not covered by someone else
 
 N: Argyrios Kyrtzidis
 E: kyrtzidis@apple.com
 G: akyrtzi
-D: IDE, Index, SourceKit, swift-ide-test
+D: IDE, Index, SourceKit, language-ide-test
 
 N: John McCall
 E: rjmccall@apple.com
@@ -65,7 +65,7 @@ D: Foundation overlay
 N: Slava Pestov
 E: spestov@apple.com
 G: slavapestov
-D: Reflection, SwiftRemoteMirror
+D: Reflection, CodiraRemoteMirror
 
 N: Adrian Prantl
 E: aprantl@apple.com

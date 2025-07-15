@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "ConstExpr"
@@ -34,8 +35,8 @@
 #include "language/SIL/TerminatorUtils.h"
 #include "language/SILOptimizer/Utils/Devirtualize.h"
 #include "language/Serialization/SerializedSILLoader.h"
-#include "llvm/ADT/PointerEmbeddedInt.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 using namespace language;
 
@@ -128,14 +129,14 @@ ConstExprFunctionState::ConstExprFunctionState(ConstExprEvaluator &evaluator, SI
 
 /// Pretty print the state to stderr.
 void ConstExprFunctionState::dump() const {
-  llvm::errs() << "[ConstExprState: \n";
-  llvm::errs() << "   Caller: " << (fn ? fn->getName() : "null") << "\n";
-  llvm::errs() << "   evaluatedInstrCount: " << numInstEvaluated << "\n";
-  llvm::errs() << "   SubstMap: \n";
-  substitutionMap.dump(llvm::errs(), SubstitutionMap::DumpStyle::Full, 6);
-  llvm::errs() << "\n   calculatedValues: ";
+  toolchain::errs() << "[ConstExprState: \n";
+  toolchain::errs() << "   Caller: " << (fn ? fn->getName() : "null") << "\n";
+  toolchain::errs() << "   evaluatedInstrCount: " << numInstEvaluated << "\n";
+  toolchain::errs() << "   SubstMap: \n";
+  substitutionMap.dump(toolchain::errs(), SubstitutionMap::DumpStyle::Full, 6);
+  toolchain::errs() << "\n   calculatedValues: ";
   for (auto kv : calculatedValues) {
-    llvm::errs() << "      " << kv.first << " --> " << kv.second << "\n";
+    toolchain::errs() << "      " << kv.first << " --> " << kv.second << "\n";
   }
 }
 
@@ -314,7 +315,7 @@ SymbolicValue ConstExprFunctionState::computeConstantValue(SILValue value) {
     if (fn)
       return SymbolicValue::getFunction(fn);
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "ConstExpr Unresolved witness: " << *value << "\n");
     return getUnknown(evaluator, value, UnknownReason::NoWitnesTableEntry);
   }
@@ -408,7 +409,7 @@ SymbolicValue ConstExprFunctionState::computeConstantValue(SILValue value) {
   if (auto *mdi = dyn_cast<MarkDependenceInst>(value))
     return getConstantValue(mdi->getValue());
 
-  LLVM_DEBUG(llvm::dbgs() << "ConstExpr Unknown simple: " << *value << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr Unknown simple: " << *value << "\n");
 
   // Otherwise, we don't know how to handle this.
   auto unknownReason = isa<SingleValueInstruction>(value)
@@ -679,7 +680,7 @@ ConstExprFunctionState::computeConstantValueBuiltin(BuiltinInst *inst) {
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "ConstExpr Unknown Builtin: " << *inst << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr Unknown Builtin: " << *inst << "\n");
 
   // Otherwise, we don't know how to handle this builtin.
   return getUnknown(evaluator, SILValue(inst),
@@ -691,7 +692,7 @@ ConstExprFunctionState::computeConstantValueBuiltin(BuiltinInst *inst) {
 std::optional<SymbolicValue>
 ConstExprFunctionState::computeOpaqueCallResult(ApplyInst *apply,
                                                 SILFunction *callee) {
-  LLVM_DEBUG(llvm::dbgs() << "ConstExpr Opaque Callee: " << *callee << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr Opaque Callee: " << *callee << "\n");
   return evaluator.getUnknown(
       apply,
       UnknownReason::createCalleeImplementationUnknown(callee));
@@ -718,7 +719,7 @@ extractStringOrStaticStringValue(SymbolicValue stringValue) {
   return extractStaticStringValue(stringValue);
 }
 
-/// If the specified type is a Swift.Array of some element type, then return the
+/// If the specified type is a Codira.Array of some element type, then return the
 /// element type.  Otherwise, return a null Type.
 static Type getArrayElementType(Type ty) {
   if (auto bgst = ty->getAs<BoundGenericStructType>())
@@ -807,7 +808,7 @@ ConstExprFunctionState::computeWellKnownCallResult(ApplyInst *apply,
   }
   case WellKnownFunction::AllocateUninitializedArray: {
     // This function has this signature:
-    //   func _allocateUninitializedArray<Element>(_ builtinCount: Builtin.Word)
+    //   fn _allocateUninitializedArray<Element>(_ builtinCount: Builtin.Word)
     //     -> (Array<Element>, Builtin.RawPointer)
     assert(conventions.getNumParameters() == 1 &&
            conventions.getNumDirectSILResults() == 2 &&
@@ -836,7 +837,7 @@ ConstExprFunctionState::computeWellKnownCallResult(ApplyInst *apply,
     assert(resultType->is<TupleType>());
     Type arrayType = resultType->castTo<TupleType>()->getElementType(0);
     Type arrayEltType = getArrayElementType(arrayType);
-    assert(arrayEltType && "Couldn't understand Swift.Array type?");
+    assert(arrayEltType && "Couldn't understand Codira.Array type?");
 
     // Create a SymbolicArrayStorage with \c elements and then create a
     // SymbolicArray using it.
@@ -887,7 +888,7 @@ ConstExprFunctionState::computeWellKnownCallResult(ApplyInst *apply,
            conventions.getNumIndirectSILResults() == 0 &&
            "unexpected Array.append(_:) signature");
     // Get the element to be appended which is usually passed indirectly (@in),
-    // or directly (in Embedded Swift where Array.append can be specialized).
+    // or directly (in Embedded Codira where Array.append can be specialized).
     SymbolicValue element = getConstantValue(apply->getOperand(1));
     if (element.getKind() == SymbolicValue::Address) {
       element = getConstAddrAndLoadResult(apply->getOperand(1));
@@ -999,7 +1000,7 @@ ConstExprFunctionState::computeWellKnownCallResult(ApplyInst *apply,
       return getUnknown(evaluator, apply, UnknownReason::InvalidOperandValue);
     }
 
-    // The result is a Swift.Bool which is a struct that wraps an Int1.
+    // The result is a Codira.Bool which is a struct that wraps an Int1.
     int isEqual = firstString.getStringValue() == otherString.getStringValue();
     auto intVal =
         SymbolicValue::getInteger(APInt(1, isEqual), evaluator.getAllocator());
@@ -1080,18 +1081,18 @@ ConstExprFunctionState::computeWellKnownCallResult(ApplyInst *apply,
            "debug_print function must take exactly one argument");
     SILValue argument = apply->getArgument(0);
     SymbolicValue argValue = getConstantValue(argument);
-    llvm::errs() << "Debug print output ";
-    argValue.print(llvm::errs());
+    toolchain::errs() << "Debug print output ";
+    argValue.print(toolchain::errs());
     if (argValue.getKind() != SymbolicValue::Address)
       return std::nullopt;
 
-    llvm::errs() << "\n  Addressed Memory Object: ";
+    toolchain::errs() << "\n  Addressed Memory Object: ";
     SymbolicValueMemoryObject *memObj = argValue.getAddressValueMemoryObject();
-    memObj->getValue().print(llvm::errs());
+    memObj->getValue().print(toolchain::errs());
     return std::nullopt;
   }
   }
-  llvm_unreachable("unhandled WellKnownFunction");
+  toolchain_unreachable("unhandled WellKnownFunction");
 }
 
 /// Given a call to a function, determine whether it is a call to a constexpr
@@ -1243,8 +1244,8 @@ SymbolicValue ConstExprFunctionState::getConstantValue(SILValue value) {
 
   // If this is the top-level lazy interpreter, output a debug trace.
   if (!fn) {
-    LLVM_DEBUG(llvm::dbgs() << "ConstExpr top level: "; value->dump());
-    LLVM_DEBUG(llvm::dbgs() << "  RESULT: "; result.dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr top level: "; value->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  RESULT: "; result.dump());
   }
 
   setValue(value, result);
@@ -1274,7 +1275,7 @@ SymbolicValue ConstExprFunctionState::getConstantValue(SILValue value) {
 /// from, must be cached in `computedValues`.
 std::optional<SymbolicValue>
 ConstExprFunctionState::initializeAddressFromSingleWriter(SILValue addr) {
-  LLVM_DEBUG(llvm::dbgs() << "ConstExpr: initializeAddressFromSingleWriter "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr: initializeAddressFromSingleWriter "
              << addr);
 
   SmallVector<unsigned, 4> accessPath;
@@ -1311,7 +1312,7 @@ ConstExprFunctionState::initializeAddressFromSingleWriter(SILValue addr) {
   auto checkAggregateInitialized = [&]() -> bool {
     auto memoryValue = getMemoryValue();
     return memoryValue.getKind() != SymbolicValue::UninitMemory &&
-           llvm::all_of(memoryValue.getAggregateMembers(),
+           toolchain::all_of(memoryValue.getAggregateMembers(),
                         [](SymbolicValue v) { return v.isConstant(); });
   };
 
@@ -1442,13 +1443,13 @@ ConstExprFunctionState::initializeAddressFromSingleWriter(SILValue addr) {
       // If all aggregate elements are const, we have successfully
       // const-evaluated the entire tuple!
       if (checkAggregateInitialized())
-        LLVM_DEBUG(llvm::dbgs() << "Const-evaluated the entire tuple: ";
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Const-evaluated the entire tuple: ";
                    getMemoryValue().dump());
 #endif // NDEBUG
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Unknown SingleStore ConstExpr user: " << *user << "\n");
 
     // If this is some other user that we don't know about, then we should
@@ -1736,7 +1737,7 @@ ConstExprFunctionState::evaluateFlowSensitive(SILInstruction *inst) {
     if (!result.isConstant())
       return result;
     setValue(singleValueInst, result);
-    LLVM_DEBUG(llvm::dbgs() << "  RESULT: "; result.dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  RESULT: "; result.dump());
     return std::nullopt;
   }
 
@@ -1757,7 +1758,7 @@ ConstExprFunctionState::evaluateFlowSensitive(SILInstruction *inst) {
     return std::nullopt;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "ConstExpr Unknown FS: " << *inst << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr Unknown FS: " << *inst << "\n");
   // If this is an unknown instruction with no results then bail out.
   return getUnknown(evaluator, inst->asSILNode(),
                     UnknownReason::UnsupportedInstruction);
@@ -1898,7 +1899,7 @@ ConstExprFunctionState::evaluateInstructionAndGetNext(
     return {resultBB->begin(), std::nullopt};
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "ConstExpr: Unknown Branch Instruction: " << *inst
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr: Unknown Branch Instruction: " << *inst
                           << "\n");
 
   return {std::nullopt, getUnknown(evaluator, inst->asSILNode(),
@@ -1925,10 +1926,10 @@ evaluateAndCacheCall(SILFunction &fn, SubstitutionMap substitutionMap,
   unsigned nextBBArg = 0;
   const auto &argList = fn.front().getArguments();
 
-  LLVM_DEBUG(llvm::dbgs().changeColor(raw_ostream::SAVEDCOLOR, /*bold*/ true)
+  TOOLCHAIN_DEBUG(toolchain::dbgs().changeColor(raw_ostream::SAVEDCOLOR, /*bold*/ true)
                  << "\nConstExpr call fn: "
                  << Demangle::demangleSymbolAsString(fn.getName());
-             llvm::dbgs().resetColor() << "\n");
+             toolchain::dbgs().resetColor() << "\n");
 
   assert(arguments.size() == argList.size() && "incorrect # arguments passed");
   for (auto argSymVal : arguments)
@@ -1944,7 +1945,7 @@ evaluateAndCacheCall(SILFunction &fn, SubstitutionMap substitutionMap,
 
   while (1) {
     SILInstruction *inst = &*nextInst;
-    LLVM_DEBUG(llvm::dbgs() << "ConstExpr interpret: "; inst->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "ConstExpr interpret: "; inst->dump());
 
     // Make sure we haven't exceeded our interpreter iteration cap.
     if (++numInstEvaluated > ConstExprLimit) {
@@ -1963,7 +1964,7 @@ evaluateAndCacheCall(SILFunction &fn, SubstitutionMap substitutionMap,
 
       // TODO: Handle caching of results.
 
-      LLVM_DEBUG(llvm::dbgs() << "\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n");
       return std::nullopt;
     }
 
@@ -2136,7 +2137,7 @@ ConstExprStepEvaluator::skipByMakingEffectsNonConstant(
   return {std::nullopt, std::nullopt};
 }
 
-bool swift::isFailStopError(SymbolicValue errorVal) {
+bool language::isFailStopError(SymbolicValue errorVal) {
   assert(errorVal.isUnknown());
 
   switch (errorVal.getUnknownReason().getKind()) {
@@ -2190,16 +2191,16 @@ ConstExprStepEvaluator::lookupConstValue(SILValue value) {
 
 void ConstExprStepEvaluator::dumpState() { internalState->dump(); }
 
-bool swift::isKnownConstantEvaluableFunction(SILFunction *fun) {
+bool language::isKnownConstantEvaluableFunction(SILFunction *fun) {
   return classifyFunction(fun).has_value();
 }
 
-bool swift::hasConstantEvaluableAnnotation(SILFunction *fun) {
+bool language::hasConstantEvaluableAnnotation(SILFunction *fun) {
   assert(fun && "fun should not be nullptr");
   return fun->hasSemanticsAttr("constant_evaluable");
 }
 
-bool swift::isConstantEvaluable(SILFunction *fun) {
+bool language::isConstantEvaluable(SILFunction *fun) {
   return hasConstantEvaluableAnnotation(fun) ||
          isKnownConstantEvaluableFunction(fun);
 }
@@ -2225,7 +2226,7 @@ bool swift::isConstantEvaluable(SILFunction *fun) {
 /// value or through the parameters that are destroyed. The return value
 /// is also guaranteed to have value semantics as it is non-generic and
 /// reference semantics is not constant evaluable.
-bool swift::isReadOnlyConstantEvaluableCall(FullApplySite applySite) {
+bool language::isReadOnlyConstantEvaluableCall(FullApplySite applySite) {
   SILFunction *callee = applySite.getCalleeFunction();
   if (!callee)
     return false;

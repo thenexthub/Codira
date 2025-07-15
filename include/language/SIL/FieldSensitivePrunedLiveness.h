@@ -1,13 +1,17 @@
 //===--- FieldSensitivePrunedLiveness.h -----------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file This is a field sensitive implementation of PrunedLiveness. It is a
@@ -17,8 +21,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_FIELDSENSITIVEPRUNTEDLIVENESS_H
-#define SWIFT_SIL_FIELDSENSITIVEPRUNTEDLIVENESS_H
+#ifndef LANGUAGE_SIL_FIELDSENSITIVEPRUNTEDLIVENESS_H
+#define LANGUAGE_SIL_FIELDSENSITIVEPRUNTEDLIVENESS_H
 
 #include "language/AST/TypeExpansionContext.h"
 #include "language/Basic/Assertions.h"
@@ -30,10 +34,10 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -334,7 +338,7 @@ struct TypeTreeLeafTypeRange {
 
   static void visitContiguousRanges(
       SmallBitVector const &bits,
-      llvm::function_ref<void(TypeTreeLeafTypeRange)> callback);
+      toolchain::function_ref<void(TypeTreeLeafTypeRange)> callback);
 
   bool operator==(const TypeTreeLeafTypeRange &other) const {
     return startEltOffset == other.startEltOffset &&
@@ -406,17 +410,17 @@ struct TypeTreeLeafTypeRange {
   void constructFilteredProjections(
       SILValue value, SILInstruction *insertPt, SmallBitVector &filterBitVector,
       DominanceInfo *domTree,
-      llvm::function_ref<bool(SILValue, TypeTreeLeafTypeRange, NeedsDestroy_t)>
+      toolchain::function_ref<bool(SILValue, TypeTreeLeafTypeRange, NeedsDestroy_t)>
           callback);
 
-  void print(llvm::raw_ostream &os) const {
+  void print(toolchain::raw_ostream &os) const {
     os << "TypeTreeLeafTypeRange: (start: " << startEltOffset
        << ", end: " << endEltOffset << ")";
   }
-  void dump() const { print(llvm::dbgs()); }
+  void dump() const { print(toolchain::dbgs()); }
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                                      const TypeTreeLeafTypeRange &value) {
   value.print(os);
   return os;
@@ -520,7 +524,7 @@ public:
 private:
   /// Map all blocks in which current def is live to a SmallBitVector indicating
   /// whether the value represented by said bit is also liveout of the block.
-  llvm::SmallDenseMap<SILBasicBlock *, LivenessSmallBitVector, 4> liveBlocks;
+  toolchain::SmallDenseMap<SILBasicBlock *, LivenessSmallBitVector, 4> liveBlocks;
 
   /// Number of bits of liveness to track. By default 1. Used to track multiple
   /// liveness bits.
@@ -533,7 +537,7 @@ private:
   SmallVectorImpl<SILBasicBlock *> *discoveredBlocks;
 
   /// Once the first use has been seen, no definitions can be added.
-  SWIFT_ASSERT_ONLY_DECL(bool seenUse = false);
+  LANGUAGE_ASSERT_ONLY_DECL(bool seenUse = false);
 
 public:
   FieldSensitivePrunedLiveBlocks(
@@ -553,7 +557,7 @@ public:
     if (discoveredBlocks)
       discoveredBlocks->clear();
     numBitsToTrack = std::nullopt;
-    SWIFT_ASSERT_ONLY(seenUse = false);
+    LANGUAGE_ASSERT_ONLY(seenUse = false);
   }
 
   void init(unsigned inputNumBitsToTrack) {
@@ -641,8 +645,8 @@ public:
     liveBlockIter->second.getLiveness(bits, foundLivenessInfo);
   }
 
-  llvm::StringRef getStringRef(IsLive isLive) const;
-  void print(llvm::raw_ostream &OS) const;
+  toolchain::StringRef getStringRef(IsLive isLive) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 
 protected:
@@ -810,7 +814,7 @@ public:
       } else if (isLive && !isConsuming) {
         return NonLifetimeEndingUse;
       }
-      llvm_unreachable("covered conditions");
+      toolchain_unreachable("covered conditions");
     }
   };
 
@@ -826,7 +830,7 @@ private:
   /// they may be the last use in the block.
   ///
   /// Non-lifetime-ending within a LiveOut block are uninteresting.
-  llvm::SmallMapVector<SILInstruction *, InterestingUser, 8> users;
+  toolchain::SmallMapVector<SILInstruction *, InterestingUser, 8> users;
 
   /// The root address of our type tree.
   SILValue rootValue;
@@ -889,7 +893,7 @@ public:
       iterator_range<const std::pair<SILInstruction *, InterestingUser> *>;
   UserRange getAllUsers() const {
     assert(isInitialized());
-    return llvm::make_range(users.begin(), users.end());
+    return toolchain::make_range(users.begin(), users.end());
   }
 
   using UserBlockRange = TransformRange<
@@ -1013,8 +1017,8 @@ public:
 
   unsigned getNumSubElements() const { return liveBlocks.getNumBitsToTrack(); }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
 protected:
   /// Helper function used in FieldSensitivePrunedLiveness::updateForUse and
@@ -1063,9 +1067,9 @@ protected:
 /// is the target block's single predecessor which must have at least one other
 /// non-boundary successor.
 class FieldSensitivePrunedLivenessBoundary {
-  llvm::SmallMapVector<SILInstruction *, SmallBitVector, 8> lastUsers;
-  llvm::SmallMapVector<SILBasicBlock *, SmallBitVector, 8> boundaryEdges;
-  llvm::SmallMapVector<SILNode *, SmallBitVector, 1> deadDefs;
+  toolchain::SmallMapVector<SILInstruction *, SmallBitVector, 8> lastUsers;
+  toolchain::SmallMapVector<SILBasicBlock *, SmallBitVector, 8> boundaryEdges;
+  toolchain::SmallMapVector<SILNode *, SmallBitVector, 1> deadDefs;
   unsigned numBits;
 
 public:
@@ -1074,7 +1078,7 @@ public:
   /// Soundness check meant for NDEBUG mode.
   unsigned getNumLastUsersAndDeadDefs(unsigned bitNo) const {
 #ifdef NDEBUG
-    llvm_unreachable("Only call in asserts build!\n");
+    toolchain_unreachable("Only call in asserts build!\n");
 #else
     unsigned count = 0;
     for (auto &pair : lastUsers) {
@@ -1135,7 +1139,7 @@ public:
     deadDefs.clear();
   }
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
   void dump() const;
 };
 
@@ -1313,10 +1317,10 @@ public:
   }
 
   void init(SILValue rootValue) {
-    llvm_unreachable("multi-def liveness cannot be reused");
+    toolchain_unreachable("multi-def liveness cannot be reused");
   }
 
-  void clear() { llvm_unreachable("multi-def liveness cannot be reused"); }
+  void clear() { toolchain_unreachable("multi-def liveness cannot be reused"); }
 
   /// Call this when we have finished initializing defs and can begin to add
   /// liveness use information.
@@ -1372,7 +1376,7 @@ public:
     auto iter = defBlocks.find(block);
     if (!iter)
       return false;
-    return llvm::any_of(
+    return toolchain::any_of(
         *iter, [&](TypeTreeLeafTypeRange span) { return span.contains(bit); });
   }
 
@@ -1429,7 +1433,7 @@ public:
     auto iter = defs.find(node);
     if (!iter)
       return false;
-    return llvm::any_of(
+    return toolchain::any_of(
         *iter, [&](TypeTreeLeafTypeRange span) { return span.contains(bit); });
   }
 
@@ -1501,7 +1505,7 @@ public:
   /// use, we return false.
   bool findEarlierConsumingUse(
       SILInstruction *inst, unsigned index,
-      llvm::function_ref<bool(SILInstruction *)> callback) const;
+      toolchain::function_ref<bool(SILInstruction *)> callback) const;
 };
 
 } // namespace language

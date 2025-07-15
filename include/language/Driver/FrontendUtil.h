@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_FRONTENDUTIL_H
-#define SWIFT_DRIVER_FRONTENDUTIL_H
+#ifndef LANGUAGE_DRIVER_FRONTENDUTIL_H
+#define LANGUAGE_DRIVER_FRONTENDUTIL_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/StringSaver.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/StringSaver.h"
 
 #include <memory>
 
@@ -30,14 +31,14 @@ namespace driver {
 /// Expand response files in the argument list with retrying.
 /// This function is a wrapper of lvm::cl::ExpandResponseFiles. It will
 /// retry calling the function if the previous expansion failed.
-void ExpandResponseFilesWithRetry(llvm::StringSaver &Saver,
-                                  llvm::SmallVectorImpl<const char *> &Args);
+void ExpandResponseFilesWithRetry(toolchain::StringSaver &Saver,
+                                  toolchain::SmallVectorImpl<const char *> &Args);
 
 /// Generates the list of arguments that would be passed to the compiler
 /// frontend from the given driver arguments.
 ///
-/// \param DriverPath The path to 'swiftc'.
-/// \param ArgList The driver arguments (i.e. normal arguments for \c swiftc).
+/// \param DriverPath The path to 'languagec'.
+/// \param ArgList The driver arguments (i.e. normal arguments for \c languagec).
 /// \param Diags The DiagnosticEngine used to report any errors parsing the
 /// arguments.
 /// \param Action Called with the list of frontend arguments if there were no
@@ -54,7 +55,7 @@ void ExpandResponseFilesWithRetry(llvm::StringSaver &Saver,
 bool getSingleFrontendInvocationFromDriverArguments(
     StringRef DriverPath, ArrayRef<const char *> ArgList,
     DiagnosticEngine &Diags,
-    llvm::function_ref<bool(ArrayRef<const char *> FrontendArgs)> Action,
+    toolchain::function_ref<bool(ArrayRef<const char *> FrontendArgs)> Action,
     bool ForceNoOutputs = false);
 
 } // end namespace driver

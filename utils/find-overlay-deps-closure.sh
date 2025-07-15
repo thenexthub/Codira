@@ -9,7 +9,7 @@
 # but not:
 # 3) as /usr/include/foo/module.map or /usr/include/foo/modulemap.map
 # Overlays that only show up as a module map are not a real dependency.
-# Overlays that have a different name in Swift than in the output: Dispatch, ObjectiveC, XPC
+# Overlays that have a different name in Codira than in the output: Dispatch, ObjectiveC, XPC
 # XCTest is hardcoded because this method doesn't work for it.
 
 set -o pipefail

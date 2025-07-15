@@ -1,0 +1,20 @@
+enum Err : Error {
+  case wat
+}
+
+fn throwsSomething() throws { throw Err.wat }
+fn consumesErrClosure(_ fn: () throws -> Void) {}
+fn rethrowsErrClosure(_ fn: () throws -> Void) rethrows {}
+
+fn testThrowingClosure() throws {
+  consumesErrClosure { throw Err.wat }
+  consumesErrClosure { try throwsSomething() }
+  try rethrowsErrClosure { try throwsSomething() }
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-function -source-filename %s -pos=10:1 -end-pos=11:47 >> %t.result/consumes_err.code
+// RUN: diff -u %S/Outputs/throw_errors3/consumes_err.code.expected %t.result/consumes_err.code
+// RUN: %refactor -extract-function -source-filename %s -pos=10:1 -end-pos=12:51 >> %t.result/rethrows_err.code
+// RUN: diff -u %S/Outputs/throw_errors3/rethrows_err.code.expected %t.result/rethrows_err.code
+// REQUIRES: language_language_parser

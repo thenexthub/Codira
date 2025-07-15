@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements helpers for the default implementations of Error protocol
@@ -22,10 +23,10 @@
 #include "language/Runtime/Metadata.h"
 using namespace language;
 
-// @_silgen_name("_swift_stdlib_getDefaultErrorCode")
-// func _getDefaultErrorCode<T : Error>(_ x: T) -> Int
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_SPI
-intptr_t _swift_stdlib_getDefaultErrorCode(OpaqueValue *error,
+// @_silgen_name("_language_stdlib_getDefaultErrorCode")
+// fn _getDefaultErrorCode<T : Error>(_ x: T) -> Int
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
+intptr_t _language_stdlib_getDefaultErrorCode(OpaqueValue *error,
                                            const Metadata *T,
                                            const WitnessTable *Error) {
   intptr_t result;

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Initialization.h"
@@ -37,7 +38,7 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "DeallocPackCleanup\n"
+    toolchain::errs() << "DeallocPackCleanup\n"
                  << "State: " << getState() << "\n"
                  << "Addr: " << Addr << "\n";
 #endif
@@ -62,7 +63,7 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "DestroyPackCleanup\n"
+    toolchain::errs() << "DestroyPackCleanup\n"
                  << "State:" << getState() << "\n"
                  << "Addr:" << Addr << "\n"
                  << "FormalPackType:" << FormalPackType << "\n"
@@ -97,16 +98,16 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "PartialDestroyPackCleanup\n"
+    toolchain::errs() << "PartialDestroyPackCleanup\n"
                  << "State: " << getState() << "\n"
                  << "Addr: " << Addr << "FormalPackType: " << FormalPackType
                  << "\n"
                  << "ComponentIndex: " << PackComponentIndex << "\n"
                  << "LimitWithinComponent: ";
     if (LimitWithinComponent)
-      llvm::errs() << LimitWithinComponent;
+      toolchain::errs() << LimitWithinComponent;
     else
-      llvm::errs() << "None\n";
+      toolchain::errs() << "None\n";
 #endif
   }
 };
@@ -136,7 +137,7 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "PartialDestroyRemainingPackCleanup\n"
+    toolchain::errs() << "PartialDestroyRemainingPackCleanup\n"
                  << "State: " << getState() << "\n"
                  << "Addr: " << Addr << "FormalPackType: " << FormalPackType
                  << "\n"
@@ -171,7 +172,7 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "PartialDestroyTupleCleanup\n"
+    toolchain::errs() << "PartialDestroyTupleCleanup\n"
                  << "State: " << getState() << "\n"
                  << "Addr: " << Addr << "InducedPackType: " << InducedPackType
                  << "\n"
@@ -206,7 +207,7 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "PartialDestroyRemainingTupleCleanup\n"
+    toolchain::errs() << "PartialDestroyRemainingTupleCleanup\n"
                  << "State: " << getState() << "\n"
                  << "Addr: " << Addr << "InducedPackType: " << InducedPackType
                  << "\n"
@@ -238,7 +239,7 @@ public:
 
   void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-    llvm::errs() << "DestroyRemainingTupleElementsCleanup\n"
+    toolchain::errs() << "DestroyRemainingTupleElementsCleanup\n"
                  << "State: " << getState() << "\n"
                  << "Addr: " << Addr << "InducedPackType: " << InducedPackType
                  << "\n"
@@ -688,7 +689,7 @@ void SILGenFunction::projectTupleElementsToPack(SILLocation loc,
 void SILGenFunction::emitDynamicPackLoop(
     SILLocation loc, CanPackType formalPackType, unsigned componentIndex,
     GenericEnvironment *openedElementEnv,
-    llvm::function_ref<void(SILValue indexWithinComponent,
+    toolchain::function_ref<void(SILValue indexWithinComponent,
                             SILValue packExpansionIndex, SILValue packIndex)>
         emitBody,
     SILBasicBlock *loopLatch) {
@@ -702,7 +703,7 @@ void SILGenFunction::emitDynamicPackLoop(
     SILLocation loc, CanPackType formalPackType, unsigned componentIndex,
     SILValue startingAfterIndexInComponent, SILValue limitWithinComponent,
     GenericEnvironment *openedElementEnv, bool reverse,
-    llvm::function_ref<void(SILValue indexWithinComponent,
+    toolchain::function_ref<void(SILValue indexWithinComponent,
                             SILValue packExpansionIndex, SILValue packIndex)>
         emitBody,
     SILBasicBlock *loopLatch) {
@@ -716,7 +717,7 @@ void SILGenFunction::emitDynamicPackLoop(
     openedElementEnv
   };
 
-  llvm::SaveAndRestore<ActivePackExpansion*>
+  toolchain::SaveAndRestore<ActivePackExpansion*>
     packExpansionScope(InnermostPackExpansion, &activeExpansionRecord);
 
   if (auto *expansion = loc.getAsASTNode<PackExpansionExpr>())
@@ -860,7 +861,7 @@ void InPlacePackExpansionInitialization::
        performPackExpansionInitialization(SILGenFunction &SGF,
                                           SILLocation loc,
                                           SILValue indexWithinComponent,
-                        llvm::function_ref<void(Initialization *into)> fn) {
+                        toolchain::function_ref<void(Initialization *into)> fn) {
   // Enter a cleanup to destroy elements of the expansion up to the
   // current index.  We only need to do this if the elements are
   // non-trivial, which we've already checked in order to decide whether
@@ -1032,7 +1033,7 @@ SILGenFunction::emitPackTransform(SILLocation loc,
                                   unsigned outputComponentIndex,
                                   bool isSimpleProjection,
                                   bool canForwardOutput,
-               llvm::function_ref<ManagedValue(ManagedValue input,
+               toolchain::function_ref<ManagedValue(ManagedValue input,
                                                SILType outputEltTy,
                                                SGFContext context)> emitBody) {
 

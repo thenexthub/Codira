@@ -1,0 +1,4 @@
+// {"signature":"language::DeclContext::getASTContext() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@a({ struct b }
+                        var c

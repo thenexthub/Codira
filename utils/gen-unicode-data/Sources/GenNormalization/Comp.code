@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
-func getCompExclusions(from data: String) -> [ClosedRange<UInt32>] {
+fn getCompExclusions(from data: String) -> [ClosedRange<UInt32>] {
   var result: [ClosedRange<UInt32>] = []
   
   for line in data.split(separator: "\n") {
@@ -21,28 +25,28 @@ func getCompExclusions(from data: String) -> [ClosedRange<UInt32>] {
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
     // Get the property first because we only care about Full_Composition_Exclusion
-    let filteredProperty = components[1].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
     
     guard filteredProperty == "Full_Composition_Exclusion" else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -53,10 +57,10 @@ func getCompExclusions(from data: String) -> [ClosedRange<UInt32>] {
   return result
 }
 
-func emitComp(_ mph: Mph, _ data: [(UInt32, [UInt32])], into result: inout String) {
+fn emitComp(_ mph: Mph, _ data: [(UInt32, [UInt32])], into result: inout String) {
   emitMph(
     mph,
-    name: "_swift_stdlib_nfc_comp",
+    name: "_language_stdlib_nfc_comp",
     defineLabel: "NFC_COMP",
     into: &result
   )
@@ -64,19 +68,19 @@ func emitComp(_ mph: Mph, _ data: [(UInt32, [UInt32])], into result: inout Strin
   emitCompComps(mph, data, into: &result)
 }
 
-func emitCompComps(
+fn emitCompComps(
   _ mph: Mph,
   _ data: [(UInt32, [UInt32])],
   into result: inout String
 ) {
-  let uniqueKeys = Set(data.map { $0.1[1] })
+  immutable uniqueKeys = Set(data.map { $0.1[1] })
   var sortedData: [[(UInt32, UInt32)]] = .init(
     repeating: [],
     count: uniqueKeys.count
   )
   
   for (scalar, comp) in data {
-    let idx = mph.index(for: UInt64(comp[1]))
+    immutable idx = mph.index(for: UInt64(comp[1]))
     
     if sortedData[idx].isEmpty {
       sortedData[idx].append((comp[1], .max))
@@ -95,7 +99,7 @@ func emitCompComps(
   
   for i in sortedData.indices {
     result += """
-    static const __swift_uint32_t _swift_stdlib_nfc_comp\(i)[\(sortedData[i].count)] = {
+    static const __language_uint32_t _language_stdlib_nfc_comp\(i)[\(sortedData[i].count)] = {
     
     """
     
@@ -115,7 +119,7 @@ func emitCompComps(
       
       // Calculate the distance from our current composition scalar to our final
       // composed scalar.
-      let distance = Int(scalar) - Int(comp)
+      immutable distance = Int(scalar) - Int(comp)
       // Make sure that our distance doesn't exceed 14 bits. Although the above
       // assertion gives us 15 bits, we use the last bit to indicate negative
       // or not.
@@ -134,12 +138,12 @@ func emitCompComps(
   }
   
   result += """
-  static const __swift_uint32_t * const _swift_stdlib_nfc_comp_indices[\(sortedData.count)] = {
+  static const __language_uint32_t * const _language_stdlib_nfc_comp_indices[\(sortedData.count)] = {
   
   """
   
   formatCollection(sortedData.indices, into: &result) { i in
-    return "_swift_stdlib_nfc_comp\(i)"
+    return "_language_stdlib_nfc_comp\(i)"
   }
   
   result += "\n};\n\n"

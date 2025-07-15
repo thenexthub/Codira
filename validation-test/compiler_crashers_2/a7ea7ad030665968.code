@@ -1,0 +1,5 @@
+// {"signature":"language::TypeChecker::checkObjCKeyPathExpr(language::DeclContext*, language::KeyPathExpr*, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+#keyPath(
+print

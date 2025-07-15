@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements the runtime support for dynamically tracking exclusivity.
@@ -22,18 +23,18 @@
 
 #include <dlfcn.h>
 
-void swift::swift_task_enterThreadLocalContextBackdeploy56(char *state) {
+void language::language_task_enterThreadLocalContextBackdeploy56(char *state) {
   const auto enterThreadLocalContext =
-      reinterpret_cast<void(*)(char *state)>(SWIFT_LAZY_CONSTANT(
-          dlsym(RTLD_DEFAULT, "swift_task_enterThreadLocalContext")));
+      reinterpret_cast<void(*)(char *state)>(LANGUAGE_LAZY_CONSTANT(
+          dlsym(RTLD_DEFAULT, "language_task_enterThreadLocalContext")));
   if (enterThreadLocalContext)
     enterThreadLocalContext(state);
 }
 
-void swift::swift_task_exitThreadLocalContextBackdeploy56(char *state) {
+void language::language_task_exitThreadLocalContextBackdeploy56(char *state) {
   const auto exitThreadLocalContext =
-      reinterpret_cast<void(*)(char *state)>(SWIFT_LAZY_CONSTANT(
-          dlsym(RTLD_DEFAULT, "swift_task_exitThreadLocalContext")));
+      reinterpret_cast<void(*)(char *state)>(LANGUAGE_LAZY_CONSTANT(
+          dlsym(RTLD_DEFAULT, "language_task_exitThreadLocalContext")));
   if (exitThreadLocalContext)
     exitThreadLocalContext(state);
 }

@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_INPUTFILE_H
-#define SWIFT_FRONTEND_INPUTFILE_H
+#ifndef LANGUAGE_FRONTEND_INPUTFILE_H
+#define LANGUAGE_FRONTEND_INPUTFILE_H
 
 #include "language/Basic/FileTypes.h"
 #include "language/Basic/PrimarySpecificPaths.h"
 #include "language/Basic/SupplementaryOutputPaths.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
 #include <string>
 
 namespace language {
@@ -47,7 +48,7 @@ namespace language {
 class InputFile final {
   std::string Filename;
   file_types::ID FileID;
-  llvm::PointerIntPair<llvm::MemoryBuffer *, 1, bool> BufferAndIsPrimary;
+  toolchain::PointerIntPair<toolchain::MemoryBuffer *, 1, bool> BufferAndIsPrimary;
   PrimarySpecificPaths PSPs;
 
 public:
@@ -58,16 +59,16 @@ public:
   /// from memory buffers. Use the overload of this constructor accepting a
   /// memory buffer and an explicit \c file_types::ID instead.
   InputFile(StringRef name, bool isPrimary,
-            llvm::MemoryBuffer *buffer = nullptr)
+            toolchain::MemoryBuffer *buffer = nullptr)
       : InputFile(name, isPrimary, buffer,
                   file_types::lookupTypeForExtension(
-                      llvm::sys::path::extension(name))) {}
+                      toolchain::sys::path::extension(name))) {}
 
   /// Constructs an input file from the provided data.
-  InputFile(StringRef name, bool isPrimary, llvm::MemoryBuffer *buffer,
+  InputFile(StringRef name, bool isPrimary, toolchain::MemoryBuffer *buffer,
             file_types::ID FileID)
       : Filename(
-            convertBufferNameFromLLVM_getFileOrSTDIN_toSwiftConventions(name)),
+            convertBufferNameFromTOOLCHAIN_getFileOrSTDIN_toCodiraConventions(name)),
         FileID(FileID), BufferAndIsPrimary(buffer, isPrimary),
         PSPs(PrimarySpecificPaths()) {
     assert(!name.empty());
@@ -81,7 +82,7 @@ public:
   bool isPrimary() const { return BufferAndIsPrimary.getInt(); }
 
   /// Retrieves the backing buffer for this input file, if any.
-  llvm::MemoryBuffer *getBuffer() const {
+  toolchain::MemoryBuffer *getBuffer() const {
     return BufferAndIsPrimary.getPointer();
   }
 
@@ -94,9 +95,9 @@ public:
     return Filename;
   }
 
-  /// Return Swift-standard file name from a buffer name set by
-  /// llvm::MemoryBuffer::getFileOrSTDIN, which uses "<stdin>" instead of "-".
-  static StringRef convertBufferNameFromLLVM_getFileOrSTDIN_toSwiftConventions(
+  /// Return Codira-standard file name from a buffer name set by
+  /// toolchain::MemoryBuffer::getFileOrSTDIN, which uses "<stdin>" instead of "-".
+  static StringRef convertBufferNameFromTOOLCHAIN_getFileOrSTDIN_toCodiraConventions(
       StringRef filename) {
     return filename == "<stdin>" ? "-" : filename;
   }
@@ -149,4 +150,4 @@ public:
 };
 } // namespace language
 
-#endif // SWIFT_FRONTEND_INPUTFILE_H
+#endif // LANGUAGE_FRONTEND_INPUTFILE_H

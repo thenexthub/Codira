@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This pass statically verifies that yield-once coroutines, such as the
@@ -33,8 +34,8 @@
 #include "language/SIL/BasicBlockBits.h"
 #include "language/SIL/BasicBlockData.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/BreadthFirstIterator.h"
-#include "llvm/ADT/DenseSet.h"
+#include "toolchain/ADT/BreadthFirstIterator.h"
+#include "toolchain/ADT/DenseSet.h"
 
 using namespace language;
 
@@ -407,7 +408,7 @@ class YieldOnceCheck : public SILFunctionTransform {
       // during the analysis
       BasicBlockSet predecessorsOfYieldPred(&fun);
       for (auto *predBB :
-           llvm::breadth_first<llvm::Inverse<SILBasicBlock *>>(yieldPred)) {
+           toolchain::breadth_first<toolchain::Inverse<SILBasicBlock *>>(yieldPred)) {
         if (visitedBBs[predBB].isVisited()) {
           predecessorsOfYieldPred.insert(predBB);
         }
@@ -418,7 +419,7 @@ class YieldOnceCheck : public SILFunctionTransform {
       SILBasicBlock *lowestCommonAncestorBB = nullptr;
       BasicBlockSet predecessorsOfNoYieldPred(&fun);
       for (auto *pred :
-           llvm::breadth_first<llvm::Inverse<SILBasicBlock *>>(noYieldPred)) {
+           toolchain::breadth_first<toolchain::Inverse<SILBasicBlock *>>(noYieldPred)) {
         if (!visitedBBs[pred].isVisited()) {
           continue;
         }
@@ -503,7 +504,7 @@ class YieldOnceCheck : public SILFunctionTransform {
         auto caseNumber = caseNumberOpt.value() + 1;
         diagnose(
             astCtx, enumCaseLoc, diag::switch_value_case_doesnt_yield,
-            (Twine(caseNumber) + llvm::getOrdinalSuffix(caseNumber)).str());
+            (Twine(caseNumber) + toolchain::getOrdinalSuffix(caseNumber)).str());
         return;
       }
 
@@ -517,7 +518,7 @@ class YieldOnceCheck : public SILFunctionTransform {
         return;
       }
 
-      llvm_unreachable("unexpected branch resulting in conflicting yield "
+      toolchain_unreachable("unexpected branch resulting in conflicting yield "
                        "states found in generalized accessor");
     }
     }
@@ -537,6 +538,6 @@ class YieldOnceCheck : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createYieldOnceCheck() {
+SILTransform *language::createYieldOnceCheck() {
   return new YieldOnceCheck();
 }

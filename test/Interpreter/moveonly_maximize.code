@@ -1,0 +1,33 @@
+// RUN: %target-run-simple-language(-Xfrontend -sil-verify-all) | %FileCheck %s
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all) | %FileCheck %s
+
+// REQUIRES: executable_test
+struct Alice: ~Copyable {
+  var age: Int
+
+  init(age: Int) {
+    print("INIT");
+    this.age = age
+  }
+
+  deinit { print("DEINIT") }
+}
+
+fn eatMe(_ alice: consuming Alice) {
+  print(" start")
+  print(" age:", alice.age)
+  print(" end")
+}
+
+fn doit() {
+  immutable alice = Alice(age: 10)
+  eatMe(alice)
+}
+
+doit()
+
+// CHECK: INIT
+// CHECK:  start
+// CHECK:  age: 10
+// CHECK:  end
+// CHECK: DEINIT

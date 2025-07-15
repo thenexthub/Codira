@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #import <Foundation/Foundation.h>
@@ -39,7 +40,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)testIsEqualToString;
 - (void)testIsEqualToString2;
-- (void)testIsEqualToStringAllSwift;
+- (void)testIsEqualToStringAllCodira;
 - (void)testUTF8String;
 - (void)testCStringUsingEncoding;
 - (void)testGetUTF8Contents;

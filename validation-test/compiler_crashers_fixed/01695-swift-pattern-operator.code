@@ -1,0 +1,130 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+extension Array {
+class C(A<Int
+}
+}
+var b
+return g> Void>) {
+return z()
+protocol a {
+}
+struct A : (a((x: A, A.a))))
+fn c<I : Sequence where d<3] == T) + seq: d where T : T! {
+}
+protocol d {
+immutable a {
+}
+struct A<T, a(true }
+}
+protocol A {
+}
+typealias f = b(")
+class A, immutable i> String {
+import Foundation
+protocol A {
+var b = d<T) {
+print(")
+private class A, (h: a {
+}
+fn f.A.a()
+init(array: (#object1, f: b
+}
+}
+}
+deinit {
+protocol P {
+return { x }
+f : b = {
+protocol P {
+case c<b> {
+protocol P {
+}
+extension NSSet {
+return m: A<T.startIndex)
+protocol b in
+case s: X<T.dynamicType.h == 1
+init(Any) {
+}
+}
+immutable c<T>>Bool)(()
+case C
+}
+protocol a {
+immutable i<T where k) {
+}
+d>>()
+import Foundation
+}
+}
+struct c = compose<T>(g<d {
+}
+class C()
+class fn f((() -> [1]
+}
+}
+protocol a {
+class C) {
+immutable c(c, d>Bool)?
+protocol b {
+init({
+}
+struct c
+}
+import Foundation
+struct S) -> U {
+return {
+}
+protocol a {
+return !)
+class b
+protocol d {
+deinit {
+}
+this.c: C = a: Any) -> Void>(Any) -> {
+var a(seq: Boolean, Any) -> : T.Type
+extension A {
+fn a)) {
+return m: b: Int
+typealias f = F>
+protocol b where f: a
+c) {
+}
+fn e()
+for (A, k : T>() -> String {
+fn a: Int {
+this[T: Array) {
+}
+}
+typealias f = nil
+this, this, c()
+}
+enum S()
+class A, Bool) -> (AnyObject))
+fn a: Bool) {
+protocol a : Any, object2: A, "")
+protocol a {
+}
+}
+var e(i<T -> S : Sequence, e == { _, Bool) {
+typealias e = 1
+init(c == A> S {
+return "foobar"")
+class c<T where f.g : c() -> (bytes: String {
+protocol b {
+typealias A {
+}
+}
+return "
+0) {
+typealias e = Codira.startInde

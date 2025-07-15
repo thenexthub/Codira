@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -28,12 +29,12 @@ class BasicInstructionPropertyDumper : public SILModuleTransform {
   void run() override {
     for (auto &Fn : *getModule()) {
       unsigned Count = 0;
-      llvm::outs() << "@" << Fn.getName() << "\n";
+      toolchain::outs() << "@" << Fn.getName() << "\n";
       for (auto &BB : Fn) {
         for (auto &I : BB) {
-          llvm::outs() << "Inst #: " << Count++ << "\n    " << I;
-          llvm::outs() << "    Mem Behavior: " << I.getMemoryBehavior() << "\n";
-          llvm::outs() << "    Release Behavior: " << I.getReleasingBehavior()
+          toolchain::outs() << "Inst #: " << Count++ << "\n    " << I;
+          toolchain::outs() << "    Mem Behavior: " << I.getMemoryBehavior() << "\n";
+          toolchain::outs() << "    Release Behavior: " << I.getReleasingBehavior()
                        << "\n";
         }
       }
@@ -44,6 +45,6 @@ class BasicInstructionPropertyDumper : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createBasicInstructionPropertyDumper() {
+SILTransform *language::createBasicInstructionPropertyDumper() {
   return new BasicInstructionPropertyDumper();
 }

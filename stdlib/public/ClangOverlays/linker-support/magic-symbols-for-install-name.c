@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A file containing magic symbols that instruct the linker to use a
@@ -23,7 +24,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if defined(__APPLE__) && defined(__MACH__) && SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#if defined(__APPLE__) && defined(__MACH__) && LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 
 #include <mach-o/loader.h>
 #include <TargetConditionals.h>
@@ -41,15 +42,15 @@
 // compatibility-version and symbol-name are left off to apply to all library versions and symbols.
 // This symbol isn't a legal C identifier, so it needs to be specified with __asm.
 #define DARWIN_RPATH_PREVIOUS_DIRECTIVE(platform, startVersion, endVersion) \
-  SWIFT_RUNTIME_EXPORT const char ld_previous_rpath_ ## platform \
-  __asm("$ld$previous$@rpath/libswiftDarwin.dylib$$" __STRING(platform) "$" __STRING(startVersion) "$" __STRING(endVersion) "$$"); \
+  LANGUAGE_RUNTIME_EXPORT const char ld_previous_rpath_ ## platform \
+  __asm("$ld$previous$@rpath/liblanguageDarwin.dylib$$" __STRING(platform) "$" __STRING(startVersion) "$" __STRING(endVersion) "$$"); \
   const char ld_previous_rpath_ ## platform = 0;
 // Using the __STRING macro is important so that platform gets expanded before being stringified.
 // The versions could just be #version, __STRING is only used for consistency.
 
 #define DARWIN_PREVIOUS_DIRECTIVE(platform, startVersion, endVersion) \
-  SWIFT_RUNTIME_EXPORT const char ld_previous_ ## platform \
-  __asm("$ld$previous$/usr/lib/swift/libswiftDarwin.dylib$$" __STRING(platform) "$" __STRING(startVersion) "$" __STRING(endVersion) "$$"); \
+  LANGUAGE_RUNTIME_EXPORT const char ld_previous_ ## platform \
+  __asm("$ld$previous$/usr/lib/language/liblanguageDarwin.dylib$$" __STRING(platform) "$" __STRING(startVersion) "$" __STRING(endVersion) "$$"); \
   const char ld_previous_ ## platform = 0;
 
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
@@ -88,4 +89,4 @@ DARWIN_PREVIOUS_DIRECTIVE(PLATFORM_VISIONOS, 1.0, 2.0);
 #endif
 #endif
 
-#endif // defined(__APPLE__) && defined(__MACH__) && SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#endif // defined(__APPLE__) && defined(__MACH__) && LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT

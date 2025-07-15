@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/SourceManager.h"
@@ -30,7 +31,7 @@ FixitApplyDiagnosticConsumer(const StringRef Text,
   RewriteBuf.Initialize(Text);
 }
 
-void FixitApplyDiagnosticConsumer::printResult(llvm::raw_ostream &OS) const {
+void FixitApplyDiagnosticConsumer::printResult(toolchain::raw_ostream &OS) const {
   RewriteBuf.write(OS);
 }
 

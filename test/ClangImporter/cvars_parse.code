@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+
+import cvars
+
+fn getPI() -> Float {
+  return PI
+}
+
+fn testPointers() {
+  immutable cp = globalConstPointer
+  cp.abcde() // expected-error {{value of type 'UnsafeRawPointer?' has no member 'abcde'}}
+  immutable mp = globalPointer
+  mp.abcde() // expected-error {{value of type 'UnsafeMutableRawPointer?' has no member 'abcde'}}
+}

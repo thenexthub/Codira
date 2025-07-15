@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgumentSource.h"
@@ -400,7 +401,7 @@ static void emitImplicitValueConstructor(SILGenFunction &SGF,
   if (resultSlot) {
     auto elti = elements.begin(), eltEnd = elements.end();
 
-    llvm::SmallPtrSet<VarDecl *, 4> storedProperties;
+    toolchain::SmallPtrSet<VarDecl *, 4> storedProperties;
     {
       auto properties = decl->getStoredProperties();
       storedProperties.insert(properties.begin(), properties.end());
@@ -598,10 +599,10 @@ static bool ctorHopsInjectedByDefiniteInit(ConstructorDecl *ctor,
   // must be self-isolated
   switch (isolation) {
   case ActorIsolation::ActorInstance:
-    return isolation.getActorInstanceParameter() == 0;
+    return isolation.isActorInstanceForSelfParameter();
 
   case ActorIsolation::Erased:
-    llvm_unreachable("constructor cannot have erased isolation");
+    toolchain_unreachable("constructor cannot have erased isolation");
 
   case ActorIsolation::Unspecified:
   case ActorIsolation::Nonisolated:
@@ -642,12 +643,12 @@ void SILGenFunction::emitValueConstructor(ConstructorDecl *ctor) {
   VarDecl *selfDecl = ctor->getImplicitSelfDecl();
   auto &lowering = getTypeLowering(selfDecl->getTypeInContext());
 
-  // Decide if we need to do extra work to warn on unsafe behavior in pre-Swift-5
+  // Decide if we need to do extra work to warn on unsafe behavior in pre-Codira-5
   // modes.
   MarkUninitializedInst::Kind MUIKind;
   if (isDelegating) {
     MUIKind = MarkUninitializedInst::DelegatingSelf;
-  } else if (getASTContext().isSwiftVersionAtLeast(5)) {
+  } else if (getASTContext().isCodiraVersionAtLeast(5)) {
     MUIKind = MarkUninitializedInst::RootSelf;
   } else {
     auto *dc = ctor->getParent();
@@ -1005,7 +1006,7 @@ void SILGenFunction::emitClassConstructorAllocator(ConstructorDecl *ctor) {
   }
   args.push_back(selfValue);
 
-  // Call the initializer. Always use the Swift entry point, which will be a
+  // Call the initializer. Always use the Codira entry point, which will be a
   // bridging thunk if we're calling ObjC.
   auto initConstant = SILDeclRef(ctor, SILDeclRef::Kind::Initializer);
 
@@ -1425,9 +1426,9 @@ emitMemberInit(SILGenFunction &SGF, VarDecl *selfDecl, Pattern *pattern) {
 #define PATTERN(Name, Parent)
 #define REFUTABLE_PATTERN(Name, Parent) case PatternKind::Name:
 #include "language/AST/PatternNodes.def"
-    llvm_unreachable("Refutable pattern in stored property pattern binding");
+    toolchain_unreachable("Refutable pattern in stored property pattern binding");
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 static std::pair<AbstractionPattern, CanType>
@@ -1565,7 +1566,7 @@ void SILGenFunction::emitMemberInitializer(DeclContext *dc, VarDecl *selfDecl,
       break;
 
     case ActorIsolation::Erased:
-      llvm_unreachable("context cannot have erased isolation");
+      toolchain_unreachable("context cannot have erased isolation");
 
     case ActorIsolation::GlobalActor:
     case ActorIsolation::ActorInstance: {
@@ -1573,7 +1574,7 @@ void SILGenFunction::emitMemberInitializer(DeclContext *dc, VarDecl *selfDecl,
         // Implicit initializers diagnose actor isolation violations
         // for property initializers in Sema. Still emit the invalid
         // member initializer here to avoid duplicate diagnostics and
-        // to preserve warn-until-Swift-6 behavior.
+        // to preserve warn-until-Codira-6 behavior.
         auto *init =
             dyn_cast_or_null<ConstructorDecl>(dc->getAsDecl());
         if (init && init->isImplicit())
@@ -1650,7 +1651,7 @@ void SILGenFunction::emitMemberInitializers(DeclContext *dc,
                                             NominalTypeDecl *nominal) {
   auto subs = getSubstitutionsForPropertyInitializer(dc, nominal);
 
-  llvm::SmallPtrSet<PatternBindingDecl *, 4> alreadyInitialized;
+  toolchain::SmallPtrSet<PatternBindingDecl *, 4> alreadyInitialized;
   for (auto member : nominal->getImplementationContext()->getAllMembers()) {
     // Find instance pattern binding declarations that have initializers.
     if (auto pbd = dyn_cast<PatternBindingDecl>(member)) {

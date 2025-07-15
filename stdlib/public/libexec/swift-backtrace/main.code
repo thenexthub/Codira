@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2023-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2023-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,7 +28,7 @@ import CRT
 @_spi(MemoryReaders) import Runtime
 
 @main
-internal struct SwiftBacktrace {
+internal struct CodiraBacktrace {
   enum UnwindAlgorithm {
     case fast
     case precise
@@ -110,7 +110,7 @@ internal struct SwiftBacktrace {
 
   static var outputStream: CFileStream? = nil
 
-  static func write(_ string: String, flush: Bool = false) {
+  static fn write(_ string: String, flush: Bool = false) {
     var stream = outputStream!
 
     print(string, terminator: "", to: &stream)
@@ -119,7 +119,7 @@ internal struct SwiftBacktrace {
     }
   }
 
-  static func writeln(_ string: String, flush: Bool = false) {
+  static fn writeln(_ string: String, flush: Bool = false) {
     var stream = outputStream!
 
     print(string, to: &stream)
@@ -128,7 +128,7 @@ internal struct SwiftBacktrace {
     }
   }
 
-  static func subtract(timespec ts: timespec, from: timespec) -> timespec {
+  static fn subtract(timespec ts: timespec, from: timespec) -> timespec {
     var sec = from.tv_sec - ts.tv_sec
     var nsec = from.tv_nsec - ts.tv_nsec
     if nsec < 0 {
@@ -139,17 +139,17 @@ internal struct SwiftBacktrace {
   }
 
   // We can't use Foundation here, so there's no String(format:, ...)
-  static func format(duration: timespec) -> String {
-    let centisRounded = (duration.tv_nsec + 5000000) / 10000000
-    let centis = centisRounded % 100
-    let secs = duration.tv_sec + (centisRounded / 100)
-    let d1 = centis / 10
-    let d2 = centis % 10
+  static fn format(duration: timespec) -> String {
+    immutable centisRounded = (duration.tv_nsec + 5000000) / 10000000
+    immutable centis = centisRounded % 100
+    immutable secs = duration.tv_sec + (centisRounded / 100)
+    immutable d1 = centis / 10
+    immutable d2 = centis % 10
 
     return "\(secs).\(d1)\(d2)"
   }
 
-  static func measureDuration(_ body: () -> ()) -> timespec {
+  static fn measureDuration(_ body: () -> ()) -> timespec {
     var startTime = timespec(tv_sec: 0, tv_nsec: 0)
     var endTime = timespec(tv_sec: 0, tv_nsec: 0)
 
@@ -160,9 +160,9 @@ internal struct SwiftBacktrace {
     return subtract(timespec: startTime, from: endTime)
   }
 
-  static func usage() {
+  static fn usage() {
     print("""
-usage: swift-backtrace [--unwind <algorithm>] [--demangle [<bool>]] [--interactive [<bool>]] [--color [<bool>]] [--timeout <seconds>] [--preset <preset>] [--threads [<bool>]] [--registers <registers>] [--images <images>] [--cache [<bool>]] [--output-to <stream>] --crashinfo <addr>
+usage: language-backtrace [--unwind <algorithm>] [--demangle [<bool>]] [--interactive [<bool>]] [--color [<bool>]] [--timeout <seconds>] [--preset <preset>] [--threads [<bool>]] [--registers <registers>] [--images <images>] [--cache [<bool>]] [--output-to <stream>] --crashinfo <addr>
 
 Generate a backtrace for the parent process.
 
@@ -231,70 +231,70 @@ Generate a backtrace for the parent process.
 """, to: &standardError)
   }
 
-  static func parseBool(_ s: some StringProtocol) -> Bool {
-    let lowered = s.lowercased()
+  static fn parseBool(_ s: some StringProtocol) -> Bool {
+    immutable lowered = s.lowercased()
     return lowered == "yes" || lowered == "y" ||
       lowered == "true" || lowered == "t" || lowered == "on"
   }
 
-  static func handleArgument(_ arg: String, value: String?) {
+  static fn handleArgument(_ arg: String, value: String?) {
     switch arg {
       case "-?", "--help":
         usage()
         exit(0)
       case "-u", "--unwind":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "fast":
               args.unwindAlgorithm = .fast
             case "precise":
               args.unwindAlgorithm = .precise
             default:
-              print("swift-backtrace: unknown unwind algorithm '\(v)'",
+              print("language-backtrace: unknown unwind algorithm '\(v)'",
                     to: &standardError)
               usage()
               exit(1)
           }
         } else {
-          print("swift-backtrace: missing unwind algorithm",
+          print("language-backtrace: missing unwind algorithm",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-d", "--demangle":
-        if let v = value {
+        if immutable v = value {
           args.demangle = parseBool(v)
         } else {
           args.demangle = true
         }
       case "-i", "--interactive":
-        if let v = value {
+        if immutable v = value {
           args.interactive = parseBool(v)
         } else {
           args.interactive = true
         }
       case "-c", "--color":
-        if let v = value {
+        if immutable v = value {
           args.color = parseBool(v)
         } else {
           args.color = true
         }
       case "-t", "--timeout":
-        if let v = value {
-          if let secs = Int(v), secs >= 0 {
+        if immutable v = value {
+          if immutable secs = Int(v), secs >= 0 {
             args.timeout = secs
           } else {
-            print("swift-backtrace: bad timeout '\(v)'",
+            print("language-backtrace: bad timeout '\(v)'",
                   to: &standardError)
           }
         } else {
-          print("swift-backtrace: missing timeout value",
+          print("language-backtrace: missing timeout value",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-p", "--preset":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "friendly":
               args.preset = .friendly
@@ -303,19 +303,19 @@ Generate a backtrace for the parent process.
             case "full":
               args.preset = .full
             default:
-              print("swift-backtrace: unknown preset '\(v)'",
+              print("language-backtrace: unknown preset '\(v)'",
                     to: &standardError)
               usage()
               exit(1)
           }
         } else {
-          print("swift-backtrace: missing preset name",
+          print("language-backtrace: missing preset name",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-h", "--threads":
-        if let v = value {
+        if immutable v = value {
           if v.lowercased() != "preset" {
             args.threads = parseBool(v)
           }
@@ -323,7 +323,7 @@ Generate a backtrace for the parent process.
           args.threads = true
         }
       case "-r", "--registers":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "preset":
               break
@@ -334,19 +334,19 @@ Generate a backtrace for the parent process.
             case "crashed":
               args.registers = .crashedOnly
             default:
-              print("swift-backtrace: unknown registers setting '\(v)'",
+              print("language-backtrace: unknown registers setting '\(v)'",
                     to: &standardError)
               usage()
               exit(1)
           }
         } else {
-          print("swift-backtrace: missing registers setting",
+          print("language-backtrace: missing registers setting",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-m", "--images":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "preset":
               break
@@ -357,61 +357,61 @@ Generate a backtrace for the parent process.
             case "mentioned":
               args.showImages = .mentioned
             default:
-              print("swift-backtrace: unknown images setting '\(v)'",
+              print("language-backtrace: unknown images setting '\(v)'",
                     to: &standardError)
               usage()
               exit(1)
           }
         } else {
-          print("swift-backtrace: missing images setting",
+          print("language-backtrace: missing images setting",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-l", "--limit":
-        if let v = value {
+        if immutable v = value {
           if v.lowercased() == "none" {
             args.limit = nil
-          } else if let limit = Int(v), limit > 0 {
+          } else if immutable limit = Int(v), limit > 0 {
             args.limit = limit
           } else {
-            print("swift-backtrace: bad limit value \(v)",
+            print("language-backtrace: bad limit value \(v)",
                   to: &standardError)
           }
         } else {
-          print("swift-backtrace: missing limit value",
+          print("language-backtrace: missing limit value",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-T", "--top":
-        if let v = value {
-          if let top = Int(v), top >= 0 {
+        if immutable v = value {
+          if immutable top = Int(v), top >= 0 {
             args.top = top
           } else {
-            print("swift-backtrace: bad top value \(v)",
+            print("language-backtrace: bad top value \(v)",
                   to: &standardError)
           }
         } else {
-          print("swift-backtrace: missing top value",
+          print("language-backtrace: missing top value",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-s", "--sanitize":
-        if let v = value {
+        if immutable v = value {
           args.sanitize = parseBool(v)
         } else {
           args.sanitize = true
         }
       case "--cache":
-        if let v = value {
+        if immutable v = value {
           args.cache = parseBool(v)
         } else {
           args.cache = true
         }
       case "-o", "--output-to":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "stdout":
               args.outputTo = .stdout
@@ -422,29 +422,29 @@ Generate a backtrace for the parent process.
               args.outputPath = v
           }
         } else {
-          print("swift-backtrace: missing output-to value",
+          print("language-backtrace: missing output-to value",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "-a", "--crashinfo":
-        if let v = value {
-          if let a = UInt64(v, radix: 16) {
+        if immutable v = value {
+          if immutable a = UInt64(v, radix: 16) {
             args.crashInfo = a
           } else {
-            print("swift-backtrace: bad pointer '\(v)'",
+            print("language-backtrace: bad pointer '\(v)'",
                   to: &standardError)
             usage()
             exit(1)
           }
         } else {
-          print("swift-backtrace: missing pointer value",
+          print("language-backtrace: missing pointer value",
                 to: &standardError)
           usage()
           exit(1)
         }
       case "--symbolicate":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "off":
               args.symbolicate = .off
@@ -453,50 +453,50 @@ Generate a backtrace for the parent process.
             case "full":
               args.symbolicate = .full
             default:
-              print("swift-backtrace: unknown symbolicate setting '\(v)'",
+              print("language-backtrace: unknown symbolicate setting '\(v)'",
                     to: &standardError)
           }
         } else {
           args.symbolicate = .full
         }
       case "--format":
-        if let v = value {
+        if immutable v = value {
           switch v.lowercased() {
             case "text":
               args.format = .text
             case "json":
               args.format = .json
             default:
-              print("swift-backtrace: unknown output format '\(v)'",
+              print("language-backtrace: unknown output format '\(v)'",
                     to: &standardError)
           }
         } else {
-          print("swift-backtrace: missing format value",
+          print("language-backtrace: missing format value",
                 to: &standardError)
           usage()
           exit(1)
         }
       default:
-        print("swift-backtrace: unknown argument '\(arg)'",
+        print("language-backtrace: unknown argument '\(arg)'",
               to: &standardError)
         usage()
         exit(1)
     }
   }
 
-  static func unblockSignals() {
+  static fn unblockSignals() {
     var mask = sigset_t()
 
     sigfillset(&mask)
     sigprocmask(SIG_UNBLOCK, &mask, nil)
   }
 
-  static func main() {
+  static fn main() {
     unblockSignals()
     parseArguments()
 
-    guard let crashInfoAddr = args.crashInfo else {
-      print("swift-backtrace: --crashinfo is not optional",
+    guard immutable crashInfoAddr = args.crashInfo else {
+      print("language-backtrace: --crashinfo is not optional",
             to: &standardError)
       usage()
       exit(1)
@@ -585,11 +585,11 @@ Generate a backtrace for the parent process.
       case .file:
         if isDir(args.outputPath) {
           // If the output path is a directory, generate a filename
-          let name = target!.name
-          let pid = target!.pid
-          let now = timespec(tv_sec: 0, tv_nsec: 0)
+          immutable name = target!.name
+          immutable pid = target!.pid
+          immutable now = timespec(tv_sec: 0, tv_nsec: 0)
 
-          let ext: String
+          immutable ext: String
           switch args.format {
             case .text:
               ext = "log"
@@ -612,27 +612,27 @@ Generate a backtrace for the parent process.
           }
 
           if fd < 0 {
-            print("swift-backtrace: unable to create \(filename) for writing",
+            print("language-backtrace: unable to create \(filename) for writing",
                   to: &standardError)
             outputStream = standardError
           }
 
-          if let cFile = fdopen(fd, "wt") {
+          if immutable cFile = fdopen(fd, "wt") {
             didOpenOutput = true
             outputStream = CFileStream(fp: cFile)
           } else {
             close(fd)
             unlink(filename)
 
-            print("swift-backtrace: unable to fdopen \(filename) for writing",
+            print("language-backtrace: unable to fdopen \(filename) for writing",
                   to: &standardError)
             outputStream = standardError
           }
-        } else if let cFile = fopen(args.outputPath, "wt") {
+        } else if immutable cFile = fopen(args.outputPath, "wt") {
           didOpenOutput = true
           outputStream = CFileStream(fp: cFile)
         } else {
-          print("swift-backtrace: unable to open \(args.outputPath) for writing",
+          print("language-backtrace: unable to open \(args.outputPath) for writing",
                 to: &standardError)
 
           outputStream = standardError
@@ -664,7 +664,7 @@ Generate a backtrace for the parent process.
 
         writeln("")
 
-        let formattedDuration = format(duration: backtraceDuration)
+        immutable formattedDuration = format(duration: backtraceDuration)
 
         writeln("Backtrace took \(formattedDuration)s")
         writeln("")
@@ -692,7 +692,7 @@ Generate a backtrace for the parent process.
       // Make sure we're line buffered
       setvbuf(stdout, nil, _IOLBF, 0)
 
-      while let ch = waitForKey("Press space to interact, D to debug, or any other key to quit",
+      while immutable ch = waitForKey("Press space to interact, D to debug, or any other key to quit",
                                 timeout: args.timeout) {
         switch UInt8(ch) {
           case UInt8(ascii: " "):
@@ -708,36 +708,36 @@ Generate a backtrace for the parent process.
 
   }
 
-  // Parse the command line arguments; we can't use swift-argument-parser
+  // Parse the command line arguments; we can't use language-argument-parser
   // from here because that would create a dependency problem, so we do
   // it manually.
-  static func parseArguments() {
+  static fn parseArguments() {
     var currentArg: String? = nil
     for arg in CommandLine.arguments[1...] {
       if arg.hasPrefix("-") {
-        if let key = currentArg {
+        if immutable key = currentArg {
           handleArgument(key, value: nil)
         }
         currentArg = arg
       } else {
-        if let key = currentArg {
+        if immutable key = currentArg {
           handleArgument(key, value: arg)
           currentArg = nil
         } else if arg != "" {
-          print("swift-backtrace: unexpected argument '\(arg)'",
+          print("language-backtrace: unexpected argument '\(arg)'",
                 to: &standardError)
           usage()
           exit(1)
         }
       }
     }
-    if let key = currentArg {
+    if immutable key = currentArg {
       handleArgument(key, value: nil)
     }
   }
 
   #if os(Linux) || os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-  static func setRawMode() -> termios {
+  static fn setRawMode() -> termios {
     var oldAttrs = termios()
     tcgetattr(0, &oldAttrs)
 
@@ -754,20 +754,20 @@ Generate a backtrace for the parent process.
     return oldAttrs
   }
 
-  static func resetInputMode(mode: termios) {
+  static fn resetInputMode(mode: termios) {
     var theMode = mode
     tcsetattr(0, TCSANOW, &theMode)
   }
 
-  static func waitForKey(_ message: String, timeout: Int?) -> Int32? {
-    let oldMode = setRawMode()
+  static fn waitForKey(_ message: String, timeout: Int?) -> Int32? {
+    immutable oldMode = setRawMode()
 
     defer {
       write("\r\u{1b}[0K", flush: true)
       resetInputMode(mode: oldMode)
     }
 
-    if let timeout = timeout {
+    if immutable timeout = timeout {
     var remaining = timeout
 
     while true {
@@ -775,7 +775,7 @@ Generate a backtrace for the parent process.
 
       var pfd = pollfd(fd: 0, events: Int16(POLLIN), revents: 0)
 
-      let ret = poll(&pfd, 1, 1000)
+      immutable ret = poll(&pfd, 1, 1000)
       if ret == 0 {
         remaining -= 1
         if remaining == 0 {
@@ -796,13 +796,13 @@ Generate a backtrace for the parent process.
     return nil
   }
   #elseif os(Windows)
-  static func waitForKey(_ message: String, timeout: Int?) -> Int32? {
+  static fn waitForKey(_ message: String, timeout: Int?) -> Int32? {
     // ###TODO
     return nil
   }
   #endif
 
-  static func backtraceFormatter() -> BacktraceFormatter {
+  static fn backtraceFormatter() -> BacktraceFormatter {
     var terminalSize = winsize(ws_row: 24, ws_col: 80,
                                ws_xpixel: 1024, ws_ypixel: 768)
     _ = ioctl(0, CUnsignedLong(TIOCGWINSZ), &terminalSize)
@@ -812,19 +812,19 @@ Generate a backtrace for the parent process.
                               .width(Int(terminalSize.ws_col)))
   }
 
-  static func printCrashLog() {
-    guard let target = target else {
-      print("swift-backtrace: unable to get target",
+  static fn printCrashLog() {
+    guard immutable target = target else {
+      print("language-backtrace: unable to get target",
             to: &standardError)
       return
     }
 
-    let crashingThread = target.threads[target.crashingThreadNdx]
+    immutable crashingThread = target.threads[target.crashingThreadNdx]
 
-    let description: String
+    immutable description: String
 
-    if case let .symbolicated(symbolicated) = crashingThread.backtrace,
-       let failure = symbolicated.swiftRuntimeFailure {
+    if case immutable .symbolicated(symbolicated) = crashingThread.backtrace,
+       immutable failure = symbolicated.codeRuntimeFailure {
       description = failure
     } else {
       description = "Program crashed: \(target.signalDescription) at \(hex(target.faultAddress))"
@@ -833,25 +833,25 @@ Generate a backtrace for the parent process.
     writeln(theme.crashReason(description))
 
     var mentionedImages = Set<Int>()
-    let formatter = backtraceFormatter()
+    immutable formatter = backtraceFormatter()
 
-    let architecture: String
+    immutable architecture: String
     switch crashingThread.backtrace {
-      case let .raw(backtrace):
+      case immutable .raw(backtrace):
         architecture = backtrace.architecture
-      case let .symbolicated(backtrace):
+      case immutable .symbolicated(backtrace):
         architecture = backtrace.architecture
     }
 
     writeln("\nPlatform: \(theme.architecture(architecture)) \(theme.platform(target.images.platform))")
 
-    func dump(ndx: Int, thread: TargetThread) {
-      let crashed = thread.id == target.crashingThread ? " crashed" : ""
-      let name = !thread.name.isEmpty ? " \"\(thread.name)\"" : ""
+    fn dump(ndx: Int, thread: TargetThread) {
+      immutable crashed = thread.id == target.crashingThread ? " crashed" : ""
+      immutable name = !thread.name.isEmpty ? " \"\(thread.name)\"" : ""
       writeln("\nThread \(ndx)\(name)\(crashed):\n")
 
       if args.registers! == .all {
-        if let context = thread.context {
+        if immutable context = thread.context {
           showRegisters(context)
         } else {
           writeln("  " + theme.info("no context for thread \(ndx)"))
@@ -859,11 +859,11 @@ Generate a backtrace for the parent process.
         writeln("")
       }
 
-      let formatted: String
+      immutable formatted: String
       switch thread.backtrace {
-        case let .raw(backtrace):
+        case immutable .raw(backtrace):
           formatted = formatter.format(backtrace: backtrace)
-        case let .symbolicated(backtrace):
+        case immutable .symbolicated(backtrace):
           formatted = formatter.format(backtrace: backtrace)
       }
 
@@ -871,22 +871,22 @@ Generate a backtrace for the parent process.
 
       if args.showImages! == .mentioned {
         switch thread.backtrace {
-          case let .raw(backtrace):
+          case immutable .raw(backtrace):
             for frame in backtrace.frames {
-              let address = frame.adjustedProgramCounter
-              if let imageNdx = target.images.firstIndex(
+              immutable address = frame.adjustedProgramCounter
+              if immutable imageNdx = target.images.firstIndex(
                    where: { address >= $0.baseAddress
                               && address < $0.endOfText }
                  ) {
                 mentionedImages.insert(imageNdx)
               }
             }
-          case let .symbolicated(backtrace):
+          case immutable .symbolicated(backtrace):
             for frame in backtrace.frames {
               if formatter.shouldSkip(frame) {
                 continue
               }
-              if let symbol = frame.symbol, symbol.imageIndex >= 0 {
+              if immutable symbol = frame.symbol, symbol.imageIndex >= 0 {
                 mentionedImages.insert(symbol.imageIndex)
               }
             }
@@ -905,7 +905,7 @@ Generate a backtrace for the parent process.
     if args.registers! == .crashedOnly {
       writeln("\n\nRegisters:\n")
 
-      if let context = target.threads[target.crashingThreadNdx].context {
+      if immutable context = target.threads[target.crashingThreadNdx].context {
         showRegisters(context)
       } else {
         writeln(theme.info("no context for thread \(target.crashingThreadNdx)"))
@@ -916,8 +916,8 @@ Generate a backtrace for the parent process.
       case .none:
         break
       case .mentioned:
-        let images = mentionedImages.sorted().map{ target.images[$0] }
-        let omitted = target.images.count - images.count
+        immutable images = mentionedImages.sorted().map{ target.images[$0] }
+        immutable omitted = target.images.count - images.count
         if omitted > 0 {
           writeln("\n\nImages (\(omitted) omitted):\n")
         } else {
@@ -930,15 +930,15 @@ Generate a backtrace for the parent process.
     }
   }
 
-  static func startDebugger() {
-    guard let target = target else {
+  static fn startDebugger() {
+    guard immutable target = target else {
       return
     }
 
     do {
       try target.withDebugger {
 
-        if let ch = waitForKey("Press any key once LLDB is attached, or A to abort", timeout: nil),
+        if immutable ch = waitForKey("Press any key once LLDB is attached, or A to abort", timeout: nil),
            ch != UInt8(ascii: "A") && ch != UInt8(ascii: "a") {
           exit(0)
         }
@@ -948,20 +948,20 @@ Generate a backtrace for the parent process.
     }
   }
 
-  static func interactWithUser() {
-    guard let target = target else {
+  static fn interactWithUser() {
+    guard immutable target = target else {
       return
     }
 
     while true {
       outputStream!.flush()
       write(theme.prompt(">>> "), flush: true)
-      guard let input = readLine() else {
+      guard immutable input = readLine() else {
         print("")
         break
       }
 
-      let cmd = input.split(whereSeparator: { $0.isWhitespace })
+      immutable cmd = input.split(whereSeparator: { $0.isWhitespace })
 
       if cmd.count < 1 {
         continue
@@ -974,18 +974,18 @@ Generate a backtrace for the parent process.
         case "debug":
           startDebugger()
         case "bt", "backtrace":
-          let formatter = backtraceFormatter()
-          let formatted: String
+          immutable formatter = backtraceFormatter()
+          immutable formatted: String
           switch target.threads[currentThread].backtrace {
-            case let .raw(backtrace):
+            case immutable .raw(backtrace):
               formatted = formatter.format(backtrace: backtrace)
-            case let .symbolicated(backtrace):
+            case immutable .symbolicated(backtrace):
               formatted = formatter.format(backtrace: backtrace)
           }
           writeln(formatted)
         case "thread":
           if cmd.count >= 2 {
-            if let newThreadNdx = Int(cmd[1]),
+            if immutable newThreadNdx = Int(cmd[1]),
                newThreadNdx >= 0 && newThreadNdx < target.threads.count {
               currentThread = newThreadNdx
             } else {
@@ -994,35 +994,35 @@ Generate a backtrace for the parent process.
             }
           }
 
-          let crashed: String
+          immutable crashed: String
           if currentThread == target.crashingThreadNdx {
             crashed = " (crashed)"
           } else {
             crashed = ""
           }
 
-          let thread = target.threads[currentThread]
-          let name = thread.name.isEmpty ? "" : " \(thread.name)"
+          immutable thread = target.threads[currentThread]
+          immutable name = thread.name.isEmpty ? "" : " \(thread.name)"
           writeln("Thread \(currentThread) id=\(thread.id)\(name)\(crashed)\n")
 
-          let formatter = backtraceFormatter()
+          immutable formatter = backtraceFormatter()
           switch thread.backtrace {
-            case let .raw(backtrace):
-              if let frame = backtrace.frames.consumingFirst {
-                let formatted = formatter.format(frame: frame)
+            case immutable .raw(backtrace):
+              if immutable frame = backtrace.frames.consumingFirst {
+                immutable formatted = formatter.format(frame: frame)
                 writeln("\(formatted)")
               }
-            case let .symbolicated(backtrace):
-              if let frame = backtrace.frames.drop(while: {
-                $0.isSwiftRuntimeFailure
+            case immutable .symbolicated(backtrace):
+              if immutable frame = backtrace.frames.drop(while: {
+                $0.isCodiraRuntimeFailure
               }).consumingFirst {
-                let formatted = formatter.format(frame: frame)
+                immutable formatted = formatter.format(frame: frame)
                 writeln("\(formatted)")
               }
           }
           break
         case "reg", "registers":
-          if let context = target.threads[currentThread].context {
+          if immutable context = target.threads[currentThread].context {
             showRegisters(context)
           } else {
             writeln(theme.info("no context for thread \(currentThread)"))
@@ -1034,21 +1034,21 @@ Generate a backtrace for the parent process.
             break
           }
 
-          guard let startAddress = parseUInt64(cmd[1]) else {
+          guard immutable startAddress = parseUInt64(cmd[1]) else {
             writeln(theme.error("bad start address \(cmd[1])"))
             break
           }
 
-          let count: UInt64
+          immutable count: UInt64
           if cmd.count == 3 {
             if cmd[2].hasPrefix("+") {
-              guard let theCount = parseUInt64(cmd[2].dropFirst()) else {
+              guard immutable theCount = parseUInt64(cmd[2].dropFirst()) else {
                 writeln(theme.error("bad byte count \(cmd[2])"))
                 break
               }
               count = theCount
             } else {
-              guard let addr = parseUInt64(cmd[2]) else {
+              guard immutable addr = parseUInt64(cmd[2]) else {
                 writeln(theme.error("bad end address \(cmd[2])"))
                 break
               }
@@ -1067,49 +1067,49 @@ Generate a backtrace for the parent process.
         case "process", "threads":
           writeln("Process \(target.pid) \"\(target.name)\" has \(target.threads.count) thread(s):\n")
 
-          let formatter = backtraceFormatter()
+          immutable formatter = backtraceFormatter()
 
           var rows: [BacktraceFormatter.TableRow] = []
           for (n, thread) in target.threads.enumerated() {
-            let crashed: String
+            immutable crashed: String
             if n == target.crashingThreadNdx {
               crashed = " (crashed)"
             } else {
               crashed = ""
             }
 
-            let selected = currentThread == n ? "▶︎" : " "
-            let name = thread.name.isEmpty ? "" : " \(thread.name)"
+            immutable selected = currentThread == n ? "▶︎" : " "
+            immutable name = thread.name.isEmpty ? "" : " \(thread.name)"
 
             rows.append(.columns([ selected,
                                    "\(n)",
                                    "id=\(thread.id)\(name)\(crashed)" ]))
 
             switch thread.backtrace {
-              case let .raw(backtrace):
-                if let frame = backtrace.frames.consumingFirst {
+              case immutable .raw(backtrace):
+                if immutable frame = backtrace.frames.consumingFirst {
                   rows += formatter.formatRows(
                     frame: frame
                   ).map{ row in
 
                     switch row {
-                      case let .columns(columns):
+                      case immutable .columns(columns):
                         return .columns([ "", "" ] + columns)
                       default:
                         return row
                     }
                   }
                 }
-              case let .symbolicated(backtrace):
-                if let frame = backtrace.frames.drop(while: {
-                  $0.isSwiftRuntimeFailure
+              case immutable .symbolicated(backtrace):
+                if immutable frame = backtrace.frames.drop(while: {
+                  $0.isCodiraRuntimeFailure
                 }).consumingFirst {
                   rows += formatter.formatRows(
                     frame: frame
                   ).map{ row in
 
                     switch row {
-                      case let .columns(columns):
+                      case immutable .columns(columns):
                         return .columns([ "", "" ] + columns)
                       default:
                         return row
@@ -1119,27 +1119,27 @@ Generate a backtrace for the parent process.
             }
           }
 
-          let output = BacktraceFormatter.formatTable(rows,
+          immutable output = BacktraceFormatter.formatTable(rows,
                                                       alignments: [
                                                         .left,
                                                         .right
                                                       ])
           writeln(output)
         case "images":
-          let formatter = backtraceFormatter()
-          let images = target.images
-          let output = formatter.format(images: images)
+          immutable formatter = backtraceFormatter()
+          immutable images = target.images
+          immutable output = formatter.format(images: images)
 
           writeln(output)
         case "set":
           if cmd.count == 1 {
-            let limit: String
-            if let lim = args.limit {
+            immutable limit: String
+            if immutable lim = args.limit {
               limit = "\(lim)"
             } else {
               limit = "none"
             }
-            let top = "\(args.top)"
+            immutable top = "\(args.top)"
 
             writeln("""
                     addresses      = \(formattingOptions.shouldShowAddresses)
@@ -1157,10 +1157,10 @@ Generate a backtrace for the parent process.
                     """)
           } else {
             for optval in cmd[1...] {
-              let parts = optval.split(separator: "=", maxSplits: 1,
+              immutable parts = optval.split(separator: "=", maxSplits: 1,
                                        omittingEmptySubsequences: false)
               if parts.count == 1 {
-                let option = parts[0]
+                immutable option = parts[0]
 
                 switch option {
                   case "addresses":
@@ -1172,7 +1172,7 @@ Generate a backtrace for the parent process.
                   case "image-names":
                     writeln("image-names = \(formattingOptions.shouldShowImageNames)")
                   case "limit":
-                    if let limit = args.limit {
+                    if immutable limit = args.limit {
                       writeln("limit = \(limit)")
                     } else {
                       writeln("limit = none")
@@ -1195,8 +1195,8 @@ Generate a backtrace for the parent process.
                     writeln(theme.error("unknown option '\(option)'"))
                 }
               } else {
-                let option = parts[0]
-                let value = parts[1]
+                immutable option = parts[0]
+                immutable value = parts[1]
                 var changedBacktrace = false
 
                 switch option {
@@ -1204,7 +1204,7 @@ Generate a backtrace for the parent process.
                     if value == "none" {
                       args.limit = nil
                       changedBacktrace = true
-                    } else if let limit = Int(value), limit > 0 {
+                    } else if immutable limit = Int(value), limit > 0 {
                       args.limit = limit
                       changedBacktrace = true
                     } else {
@@ -1212,7 +1212,7 @@ Generate a backtrace for the parent process.
                     }
 
                   case "top":
-                    if let top = Int(value), top >= 0 {
+                    if immutable top = Int(value), top >= 0 {
                       args.top = top
                       changedBacktrace = true
                     } else {
@@ -1225,7 +1225,7 @@ Generate a backtrace for the parent process.
                                                        contextLines: formattingOptions.sourceContextLines)
 
                   case "source-context":
-                    if let lines = Int(value), lines >= 0 {
+                    if immutable lines = Int(value), lines >= 0 {
                       formattingOptions =
                         formattingOptions.showSourceCode(formattingOptions.shouldShowSourceCode,
                                                          contextLines: lines)
@@ -1262,7 +1262,7 @@ Generate a backtrace for the parent process.
                       formattingOptions.showImageNames(parseBool(value))
 
                   case "symbolicate":
-                    let oldSymbolicate = args.symbolicate
+                    immutable oldSymbolicate = args.symbolicate
 
                     switch value.lowercased() {
                       case "off":
@@ -1319,7 +1319,7 @@ Generate a backtrace for the parent process.
     }
   }
 
-  static func printableBytes(from bytes: some Sequence<UInt8>) -> String {
+  static fn printableBytes(from bytes: some Sequence<UInt8>) -> String {
     // It would be nice to join these with ZWNJs to prevent ligature processing,
     // but sadly Terminal displays ZWNJ as a space character.
     return bytes.map{ byte in
@@ -1332,77 +1332,77 @@ Generate a backtrace for the parent process.
     }.joined(separator:"")
   }
 
-  static func dumpMemory(at address: UInt64, count: UInt64) {
-    guard let bytes = try? target!.reader.fetch(
+  static fn dumpMemory(at address: UInt64, count: UInt64) {
+    guard immutable bytes = try? target!.reader.fetch(
             from: RemoteMemoryReader.Address(address),
             count: Int(count),
-            as: UInt8.self) else {
+            as: UInt8.this) else {
       writeln("Unable to read memory")
       return
     }
 
-    let startAddress = HostContext.stripPtrAuth(address: address)
+    immutable startAddress = HostContext.stripPtrAuth(address: address)
     var ndx = 0
     while ndx < bytes.count {
-      let addr = startAddress + UInt64(ndx)
-      let remaining = bytes.count - ndx
-      let lineChunk = 16
-      let todo = min(remaining, lineChunk)
-      let formattedBytes = theme.data(bytes[ndx..<ndx+todo].map{
+      immutable addr = startAddress + UInt64(ndx)
+      immutable remaining = bytes.count - ndx
+      immutable lineChunk = 16
+      immutable todo = min(remaining, lineChunk)
+      immutable formattedBytes = theme.data(bytes[ndx..<ndx+todo].map{
         hex($0, withPrefix: false)
       }.joined(separator: " "))
-      let printedBytes = printableBytes(from: bytes[ndx..<ndx+todo])
-      let padding = String(repeating: " ",
+      immutable printedBytes = printableBytes(from: bytes[ndx..<ndx+todo])
+      immutable padding = String(repeating: " ",
                            count: (lineChunk - todo) * 3)
 
-      let hexAddr = theme.address(hex(addr, withPrefix: false))
+      immutable hexAddr = theme.address(hex(addr, withPrefix: false))
       writeln("\(hexAddr)  \(formattedBytes)\(padding)  \(printedBytes)")
 
       ndx += todo
     }
   }
 
-  static func showRegister<T: FixedWidthInteger>(name: String, value: T) {
-    let hexValue = theme.hexValue(hex(value))
+  static fn showRegister<T: FixedWidthInteger>(name: String, value: T) {
+    immutable hexValue = theme.hexValue(hex(value))
 
     // Pad the register name
-    let regPad = String(repeating: " ", count: max(3 - name.count, 0))
-    let reg = theme.register(regPad + name)
+    immutable regPad = String(repeating: " ", count: max(3 - name.count, 0))
+    immutable reg = theme.register(regPad + name)
 
     // Grab 16 bytes at each address if possible
-    if let bytes = try? target!.reader.fetch(
+    if immutable bytes = try? target!.reader.fetch(
          from: RemoteMemoryReader.Address(value),
          count: 16,
-         as: UInt8.self) {
+         as: UInt8.this) {
       if args.sanitize ?? false {
         writeln("\(reg) \(hexValue)  <memory>")
       } else {
-        let formattedBytes = theme.data(bytes.map{
+        immutable formattedBytes = theme.data(bytes.map{
                                           hex($0, withPrefix: false)
                                         }.joined(separator: " "))
-        let printedBytes = printableBytes(from: bytes)
+        immutable printedBytes = printableBytes(from: bytes)
         writeln("\(reg) \(hexValue)  \(formattedBytes)  \(printedBytes)")
       }
     } else {
-      let decValue = theme.decimalValue("\(value)")
+      immutable decValue = theme.decimalValue("\(value)")
       writeln("\(reg) \(hexValue)  \(decValue)")
     }
   }
 
-  static func showGPR<C: Context>(name: String, context: C, register: C.Register) {
+  static fn showGPR<C: Context>(name: String, context: C, register: C.Register) {
     // Get the register contents
-    let value = context.getRegister(register)!
+    immutable value = context.getRegister(register)!
 
     showRegister(name: name, value: value)
   }
 
-  static func showGPRs<C: Context, Rs: Sequence>(_ context: C, range: Rs) where Rs.Element == C.Register {
+  static fn showGPRs<C: Context, Rs: Sequence>(_ context: C, range: Rs) where Rs.Element == C.Register {
     for reg in range {
       showGPR(name: "\(reg)", context: context, register: reg)
     }
   }
 
-  static func x86StatusFlags<T: FixedWidthInteger>(_ flags: T) -> String {
+  static fn x86StatusFlags<T: FixedWidthInteger>(_ flags: T) -> String {
     var status: [String] = []
 
     if (flags & 0x400) != 0 {
@@ -1427,17 +1427,17 @@ Generate a backtrace for the parent process.
     return status.joined(separator: " ")
   }
 
-  static func showRegisters(_ context: X86_64Context) {
+  static fn showRegisters(_ context: X86_64Context) {
     showGPRs(context, range: .rax ... .r15)
     showRegister(name: "rip", value: context.programCounter)
 
-    let rflags = context.getRegister(.rflags)!
-    let cs = theme.hexValue(hex(UInt16(context.getRegister(.cs)!)))
-    let fs = theme.hexValue(hex(UInt16(context.getRegister(.fs)!)))
-    let gs = theme.hexValue(hex(UInt16(context.getRegister(.gs)!)))
+    immutable rflags = context.getRegister(.rflags)!
+    immutable cs = theme.hexValue(hex(UInt16(context.getRegister(.cs)!)))
+    immutable fs = theme.hexValue(hex(UInt16(context.getRegister(.fs)!)))
+    immutable gs = theme.hexValue(hex(UInt16(context.getRegister(.gs)!)))
 
-    let hexFlags = theme.hexValue(hex(rflags))
-    let status = theme.flags(x86StatusFlags(rflags))
+    immutable hexFlags = theme.hexValue(hex(rflags))
+    immutable status = theme.flags(x86StatusFlags(rflags))
 
     writeln("")
     writeln("\(theme.register("rflags")) \(hexFlags)  \(status)")
@@ -1445,20 +1445,20 @@ Generate a backtrace for the parent process.
     writeln("\(theme.register("cs")) \(cs)  \(theme.register("fs")) \(fs)  \(theme.register("gs")) \(gs)")
   }
 
-  static func showRegisters(_ context: I386Context) {
+  static fn showRegisters(_ context: I386Context) {
     showGPRs(context, range: .eax ... .edi)
     showRegister(name: "eip", value: context.programCounter)
 
-    let eflags = UInt32(context.getRegister(.eflags)!)
-    let es = theme.hexValue(hex(UInt16(context.getRegister(.es)!)))
-    let cs = theme.hexValue(hex(UInt16(context.getRegister(.cs)!)))
-    let ss = theme.hexValue(hex(UInt16(context.getRegister(.ss)!)))
-    let ds = theme.hexValue(hex(UInt16(context.getRegister(.ds)!)))
-    let fs = theme.hexValue(hex(UInt16(context.getRegister(.fs)!)))
-    let gs = theme.hexValue(hex(UInt16(context.getRegister(.gs)!)))
+    immutable eflags = UInt32(context.getRegister(.eflags)!)
+    immutable es = theme.hexValue(hex(UInt16(context.getRegister(.es)!)))
+    immutable cs = theme.hexValue(hex(UInt16(context.getRegister(.cs)!)))
+    immutable ss = theme.hexValue(hex(UInt16(context.getRegister(.ss)!)))
+    immutable ds = theme.hexValue(hex(UInt16(context.getRegister(.ds)!)))
+    immutable fs = theme.hexValue(hex(UInt16(context.getRegister(.fs)!)))
+    immutable gs = theme.hexValue(hex(UInt16(context.getRegister(.gs)!)))
 
-    let hexFlags = theme.hexValue(hex(eflags))
-    let status = theme.flags(x86StatusFlags(eflags))
+    immutable hexFlags = theme.hexValue(hex(eflags))
+    immutable status = theme.flags(x86StatusFlags(eflags))
 
     writeln("")
     writeln("\(theme.register("eflags")) \(hexFlags)  \(status)")
@@ -1466,7 +1466,7 @@ Generate a backtrace for the parent process.
     writeln("\(theme.register("es")): \(es) \(theme.register("cs")): \(cs) \(theme.register("ss")): \(ss) \(theme.register("ds")): \(ds) \(theme.register("fs")): \(fs)) \(theme.register("gs")): \(gs)")
   }
 
-  static func showRegisters(_ context: ARM64Context) {
+  static fn showRegisters(_ context: ARM64Context) {
     showGPRs(context, range: .x0 ..< .x29)
     showGPR(name: "fp", context: context, register: .x29)
     showGPR(name: "lr", context: context, register: .x30)
@@ -1474,7 +1474,7 @@ Generate a backtrace for the parent process.
     showGPR(name: "pc", context: context, register: .pc)
   }
 
-  static func showRegisters(_ context: ARMContext) {
+  static fn showRegisters(_ context: ARMContext) {
     showGPRs(context, range: .r0 ... .r10)
     showGPR(name: "fp", context: context, register: .r11)
     showGPR(name: "ip", context: context, register: .r12)
@@ -1487,9 +1487,9 @@ Generate a backtrace for the parent process.
 #else
 
 @main
-internal struct SwiftBacktrace {
-  static public func main() {
-    print("swift-backtrace: not supported on this platform.")
+internal struct CodiraBacktrace {
+  static public fn main() {
+    print("language-backtrace: not supported on this platform.")
   }
 }
 

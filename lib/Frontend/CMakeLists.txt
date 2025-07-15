@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftFrontend STATIC
+add_language_host_library(languageFrontend STATIC
   ArgsToFrontendInputsConverter.cpp
   ArgsToFrontendOptionsConverter.cpp
   ArgsToFrontendOutputsConverter.cpp
@@ -22,32 +22,32 @@ add_swift_host_library(swiftFrontend STATIC
   PrintingDiagnosticConsumer.cpp
   Serialization.cpp
   SerializedDiagnosticConsumer.cpp)
-add_dependencies(swiftFrontend
-  SwiftOptions)
-target_link_libraries(swiftFrontend PRIVATE
-  swiftAPIDigester
-  swiftAST
-  swiftConstExtract
-  swiftIDE
-  swiftSIL
-  swiftOption
-  swiftSILGen
-  swiftSILOptimizer
-  swiftIRGen
-  swiftLocalization
-  swiftSema
-  swiftSerialization
-  swiftSymbolGraphGen)
+add_dependencies(languageFrontend
+  CodiraOptions)
+target_link_libraries(languageFrontend PRIVATE
+  languageAPIDigester
+  languageAST
+  languageConstExtract
+  languageIDE
+  languageSIL
+  languageOption
+  languageSILGen
+  languageSILOptimizer
+  languageIRGen
+  languageLocalization
+  languageSema
+  languageSerialization
+  languageSymbolGraphGen)
 
-if (SWIFT_BUILD_SWIFT_SYNTAX)
-  target_link_libraries(swiftFrontend
+if (LANGUAGE_BUILD_LANGUAGE_SYNTAX)
+  target_link_libraries(languageFrontend
     PRIVATE
-    swiftASTGen
+    languageASTGen
   )
 
-  add_dependencies(swiftFrontend
-    swiftASTGen
+  add_dependencies(languageFrontend
+    languageASTGen
   )
 endif()
 
-set_swift_llvm_is_available(swiftFrontend)
+set_language_toolchain_is_available(languageFrontend)

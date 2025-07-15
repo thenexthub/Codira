@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing executors.
+// Codira ABI describing executors.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_EXECUTOR_BACKDEPLOY56_H
-#define SWIFT_ABI_EXECUTOR_BACKDEPLOY56_H
+#ifndef LANGUAGE_ABI_EXECUTOR_BACKDEPLOY56_H
+#define LANGUAGE_ABI_EXECUTOR_BACKDEPLOY56_H
 
 #include <inttypes.h>
 
@@ -36,7 +37,7 @@ class SerialExecutorWitnessTable;
 /// An unmanaged reference to an executor.
 ///
 /// This type corresponds to the type Optional<Builtin.Executor> in
-/// Swift.  The representation of nil in Optional<Builtin.Executor>
+/// Codira.  The representation of nil in Optional<Builtin.Executor>
 /// aligns with what this type calls the generic executor, so the
 /// notional subtype of this type which is never generic corresponds
 /// to the type Builtin.Executor.
@@ -58,7 +59,7 @@ class SerialExecutorWitnessTable;
 ///   in the future should back-deploy as long as the witness table
 ///   reference is still present.
 class ExecutorRef {
-  HeapObject *Identity; // Not necessarily Swift reference-countable
+  HeapObject *Identity; // Not necessarily Codira reference-countable
   uintptr_t Implementation;
 
   // We future-proof the ABI here by masking the low bits off the
@@ -137,16 +138,16 @@ public:
 };
 
 using JobInvokeFunction =
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   void (Job *);
 
 using TaskContinuationFunction =
-  SWIFT_CC(swiftasync)
-  void (SWIFT_ASYNC_CONTEXT AsyncContext *);
+  LANGUAGE_CC(languageasync)
+  void (LANGUAGE_ASYNC_CONTEXT AsyncContext *);
 
 using ThrowingTaskFutureWaitContinuationFunction =
-  SWIFT_CC(swiftasync)
-  void (SWIFT_ASYNC_CONTEXT AsyncContext *, SWIFT_CONTEXT void *);
+  LANGUAGE_CC(languageasync)
+  void (LANGUAGE_ASYNC_CONTEXT AsyncContext *, LANGUAGE_CONTEXT void *);
 
 
 template <class AsyncSignature>
@@ -221,4 +222,4 @@ public:
 
 }
 
-#endif // SWIFT_ABI_EXECUTOR_BACKDEPLOY56_H
+#endif // LANGUAGE_ABI_EXECUTOR_BACKDEPLOY56_H

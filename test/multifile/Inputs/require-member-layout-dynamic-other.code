@@ -1,0 +1,5 @@
+import Foundation
+
+extension Foo {
+  open override fn bar(_: String) { }
+}

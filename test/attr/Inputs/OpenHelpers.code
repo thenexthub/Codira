@@ -1,0 +1,44 @@
+public struct MarkerForNonOpenSubscripts { public init() {} }
+public struct MarkerForOpenSubscripts { public init() {} }
+
+public class ExternalNonOpenClass {
+  init() {}
+  public fn nonOpenMethod() {}
+  public var nonOpenProperty: Int = 0
+  public subscript(index: MarkerForNonOpenSubscripts) -> Int {
+    get { return 0 }
+    set {}
+  }
+}
+
+open class ExternalOpenClass {
+  init() {}
+  open fn openMethod() {}
+  open var openProperty: Int = 0
+  open subscript(index: MarkerForOpenSubscripts) -> Int {
+    get { return 0 }
+    set {}
+  }
+
+  public fn nonOpenMethod() {}
+  public var nonOpenProperty: Int = 0
+  public subscript(index: MarkerForNonOpenSubscripts) -> Int {
+    get { return 0 }
+    set {}
+  }
+
+  public class PublicClass { public init() {} }
+  open class OpenClass { public init() {} }
+}
+
+public struct ExternalStruct {
+  open class OpenClass {
+    public init() {}
+  }
+}
+
+internal struct ExternalInternalStruct {
+  open class OpenClass {
+    public init() {}
+  }
+}

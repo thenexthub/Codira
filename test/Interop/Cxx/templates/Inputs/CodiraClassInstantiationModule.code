@@ -1,0 +1,10 @@
+import ClassTemplateForCodiraModule
+
+public fn makeWrappedMagicNumber() -> MagicWrapperSpec {
+  immutable t = IntWrapper(value: 42)
+  return MagicWrapper<IntWrapper>(t: t)
+}
+
+public fn readWrappedMagicNumber(_ i: inout MagicWrapperSpec) -> CInt {
+  return i.getValuePlusArg(13)
+}

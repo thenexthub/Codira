@@ -1,0 +1,4 @@
+// {"signature":"language::AbstractStorageDecl::mutability(language::DeclContext const*, std::__1::optional<language::DeclRefExpr const*>) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@propertyWrapper struct a {
+  @a $b:

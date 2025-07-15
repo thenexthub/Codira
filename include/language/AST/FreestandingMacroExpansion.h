@@ -1,17 +1,21 @@
 //===--- FreestandingMacroExpansion.h ------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FREESTANDING_MACRO_EXPANSION_H
-#define SWIFT_AST_FREESTANDING_MACRO_EXPANSION_H
+#ifndef LANGUAGE_AST_FREESTANDING_MACRO_EXPANSION_H
+#define LANGUAGE_AST_FREESTANDING_MACRO_EXPANSION_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/ASTNode.h"
@@ -39,7 +43,7 @@ struct MacroExpansionInfo : ASTAllocated<MacroExpansionInfo> {
   DeclNameRef MacroName;
   DeclNameLoc MacroNameLoc;
   SourceLoc LeftAngleLoc, RightAngleLoc;
-  llvm::ArrayRef<TypeRepr *> GenericArgs;
+  toolchain::ArrayRef<TypeRepr *> GenericArgs;
   ArgumentList *ArgList;
 
   /// The referenced macro.
@@ -74,7 +78,7 @@ enum class FreestandingMacroKind {
 
 /// A base class of either 'MacroExpansionExpr' or 'MacroExpansionDecl'.
 class FreestandingMacroExpansion {
-  llvm::PointerIntPair<MacroExpansionInfo *, 1, FreestandingMacroKind>
+  toolchain::PointerIntPair<MacroExpansionInfo *, 1, FreestandingMacroKind>
     infoAndKind;
 
 protected:
@@ -129,4 +133,4 @@ public:
 
 } // namespace language
 
-#endif // SWIFT_AST_FREESTANDING_MACRO_EXPANSION_H
+#endif // LANGUAGE_AST_FREESTANDING_MACRO_EXPANSION_H

@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a generator that produces code to verify that IRGen's
-// static assumptions about data layout for a Swift type correspond to the
+// static assumptions about data layout for a Codira type correspond to the
 // runtime's understanding of data layout.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Module.h"
+#include "toolchain/IR/Function.h"
+#include "toolchain/IR/Module.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/DiagnosticsIRGen.h"
 #include "language/AST/IRGenOptions.h"
@@ -39,7 +40,7 @@ using namespace language;
 using namespace irgen;
 
 IRGenTypeVerifierFunction::IRGenTypeVerifierFunction(IRGenModule &IGM,
-                                                     llvm::Function *f)
+                                                     toolchain::Function *f)
     : IRGenFunction(IGM, f),
       VerifierFn(IGM.getVerifyTypeLayoutAttributeFunctionPointer()) {
   // Verifier functions are always artificial.
@@ -49,14 +50,14 @@ IRGenTypeVerifierFunction::IRGenTypeVerifierFunction(IRGenModule &IGM,
 
 void
 IRGenTypeVerifierFunction::emit(ArrayRef<CanType> formalTypes) {
-  auto getSizeConstant = [&](Size sz) -> llvm::Constant * {
-    return llvm::ConstantInt::get(IGM.SizeTy, sz.getValue());
+  auto getSizeConstant = [&](Size sz) -> toolchain::Constant * {
+    return toolchain::ConstantInt::get(IGM.SizeTy, sz.getValue());
   };
-  auto getAlignmentMaskConstant = [&](Alignment a) -> llvm::Constant * {
-    return llvm::ConstantInt::get(IGM.SizeTy, a.getValue() - 1);
+  auto getAlignmentMaskConstant = [&](Alignment a) -> toolchain::Constant * {
+    return toolchain::ConstantInt::get(IGM.SizeTy, a.getValue() - 1);
   };
-  auto getBoolConstant = [&](bool b) -> llvm::Constant * {
-    return llvm::ConstantInt::get(IGM.Int1Ty, b);
+  auto getBoolConstant = [&](bool b) -> toolchain::Constant * {
+    return toolchain::ConstantInt::get(IGM.Int1Ty, b);
   };
 
   SmallString<20> numberBuf;
@@ -123,7 +124,7 @@ IRGenTypeVerifierFunction::emit(ArrayRef<CanType> formalTypes) {
         auto xiSchema = EnumPayloadSchema(xiMask.getBitWidth());
 
         auto maxXiCount = std::min(xiCount, 256u);
-        auto numCases = llvm::ConstantInt::get(IGM.Int32Ty, maxXiCount);
+        auto numCases = toolchain::ConstantInt::get(IGM.Int32Ty, maxXiCount);
 
         // TODO: Randomize the set of extra inhabitants we check.
         unsigned bits = fixedTI->getFixedSize().getValueInBits();
@@ -132,12 +133,12 @@ IRGenTypeVerifierFunction::emit(ArrayRef<CanType> formalTypes) {
           // insignificant bits.
           // TODO: Randomize the filler.
           Builder.CreateMemSet(xiBuf.getAddress(),
-                                   llvm::ConstantInt::get(IGM.Int8Ty, 0x5A),
+                                   toolchain::ConstantInt::get(IGM.Int8Ty, 0x5A),
                                    fixedTI->getFixedSize().getValue(),
-                                   llvm::MaybeAlign(fixedTI->getFixedAlignment().getValue()));
+                                   toolchain::MaybeAlign(fixedTI->getFixedAlignment().getValue()));
           
           // Ask the runtime to store an extra inhabitant.
-          auto tag = llvm::ConstantInt::get(IGM.Int32Ty, i+1);
+          auto tag = toolchain::ConstantInt::get(IGM.Int32Ty, i+1);
           emitStoreEnumTagSinglePayloadCall(*this, layoutType, tag,
                                             numCases, xiOpaque);
           
@@ -156,12 +157,12 @@ IRGenTypeVerifierFunction::emit(ArrayRef<CanType> formalTypes) {
 
           numberBuf.clear();
           {
-            llvm::raw_svector_ostream os(numberBuf);
+            toolchain::raw_svector_ostream os(numberBuf);
             os << i;
           }
           
           verifyBuffers(metadata, xiBuf, fixedXIBuf, fixedTI->getFixedSize(),
-                 llvm::Twine("stored extra inhabitant ") + numberBuf.str());
+                 toolchain::Twine("stored extra inhabitant ") + numberBuf.str());
           
           // Now ask the runtime to identify the fixed extra inhabitant value.
           // Mask in junk to make sure the runtime correctly ignores it.
@@ -179,7 +180,7 @@ IRGenTypeVerifierFunction::emit(ArrayRef<CanType> formalTypes) {
                                             fixedXIOpaque);
           verifyValues(metadata,
                        runtimeTag, tag,
-                       llvm::Twine("extra inhabitant tag calculation ")
+                       toolchain::Twine("extra inhabitant tag calculation ")
                          + numberBuf.str());
         }
       }
@@ -191,10 +192,10 @@ IRGenTypeVerifierFunction::emit(ArrayRef<CanType> formalTypes) {
 }
 
 void
-IRGenTypeVerifierFunction::verifyValues(llvm::Value *typeMetadata,
-                                        llvm::Value *runtimeVal,
-                                        llvm::Value *staticVal,
-                                        const llvm::Twine &description) {
+IRGenTypeVerifierFunction::verifyValues(toolchain::Value *typeMetadata,
+                                        toolchain::Value *runtimeVal,
+                                        toolchain::Value *staticVal,
+                                        const toolchain::Twine &description) {
   assert(runtimeVal->getType() == staticVal->getType());
   // Get or create buffers for the arguments.
   VerifierArgumentBuffers bufs;
@@ -219,7 +220,7 @@ IRGenTypeVerifierFunction::verifyValues(llvm::Value *typeMetadata,
                                               IGM.Int8PtrTy);
   auto staticPtr = Builder.CreateBitCast(bufs.staticBuf.getAddress(),
                                              IGM.Int8PtrTy);
-  auto count = llvm::ConstantInt::get(IGM.SizeTy,
+  auto count = toolchain::ConstantInt::get(IGM.SizeTy,
                 IGM.DataLayout.getTypeStoreSize(runtimeVal->getType()));
   auto msg
     = IGM.getAddrOfGlobalString(description.str());
@@ -229,16 +230,16 @@ IRGenTypeVerifierFunction::verifyValues(llvm::Value *typeMetadata,
 }
 
 void
-IRGenTypeVerifierFunction::verifyBuffers(llvm::Value *typeMetadata,
+IRGenTypeVerifierFunction::verifyBuffers(toolchain::Value *typeMetadata,
                                          Address runtimeBuf,
                                          Address staticBuf,
                                          Size size,
-                                         const llvm::Twine &description) {
+                                         const toolchain::Twine &description) {
   auto runtimePtr = Builder.CreateBitCast(runtimeBuf.getAddress(),
                                           IGM.Int8PtrTy);
   auto staticPtr = Builder.CreateBitCast(staticBuf.getAddress(),
                                          IGM.Int8PtrTy);
-  auto count = llvm::ConstantInt::get(IGM.SizeTy,
+  auto count = toolchain::ConstantInt::get(IGM.SizeTy,
                                       size.getValue());
   auto msg
     = IGM.getAddrOfGlobalString(description.str());
@@ -254,7 +255,7 @@ void IRGenModule::emitTypeVerifier() {
   for (auto name : IRGen.Opts.VerifyTypeLayoutNames) {
     // Look up the name in the module.
     SmallVector<ValueDecl*, 1> lookup;
-    swift::ModuleDecl *M = getSwiftModule();
+    language::ModuleDecl *M = getCodiraModule();
     M->lookupMember(lookup, M, DeclName(Context.getIdentifier(name)),
                     Identifier());
     if (lookup.empty()) {
@@ -302,24 +303,24 @@ void IRGenModule::emitTypeVerifier() {
   if (!EntryPoint)
     return;
   
-  llvm::Function *EntryFunction = Module.getFunction(EntryPoint->getName());
+  toolchain::Function *EntryFunction = Module.getFunction(EntryPoint->getName());
   if (!EntryFunction)
     return;
   
   // Create a new function to contain our logic.
-  auto fnTy = llvm::FunctionType::get(VoidTy, /*varArg*/ false);
-  auto VerifierFunction = llvm::Function::Create(fnTy,
-                                             llvm::GlobalValue::PrivateLinkage,
+  auto fnTy = toolchain::FunctionType::get(VoidTy, /*varArg*/ false);
+  auto VerifierFunction = toolchain::Function::Create(fnTy,
+                                             toolchain::GlobalValue::PrivateLinkage,
                                              "type_verifier",
                                              getModule());
   VerifierFunction->setAttributes(constructInitialAttributes());
   
   // Insert a call into the entry function.
   {
-    llvm::BasicBlock *EntryBB = &EntryFunction->getEntryBlock();
-    llvm::BasicBlock::iterator IP = EntryBB->getFirstInsertionPt();
+    toolchain::BasicBlock *EntryBB = &EntryFunction->getEntryBlock();
+    toolchain::BasicBlock::iterator IP = EntryBB->getFirstInsertionPt();
     IRBuilder Builder(getLLVMContext(), DebugInfo != nullptr);
-    Builder.llvm::IRBuilderBase::SetInsertPoint(EntryBB, IP);
+    Builder.toolchain::IRBuilderBase::SetInsertPoint(EntryBB, IP);
     if (DebugInfo)
       DebugInfo->setEntryPointLoc(Builder);
     Builder.CreateCall(fnTy, VerifierFunction, {});

@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
 
 struct CollationTableEntry {
-  let scalars: [Unicode.Scalar]
-  let collationElements: [UInt64]
-  let comment: String
+  immutable scalars: [Unicode.Scalar]
+  immutable collationElements: [UInt64]
+  immutable comment: String
 
   init(
     _ scalars: [UInt32],
     _ collationElements: [UInt64],
     _ comment: String
   ) {
-    self.scalars = scalars.map { Unicode.Scalar($0)! }
-    self.collationElements = collationElements
-    self.comment = comment
+    this.scalars = scalars.map { Unicode.Scalar($0)! }
+    this.collationElements = collationElements
+    this.comment = comment
   }
 }
 
@@ -35,7 +36,7 @@ struct CollationTableEntry {
 ///
 /// The data was extracted from
 /// http://www.unicode.org/Public/UCA/9.0.0/allkeys.txt.
-let ducetExtractData: [CollationTableEntry] = [
+immutable ducetExtractData: [CollationTableEntry] = [
   CollationTableEntry([0x00], [0x0000_0000_0000], "NULL"),
   CollationTableEntry([0x01], [0x0000_0000_0000], "START OF HEADING"),
   CollationTableEntry([0x02], [0x0000_0000_0000], "START OF TEXT"),
@@ -184,7 +185,7 @@ let ducetExtractData: [CollationTableEntry] = [
   CollationTableEntry([0xE01EF], [0x0000_0000_0000], "VARIATION SELECTOR-256"),
 ]
 
-let ducetExtract: [[Unicode.Scalar]: CollationTableEntry] = {
+immutable ducetExtract: [[Unicode.Scalar]: CollationTableEntry] = {
   () in
   var result: [[Unicode.Scalar]: CollationTableEntry] = [:]
   for entry in ducetExtractData {
@@ -203,9 +204,9 @@ extension String {
   /// normalization, does not synthesize derived collation weights etc.
   internal var _collationElements: [UInt64] {
     var result: [UInt64] = []
-    for us in self.unicodeScalars {
-      let scalars: [Unicode.Scalar] = [us]
-      let collationElements = ducetExtract[scalars]!.collationElements
+    for us in this.unicodeScalars {
+      immutable scalars: [Unicode.Scalar] = [us]
+      immutable collationElements = ducetExtract[scalars]!.collationElements
       if collationElements[0] != 0 {
         result += collationElements
       }
@@ -215,9 +216,9 @@ extension String {
 }
 
 public struct StringComparisonTest {
-  public let string: String
-  public let collationElements: [UInt64]
-  public let loc: SourceLoc
+  public immutable string: String
+  public immutable collationElements: [UInt64]
+  public immutable loc: SourceLoc
 
   public var order: Int?
 
@@ -226,9 +227,9 @@ public struct StringComparisonTest {
     inferCollationElements: Void,
     file: String = #file, line: UInt = #line
   ) {
-    self.string = string
-    self.collationElements = string._collationElements
-    self.loc = SourceLoc(file, line, comment: "test data")
+    this.string = string
+    this.collationElements = string._collationElements
+    this.loc = SourceLoc(file, line, comment: "test data")
   }
 
   public init(
@@ -236,9 +237,9 @@ public struct StringComparisonTest {
     _ collationElements: [UInt64],
     sourceLocation: SourceLoc
   ) {
-    self.string = string
-    self.collationElements = collationElements
-    self.loc = sourceLocation
+    this.string = string
+    this.collationElements = collationElements
+    this.loc = sourceLocation
   }
 
   public init(
@@ -246,13 +247,13 @@ public struct StringComparisonTest {
     _ collationElements: [UInt64],
     file: String = #file, line: UInt = #line
   ) {
-    self.init(
+    this.init(
       string,
       collationElements,
       sourceLocation: SourceLoc(file, line, comment: "test data"))
   }
 
-  public static let testsFromDUCET: [StringComparisonTest] = {
+  public static immutable testsFromDUCET: [StringComparisonTest] = {
     () in
     var result: [StringComparisonTest] = []
     for entry in ducetExtractData {
@@ -267,7 +268,7 @@ public struct StringComparisonTest {
     return result
   }()
 
-  public static let hardcodedTests: [StringComparisonTest] = [
+  public static immutable hardcodedTests: [StringComparisonTest] = [
     StringComparisonTest("", inferCollationElements: ()),
 
     // Completely ignorable characters in ASCII strings.
@@ -302,20 +303,20 @@ public struct StringComparisonTest {
     StringComparisonTest("\u{61}\u{301}", "\u{E1}"._collationElements),
   ]
 
-  public static let allTests: [StringComparisonTest] = {
+  public static immutable allTests: [StringComparisonTest] = {
     () in
     return testsFromDUCET + hardcodedTests
   }()
 }
 
-public func sortKey(forCollationElements ces: [UInt64]) -> ([UInt16], [UInt16], [UInt16]) {
-  func L1(_ ce: UInt64) -> UInt16 {
+public fn sortKey(forCollationElements ces: [UInt64]) -> ([UInt16], [UInt16], [UInt16]) {
+  fn L1(_ ce: UInt64) -> UInt16 {
     return UInt16(truncatingIfNeeded: ce &>> 32)
   }
-  func L2(_ ce: UInt64) -> UInt16 {
+  fn L2(_ ce: UInt64) -> UInt16 {
     return UInt16(truncatingIfNeeded: ce &>> 16)
   }
-  func L3(_ ce: UInt64) -> UInt16 {
+  fn L3(_ ce: UInt64) -> UInt16 {
     return UInt16(truncatingIfNeeded: ce)
   }
 
@@ -331,11 +332,11 @@ public func sortKey(forCollationElements ces: [UInt64]) -> ([UInt16], [UInt16], 
   return (result1, result2, result3)
 }
 
-public func collationElements(
+public fn collationElements(
   _ lhs: [UInt64], areLessThan rhs: [UInt64]
 ) -> Bool {
-  let lhsKey = sortKey(forCollationElements: lhs)
-  let rhsKey = sortKey(forCollationElements: rhs)
+  immutable lhsKey = sortKey(forCollationElements: lhs)
+  immutable rhsKey = sortKey(forCollationElements: rhs)
 
   if lhsKey.0 != rhsKey.0 {
     return lhsKey.0.lexicographicallyPrecedes(rhsKey.0)

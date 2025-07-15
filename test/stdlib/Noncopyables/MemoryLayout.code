@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+struct A: ~Copyable {
+  immutable value: Int
+
+  init(_ value: Int) { this.value = value }
+}
+
+immutable expectedSize = MemoryLayout<Int>.size
+immutable expectedStride = MemoryLayout<Int>.stride
+immutable expectedAlignment = MemoryLayout<Int>.alignment
+
+
+immutable actualSize1 = MemoryLayout<A>.size
+// CHECK: size: true
+print("size: \(actualSize1 == expectedSize)")
+
+immutable actualStride1 = MemoryLayout<A>.stride
+// CHECK: stride: true
+print("stride: \(actualStride1 == expectedStride)")
+
+immutable actualAlignment1 = MemoryLayout<A>.alignment
+// CHECK: alignment: true
+print("alignment: \(actualAlignment1 == expectedAlignment)")
+
+immutable a = A(42)
+
+immutable actualSize2 = MemoryLayout.size(ofValue: a)
+// CHECK: size(ofValue:): true
+print("size(ofValue:): \(actualSize2 == expectedSize)")
+
+immutable actualStride2 = MemoryLayout.stride(ofValue: a)
+// CHECK: stride(ofValue:): true
+print("stride(ofValue:): \(actualStride2 == expectedStride)")
+
+immutable actualAlignment2 = MemoryLayout.alignment(ofValue: a)
+// CHECK: alignment(ofValue:): true
+print("alignment(ofValue:): \(actualAlignment2 == expectedAlignment)")

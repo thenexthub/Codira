@@ -1,4 +1,4 @@
-//===---------------- BinaryScanningTool.h - Swift Compiler ---------------===//
+//===---------------- BinaryScanningTool.h - Codira Compiler ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BINARY_SCANNING_TOOL_H
-#define SWIFT_BINARY_SCANNING_TOOL_H
+#ifndef LANGUAGE_BINARY_SCANNING_TOOL_H
+#define LANGUAGE_BINARY_SCANNING_TOOL_H
 
 #include "language/StaticMirror/ObjectFileContext.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/StringSaver.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/StringSaver.h"
 
-namespace llvm {
+namespace toolchain {
 namespace object {
 class ObjectFile;
 class Binary;
 } // namespace object
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -38,7 +39,7 @@ namespace static_mirror {
 /// The high-level implementation of the static mirror binary scanner
 class BinaryScanningTool {
   template <unsigned PointerSize>
-  using ExternalReflectionContext = swift::reflection::ReflectionContext<External<RuntimeTarget<PointerSize>>>;
+  using ExternalReflectionContext = language::reflection::ReflectionContext<External<RuntimeTarget<PointerSize>>>;
 
 public:
   /// Construct a binary scanning tool.
@@ -68,9 +69,9 @@ public:
 private:
   // Note: binaryOrError and objectOrError own the memory for our ObjectFile;
   // once they go out of scope, we can no longer do anything.
-  std::vector<llvm::object::OwningBinary<llvm::object::Binary>> BinaryOwners;
-  std::vector<std::unique_ptr<llvm::object::ObjectFile>> ObjectOwners;
-  std::vector<const llvm::object::ObjectFile *> ObjectFiles;
+  std::vector<toolchain::object::OwningBinary<toolchain::object::Binary>> BinaryOwners;
+  std::vector<std::unique_ptr<toolchain::object::ObjectFile>> ObjectOwners;
+  std::vector<const toolchain::object::ObjectFile *> ObjectFiles;
 
   std::unique_ptr<ReflectionContextHolder> Context;
   size_t PointerSize;
@@ -79,4 +80,4 @@ private:
 } // end namespace static_mirror
 } // end namespace language
 
-#endif // SWIFT_BINARY_SCANNING_TOOL_H
+#endif // LANGUAGE_BINARY_SCANNING_TOOL_H

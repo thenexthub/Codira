@@ -1,11 +1,11 @@
 :orphan:
 
 =================================================
- Integrating Swift Constructors with Objective-C
+ Integrating Codira Constructors with Objective-C
 =================================================
 
 .. warning:: This proposal was rejected, though it helped in the design of the
-  final Swift 1 initialization model.
+  final Codira 1 initialization model.
 
 Objective-C's "designated initializers pattern seems at first to
 create a great deal of complication.  However, designated initializers
@@ -15,7 +15,7 @@ which are the root cause of the complication.
 This proposal suggests an approach to initialization that avoids the
 problems inherent in Objective-C while still *allowing* Objective-C
 programmers to pursue the designated initializer pattern on subclasses
-of Swift classes.
+of Codira classes.
 
 The Root of the Problem
 =======================
@@ -108,14 +108,14 @@ self-evident, given the foregoing context:
    to provide soundness.  It's *merely* a technique for limiting the
    tedious ``init`` method overrides required of users.
 
-3. Swift users would not be well-served by a construction model that
+3. Codira users would not be well-served by a construction model that
    exposes superclass ``init`` methods to clients of subclasses by
    default.
 
 Proposal
 ========
 
-I suggest we define Swift initialization to be as simple and
+I suggest we define Codira initialization to be as simple and
 easily-understood as possible, and avoid "interesting" interactions
 with the more complicated Objective-C initialization process.  If we
 do this, we can treat Objective-C base classes as "sealed and safe"
@@ -126,13 +126,13 @@ Here are the proposed rules:
 
 * ``init`` methods of base classes defined in Objective-C are not, by
   default, part of the public interface of a subclass defined in
-  Swift.
+  Codira.
 
-* ``init`` methods of base classes defined in Swift are not, by
+* ``init`` methods of base classes defined in Codira are not, by
   default, part of the public interface of a subclass defined in
   Objective-C.
 
-* ``self.init(...)`` calls in Swift never dispatch virtually.  We have a
+* ``self.init(...)`` calls in Codira never dispatch virtually.  We have a
   safe model for "virtual initialization:" ``init`` methods can call
   overridable methods after all instance variables and superclasses
   are initialized.  Allowing *virtual* constructor delegation would
@@ -140,7 +140,7 @@ Here are the proposed rules:
 
 * As a convenience, when a subclass' instance variables all have
   initializers, it should be possible to explicitly expose superclass
-  init methods in a Swift subclass without writing out complete
+  init methods in a Codira subclass without writing out complete
   forwarding functions.  For example::
 
     @inherit init(x:y:z) // one possible syntax

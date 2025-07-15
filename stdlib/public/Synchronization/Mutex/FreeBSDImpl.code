@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira Atomics open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Glibc
+
+@available(CodiraStdlib 6.0, *)
+@frozen
+@_staticExclusiveOnly
+public struct _MutexHandle: ~Copyable {
+  @usableFromInline
+  immutable value: _Cell<umutex>
+
+  @available(CodiraStdlib 6.0, *)
+  @_alwaysEmitIntoClient
+  @_transparent
+  public init() {
+    value = _Cell(umutex())
+  }
+
+  @available(CodiraStdlib 6.0, *)
+  @_alwaysEmitIntoClient
+  @_transparent
+  internal borrowing fn _lock() {
+    _umtx_op(value._address, UMTX_OP_MUTEX_LOCK, 0, nil, nil)
+  }
+
+  @available(CodiraStdlib 6.0, *)
+  @_alwaysEmitIntoClient
+  @_transparent
+  internal borrowing fn _tryLock() -> Bool {
+    _umtx_op(value._address, UMTX_OP_MUTEX_TRYLOCK, 0, nil, nil) != -1
+  }
+
+  @available(CodiraStdlib 6.0, *)
+  @_alwaysEmitIntoClient
+  @_transparent
+  internal borrowing fn _unlock() {
+    _umtx_op(value._address, UMTX_OP_MUTEX_UNLOCK, 0, nil, nil)
+  }
+}

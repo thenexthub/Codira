@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_IVANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_IVANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_IVANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_IVANALYSIS_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Utils/SCCVisitor.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
 class IVInfo : public SCCVisitor<IVInfo> {
 public:
-  typedef llvm::SmallVectorImpl<SILNode *> SCCType;
+  typedef toolchain::SmallVectorImpl<SILNode *> SCCType;
   friend SCCVisitor;
 
 public:
@@ -64,7 +65,7 @@ public:
   }
 
   IVDesc getInductionDesc(SILArgument *Arg) {
-    llvm::DenseMap<const ValueBase *, IVDesc>::iterator CI =
+    toolchain::DenseMap<const ValueBase *, IVDesc>::iterator CI =
         InductionInfoMap.find(Arg);
     if (CI == InductionInfoMap.end())
       return IVDesc::invalidIV();
@@ -73,10 +74,10 @@ public:
 
 private:
   // Map from an element of an induction sequence to the header.
-  llvm::DenseMap<const ValueBase *, SILArgument *> InductionVariableMap;
+  toolchain::DenseMap<const ValueBase *, SILArgument *> InductionVariableMap;
 
   // Map from an induction variable header to the induction descriptor.
-  llvm::DenseMap<const ValueBase *, IVDesc> InductionInfoMap;
+  toolchain::DenseMap<const ValueBase *, IVDesc> InductionInfoMap;
 
   SILArgument *isInductionSequence(SCCType &SCC);
   void visit(SCCType &SCC);

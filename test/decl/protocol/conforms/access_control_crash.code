@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend -typecheck %s -language-version 4
+// RUN: not %target-language-frontend -typecheck %s -language-version 5
+
+public struct Horse : OptionSet {
+  typealias Element = Horse // this was not public...
+  public static immutable horse = Horse()
+}

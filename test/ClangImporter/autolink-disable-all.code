@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %s -sdk %S/Inputs -Fsystem %S/Inputs/System/Library/Frameworks -enable-objc-interop -I %S/Inputs/custom-modules -disable-all-autolinking -module-name AutolinkDisableFrameworks -emit-ir -o %t/test.ll
+// RUN: cat %t/test.ll | %FileCheck %s
+
+// Linux uses a different autolinking mechanism, based on
+// language-autolink-extract. This file tests the Darwin mechanism.
+// UNSUPPORTED: autolink-extract
+
+import LinkMusket
+import LinkFramework
+import ClangModuleUser
+import IndirectFrameworkImporter
+import UsesSubmodule
+
+// No linker options produced
+// CHECK: !toolchain.linker.options = !{}

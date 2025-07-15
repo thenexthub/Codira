@@ -8,12 +8,12 @@ import subprocess
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("cmake_path", help="The cmake binary to use")
-    p.add_argument("swift_src_dir", help="The swift source directory")
+    p.add_argument("language_src_dir", help="The language source directory")
     p.add_argument("clang", help="The path to the clang binary to use")
     p.add_argument(
-        "swift_root_dir",
-        help="A path to a swift root produced by installing "
-        "Swift and Foundation together. We infer swiftc "
+        "language_root_dir",
+        help="A path to a language root produced by installing "
+        "Codira and Foundation together. We infer languagec "
         "from here",
     )
     p.add_argument("destdir", help="The directory to perform the actual " "build in")
@@ -30,10 +30,10 @@ def main():
     configureInvocation = [
         args.cmake_path,
         "-GNinja",
-        "-DSWIFT_EXEC={}/bin/swiftc".format(args.swift_root_dir),
+        "-DLANGUAGE_EXEC={}/bin/languagec".format(args.code_root_dir),
         "-DCLANG_EXEC={}".format(args.clang),
-        "-DSWIFT_LIBRARY_PATH={}/lib/swift".format(args.swift_root_dir),
-        "{}/benchmark".format(args.swift_src_dir),
+        "-DLANGUAGE_LIBRARY_PATH={}/lib/language".format(args.code_root_dir),
+        "{}/benchmark".format(args.code_src_dir),
     ]
     print("COMMAND: {}".format(" ".join(configureInvocation)))
     subprocess.check_call(configureInvocation)
@@ -43,7 +43,7 @@ def main():
         "--build",
         args.destdir,
         "--",
-        "swift-benchmark-linux-x86_64",
+        "language-benchmark-linux-x86_64",
     ]
     print("COMMAND: {}".format(" ".join(buildInvocation)))
     subprocess.check_call(buildInvocation)

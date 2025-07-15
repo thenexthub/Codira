@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MARKUP_LINELIST_H
-#define SWIFT_MARKUP_LINELIST_H
+#ifndef LANGUAGE_MARKUP_LINELIST_H
+#define LANGUAGE_MARKUP_LINELIST_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include "language/Basic/SourceLoc.h"
 
 namespace language {
@@ -32,10 +33,10 @@ size_t measureIndentation(StringRef Text);
 /// Represents a substring of a single line of source text.
 struct Line {
   StringRef Text;
-  swift::SourceRange Range;
+  language::SourceRange Range;
   size_t FirstNonspaceOffset;
 public:
-  Line(StringRef Text, swift::SourceRange Range) : Text(Text), Range(Range),
+  Line(StringRef Text, language::SourceRange Range) : Text(Text), Range(Range),
       FirstNonspaceOffset(measureIndentation(Text)) {}
 
   void drop_front(size_t Amount) {
@@ -74,11 +75,11 @@ class LineListBuilder {
 public:
   LineListBuilder(MarkupContext &Context) : Context(Context) {}
 
-  void addLine(StringRef Text, swift::SourceRange Range);
+  void addLine(StringRef Text, language::SourceRange Range);
   LineList takeLineList() const;
 };
 
 } // namespace markup
 } // namespace language
 
-#endif // SWIFT_MARKUP_LINELIST_H
+#endif // LANGUAGE_MARKUP_LINELIST_H

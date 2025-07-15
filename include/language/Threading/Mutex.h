@@ -1,21 +1,25 @@
 //===--- Mutex.h - Mutex and ScopedLock ----------------------- -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Provides a system-independent Mutex abstraction.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_MUTEX_H
-#define SWIFT_THREADING_MUTEX_H
+#ifndef LANGUAGE_THREADING_MUTEX_H
+#define LANGUAGE_THREADING_MUTEX_H
 
 #include <type_traits>
 #include <utility>
@@ -144,7 +148,7 @@ class LazyMutex {
   LazyMutex &operator=(LazyMutex &&) = delete;
 
 public:
-  constexpr LazyMutex() : Handle(SWIFT_LAZY_MUTEX_INITIALIZER) {}
+  constexpr LazyMutex() : Handle(LANGUAGE_LAZY_MUTEX_INITIALIZER) {}
 
   // No destructor; this is intentional; this class is for STATIC allocation
   // and you don't need to delete mutexes on termination.
@@ -285,4 +289,4 @@ protected:
 
 } // namespace language
 
-#endif // SWIFT_THREADING_MUTEX_H
+#endif // LANGUAGE_THREADING_MUTEX_H

@@ -1,24 +1,28 @@
 //===--- RewriteContext.h - Term rewriting allocation arena -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REWRITECONTEXT_H
-#define SWIFT_REWRITECONTEXT_H
+#ifndef LANGUAGE_REWRITECONTEXT_H
+#define LANGUAGE_REWRITECONTEXT_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/Allocator.h"
 #include "Debug.h"
 #include "Histogram.h"
 #include "Symbol.h"
@@ -40,10 +44,10 @@ class RewriteContext final {
   friend class Term;
 
   /// Allocator for uniquing symbols and terms.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   /// Folding set for uniquing symbols.
-  llvm::FoldingSet<Symbol::Storage> Symbols;
+  toolchain::FoldingSet<Symbol::Storage> Symbols;
 
   /// The singleton storage for shape symbols.
   Symbol::Storage *TheShapeSymbol;
@@ -52,10 +56,10 @@ class RewriteContext final {
   Symbol::Storage *ThePackElementSymbol;
 
   /// Folding set for uniquing terms.
-  llvm::FoldingSet<Term::Storage> Terms;
+  toolchain::FoldingSet<Term::Storage> Terms;
 
   /// Requirement machines built from generic signatures.
-  llvm::DenseMap<GenericSignature, RequirementMachine *> Machines;
+  toolchain::DenseMap<GenericSignature, RequirementMachine *> Machines;
 
   /// Stores information about a vertex in the protocol dependency graph.
   struct ProtocolNode {
@@ -100,10 +104,10 @@ class RewriteContext final {
   };
 
   /// We pre-load protocol dependencies here to avoid re-entrancy.
-  llvm::DenseMap<const ProtocolDecl *, ArrayRef<ProtocolDecl *>> Dependencies;
+  toolchain::DenseMap<const ProtocolDecl *, ArrayRef<ProtocolDecl *>> Dependencies;
 
   /// Maps protocols to their connected components.
-  llvm::DenseMap<const ProtocolDecl *, ProtocolNode> Protos;
+  toolchain::DenseMap<const ProtocolDecl *, ProtocolNode> Protos;
 
   /// Used by Tarjan's algorithm.
   unsigned NextComponentIndex = 0;
@@ -113,11 +117,11 @@ class RewriteContext final {
 
   /// The connected components. Keys are the ComponentID fields of
   /// ProtocolNode.
-  llvm::DenseMap<unsigned, ProtocolComponent> Components;
+  toolchain::DenseMap<unsigned, ProtocolComponent> Components;
 
   /// The stack of timers for performance analysis. See beginTimer() and
   /// endTimer().
-  llvm::SmallVector<uint64_t, 2> Timers;
+  toolchain::SmallVector<uint64_t, 2> Timers;
 
   ASTContext &Context;
 

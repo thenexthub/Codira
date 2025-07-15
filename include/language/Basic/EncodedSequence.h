@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a data structure which stores a heterogeneous
@@ -21,15 +22,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_ENCODEDSEQUENCE_H
-#define SWIFT_BASIC_ENCODEDSEQUENCE_H
+#ifndef LANGUAGE_BASIC_ENCODEDSEQUENCE_H
+#define LANGUAGE_BASIC_ENCODEDSEQUENCE_H
 
 #include "language/Basic/Compiler.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/PrefixMap.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/TargetParser/Host.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/TargetParser/Host.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <climits>
 
 namespace language {
@@ -72,7 +73,7 @@ private:
 
   /// A structure representing out-of-line chunk storage.
   struct OutOfLineStorage final :
-      private llvm::TrailingObjects<OutOfLineStorage, Chunk> {
+      private toolchain::TrailingObjects<OutOfLineStorage, Chunk> {
     friend TrailingObjects;
 
     uint16_t Size;
@@ -130,7 +131,7 @@ private:
     // The legality of accesses from this cast depends on Chunk having
     // all-powerful aliasing rights.
     Chunk *array = reinterpret_cast<Chunk*>(&Data);
-    if (llvm::sys::IsLittleEndianHost) array++;
+    if (toolchain::sys::IsLittleEndianHost) array++;
     return MutableArrayRef<Chunk>(array, sizeof(Data) / sizeof(Chunk) - 1);
   }
   ArrayRef<Chunk> chunkStorage() const {
@@ -343,7 +344,7 @@ public:
   template <class ValueType> class Map {
     // Hack: MSVC isn't able to resolve the InlineKeyCapacity part of the
     // template of PrefixMap, so we have to split it up and pass it manually.
-#if SWIFT_COMPILER_IS_MSVC && _MSC_VER < 1910
+#if LANGUAGE_COMPILER_IS_MSVC && _MSC_VER < 1910
     static const size_t Size = (sizeof(void*) - 1) / sizeof(Chunk);
     static const size_t ActualSize = max<size_t>(Size, 1);
 
@@ -384,4 +385,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_ENCODEDSEQUENCE_H
+#endif // LANGUAGE_BASIC_ENCODEDSEQUENCE_H

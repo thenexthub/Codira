@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines ArrayRefView, a template class which provides a
@@ -18,11 +19,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_ARRAYREFVIEW_H
-#define SWIFT_BASIC_ARRAYREFVIEW_H
+#ifndef LANGUAGE_BASIC_ARRAYREFVIEW_H
+#define LANGUAGE_BASIC_ARRAYREFVIEW_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/Casting.h"
 
 namespace language {
 
@@ -31,10 +32,10 @@ namespace language {
 template <class Orig, class Projected, Projected (&Project)(const Orig &),
           bool AllowOrigAccess = false>
 class ArrayRefView {
-  llvm::ArrayRef<Orig> Array;
+  toolchain::ArrayRef<Orig> Array;
 public:
   ArrayRefView() {}
-  ArrayRefView(llvm::ArrayRef<Orig> array) : Array(array) {}
+  ArrayRefView(toolchain::ArrayRef<Orig> array) : Array(array) {}
 
   class iterator {
     friend class ArrayRefView<Orig,Projected,Project,AllowOrigAccess>;
@@ -114,7 +115,7 @@ public:
 
   /// Peek through to the underlying array.  This operation is not
   /// supported by default; it must be enabled at specialization time.
-  llvm::ArrayRef<Orig> getOriginalArray() const {
+  toolchain::ArrayRef<Orig> getOriginalArray() const {
     static_assert(AllowOrigAccess,
                   "original array access not enabled for this view");
     return Array;
@@ -128,7 +129,7 @@ public:
         return false;
     return true;
   }
-  friend bool operator==(llvm::ArrayRef<Projected> lhs, ArrayRefView rhs) {
+  friend bool operator==(toolchain::ArrayRef<Projected> lhs, ArrayRefView rhs) {
     if (lhs.size() != rhs.size())
       return false;
     for (auto i : indices(lhs))
@@ -136,7 +137,7 @@ public:
         return false;
     return true;
   }
-  friend bool operator==(ArrayRefView lhs, llvm::ArrayRef<Projected> rhs) {
+  friend bool operator==(ArrayRefView lhs, toolchain::ArrayRef<Projected> rhs) {
     if (lhs.size() != rhs.size())
       return false;
     for (auto i : indices(lhs))
@@ -148,10 +149,10 @@ public:
   friend bool operator!=(ArrayRefView lhs, ArrayRefView rhs) {
     return !(lhs == rhs);
   }
-  friend bool operator!=(llvm::ArrayRef<Projected> lhs, ArrayRefView rhs) {
+  friend bool operator!=(toolchain::ArrayRef<Projected> lhs, ArrayRefView rhs) {
     return !(lhs == rhs);
   }
-  friend bool operator!=(ArrayRefView lhs, llvm::ArrayRef<Projected> rhs) {
+  friend bool operator!=(ArrayRefView lhs, toolchain::ArrayRef<Projected> rhs) {
     return !(lhs == rhs);
   }
 };
@@ -160,7 +161,7 @@ public:
 /// projected type.
 template<typename Projected, typename Orig>
 inline Projected *arrayRefViewCastHelper(const Orig &value) {
-  using llvm::cast_or_null;
+  using toolchain::cast_or_null;
   return cast_or_null<Projected>(value);
 }
 
@@ -183,4 +184,4 @@ struct is_array_ref_like<ArrayRefView<Orig, Projected, Project,
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_ARRAYREFVIEW_H
+#endif // LANGUAGE_BASIC_ARRAYREFVIEW_H

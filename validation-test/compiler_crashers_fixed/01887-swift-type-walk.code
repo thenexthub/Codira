@@ -1,0 +1,29 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class fn g<b<T! {
+struct e = {
+}
+public var f = A>) -> d<c(T) -> {
+protocol P {
+}
+fn ^(T.Type) {
+}
+}
+return ""
+class a {
+}
+super.f : 1, AnyObject, AnyObject) {
+}
+protocol a {
+protocol b in
+fn b<T, i : b> {

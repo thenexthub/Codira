@@ -1,4 +1,4 @@
-//===--- ArrayLiteral.swift -----------------------------------------------===//
+//===--- ArrayLiteral.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test checks performance of creating array from literal and array value
@@ -18,7 +19,7 @@
 // It is reported to be slow: <rdar://problem/17297449>
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "ArrayLiteral2", runFunction: run_ArrayLiteral, tags: [.validation, .api, .Array]),
   BenchmarkInfo(name: "ArrayValueProp", runFunction: run_ArrayValueProp, tags: [.validation, .api, .Array]),
   BenchmarkInfo(name: "ArrayValueProp2", runFunction: run_ArrayValueProp2, tags: [.validation, .api, .Array]),
@@ -27,25 +28,25 @@ public let benchmarks = [
 ]
 
 @inline(never)
-func makeArray() -> [Int] {
+fn makeArray() -> [Int] {
   return [1,2,3]
 }
 
 @inline(never)
-public func run_ArrayLiteral(_ n: Int) {
+public fn run_ArrayLiteral(_ n: Int) {
   for _ in 1...10000*n {
     blackHole(makeArray())
   }
 }
 
 @inline(never)
-func addLiteralArray() -> Int {
-  let arr = [1, 2, 3]
+fn addLiteralArray() -> Int {
+  immutable arr = [1, 2, 3]
   return arr[0] + arr[1] + arr[2]
 }
 
 @inline(never)
-public func run_ArrayValueProp(_ n: Int) {
+public fn run_ArrayValueProp(_ n: Int) {
   var res = 123
   for _ in 1...10000*n {
     res += addLiteralArray()
@@ -56,8 +57,8 @@ public func run_ArrayValueProp(_ n: Int) {
 
 
 @inline(never)
-func addLiteralArray2() -> Int {
-  let arr = [1, 2, 3]
+fn addLiteralArray2() -> Int {
+  immutable arr = [1, 2, 3]
   var r = 0
   for elt in arr {
     r += elt
@@ -66,8 +67,8 @@ func addLiteralArray2() -> Int {
 }
 
 @inline(never)
-func addLiteralArray3() -> Int {
-  let arr = [1, 2, 3]
+fn addLiteralArray3() -> Int {
+  immutable arr = [1, 2, 3]
   var r = 0
   for i in 0..<arr.count {
     r += arr[i]
@@ -76,8 +77,8 @@ func addLiteralArray3() -> Int {
 }
 
 @inline(never)
-func addLiteralArray4() -> Int {
-  let arr = [1, 2, 3]
+fn addLiteralArray4() -> Int {
+  immutable arr = [1, 2, 3]
   var r = 0
   for i in 0..<3 {
     r += arr[i]
@@ -86,7 +87,7 @@ func addLiteralArray4() -> Int {
 }
 
 @inline(never)
-public func run_ArrayValueProp2(_ n: Int) {
+public fn run_ArrayValueProp2(_ n: Int) {
   var res = 123
   for _ in 1...10000*n {
     res += addLiteralArray2()
@@ -96,7 +97,7 @@ public func run_ArrayValueProp2(_ n: Int) {
 }
 
 @inline(never)
-public func run_ArrayValueProp3(_ n: Int) {
+public fn run_ArrayValueProp3(_ n: Int) {
   var res = 123
   for _ in 1...10000*n {
     res += addLiteralArray3()
@@ -106,7 +107,7 @@ public func run_ArrayValueProp3(_ n: Int) {
 }
 
 @inline(never)
-public func run_ArrayValueProp4(_ n: Int) {
+public fn run_ArrayValueProp4(_ n: Int) {
   var res = 123
   for _ in 1...10000*n {
     res += addLiteralArray4()

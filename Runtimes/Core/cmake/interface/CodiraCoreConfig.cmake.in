@@ -1,0 +1,6 @@
+@PACKAGE_INIT@
+include("${CMAKE_CURRENT_LIST_DIR}/CodiraCoreTargets.cmake")
+
+set(CodiraCore_ENABLE_LIBRARY_EVOLUTION @CodiraCore_ENABLE_LIBRARY_EVOLUTION@)
+
+set(CodiraCore_ENABLE_VECTOR_TYPES @CodiraCore_ENABLE_VECTOR_TYPES@)

@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn q<dc>() -> (dc, dc -> dc) -> dc {
+t m t.w = {
+}
+{
+dc) {
+k  }
+}
+protocol q {
+}
+protocol A {
+fn b(b: X.s) {
+}
+y(m: x) {
+}
+fn v<t>() -> [dc<t>] {
+}
+class b<k : dc, w : dc where k.dc == w> : v {
+}
+class b<k, w> {
+}
+protocol dc {
+}
+class A: A {
+}
+class r : C {
+}
+fn ^(v: q, o) -> o {
+}
+class v<q : b, dc : b where q.t == dc> {
+}
+protocol b {
+}
+struct dc<k : b> : b

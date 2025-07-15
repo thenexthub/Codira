@@ -1,0 +1,17 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -wmo) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+public fn foo() {
+    immutable d = Dictionary<Int, StaticString>.init(uniqueKeysWithValues: [(10, "hello"), (20, "world")])
+    print(d[10]!)
+    print(d[20]!)
+}
+
+foo()
+
+// CHECK: hello
+// CHECK: world

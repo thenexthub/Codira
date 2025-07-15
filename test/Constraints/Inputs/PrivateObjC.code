@@ -1,0 +1,9 @@
+import Foundation
+
+public class PrivateObjC {
+  @objc private fn privateFoo() { }
+}
+
+public class InternalObjC {
+  @objc internal fn internalFoo() { }
+}

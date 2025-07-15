@@ -1,0 +1,64 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+print("START") // CHECK-LABEL: START
+
+fn check(file: String = #file, line: Int = #line) {
+    print("\(file):\(line)")
+}
+
+#sourceLocation(file: "a.code", line: 100)
+check() // CHECK-NEXT: {{^}}a.code:100
+
+public struct S {
+    #sourceLocation(file: "b.code", line: 100)
+    fn foo() { check() }
+
+    #sourceLocation(file: "c.code", line: 200)
+
+    fn bar() { check() }
+
+    #sourceLocation(file: "d.code", line: 300)
+}
+check() // CHECK-NEXT: {{^}}d.code:301
+S().foo() // CHECK-NEXT: {{^}}b.code:100
+S().bar() // CHECK-NEXT: {{^}}c.code:201
+
+enum E {
+#sourceLocation(file: "e.code", line: 400)
+}
+check() // CHECK-NEXT: {{^}}e.code:401
+
+class C {
+#sourceLocation()
+}
+check() // CHECK-NEXT: .code:[[@LINE]]
+
+extension C {
+#sourceLocation(file: "f.code", line: 500)
+    static var file: String { return #file }
+
+    #sourceLocation(file: "g.code", line: 600)
+    var line: Int { return #line }
+
+#sourceLocation(file: "h.code", line: 700)
+}
+check() // CHECK-NEXT: {{^}}h.code:701
+check(file: C.file, line: C().line) // CHECK-NEXT: {{^}}f.code:600
+
+fn test() {
+#sourceLocation(file: "i.code", line: 800)
+    check()
+#sourceLocation(file: "j.code", line: 900)
+}
+
+check() // CHECK-NEXT: {{^}}j.code:902
+test() // CHECK-NEXT: {{^}}i.code:800
+
+#sourceLocation()
+check() // CHECK-NEXT: .code:[[@LINE]]
+
+#sourceLocation(file: "k.code", line: 1000)
+
+
+check() // CHECK-NEXT: {{^}}k.code:1002

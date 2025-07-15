@@ -1,0 +1,21 @@
+// RUN: %target-run-simple-language( -target %target-language-5.9-abi-triple)
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+
+protocol P {
+  associatedtype A
+  var a: A { get }
+}
+
+fn f<each T: P>(_ t: repeat each T) async -> (repeat (each T).A) {
+  immutable x = (repeat (each t).a)
+  return x
+}
+
+struct S: P {
+  var a: String { "" }
+}
+
+_ = await f()
+_ = await f(S())
+_ = await f(S(), S())

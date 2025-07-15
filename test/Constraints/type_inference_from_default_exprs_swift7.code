@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language -language-version 7
+// REQUIRES: language7
+
+// https://github.com/languagelang/language/issues/72199
+enum S72199_1 {
+  fn testS72199_1<T>(_: T = 42, _: [T]) {}
+  // expected-error@-1 {{cannot use default expression for inference of 'T' because it is inferrable from parameters #0, #1}}
+}
+
+fn testS72199<T>(_: T = 42, _: [T]) {}
+// expected-error@-1 {{cannot use default expression for inference of 'T' because it is inferrable from parameters #0, #1}}

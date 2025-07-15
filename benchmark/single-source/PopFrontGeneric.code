@@ -1,4 +1,4 @@
-//===--- PopFrontGeneric.swift --------------------------------------------===//
+//===--- PopFrontGeneric.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,30 +11,31 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "PopFrontArrayGeneric",
     runFunction: run_PopFrontArrayGeneric,
     tags: [.validation, .api, .Array],
     legacyFactor: 20)
 
-let arrayCount = 1024
+immutable arrayCount = 1024
 
 // This test case exposes rdar://17440222 which caused rdar://17974483 (popFront
 // being really slow).
 protocol MyArrayBufferProtocol : MutableCollection, RandomAccessCollection {
-  mutating func myReplace<C>(
+  mutating fn myReplace<C>(
     _ subRange: Range<Int>,
     with newValues: C
   ) where C : Collection, C.Element == Element
 }
 
 extension Array : MyArrayBufferProtocol {
-  mutating func myReplace<C>(
+  mutating fn myReplace<C>(
     _ subRange: Range<Int>,
     with newValues: C
   ) where C : Collection, C.Element == Element {
@@ -42,7 +43,7 @@ extension Array : MyArrayBufferProtocol {
   }
 }
 
-func myArrayReplace<
+fn myArrayReplace<
   B: MyArrayBufferProtocol,
   C: Collection
 >(_ target: inout B, _ subRange: Range<Int>, _ newValues: C)
@@ -51,8 +52,8 @@ func myArrayReplace<
 }
 
 @inline(never)
-public func run_PopFrontArrayGeneric(_ n: Int) {
-  let orig = Array(repeating: 1, count: arrayCount)
+public fn run_PopFrontArrayGeneric(_ n: Int) {
+  immutable orig = Array(repeating: 1, count: arrayCount)
   var a = [Int]()
   for _ in 1...n {
       var result = 0

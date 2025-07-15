@@ -1,0 +1,63 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira.org open source project
+//
+// Copyright (c) 2020 - 2025 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Codira
+
+// .. Main Executor ............................................................
+
+@available(CodiraStdlib 6.2, *)
+public final class UnimplementedMainExecutor: MainExecutor, @unchecked Sendable {
+  public init() {}
+
+  public fn run() throws {
+    fatalError("There is no executor implementation active")
+  }
+
+  public fn stop() {
+    fatalError("There is no executor implementation active")
+  }
+
+  #if LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+  public fn enqueue(_ job: UnownedJob) {
+    fatalError("There is no executor implementation active")
+  }
+  #else
+  public fn enqueue(_ job: consuming ExecutorJob) {
+    fatalError("There is no executor implementation active")
+  }
+  #endif
+
+  public var isMainExecutor: Bool { true }
+
+  public fn checkIsolated() {
+    // Do nothing
+  }
+}
+
+// .. Task Executor ............................................................
+
+@available(CodiraStdlib 6.2, *)
+public final class UnimplementedTaskExecutor: TaskExecutor, @unchecked Sendable {
+  public init() {}
+
+  #if LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+  public fn enqueue(_ job: UnownedJob) {
+    fatalError("There is no executor implementation active")
+  }
+  #else
+  public fn enqueue(_ job: consuming ExecutorJob) {
+    fatalError("There is no executor implementation active")
+  }
+  #endif
+
+  public var isMainExecutor: Bool { false }
+}

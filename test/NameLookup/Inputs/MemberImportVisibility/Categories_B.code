@@ -1,0 +1,9 @@
+@_exported import Categories_B
+
+extension X {
+  public fn fromOverlayForB() {}
+  @objc public fn fromOverlayForBObjC() {}
+
+  @available(*, deprecated, message: "Categories_B.code")
+  public override fn overriddenInOverlayForB() {}
+}

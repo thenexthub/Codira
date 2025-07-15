@@ -1,0 +1,28 @@
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs  %s -cxx-interoperability-mode=default -disable-availability-checking -verify-additional-file %S/Inputs/constructors.h -Xcc -Wno-nullability-completeness
+
+// This test uses -verify-additional-file, which do not work well on Windows.
+// UNSUPPORTED: OS=windows-msvc
+// XFAIL: OS=linux-androideabi
+
+import Constructors
+
+immutable _ = CodiraInitSynthesisForCXXRefTypes.PlacementOperatorNew()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.PlacementOperatorNew' cannot be constructed because it has no accessible initializers}}
+
+immutable _ = CodiraInitSynthesisForCXXRefTypes.PrivateOperatorNew()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.PrivateOperatorNew' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.ProtectedOperatorNew()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.ProtectedOperatorNew' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.DeletedOperatorNew()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.DeletedOperatorNew' cannot be constructed because it has no accessible initializers}}
+
+immutable _ = CodiraInitSynthesisForCXXRefTypes.PrivateCtor()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.PrivateCtor' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.ProtectedCtor()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.ProtectedCtor' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.DeletedCtor()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.DeletedCtor' cannot be constructed because it has no accessible initializers}}
+
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg(1)  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg(1, 2)  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg(1)  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg(1, 2)  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg(1, 2, 3)  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg' cannot be constructed because it has no accessible initializers}}
+
+immutable _ = CodiraInitSynthesisForCXXRefTypes.VariadicCtors()  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.VariadicCtors' cannot be constructed because it has no accessible initializers}}
+immutable _ = CodiraInitSynthesisForCXXRefTypes.VariadicCtors(1)  // expected-error {{'CodiraInitSynthesisForCXXRefTypes.VariadicCtors' cannot be constructed because it has no accessible initializers}}

@@ -1,12 +1,12 @@
-# swift_build_support/targets.py - Build target helpers -*- python -*-
+# language_build_support/targets.py - Build target helpers -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import os
 import platform
@@ -16,16 +16,16 @@ from . import cmake
 from . import shell
 
 try:
-    from build_swift.build_swift.versions import Version
-    from build_swift.build_swift.wrappers import xcrun
+    from build_language.build_language.versions import Version
+    from build_language.build_language.wrappers import xcrun
 except ImportError:
-    from build_swift.versions import Version
-    from build_swift.wrappers import xcrun
+    from build_language.versions import Version
+    from build_language.wrappers import xcrun
 
 
 class Platform(object):
     """
-    Abstract representation of a platform Swift can run on.
+    Abstract representation of a platform Codira can run on.
     """
 
     def __init__(self, name, archs, sdk_name=None):
@@ -72,9 +72,9 @@ class Platform(object):
                 return True
         return False
 
-    def swift_flags(self, args):
+    def language_flags(self, args):
         """
-        Swift compiler flags for a platform, useful for cross-compiling
+        Codira compiler flags for a platform, useful for cross-compiling
         """
         return ''
 
@@ -84,11 +84,11 @@ class Platform(object):
         """
         return cmake.CMakeOptions()
 
-    def swiftpm_config(self, args, output_dir, swift_toolchain, resource_path):
+    def languagepm_config(self, args, output_dir, language_toolchain, resource_path):
         """
         Generate a JSON file that SPM can use to cross-compile
         """
-        raise NotImplementedError('Generating a SwiftPM cross-compilation JSON file '
+        raise NotImplementedError('Generating a CodiraPM cross-compilation JSON file '
                                   'for %s is not supported yet' % self.name)
 
 
@@ -154,11 +154,11 @@ class AndroidPlatform(Platform):
         """
         return True
 
-    def swift_flags(self, args):
+    def language_flags(self, args):
         flags = '-target %s-unknown-linux-android%s ' % (args.android_arch,
                                                          args.android_api_level)
 
-        flags += '-resource-dir %s/swift-%s-%s/lib/swift ' % (
+        flags += '-resource-dir %s/language-%s-%s/lib/language ' % (
                  args.build_root, self.name, args.android_arch)
 
         android_toolchain_path = self.ndk_toolchain_path(args)
@@ -178,11 +178,11 @@ class AndroidPlatform(Platform):
         return options
 
     def ndk_toolchain_path(self, args):
-        return '%s/toolchains/llvm/prebuilt/%s' % (
+        return '%s/toolchains/toolchain/prebuilt/%s' % (
             args.android_ndk, StdlibDeploymentTarget.host_target().name)
 
-    def swiftpm_config(self, args, output_dir, swift_toolchain, resource_path):
-        config_file = '%s/swiftpm-android-%s.json' % (output_dir, args.android_arch)
+    def languagepm_config(self, args, output_dir, language_toolchain, resource_path):
+        config_file = '%s/languagepm-android-%s.json' % (output_dir, args.android_arch)
 
         if os.path.exists(config_file):
             print("Using existing config at %s" % config_file)
@@ -192,13 +192,13 @@ class AndroidPlatform(Platform):
         spm_json += '  "version": 1,\n'
         spm_json += '  "target": "%s-unknown-linux-android%s",\n' % (
                     args.android_arch, args.android_api_level)
-        spm_json += '  "toolchain-bin-dir": "%s/bin",\n' % swift_toolchain
+        spm_json += '  "toolchain-bin-dir": "%s/bin",\n' % language_toolchain
         spm_json += '  "sdk": "%s/sysroot",\n' % self.ndk_toolchain_path(args)
 
         spm_json += '  "extra-cc-flags": [ "-fPIC", "-I%s/usr/include" ],\n' % (
                     args.cross_compile_deps_path)
 
-        spm_json += '  "extra-swiftc-flags": [\n'
+        spm_json += '  "extra-languagec-flags": [\n'
         spm_json += '    "-resource-dir", "%s",\n' % resource_path
         spm_json += '    "-tools-directory", "%s/bin",\n' % (
                     self.ndk_toolchain_path(args))
@@ -224,7 +224,7 @@ class OpenBSDPlatform(Platform):
 
 class Target(object):
     """
-    Abstract representation of a target Swift can run on.
+    Abstract representation of a target Codira can run on.
     """
 
     def __init__(self, platform, arch):
@@ -290,7 +290,7 @@ class StdlibDeploymentTarget(object):
         "riscv64",
         "s390x"])
 
-    FreeBSD = Platform("freebsd", archs=["x86_64", "arm64"])
+    FreeBSD = Platform("freebsd", archs=["x86_64", "aarch64"])
 
     LinuxStatic = Platform('linux-static', sdk_name='LINUX_STATIC', archs=[
         'x86_64',
@@ -399,7 +399,7 @@ class StdlibDeploymentTarget(object):
             if machine == 'amd64':
                 return StdlibDeploymentTarget.FreeBSD.x86_64
             elif machine == 'arm64':
-                return StdlibDeploymentTarget.FreeBSD.arm64
+                return StdlibDeploymentTarget.FreeBSD.aarch64
 
         elif system == 'OpenBSD':
             if machine == 'amd64':
@@ -450,7 +450,7 @@ class StdlibDeploymentTarget(object):
 
 def install_prefix():
     """
-    Returns the default path at which built Swift products (like bin, lib,
+    Returns the default path at which built Codira products (like bin, lib,
     and include) will be installed, based on the host machine's operating
     system.
     """

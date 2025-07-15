@@ -1,0 +1,13 @@
+import CodiraModule
+
+fn foo(
+    _ structDefinedInCodiraModule: StructDefinedInCodiraModule
+) {
+    structDefinedInCodiraModule.
+}
+
+// CHECK: key.name: "methodDefinedInCodiraModule()"
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-interface-path %t/CodiraModule.codeinterface -module-name CodiraModule -emit-module -o /dev/null %S/../Inputs/vfs/CodiraModule/CodiraModule.code
+// RUN: %sourcekitd-test -req=complete -pos=6:31 -vfs-files=%t/VFS/target_file1.code=%s,%t/VFS/CodiraModule/CodiraModule.codeinterface=%t/CodiraModule.codeinterface %t/VFS/target_file1.code -pass-as-sourcetext -- %t/VFS/target_file1.code -I %t/VFS/CodiraModule -target %target-triple | %FileCheck %s

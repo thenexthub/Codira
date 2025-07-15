@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
@@ -21,7 +22,7 @@
 #include "language/Basic/MD5Stream.h"
 #include "language/Demangling/ManglingMacros.h"
 #include "language/SIL/SILGlobalVariable.h"
-#include "llvm/ADT/StringExtras.h"
+#include "toolchain/ADT/StringExtras.h"
 
 using namespace language;
 using namespace Mangle;
@@ -141,7 +142,7 @@ FunctionSignatureSpecializationMangler::mangleConstantProp(SILInstruction *const
   // Then append the unique identifier of our literal.
   switch (constInst->getKind()) {
   default:
-    llvm_unreachable("unknown literal");
+    toolchain_unreachable("unknown literal");
   case SILInstructionKind::PreviousDynamicFunctionRefInst:
   case SILInstructionKind::DynamicFunctionRefInst:
   case SILInstructionKind::FunctionRefInst: {
@@ -200,10 +201,10 @@ FunctionSignatureSpecializationMangler::mangleConstantProp(SILInstruction *const
     for (auto &component : pattern->getComponents()) {
       component.print(printCtxt);
     }
-    llvm::MD5::MD5Result md5Hash;
+    toolchain::MD5::MD5Result md5Hash;
     md5Stream.final(md5Hash);
     SmallString<32> resultStr;
-    llvm::MD5::stringifyResult(md5Hash, resultStr);
+    toolchain::MD5::stringifyResult(md5Hash, resultStr);
     appendStringAsIdentifier(resultStr);
 
     // Also, mangle the involved types.

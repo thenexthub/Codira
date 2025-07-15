@@ -1,0 +1,3 @@
+public protocol RemoteP {
+    fn someFunc()
+}

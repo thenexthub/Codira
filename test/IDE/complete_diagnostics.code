@@ -1,0 +1,106 @@
+// REQUIRES: OS=macosx
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %empty-directory(%t/Modules)
+// RUN: %target-language-frontend -emit-module -I %t/Modules -module-name OtherModule -o %t/Modules %t/OtherModule.code
+// RUN: %target-language-frontend -emit-module -I %t/Modules -module-name MyModule -o %t/Modules %t/MyModule.code
+
+// RUN: %empty-directory(%t/output)
+// RUN: %empty-directory(%t/ccp)
+// RUN: %empty-directory(%t/mcp)
+
+// NOTE: Doing twice is to ensure that the completion cache is used.
+// RUN: %target-language-ide-test -batch-code-completion -source-filename %t/App.code -filecheck %raw-FileCheck -completion-output-dir %t/output -I %t/Modules -completion-cache-path %t/ccp -module-cache-path %t/mcp
+// RUN: %target-language-ide-test -batch-code-completion -source-filename %t/App.code -filecheck %raw-FileCheck -completion-output-dir %t/output -I %t/Modules -completion-cache-path %t/ccp -module-cache-path %t/mcp
+
+// BEGIN UnrelatedModule.code
+
+public fn declInUnRelatedModule() {}
+
+// BEGIN OtherModule.code
+
+public fn declInOtherModule() {}
+
+// BEGIN MyModule.code
+
+@_exported import OtherModule
+
+public struct Foo {
+  @available(*, deprecated)
+  public fn deprecatedUnconditional() {}
+
+  @available(macOS, deprecated)
+  public fn deprecatedPlatformUnconditional() {}
+
+  @available(macOS, deprecated: 10.4)
+  public fn deprecatedPlatformVersion() {}
+
+  @available(macOS, deprecated: 10.4, message: "this is a \"message\"")
+  public fn deprecatedPlatformVersionMessage() {}
+
+  @available(macOS, deprecated: 10.4, renamed: "renamedName")
+  public fn deprecatedPlatformVersionRenamed() {}
+
+  @available(macOS, deprecated: 10.4, message: "this is a message", renamed: "renamedName")
+  public fn deprecatedPlatformVersionMessageRenamed() {}
+
+  @available(language, deprecated: 3.2)
+  public var deprecatedVar: Int { 1 }
+
+  @available(macOS, deprecated: 987.6)
+  public fn softDeprecatedPlatformVersion() {}
+
+  @available(macOS, deprecated: 765.5, message: "this is a \"message\"")
+  public fn softDeprecatedPlatformVersionMessage() {}
+
+  @available(language, deprecated: 1000.1)
+  public var softDeprecatedVar: Int { 1 }
+
+  @available(macOS, deprecated: 654.3, renamed: "renamedName")
+  public fn softDeprecatedPlatformVersionRenamed() {}
+
+  @available(macOS, deprecated: 100000.0)
+  public fn futureDeprecatedPlatformVersion() {}
+
+  @available(macOS, deprecated: 100000.0, message: "this is a \"message\"")
+  public fn futureDeprecatedPlatformVersionMessage() {}
+
+  @available(macOS, deprecated: 100000.0, renamed: "renamedName")
+  public fn futureDeprecatedPlatformVersionRenamed() {}
+}
+
+// BEGIN App.code
+
+import MyModule
+import #^IMPORT^#;
+// IMPORT-DAG: Decl[Module]/None/NotRecommended:   MyModule[#Module#]; name=MyModule; diagnostics=warning:module 'MyModule' is already imported{{$}}
+// IMPORT-DAG: Decl[Module]/None/NotRecommended:   OtherModule[#Module#]; name=OtherModule; diagnostics=note:module 'OtherModule' is already imported via another module import{{$}}
+// IMPORT-DAG: Decl[Module]/None/NotRecommended:   Codira[#Module#]; name=Codira; diagnostics=warning:module 'Codira' is already imported{{$}}
+
+fn test(foo: Foo) {
+  foo.#^MEMBER^#
+// MEMBER-DAG: Keyword[this]/CurrNominal:          this[#Foo#]; name=this
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedUnconditional()[#Void#]; name=deprecatedUnconditional(); diagnostics=warning:'deprecatedUnconditional()' is deprecated{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedPlatformUnconditional()[#Void#]; name=deprecatedPlatformUnconditional(); diagnostics=warning:'deprecatedPlatformUnconditional()' is deprecated in macOS{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedPlatformVersion()[#Void#]; name=deprecatedPlatformVersion(); diagnostics=warning:'deprecatedPlatformVersion()' was deprecated in macOS 10.4{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedPlatformVersionMessage()[#Void#]; name=deprecatedPlatformVersionMessage(); diagnostics=warning:'deprecatedPlatformVersionMessage()' was deprecated in macOS 10.4: this is a "message"{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedPlatformVersionRenamed()[#Void#]; name=deprecatedPlatformVersionRenamed(); diagnostics=warning:'deprecatedPlatformVersionRenamed()' was deprecated in macOS 10.4: renamed to 'renamedName'{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedPlatformVersionMessageRenamed()[#Void#]; name=deprecatedPlatformVersionMessageRenamed(); diagnostics=warning:'deprecatedPlatformVersionMessageRenamed()' was deprecated in macOS 10.4: this is a message{{$}}
+// MEMBER-DAG: Decl[InstanceVar]/CurrNominal/NotRecommended: deprecatedVar[#Int#]; name=deprecatedVar; diagnostics=warning:'deprecatedVar' is deprecated{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: softDeprecatedPlatformVersion()[#Void#]; name=softDeprecatedPlatformVersion(); diagnostics=warning:'softDeprecatedPlatformVersion()' will be deprecated in macOS 987.6{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: softDeprecatedPlatformVersionMessage()[#Void#]; name=softDeprecatedPlatformVersionMessage(); diagnostics=warning:'softDeprecatedPlatformVersionMessage()' will be deprecated in macOS 765.5: this is a "message"{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: softDeprecatedPlatformVersionRenamed()[#Void#]; name=softDeprecatedPlatformVersionRenamed(); diagnostics=warning:'softDeprecatedPlatformVersionRenamed()' will be deprecated in macOS 654.3: renamed to 'renamedName'{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: futureDeprecatedPlatformVersion()[#Void#]; name=futureDeprecatedPlatformVersion(); diagnostics=warning:'futureDeprecatedPlatformVersion()' will be deprecated in a future version of macOS{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: futureDeprecatedPlatformVersionMessage()[#Void#]; name=futureDeprecatedPlatformVersionMessage(); diagnostics=warning:'futureDeprecatedPlatformVersionMessage()' will be deprecated in a future version of macOS: this is a "message"{{$}}
+// MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: futureDeprecatedPlatformVersionRenamed()[#Void#]; name=futureDeprecatedPlatformVersionRenamed(); diagnostics=warning:'futureDeprecatedPlatformVersionRenamed()' will be deprecated in a future version of macOS: renamed to 'renamedName'{{$}}
+// MEMBER-DAG: Decl[InstanceVar]/CurrNominal/NotRecommended: softDeprecatedVar[#Int#]; name=softDeprecatedVar; diagnostics=warning:'softDeprecatedVar' will be deprecated in a future version{{$}}
+}
+
+fn testOwnGetter() {
+    var valueInOwnGetter: Int {
+      #^GETTER^#
+    }
+// GETTER-DAG: Decl[LocalVar]/Local/NotRecommended/TypeRelation[Convertible]: valueInOwnGetter[#Int#]; name=valueInOwnGetter; diagnostics=warning:attempting to access 'valueInOwnGetter' within its own getter{{$}}
+}

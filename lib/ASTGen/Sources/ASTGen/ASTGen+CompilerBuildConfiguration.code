@@ -1,18 +1,18 @@
-//===--- ASTGen+CompilerBuildConfiguration.swift --------------------------===//
+//===--- ASTGen+CompilerBuildConfiguration.code --------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2024-2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftDiagnostics
-import SwiftIfConfig
-import SwiftSyntax
+import CodiraDiagnostics
+import CodiraIfConfig
+import CodiraSyntax
 
 /// Enumeration that separates an #if config decl from the underlying element.
 enum IfConfigOrUnderlying<Element> {
@@ -23,7 +23,7 @@ enum IfConfigOrUnderlying<Element> {
 extension ASTGenVisitor {
   /// Determine the active clause for the given #if, emitting any diagnostics
   /// produced due to the evaluation.
-  func activeClause(in node: IfConfigDeclSyntax) -> IfConfigClauseSyntax? {
+  fn activeClause(in node: IfConfigDeclSyntax) -> IfConfigClauseSyntax? {
     // Determine the active clause.
     return configuredRegions.activeClause(for: node)
   }
@@ -39,7 +39,7 @@ extension ASTGenVisitor {
   ///   - split: Splits an element in elements into the two cases: #if config
   ///     or a flat element.
   ///   - body: The body that handles each syntax node of type FlatElement.
-  func visitIfConfigElements<Elements, FlatElement>(
+  fn visitIfConfigElements<Elements, FlatElement>(
     _ elements: Elements,
     of flatElementType: FlatElement.Type,
     split: (Elements.Element) -> IfConfigOrUnderlying<FlatElement>,
@@ -47,22 +47,22 @@ extension ASTGenVisitor {
   ) where Elements: SyntaxCollection, FlatElement: SyntaxProtocol {
     for element in elements {
       switch split(element) {
-      case .ifConfigDecl(let ifConfigDecl):
-        if let activeClause = self.activeClause(in: ifConfigDecl),
-           let activeElements = activeClause.elements {
-          guard let activeElements = activeElements._syntaxNode.as(Elements.self) else {
+      case .ifConfigDecl(immutable ifConfigDecl):
+        if immutable activeClause = this.activeClause(in: ifConfigDecl),
+           immutable activeElements = activeClause.elements {
+          guard immutable activeElements = activeElements._syntaxNode.as(Elements.this) else {
             fatalError("Parser produced invalid nesting of #if decls")
           }
 
           visitIfConfigElements(
             activeElements,
-            of: FlatElement.self,
+            of: FlatElement.this,
             split: split,
             body: body
           )
         }
 
-      case .underlying(let element):
+      case .underlying(immutable element):
         body(element)
     }
     }

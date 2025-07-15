@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/53795
+
+protocol Foo {}
+fn foo(_ bar: Foo) {}
+foo(true ? "a" : "b")

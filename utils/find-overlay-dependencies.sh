@@ -1,13 +1,13 @@
 #!/usr/bin/env zsh
 #===--- find-overlay-dependencies.sh - ...by looking at imported headers ---===#
 #
-## This source file is part of the Swift.org open source project
+## This source file is part of the Codira.org open source project
 ##
-## Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+## Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 ## Licensed under Apache License v2.0 with Runtime Library Exception
 ##
-## See https://swift.org/LICENSE.txt for license information
-## See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+## See https://language.org/LICENSE.txt for license information
+## See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 #===------------------------------------------------------------------------===#
 
@@ -59,10 +59,10 @@ SDKS[watchos]="armv7k"
 SDKS_ORDERED=(macosx iphoneos appletvos watchos)
 
 typeset -A CMAKE_DEPENDS_NAME
-CMAKE_DEPENDS_NAME[macosx]="SWIFT_MODULE_DEPENDS_OSX"
-CMAKE_DEPENDS_NAME[iphoneos]="SWIFT_MODULE_DEPENDS_IOS"
-CMAKE_DEPENDS_NAME[appletvos]="SWIFT_MODULE_DEPENDS_TVOS"
-CMAKE_DEPENDS_NAME[watchos]="SWIFT_MODULE_DEPENDS_WATCHOS"
+CMAKE_DEPENDS_NAME[macosx]="LANGUAGE_MODULE_DEPENDS_OSX"
+CMAKE_DEPENDS_NAME[iphoneos]="LANGUAGE_MODULE_DEPENDS_IOS"
+CMAKE_DEPENDS_NAME[appletvos]="LANGUAGE_MODULE_DEPENDS_TVOS"
+CMAKE_DEPENDS_NAME[watchos]="LANGUAGE_MODULE_DEPENDS_WATCHOS"
 
 echo $1
 for sdk in $SDKS_ORDERED; do

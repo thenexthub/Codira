@@ -1,18 +1,18 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import os.path
 import platform
 import unittest
 
-from build_swift.argparse import ArgumentTypeError, types
-from build_swift.versions import Version
+from build_language.argparse import ArgumentTypeError, types
+from build_language.versions import Version
 
 
 # -----------------------------------------------------------------------------
@@ -178,41 +178,41 @@ class TestClangVersionType(unittest.TestCase):
             clang_version_type('100.0.56.1.1.1')
 
 
-class TestSwiftVersionType(unittest.TestCase):
+class TestCodiraVersionType(unittest.TestCase):
 
-    def test_valid_swift_version(self):
-        swift_version_type = types.SwiftVersionType()
+    def test_valid_language_version(self):
+        language_version_type = types.CodiraVersionType()
 
-        version = swift_version_type('1.0')
+        version = language_version_type('1.0')
         self.assertIsInstance(version, Version)
         self.assertEqual(version.components, (1, 0))
 
-        version = swift_version_type('1.0.1')
+        version = language_version_type('1.0.1')
         self.assertIsInstance(version, Version)
         self.assertEqual(version.components, (1, 0, 1))
 
-        swift_version_type('1.0')
-        swift_version_type('3.0.2')
-        swift_version_type('200.0.56')
-        swift_version_type('100000.0.1')
+        language_version_type('1.0')
+        language_version_type('3.0.2')
+        language_version_type('200.0.56')
+        language_version_type('100000.0.1')
 
-        version = swift_version_type('100.0.999.1')
+        version = language_version_type('100.0.999.1')
         self.assertIsInstance(version, Version)
         self.assertEqual(version.components, (100, 0, 999, 1))
 
-        version = swift_version_type('5.4.0.300.205')
+        version = language_version_type('5.4.0.300.205')
         self.assertIsInstance(version, Version)
         self.assertEqual(version.components, (5, 4, 0, 300, 205))
 
-    def test_invalid_swift_version(self):
-        swift_version_type = types.SwiftVersionType()
+    def test_invalid_language_version(self):
+        language_version_type = types.CodiraVersionType()
 
         with self.assertRaises(ArgumentTypeError):
-            swift_version_type('2')
+            language_version_type('2')
         with self.assertRaises(ArgumentTypeError):
-            swift_version_type('1.8.0.2.3.1')
+            language_version_type('1.8.0.2.3.1')
         with self.assertRaises(ArgumentTypeError):
-            swift_version_type('100.0.56.1.85.1')
+            language_version_type('100.0.56.1.85.1')
 
 
 class TestShellSplitType(unittest.TestCase):

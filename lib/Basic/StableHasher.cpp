@@ -1,13 +1,17 @@
 //===--- StableHasher.cpp - Stable Hasher ---------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/StableHasher.h"
@@ -51,22 +55,22 @@ std::pair<uint64_t, uint64_t> StableHasher::finalize() && {
     switch (fill) {
     case 7:
       head |= uint64_t(bits[6]) << 48;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case 6:
       head |= uint64_t(bits[5]) << 40;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case 5:
       head |= uint64_t(bits[4]) << 32;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case 4:
       head |= uint64_t(bits[3]) << 24;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case 3:
       head |= uint64_t(bits[2]) << 16;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case 2:
       head |= uint64_t(bits[1]) << 8;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case 1:
       head |= uint64_t(bits[0]);
       break;

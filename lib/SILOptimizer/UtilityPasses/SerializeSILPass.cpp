@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "serialize-sil"
@@ -212,6 +213,7 @@ static bool hasOpaqueArchetype(TypeExpansionContext context,
   case SILInstructionKind::ObjCProtocolInst:
   case SILInstructionKind::ObjectInst:
   case SILInstructionKind::VectorInst:
+  case SILInstructionKind::VectorBaseAddrInst:
   case SILInstructionKind::TupleInst:
   case SILInstructionKind::TupleAddrConstructorInst:
   case SILInstructionKind::TupleExtractInst:
@@ -324,6 +326,7 @@ static bool hasOpaqueArchetype(TypeExpansionContext context,
   case SILInstructionKind::DifferentiabilityWitnessFunctionInst:
   case SILInstructionKind::BeginCOWMutationInst:
   case SILInstructionKind::EndCOWMutationInst:
+  case SILInstructionKind::EndCOWMutationAddrInst:
   case SILInstructionKind::IncrementProfilerCounterInst:
   case SILInstructionKind::GetAsyncContinuationInst:
   case SILInstructionKind::GetAsyncContinuationAddrInst:
@@ -496,13 +499,13 @@ public:
     if (M.isSerialized())
       return;
     
-    LLVM_DEBUG(llvm::dbgs() << "Serializing SILModule in SerializeSILPass\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Serializing SILModule in SerializeSILPass\n");
     M.serialize();
 
     removeSerializedFlagFromAllFunctions(M);
   }
 };
 
-SILTransform *swift::createSerializeSILPass() {
+SILTransform *language::createSerializeSILPass() {
   return new SerializeSILPass();
 }

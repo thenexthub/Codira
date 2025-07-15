@@ -1,0 +1,3 @@
+// {"signature":"language::ParamDecl::setTypeCheckedDefaultExpr(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<b>(b= a(

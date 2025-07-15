@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-module"
@@ -32,13 +33,13 @@
 #include "language/SIL/SILValue.h"
 #include "language/SIL/SILVisitor.h"
 #include "language/Serialization/SerializedSILLoader.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/IR/LLVMContext.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/YAMLTraits.h"
 #include <functional>
 using namespace language;
 using namespace Lowering;
@@ -59,7 +60,7 @@ class SILModule::SerializationCallback final
       // In the interpreter it would result in two instances for a single
       // global: one in the imported module and one in the main module.
       //
-      // We avoid that in Embedded Swift where we do actually link globals from
+      // We avoid that in Embedded Codira where we do actually link globals from
       // other modules into the client module.
       var->setDeclaration(true);
     }
@@ -82,7 +83,7 @@ class SILModule::SerializationCallback final
     case SILLinkage::PublicNonABI:
       // PublicNonABI functions receive Shared linkage, so that
       // they have "link once" semantics when deserialized by multiple
-      // translation units in the same Swift module.
+      // translation units in the same Codira module.
       decl->setLinkage(SILLinkage::Shared);
       return;
     case SILLinkage::Package:
@@ -95,7 +96,7 @@ class SILModule::SerializationCallback final
       decl->setLinkage(SILLinkage::HiddenExternal);
       return;
     case SILLinkage::Private:
-      llvm_unreachable("cannot make a private external symbol");
+      toolchain_unreachable("cannot make a private external symbol");
     case SILLinkage::PublicExternal:
     case SILLinkage::PackageExternal:
     case SILLinkage::HiddenExternal:
@@ -109,7 +110,7 @@ class SILModule::SerializationCallback final
   }
 };
 
-SILModule::SILModule(llvm::PointerUnion<FileUnit *, ModuleDecl *> context,
+SILModule::SILModule(toolchain::PointerUnion<FileUnit *, ModuleDecl *> context,
                      Lowering::TypeConverter &TC, const SILOptions &Options,
                      const IRGenOptions *irgenOptions)
     : Stage(SILStage::Raw), loweredAddresses(!Options.EnableSILOpaqueValues),
@@ -126,7 +127,7 @@ SILModule::SILModule(llvm::PointerUnion<FileUnit *, ModuleDecl *> context,
   } else {
     AssociatedDeclContext = context.get<ModuleDecl *>();
   }
-  TheSwiftModule = AssociatedDeclContext->getParentModule();
+  TheCodiraModule = AssociatedDeclContext->getParentModule();
 
   // We always add the base SILModule serialization callback.
   std::unique_ptr<DeserializationNotificationHandler> callback(
@@ -173,7 +174,7 @@ SILModule::~SILModule() {
 }
 
 std::unique_ptr<SILModule> SILModule::createEmptyModule(
-    llvm::PointerUnion<FileUnit *, ModuleDecl *> context,
+    toolchain::PointerUnion<FileUnit *, ModuleDecl *> context,
     Lowering::TypeConverter &TC, const SILOptions &Options,
     const IRGenOptions *irgenOptions) {
   return std::unique_ptr<SILModule>(new SILModule(context, TC, Options,
@@ -181,7 +182,7 @@ std::unique_ptr<SILModule> SILModule::createEmptyModule(
 }
 
 ASTContext &SILModule::getASTContext() const {
-  return TheSwiftModule->getASTContext();
+  return TheCodiraModule->getASTContext();
 }
 
 void *SILModule::allocate(unsigned Size, unsigned Align) const {
@@ -391,7 +392,7 @@ const BuiltinInfo &SILModule::getBuiltinInfo(Identifier ID) {
   else if (OperationName.starts_with("applyTranspose_"))
     Info.ID = BuiltinValueKind::ApplyTranspose;
   else
-    Info.ID = llvm::StringSwitch<BuiltinValueKind>(OperationName)
+    Info.ID = toolchain::StringSwitch<BuiltinValueKind>(OperationName)
 #define BUILTIN(id, name, attrs) .Case(name, BuiltinValueKind::id)
 #include "language/AST/Builtins.def"
       .Default(BuiltinValueKind::None);
@@ -418,14 +419,14 @@ bool SILModule::loadFunction(SILFunction *F, LinkingMode LinkMode) {
 
 SILFunction *SILModule::loadFunction(StringRef name, LinkingMode LinkMode,
                                      std::optional<SILLinkage> linkage) {
-  SILFunction *func = lookUpFunction(name);
-  if (!func)
-    func = getSILLoader()->lookupSILFunction(name, linkage);
-  if (!func)
+  SILFunction *fn = lookUpFunction(name);
+  if (!fn)
+    fn = getSILLoader()->lookupSILFunction(name, linkage);
+  if (!fn)
     return nullptr;
 
-  linkFunction(func, LinkMode);
-  return func;
+  linkFunction(fn, LinkMode);
+  return fn;
 }
 
 void SILModule::updateFunctionLinkage(SILFunction *F) {
@@ -466,7 +467,7 @@ void SILModule::eraseFunction(SILFunction *F) {
   assert(!F->isZombie() && "zombie function is in list of alive functions");
   assert(F->snapshotID == 0 && "cannot erase a snapshot function");
 
-  llvm::StringMapEntry<SILFunction*> *entry =
+  toolchain::StringMapEntry<SILFunction*> *entry =
       &*ZombieFunctionTable.insert(std::make_pair(F->getName(), nullptr)).first;
   assert(!entry->getValue() && "Zombie function already exists");
   StringRef zombieName = entry->getKey();
@@ -617,9 +618,9 @@ SILModule::lookUpFunctionInWitnessTable(ProtocolConformanceRef C,
   }
 
   if (!wt) {
-    LLVM_DEBUG(llvm::dbgs() << "        Failed speculative lookup of "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed speculative lookup of "
                "witness for: ";
-               C.dump(llvm::dbgs()); Requirement.dump());
+               C.dump(toolchain::dbgs()); Requirement.dump());
     return {nullptr, nullptr};
   }
 
@@ -656,7 +657,7 @@ SILModule::lookUpFunctionInDefaultWitnessTable(const ProtocolDecl *Protocol,
   // FIXME: Could be an assert if we fix non-single-frontend mode to link
   // together serialized SIL emitted by each translation unit.
   if (!Ret) {
-    LLVM_DEBUG(llvm::dbgs() << "        Failed speculative lookup of default "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed speculative lookup of default "
                "witness for " << Protocol->getName() << " ";
                Requirement.dump());
     return std::make_pair(nullptr, nullptr);
@@ -730,7 +731,7 @@ SILModule::lookUpDifferentiabilityWitness(SILDifferentiabilityWitnessKey key) {
 }
 
 /// Look up the differentiability witness corresponding to the given indices.
-llvm::ArrayRef<SILDifferentiabilityWitness *>
+toolchain::ArrayRef<SILDifferentiabilityWitness *>
 SILModule::lookUpDifferentiabilityWitnessesForFunction(StringRef name) {
   return DifferentiabilityWitnessesByFunction[name];
 }
@@ -768,7 +769,7 @@ SILValue SILModule::getRootLocalArchetypeDef(CanLocalArchetypeType archetype,
 }
 
 void SILModule::reclaimUnresolvedLocalArchetypeDefinitions() {
-  llvm::DenseMap<LocalArchetypeKey, SILValue> newLocalArchetypeDefs;
+  toolchain::DenseMap<LocalArchetypeKey, SILValue> newLocalArchetypeDefs;
 
   for (auto pair : RootLocalArchetypeDefs) {
     if (auto *placeholder = dyn_cast<PlaceholderValue>(pair.second)) {
@@ -814,7 +815,7 @@ unsigned SILModule::getFieldIndex(NominalTypeDecl *decl, VarDecl *field) {
     }
     ++index;
   }
-  llvm_unreachable("The field decl for a struct_extract, struct_element_addr, "
+  toolchain_unreachable("The field decl for a struct_extract, struct_element_addr, "
                    "or ref_element_addr must be an accessible stored "
                    "property of the operand type");
 }
@@ -842,14 +843,15 @@ void SILModule::notifyAddedInstruction(SILInstruction *inst) {
     SILValue &val = RootLocalArchetypeDefs[{genericEnv, inst->getFunction()}];
     if (val) {
       if (!isa<PlaceholderValue>(val)) {
-        // Print a useful error message (and not just abort with an assert).
-        llvm::errs() << "re-definition of local environment in function "
-                     << inst->getFunction()->getName() << ":\n";
-        inst->print(llvm::errs());
-        llvm::errs() << "previously defined in function "
-                     << val->getFunction()->getName() << ":\n";
-        val->print(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          // Print a useful error message (and not just abort with an assert).
+          out << "re-definition of local environment in function "
+              << inst->getFunction()->getName() << ":\n";
+          inst->print(out);
+          out << "previously defined in function "
+              << val->getFunction()->getName() << ":\n";
+          val->print(out);
+        });
       }
       // The local environment was unresolved so far. Replace the placeholder
       // by inst.
@@ -882,13 +884,13 @@ void SILModule::notifyMovedInstruction(SILInstruction *inst,
   });
 }
 
-// TODO: We should have an "isNoReturn" bit on Swift's BuiltinInfo, but for
+// TODO: We should have an "isNoReturn" bit on Codira's BuiltinInfo, but for
 // now, let's recognize noreturn intrinsics and builtins specially here.
 bool SILModule::isNoReturnBuiltinOrIntrinsic(Identifier Name) {
   const auto &IntrinsicInfo = getIntrinsicInfo(Name);
-  if (IntrinsicInfo.ID != llvm::Intrinsic::not_intrinsic) {
+  if (IntrinsicInfo.ID != toolchain::Intrinsic::not_intrinsic) {
     return IntrinsicInfo.getOrCreateAttributes(getASTContext())
-        .hasFnAttr(llvm::Attribute::NoReturn);
+        .hasFnAttr(toolchain::Attribute::NoReturn);
   }
   const auto &BuiltinInfo = getBuiltinInfo(Name);
   switch (BuiltinInfo.ID) {
@@ -922,7 +924,7 @@ shouldSerializeEntitiesAssociatedWithDeclContext(const DeclContext *DC) const {
 /// Returns true if it is the optimized OnoneSupport module.
 bool SILModule::isOptimizedOnoneSupportModule() const {
   return getOptions().shouldOptimize() &&
-         getSwiftModule()->isOnoneSupportModule();
+         getCodiraModule()->isOnoneSupportModule();
 }
 
 void SILModule::setSerializeSILAction(SILModule::ActionCallback Action) {
@@ -973,32 +975,32 @@ void SILModule::promoteLinkages() {
 }
 
 bool SILModule::isStdlibModule() const {
-  return TheSwiftModule->isStdlibModule();
+  return TheCodiraModule->isStdlibModule();
 }
 void SILModule::performOnceForPrespecializedImportedExtensions(
-    llvm::function_ref<void(AbstractFunctionDecl *)> action) {
+    toolchain::function_ref<void(AbstractFunctionDecl *)> action) {
   if (prespecializedFunctionDeclsImported)
     return;
 
-  // No prespecitalizations in embedded Swift
+  // No prespecitalizations in embedded Codira
   if (getASTContext().LangOpts.hasFeature(Feature::Embedded))
     return;
 
   SmallVector<ModuleDecl *, 8> importedModules;
-  // Add the Swift module.
+  // Add the Codira module.
   if (!isStdlibModule()) {
-    auto *SwiftStdlib = getASTContext().getStdlibModule();
-    if (SwiftStdlib)
-      importedModules.push_back(SwiftStdlib);
+    auto *CodiraStdlib = getASTContext().getStdlibModule();
+    if (CodiraStdlib)
+      importedModules.push_back(CodiraStdlib);
   }
 
   // Add explicitly imported modules.
   SmallVector<Decl *, 32> topLevelDecls;
-  getSwiftModule()->getTopLevelDecls(topLevelDecls);
+  getCodiraModule()->getTopLevelDecls(topLevelDecls);
   for (const Decl *D : topLevelDecls) {
     if (auto importDecl = dyn_cast<ImportDecl>(D)) {
       if (!importDecl->getModule() ||
-          importDecl->getModule()->isNonSwiftModule())
+          importDecl->getModule()->isNonCodiraModule())
         continue;
       importedModules.push_back(importDecl->getModule());
     }
@@ -1045,7 +1047,7 @@ SILProperty::create(SILModule &M, unsigned Serialized, AbstractStorageDecl *Decl
 }
 
 // Definition from SILLinkage.h.
-SILLinkage swift::getDeclSILLinkage(const ValueDecl *decl) {
+SILLinkage language::getDeclSILLinkage(const ValueDecl *decl) {
   AccessLevel access = decl->getEffectiveAccess();
   SILLinkage linkage;
   switch (access) {
@@ -1067,19 +1069,19 @@ SILLinkage swift::getDeclSILLinkage(const ValueDecl *decl) {
   return linkage;
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const SILModule *M) {
+void language::simple_display(toolchain::raw_ostream &out, const SILModule *M) {
   if (!M) {
     out << "(null)";
     return;
   }
   out << "SIL for ";
-  simple_display(out, M->getSwiftModule());
+  simple_display(out, M->getCodiraModule());
 }
 
-SourceLoc swift::extractNearestSourceLoc(const SILModule *M) {
+SourceLoc language::extractNearestSourceLoc(const SILModule *M) {
   if (!M)
     return SourceLoc();
-  return extractNearestSourceLoc(M->getSwiftModule());
+  return extractNearestSourceLoc(M->getCodiraModule());
 }
 
 bool Lowering::usesObjCAllocator(ClassDecl *theClass) {
@@ -1089,7 +1091,7 @@ bool Lowering::usesObjCAllocator(ClassDecl *theClass) {
 }
 
 bool Lowering::needsIsolatingDestructor(DestructorDecl *dd) {
-  auto ai = swift::getActorIsolation(dd);
+  auto ai = language::getActorIsolation(dd);
   if (!ai.isActorIsolated()) {
     return false;
   }
@@ -1098,7 +1100,7 @@ bool Lowering::needsIsolatingDestructor(DestructorDecl *dd) {
     DestructorDecl *next = firstIsolated->getSuperDeinit();
     if (!next)
       break;
-    auto ai = swift::getActorIsolation(next);
+    auto ai = language::getActorIsolation(next);
     if (!ai.isActorIsolated())
       break;
     firstIsolated = next;

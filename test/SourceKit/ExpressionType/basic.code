@@ -1,0 +1,44 @@
+fn foo() -> Int  { return 1 }
+
+fn bar(f: Float) -> Float { return bar(f: 1) }
+
+protocol P {}
+
+fn fooP(_ p: P) { fooP(p) }
+
+class C {}
+
+fn ArrayC(_ a: [C]) {
+	_ = a.count
+	_ = a.description.count.advanced(by: 1).description
+}
+
+struct S {
+  immutable val = 4
+}
+fn DictS(_ a: [Int: S]) {
+  _ = a[2]?.val.advanced(by: 1).byteSwapped
+}
+
+fn optExpr(str: String?) -> String? {
+  immutable a: String? = str
+  immutable b: String? = "Hey"
+  immutable c: String = "Bye"
+  return c
+}
+
+// RUN: %sourcekitd-test -req=collect-type %s -- %s | %FileCheck %s
+// CHECK: (183, 202): Int
+// CHECK: (183, 196): String
+// CHECK: (183, 184): [C]
+// CHECK: (203, 211): (Int) -> (Int) -> Int
+// CHECK: (216, 217): Int
+// CHECK: (257, 258): Int
+// CHECK: (291, 332): ()
+// CHECK: (291, 292): Int?
+// CHECK: (295, 332): Int?
+// CHECK: (295, 320): Int
+// CHECK: (395, 398): String?
+// CHECK: (418, 423): String
+// CHECK: (442, 447): String
+// CHECK: (457, 458): String

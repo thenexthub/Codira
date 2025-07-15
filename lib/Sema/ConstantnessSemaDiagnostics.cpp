@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements checks for checking whether certain arguments to some
@@ -336,7 +337,7 @@ static void diagnoseConstantArgumentRequirementOfCall(const CallExpr *callExpr,
   }
 }
 
-void swift::diagnoseConstantArgumentRequirement(
+void language::diagnoseConstantArgumentRequirement(
     const Expr *expr, const DeclContext *declContext) {
   class ConstantReqCallWalker : public ASTWalker {
     DeclContext *DC;

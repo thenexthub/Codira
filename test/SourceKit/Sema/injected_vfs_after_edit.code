@@ -1,0 +1,10 @@
+fn foo(_ structDefinedInSameTarget: StructDefinedInSameTarget) {
+    immutable _: Double = structDefinedInSameTarget.methodDefinedInSameTarget()
+// CHECK: cannot convert value of type '()' to specified type 'Double'
+// CHECK: cannot convert value of type '()' to specified type 'Int'
+}
+
+// RUN: %sourcekitd-test -req=open -vfs-files=%t/VFS/target_file2.code=%S/../Inputs/vfs/other_file_in_target.code %s -pass-as-sourcetext -- %s %t/VFS/target_file2.code -target %target-triple == \
+// RUN:    -req=print-diags %s == \
+// RUN:    -req=edit %s -pos=2:12 -length=6 -replace='Int' == \
+// RUN:    -req=print-diags %s | %FileCheck %s

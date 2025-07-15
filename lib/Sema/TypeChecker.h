@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the TypeChecking class.
@@ -38,8 +39,8 @@
 #include "language/Parse/Lexer.h"
 #include "language/Sema/CompletionContextFinder.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 #include <functional>
 
 namespace language {
@@ -175,7 +176,7 @@ enum class NameLookupFlags {
 /// A set of options that control name lookup.
 using NameLookupOptions = OptionSet<NameLookupFlags>;
 
-void simple_display(llvm::raw_ostream &out, NameLookupOptions opts);
+void simple_display(toolchain::raw_ostream &out, NameLookupOptions opts);
 
 inline NameLookupOptions operator|(NameLookupFlags flag1,
                                    NameLookupFlags flag2) {
@@ -247,7 +248,7 @@ public:
     SmallVector<ParentConditionalConformance, 2> ReqPath;
 
     /// The isolated conformances that caused the requirement failure.
-    llvm::TinyPtrVector<ProtocolConformanceRef> IsolatedConformances = {};
+    toolchain::TinyPtrVector<ProtocolConformanceRef> IsolatedConformances = {};
 
     /// The protocol (Sendable or SendableMetatype) to which the type
     /// parameter conforms, causing a conflict with the isolated conformances
@@ -285,7 +286,7 @@ public:
 
   static CheckGenericArgumentsResult createIsolatedConformanceFailure(
       Requirement Req, Requirement SubstReq,
-      llvm::TinyPtrVector<ProtocolConformanceRef> IsolatedConformances,
+      toolchain::TinyPtrVector<ProtocolConformanceRef> IsolatedConformances,
       ProtocolDecl *IsolatedConformanceProto) {
     return CheckGenericArgumentsResult(
         CheckRequirementsResult::RequirementFailure,
@@ -494,10 +495,12 @@ void typeCheckASTNode(ASTNode &node, DeclContext *DC,
 /// e.g., because of a \c return statement. Otherwise, returns either the
 /// fully type-checked body of the function (on success) or a \c nullptr
 /// value if an error occurred while type checking the transformed body.
-std::optional<BraceStmt *> applyResultBuilderBodyTransform(FuncDecl *func,
+std::optional<BraceStmt *> applyResultBuilderBodyTransform(FuncDecl *fn,
                                                            Type builderType);
 
 bool typeCheckTapBody(TapExpr *expr, DeclContext *DC);
+
+void collectReferencedGenericParams(Type ty, SmallPtrSet<CanType, 4> &referenced);
 
 Type typeCheckParameterDefault(Expr *&defaultValue, DeclContext *DC,
                                Type paramType, bool isAutoClosure,
@@ -670,7 +673,7 @@ void filterSolutionsForCodeCompletion(
 /// types for code completion, `false` otherwise.
 bool typeCheckForCodeCompletion(
     constraints::SyntacticElementTarget &target, bool needsPrecheck,
-    llvm::function_ref<void(const constraints::Solution &)> callback);
+    toolchain::function_ref<void(const constraints::Solution &)> callback);
 
 /// Check the key-path expression.
 ///
@@ -773,7 +776,7 @@ NullablePtr<Pattern> trySimplifyExprPattern(ExprPattern *EP, Type patternTy);
 /// \returns the coerced pattern, or nullptr if the coercion failed.
 Pattern *coercePatternToType(
     ContextualPattern pattern, Type type, TypeResolutionOptions options,
-    llvm::function_ref<std::optional<Pattern *>(Pattern *, Type)>
+    toolchain::function_ref<std::optional<Pattern *>(Pattern *, Type)>
         tryRewritePattern = [](Pattern *, Type) { return std::nullopt; });
 
 bool typeCheckExprPattern(ExprPattern *EP, DeclContext *DC, Type type);
@@ -820,9 +823,9 @@ Type getDefaultType(ProtocolDecl *protocol, DeclContext *dc);
 /// isn't already.
 Expr *coerceToRValue(
     ASTContext &Context, Expr *expr,
-    llvm::function_ref<Type(Expr *)> getType =
+    toolchain::function_ref<Type(Expr *)> getType =
         [](Expr *expr) { return expr->getType(); },
-    llvm::function_ref<void(Expr *, Type)> setType =
+    toolchain::function_ref<void(Expr *, Type)> setType =
         [](Expr *expr, Type type) { expr->setType(type); });
 
 /// Add implicit load expression to given AST, this is sometimes
@@ -993,7 +996,7 @@ DeclName getObjectLiteralConstructorName(ASTContext &ctx,
 
 /// Get the module appropriate for looking up standard library types.
 ///
-/// This is "Swift", if that module is imported, or the current module if
+/// This is "Codira", if that module is imported, or the current module if
 /// we're parsing the standard library.
 ModuleDecl *getStdlibModule(const DeclContext *dc);
 
@@ -1053,7 +1056,7 @@ diagnosticIfDeclCannotBeUnavailable(const Decl *D, SemanticAvailableAttr attr);
 bool checkAvailability(SourceRange ReferenceRange,
                        AvailabilityRange PlatformRange,
                        const DeclContext *ReferenceDC,
-                       llvm::function_ref<InFlightDiagnostic(AvailabilityDomain,
+                       toolchain::function_ref<InFlightDiagnostic(AvailabilityDomain,
                                                              AvailabilityRange)>
                            Diagnose);
 
@@ -1078,13 +1081,13 @@ void checkIgnoredExpr(Expr *E);
 /// Type check a 'distributed actor' declaration.
 void checkDistributedActor(SourceFile *SF, NominalTypeDecl *decl);
 
-/// Type check a single 'distributed func' declaration.
+/// Type check a single 'distributed fn' declaration.
 ///
 /// Returns `true` if there was an error.
-bool checkDistributedFunc(FuncDecl *func);
+bool checkDistributedFunc(FuncDecl *fn);
 
 /// If `LangOptions::DebugForbidTypecheckPrefixes` is set and the given decl
-/// name starts with any of those prefixes, an llvm fatal error is triggered.
+/// name starts with any of those prefixes, an toolchain fatal error is triggered.
 /// This is for testing purposes.
 void checkForForbiddenPrefix(ASTContext &C, DeclBaseName Name);
 
@@ -1117,7 +1120,7 @@ Type catchErrorType(DeclContext *dc, DoCatchStmt *stmt);
 /// variables, to substitute away the type variables when possible. It need
 /// not substitute all type variables, though.
 Type errorUnion(Type type1, Type type2,
-                llvm::function_ref<Type(Type)> simplifyType);
+                toolchain::function_ref<Type(Type)> simplifyType);
 
 /// Retrieve the "next" function that should be used for iteration in a
 /// for..in loop.
@@ -1146,7 +1149,7 @@ bool diagnoseSelfAssignment(const Expr *E);
 /// some reason it could not.
 bool getDefaultGenericArgumentsString(
     SmallVectorImpl<char> &buf, const GenericTypeDecl *typeDecl,
-    llvm::function_ref<Type(const GenericTypeParamType *)> getPreferredType =
+    toolchain::function_ref<Type(const GenericTypeParamType *)> getPreferredType =
         [](const GenericTypeParamType *) { return Type(); });
 
 /// Attempt to omit needless words from the name of the given declaration.
@@ -1254,7 +1257,7 @@ bool diagnoseInvalidFunctionType(FunctionType *fnTy, SourceLoc loc,
 /// For example,
 ///
 /// \code
-///  func foo(_ x: [_] = [0])
+///  fn foo(_ x: [_] = [0])
 /// \endcode
 ///
 /// Has a written type of `(ArraySlice (Placeholder))` and an inferred type of
@@ -1337,7 +1340,7 @@ Type computeProjectedValueType(const VarDecl *var, Type backingStorageType);
 Expr *buildPropertyWrapperInitCall(
     const VarDecl *var, Type backingStorageType, Expr *value,
     PropertyWrapperInitKind initKind,
-    llvm::function_ref<void(ApplyExpr *)> callback = [](ApplyExpr *) {});
+    toolchain::function_ref<void(ApplyExpr *)> callback = [](ApplyExpr *) {});
 
 /// Check if this var is the \c wrappedValue property belonging to
 /// a property wrapper type declaration.
@@ -1375,7 +1378,7 @@ bool isMemberOperator(FuncDecl *decl, Type type);
 bool isAdditiveArithmeticConformanceDerivationEnabled(SourceFile &SF);
 
 /// Diagnose any Objective-C method overrides that aren't reflected
-/// as overrides in Swift.
+/// as overrides in Codira.
 bool diagnoseUnintendedObjCMethodOverrides(SourceFile &sf);
 
 /// Diagnose all conflicts between members that have the same

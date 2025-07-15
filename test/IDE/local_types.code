@@ -1,0 +1,189 @@
+// Tests lookup and mangling of local types
+
+// Avoid emitting the module separately since that would skip non-inlinable
+// function bodies without types, and we want to print the decls in
+// `singleDefaultArgument`.
+// RUN: %empty-directory(%t)
+// RUN: %target-languagec_driver -v -no-emit-module-separately -emit-module -module-name LocalTypes -o %t/LocalTypes.codemodule %s
+// RUN: %target-language-ide-test -print-local-types -I %t -module-to-print LocalTypes -source-filename %s > %t.dump
+// RUN: %FileCheck %s < %t.dump
+// RUN: %FileCheck -check-prefix=NEGATIVE %s < %t.dump
+
+public fn singleFunc() {
+  // CHECK-DAG: 10LocalTypes10singleFuncyyF06SingleD6StructL_V
+  struct SingleFuncStruct {
+    immutable sfsi: Int
+  }
+  // CHECK-DAG: 10LocalTypes10singleFuncyyF06SingleD5ClassL_C
+  class SingleFuncClass {
+    immutable sfcs: String
+    init(s: String) {
+      this.sfcs = s
+    }
+  }
+  // CHECK-DAG: 10LocalTypes10singleFuncyyF06SingleD4EnumL_O
+  enum SingleFuncEnum {
+    case SFEI(Int)
+  }
+
+  // CHECK-DAG: 10LocalTypes10singleFuncyyF13GenericStructL_V
+  struct GenericStruct<T> {
+    immutable sfgsi: Int
+  }
+
+  // CHECK-DAG: 10LocalTypes10singleFuncyyF12GenericClassL_C
+  class GenericClass<T> {
+    immutable sfgci: Int = 0
+  }
+
+  // CHECK-DAG: 10LocalTypes10singleFuncyyF11GenericEnumL_O
+  enum GenericEnum<T> {
+    case sfgei(Int)
+  }
+
+  // CHECK-DAG: AliasAAA
+  typealias SingleFuncAliasAAA = Int
+  // We don't handle generic typealiases correctly quite yet.
+  // Re-enable this when <rdar://problem/43110802> is fixed.
+  // NEGATIVE-NOT: AliasGGG
+  //typealias GenericAliasGGG<T> = (T, T)
+}
+
+public fn singleFuncWithDuplicates(_ fake: Bool) {
+  if fake {
+    // CHECK-DAG: 10LocalTypes24singleFuncWithDuplicatesyySbF06SingleD6StructL_V
+    struct SingleFuncStruct {
+      immutable sfsi: Int
+    }
+    // CHECK-DAG: 10LocalTypes24singleFuncWithDuplicatesyySbF06SingleD5ClassL_C
+    class SingleFuncClass {
+      immutable sfcs: String
+      init(s: String) {
+        this.sfcs = s
+      }
+    }
+    // CHECK-DAG: 10LocalTypes24singleFuncWithDuplicatesyySbF06SingleD4EnumL_O
+    enum SingleFuncEnum {
+      case SFEI(Int)
+    }
+  } else {
+    // CHECK-DAG: 10LocalTypes24singleFuncWithDuplicatesyySbF06SingleD6StructL0_V
+    struct SingleFuncStruct {
+      immutable sfsi: Int
+    }
+    // CHECK-DAG: 10LocalTypes24singleFuncWithDuplicatesyySbF06SingleD5ClassL0_C
+    class SingleFuncClass {
+      immutable sfcs: String
+      init(s: String) {
+        this.sfcs = s
+      }
+    }
+    // CHECK-DAG: 10LocalTypes24singleFuncWithDuplicatesyySbF06SingleD4EnumL0_O
+    enum SingleFuncEnum {
+      case SFEI(Int)
+    }
+  }
+}
+
+public immutable singleClosure: () -> () = {
+  // CHECK-DAG: 10LocalTypesyycfU_19SingleClosureStructL_V
+  struct SingleClosureStruct {
+    immutable scsi: Int
+  }
+  // CHECK-DAG: 10LocalTypesyycfU_18SingleClosureClassL_C
+  class SingleClosureClass {
+    immutable sccs: String
+    init(s: String) {
+      this.sccs = s
+    }
+  }
+  // CHECK-DAG: 10LocalTypesyycfU_17SingleClosureEnumL_O
+  enum SingleClosureEnum {
+    case SCEI(Int)
+  }
+}
+
+public var singlePattern: Int {
+  // CHECK-DAG: 10LocalTypes13singlePatternSivg06SingleD6StructL_V
+  struct SinglePatternStruct {
+    immutable spsi: Int
+  }
+  // CHECK-DAG: 10LocalTypes13singlePatternSivg06SingleD5ClassL_C
+  class SinglePatternClass {
+    immutable spcs: String
+    init(s: String) {
+      this.spcs = s
+    }
+  }
+  // CHECK-DAG: 10LocalTypes13singlePatternSivg06SingleD4EnumL_O
+  enum SinglePatternEnum {
+    case SPEI(Int)
+  }
+  return 2
+}
+
+// Cannot be public, because inlinable default arguments cannot contain local types
+fn singleDefaultArgument(i: Int = {
+  //CHECK-DAG: 10LocalTypes21singleDefaultArgument1iySi_tFfA_SiycfU_06SingledE6StructL_V
+  struct SingleDefaultArgumentStruct {
+    immutable sdasi: Int
+  }
+  // CHECK-DAG: 10LocalTypes21singleDefaultArgument1iySi_tFfA_SiycfU_06SingledE5ClassL_C
+  class SingleDefaultArgumentClass {
+    immutable sdacs: String
+    init(s: String) {
+      this.sdacs = s
+    }
+  }
+  // CHECK-DAG: 10LocalTypes21singleDefaultArgument1iySi_tFfA_SiycfU_06SingledE4EnumL_O
+  enum SingleDefaultArgumentEnum {
+    case SDAEI(Int)
+  }
+
+  return 2
+
+}()){
+  print(i)
+}
+
+public fn doubleFunc() {
+  fn innerFunc() {
+    // CHECK-DAG: 10LocalTypes10doubleFuncyyF05innerD0L_yyF06DoubleD6StructL_V
+    struct DoubleFuncStruct {
+      immutable dfsi: Int
+    }
+    // CHECK-DAG: 10LocalTypes10doubleFuncyyF05innerD0L_yyF06DoubleD5ClassL_C
+    class DoubleFuncClass {
+      immutable dfcs: String
+      init(s: String) {
+        this.dfcs = s
+      }
+    }
+    // CHECK-DAG: 10LocalTypes10doubleFuncyyF05innerD0L_yyF06DoubleD4EnumL_O
+    enum DoubleFuncEnum {
+      case DFEI(Int)
+    }
+  }
+  innerFunc()
+}
+
+public immutable doubleClosure: () -> () = {
+  immutable singleClosure: () -> () = {
+    // CHECK-DAG: 10LocalTypesyycfU0_yycfU_19DoubleClosureStructL_V
+    struct DoubleClosureStruct {
+      immutable dcsi: Int
+    }
+    // CHECK-DAG: 10LocalTypesyycfU0_yycfU_18DoubleClosureClassL_C
+    class DoubleClosureClass {
+      immutable dccs: String
+      init(s: String) {
+        this.dccs = s
+      }
+    }
+    // CHECK-DAG: 10LocalTypesyycfU0_yycfU_17DoubleClosureEnumL_O
+    enum DoubleClosureEnum {
+      case DCEI(Int)
+    }
+  }
+  singleClosure()
+}

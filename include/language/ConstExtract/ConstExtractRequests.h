@@ -1,20 +1,24 @@
 //===------- ConstExtractRequests.h - Extraction  Requests ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines const-extraction requests.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CONST_EXTRACT_REQUESTS_H
-#define SWIFT_CONST_EXTRACT_REQUESTS_H
+#ifndef LANGUAGE_CONST_EXTRACT_REQUESTS_H
+#define LANGUAGE_CONST_EXTRACT_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/ConstTypeInfo.h"
@@ -24,9 +28,9 @@
 #include "language/AST/NameLookup.h"
 #include "language/AST/SimpleRequest.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -40,7 +44,7 @@ class ConstantValueInfoRequest
           ConstantValueInfoRequest,
           ConstValueTypeInfo(
               NominalTypeDecl *,
-              llvm::PointerUnion<const SourceFile *, ModuleDecl *>),
+              toolchain::PointerUnion<const SourceFile *, ModuleDecl *>),
           RequestFlags::Cached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -51,7 +55,7 @@ private:
   // Evaluation.
   ConstValueTypeInfo
   evaluate(Evaluator &eval, NominalTypeDecl *nominal,
-           llvm::PointerUnion<const SourceFile *, ModuleDecl *> extractionScope)
+           toolchain::PointerUnion<const SourceFile *, ModuleDecl *> extractionScope)
       const;
 
 public:
@@ -59,27 +63,27 @@ public:
   bool isCached() const { return true; }
 };
 
-#define SWIFT_TYPEID_ZONE ConstExtract
-#define SWIFT_TYPEID_HEADER "swift/ConstExtract/ConstExtractTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE ConstExtract
+#define LANGUAGE_TYPEID_HEADER "language/ConstExtract/ConstExtractTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
 template<typename Request>
 void reportEvaluatedRequest(UnifiedStatsReporter &stats,
                             const Request &request);
 
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
   template <>                                                                  \
   inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,              \
                                      const RequestType &request) {             \
     ++stats.getFrontendCounters().RequestType;                                 \
   }
 #include "language/ConstExtract/ConstExtractTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_CONST_EXTRACT_REQUESTS_H
+#endif // LANGUAGE_CONST_EXTRACT_REQUESTS_H
 

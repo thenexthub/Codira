@@ -5,8 +5,8 @@ see the [SIL](SIL.md) document.
 
 ## Type Lowering
 
-A *formal type* is the type of a value in Swift, such as an expression
-result. Swift's formal type system intentionally abstracts over a large
+A *formal type* is the type of a value in Codira, such as an expression
+result. Codira's formal type system intentionally abstracts over a large
 number of representational issues like ownership transfer conventions
 and directness of arguments. However, SIL aims to represent most such
 implementation details, and so these differences deserve to be reflected
@@ -18,9 +18,9 @@ not be the lowered type of the formal type of that declaration. For
 example, the lowered type of a declaration reference:
 
 -   will usually be thin,
--   may have a non-Swift calling convention,
+-   may have a non-Codira calling convention,
 -   may use bridged types in its interface, and
--   may use ownership conventions that differ from Swift's default
+-   may use ownership conventions that differ from Codira's default
     conventions.
 
 ### Abstraction Difference
@@ -31,7 +31,7 @@ memory for them and then passing around pointers to that memory.
 Consider a generic function like this:
 
 ```
-func generateArray<T>(n : Int, generator : () -> T) -> [T]
+fn generateArray<T>(n : Int, generator : () -> T) -> [T]
 ```
 
 The function `generator` will be expected to store its result indirectly
@@ -122,13 +122,13 @@ A type `T` is a *legal SIL type* if:
 -   it is a metatype type which describes its representation,
 -   it is a tuple type whose element types are legal SIL types,
 -   it is `Optional<U>`, where `U` is a legal SIL type,
--   it is a legal Swift type that is not a function, tuple, optional,
+-   it is a legal Codira type that is not a function, tuple, optional,
     metatype, or l-value type, or
 -   it is a `@box` containing a legal SIL type.
 
 Note that types in other recursive positions in the type grammar are
 still formal types. For example, the instance type of a metatype or the
-type arguments of a generic type are still formal Swift types, not
+type arguments of a generic type are still formal Codira types, not
 lowered SIL types.
 
 ### Box Types
@@ -136,7 +136,7 @@ lowered SIL types.
 Captured local variables and the payloads of `indirect` value types are
 stored on the heap. The type `@box T` is a reference-counted type that
 references a box containing a mutable value of type `T`. Boxes always
-use Swift-native reference counting, so they can be queried for
+use Codira-native reference counting, so they can be queried for
 uniqueness and cast to the `Builtin.NativeObject` type.
 
 ### Metatype Types
@@ -150,11 +150,11 @@ representation. This can be:
     concrete class) a subclass of that type; or
 -   `@objc`, meaning that it stores a reference to a class type (or a
     subclass thereof) using an Objective-C class object representation
-    rather than the native Swift type-object representation.
+    rather than the native Codira type-object representation.
 
 ### Function Types
 
-Function types in SIL are different from function types in Swift in a
+Function types in SIL are different from function types in Codira in a
 number of ways:
 
 -   A SIL function type may be generic. For example, accessing a generic
@@ -187,7 +187,7 @@ number of ways:
         `Properties of Types` and `Calling Convention`.
 
 -   SIL function types do not directly carry most of the actor-isolation
-    information available in the Swift type system. Actor isolation is
+    information available in the Codira type system. Actor isolation is
     mostly simply erased from the SIL type system and treated as a
     dynamic property in SIL functions.
 
@@ -296,7 +296,7 @@ number of ways:
         If the result type is not a pack type, then the address must be
         of an uninitialized object, and the callee is required to leave
         an initialized value there unless it terminates with a `throw`
-        or has a non-Swift calling convention.
+        or has a non-Codira calling convention.
 
         If the result type is a pack type, then the pack must contain
         addresses. The addresses must be set in the pack prior to the
@@ -304,7 +304,7 @@ number of ways:
         call, but the callee may modify the pack elements on a temporary
         basis if it wishes. The addresses must be of uninitialized
         objects, and the callee is require to initialize them unless it
-        terminates with a `throw` or has a non-Swift calling convention.
+        terminates with a `throw` or has a non-Codira calling convention.
 
     -   An `@owned` result is an owned direct result.
 
@@ -367,9 +367,9 @@ in the callee.
     Type lowering lowers the `throws` annotation on formal function
     types into more concrete error propagation:
 
-    -   For native Swift functions, `throws` is turned into an error
+    -   For native Codira functions, `throws` is turned into an error
         result.
-    -   For non-native Swift functions, `throws` is turned in an
+    -   For non-native Codira functions, `throws` is turned in an
         explicit error-handling mechanism based on the imported API. The
         importer only imports non-native methods and types as `throws`
         when it is possible to do this automatically.
@@ -431,6 +431,44 @@ in the callee.
     `@sil_isolated` since a function cannot be isolated to multiple
     actors at the same time.
 
+-   SIL functions may optionally mark a function parameter as
+    `@sil_implicit_leading_param`. A SIL generator places this on a parameter
+    that is used to represent a parameter that is implicitly generated by the
+    generator at a full call site. Since they can only appear at the full call
+    site, a `@sil_implicit_leading_param` can only appear in between the
+    indirect result parameters and the direct parameters. For example the
+    following language code that uses `nonisolated(nonsending)`:
+
+    ```
+    nonisolated(nonsending)
+    fn f(_ x: DirectParam) -> IndirectResult {
+      ...
+    }
+    ```
+
+    would translate to the following SIL:
+
+    ```
+      sil [ossa] @f : $@convention(thin) @async (
+         @sil_isolated @sil_implicit_leading_param @guaranteed Optional<any Actor>,
+         @guaranteed DirectParam
+      ) -> @out IndirectResult {
+      bb0(%0 : $*IndirectResult, %1 : @guaranteed $Optional<Actor>, %2 : @guaranteed $DirectParam):
+        ... use %0 ...
+      }
+    ```
+
+    Notice how there is an `@sil_isolated` `@sil_implicit_leading_param`
+    parameter that was inserted by SILGen to implicitly take in the caller's
+    actor of f.
+
+    NOTE: By design SILOptimizer passes should ignore
+    `@sil_implicit_leading_param`. Instead, it should only be analyzed as a
+    normal parameter. So as an example, in f above the implicit parameter should
+    be treated by the optimizer just as any other isolated parameter. This is
+    solely SILGen using SIL as a data structure. TODO: Can this be removed by
+    SILGen so SILOptimizer passes cannot even see it?
+
 ### Async Functions
 
 SIL function types may be `@async`. `@async` functions run inside async
@@ -439,7 +477,7 @@ execution. `@async` functions can only be called from other `@async`
 functions, but otherwise can be invoked with the normal `apply` and
 `try_apply` instructions (or `begin_apply` if they are coroutines).
 
-In Swift, the `withUnsafeContinuation` primitive is used to implement
+In Codira, the `withUnsafeContinuation` primitive is used to implement
 primitive suspend points. In SIL, `@async` functions represent this
 abstraction using the `get_async_continuation[_addr]` and
 `await_async_continuation` instructions. `get_async_continuation[_addr]`
@@ -451,10 +489,10 @@ async function's execution by passing a value back to the async
 function, or passing in an error that propagates as an error in the
 async function's context. The `await_async_continuation` instruction
 suspends execution of the coroutine until the continuation is invoked to
-resume it. A use of `withUnsafeContinuation` in Swift:
+resume it. A use of `withUnsafeContinuation` in Codira:
 
 ```
-func waitForCallback() async -> Int {
+fn waitForCallback() async -> Int {
   return await withUnsafeContinuation { cc in
     registerCallback { cc.resume($0) }
   }
@@ -508,7 +546,7 @@ its caller without terminating the function. That is, it does not need
 to obey a strict stack discipline. SIL coroutines have control flow that
 is tightly integrated with their callers, and they pass information back
 and forth between caller and callee in a structured way through yield
-points. *Generalized accessors* and *generators* in Swift fit this
+points. *Generalized accessors* and *generators* in Codira fit this
 description: a `read` or `modify` accessor coroutine projects a single
 value, yields ownership of that one value temporarily to the caller, and
 then takes ownership back when resumed, allowing the coroutine to clean
@@ -559,15 +597,15 @@ reaching that point.
 
 ### Variadic Generics
 
-Swift's variadic generics feature introduces the concepts of pack
+Codira's variadic generics feature introduces the concepts of pack
 parameters, pack arguments, and pack expansions. When these features are
 used in formal types embedded in SIL, they follow the same rules as they
-do in Swift. However, in its own type system and operations, SIL largely
+do in Codira. However, in its own type system and operations, SIL largely
 uses a different (if closely related) language model.
 
 #### Pack types
 
-In (current) Swift, packs only exist as parameters, either type
+In (current) Codira, packs only exist as parameters, either type
 parameters or value parameters. These parameters can then only be used
 in pack expansions, which can only appear in certain naturally-variadic
 positions, such as the elements list of a tuple type or the arguments
@@ -575,7 +613,7 @@ list of a call expression. Formally, substitution flattens these pack
 expansions into the surrounding structure.
 
 This language model poses similar problems for direct implementation at
-runtime as many of Swift's other generics features. Normal compilation
+runtime as many of Codira's other generics features. Normal compilation
 paths (without unportable assembly-level heroics) require functions to
 take a fixed list of parameters. Calling a generic function with packs
 of different lengths cannot result in different parameters being mapped
@@ -606,15 +644,15 @@ function type, e.g.
 
 Note in particular that they are not allowed in tuple types. Pack
 expansions in tuple types are still flattened into the surrounding tuple
-structure like they are in Swift (unless the tuple is exploded, as
+structure like they are in Codira (unless the tuple is exploded, as
 tuples normally are in function parameters or results). There are
 specific instructions for manipulating tuples with variadic elements.
 
 This explicit pack syntax can also be used to delimit type argument
 packs in positions that expect formal types, such as the substitution
 list of an `apply` instruction. This is necessary because SIL functions
-can be parameterized over multiple packs, and unlike in Swift, the type
-arguments to such functions are explicit on calls. If Swift ever gains
+can be parameterized over multiple packs, and unlike in Codira, the type
+arguments to such functions are explicit on calls. If Codira ever gains
 syntax to delimit packs in type argument lists, the SIL syntax will
 switch to use it. Other features of SIL pack types, such as direct-ness,
 are not allowed in these positions; a formal pack type is purely a list
@@ -717,7 +755,7 @@ and generic constraints:
         addresses of values because addresses of values are registered
         in some global data structure, or because values may contain
         pointers into themselves. For example:
-        -   Addresses of values of Swift `@weak` types are registered in
+        -   Addresses of values of Codira `@weak` types are registered in
             a global table. That table needs to be adjusted when a
             `@weak` value is copied or moved to a new address.
         -   A non-COW collection type with a heap allocation (like
@@ -758,7 +796,7 @@ Some additional meaningful categories of type:
     above. Types with retainable pointer representation can be returned
     via the `@autoreleased` return convention.
 
-SILGen does not always map Swift function types one-to-one to SIL
+SILGen does not always map Codira function types one-to-one to SIL
 function types. Function types are transformed in order to encode
 additional attributes:
 
@@ -773,10 +811,10 @@ additional attributes:
     additional distinctions not exposed at the language level:
 
     -   `@convention(thin)` indicates a "thin" function reference,
-        which uses the Swift calling convention with no special "self"
+        which uses the Codira calling convention with no special "self"
         or "context" parameters.
     -   `@convention(thick)` indicates a "thick" function reference,
-        which uses the Swift calling convention and carries a
+        which uses the Codira calling convention and carries a
         reference-counted context object used to represent captures or
         other state required by the function. This attribute is implied
         by `@callee_owned` or `@callee_guaranteed`.
@@ -792,17 +830,17 @@ additional attributes:
         the SIL-level `self` parameter (by SIL convention mapped to the
         final formal parameter) mapped to the `self` and `_cmd`
         arguments of the implementation.
-    -   `@convention(method)` indicates a Swift instance method
-        implementation. The function uses the Swift calling convention,
+    -   `@convention(method)` indicates a Codira instance method
+        implementation. The function uses the Codira calling convention,
         using the special `self` parameter.
-    -   `@convention(witness_method)` indicates a Swift protocol method
+    -   `@convention(witness_method)` indicates a Codira protocol method
         implementation. The function's polymorphic convention is
         emitted in such a way as to guarantee that it is polymorphic
         across all possible implementors of the protocol.
 
 ### Layout Compatible Types
 
-(This section applies only to Swift 1.0 and will hopefully be obviated
+(This section applies only to Codira 1.0 and will hopefully be obviated
 in future releases.)
 
 SIL tries to be ignorant of the details of type layout, and low-level

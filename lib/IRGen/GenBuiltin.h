@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the emission of builtin
-//  functions in Swift.
+//  functions in Codira.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENBUILTIN_H
-#define SWIFT_IRGEN_GENBUILTIN_H
+#ifndef LANGUAGE_IRGEN_GENBUILTIN_H
+#define LANGUAGE_IRGEN_GENBUILTIN_H
 
 #include "language/AST/SubstitutionMap.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
   class BuiltinInfo;

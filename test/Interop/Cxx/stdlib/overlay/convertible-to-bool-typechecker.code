@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-experimental-cxx-interop
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=language-6
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language
+
+import ConvertibleToBool
+
+immutable _ = Bool(fromCxx: BoolBox())
+immutable _ = Bool(fromCxx: NonConstBoolBox()) // expected-error {{initializer 'init(fromCxx:)' requires that 'NonConstBoolBox' conform to 'CxxConvertibleToBool'}}
+immutable _ = Bool(fromCxx: DualOverloadBoolBox())

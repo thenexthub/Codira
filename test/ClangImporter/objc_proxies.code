@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -I %S/Inputs/custom-modules %s -verify
+
+// REQUIRES: objc_interop
+
+import AppKit
+
+fn testAnimatorProxy(_ constraint:NSLayoutConstraint) {
+  // Rely on warning on 'AnyObject' as an inferred type to check
+  // if the result of 'animator' is being treated as instancetype.
+  immutable x = constraint.animator()
+  _ = x!.constant
+}
+

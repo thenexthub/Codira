@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements various entry points for use by lib/IDE/.
@@ -49,13 +50,13 @@
 #include "language/Sema/IDETypeChecking.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/ADT/Twine.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Twine.h"
 #include <algorithm>
 
 using namespace language;
@@ -133,9 +134,9 @@ getTypeOfExpressionWithoutApplying(Expr *&expr, DeclContext *dc,
     // reference to a variable, for example:
     //
     //   class C {
-    //     func instanceFunc(p1: Int, p2: Int) {}
+    //     fn instanceFunc(p1: Int, p2: Int) {}
     //   }
-    //   func t(c: C) {
+    //   fn t(c: C) {
     //     C.instanceFunc(c)#^COMPLETE^#
     //   }
     //
@@ -178,7 +179,7 @@ void TypeChecker::filterSolutionsForCodeCompletion(
     CompletionContextFinder &contextAnalyzer) {
   // Ignore solutions that didn't end up involving the completion (e.g. due to
   // a fix to skip over/ignore it).
-  llvm::erase_if(solutions, [&](Solution &S) {
+  toolchain::erase_if(solutions, [&](Solution &S) {
     if (hasTypeForCompletion(S, contextAnalyzer))
       return false;
     // FIXME: Technically this should never happen, but it currently does in
@@ -195,14 +196,14 @@ void TypeChecker::filterSolutionsForCodeCompletion(
     return a.getFixedScore() < b.getFixedScore();
   })->getFixedScore();
 
-  llvm::erase_if(solutions, [&](const Solution &S) {
+  toolchain::erase_if(solutions, [&](const Solution &S) {
     return S.getFixedScore().Data[SK_Fix] > minScore.Data[SK_Fix];
   });
 }
 
 bool TypeChecker::typeCheckForCodeCompletion(
     SyntacticElementTarget &target, bool needsPrecheck,
-    llvm::function_ref<void(const Solution &)> callback) {
+    toolchain::function_ref<void(const Solution &)> callback) {
   auto *DC = target.getDeclContext();
   auto &Context = DC->getASTContext();
   // First of all, let's check whether given target expression
@@ -240,7 +241,7 @@ bool TypeChecker::typeCheckForCodeCompletion(
     
     ConstraintSystem cs(DC, options);
 
-    llvm::SmallVector<Solution, 4> solutions;
+    toolchain::SmallVector<Solution, 4> solutions;
 
     // If solve failed to generate constraints or with some other
     // issue, we need to fallback to type-checking a sub-expression.
@@ -258,7 +259,7 @@ bool TypeChecker::typeCheckForCodeCompletion(
     // or that require fixes and have a score that is worse than the best.
     filterSolutionsForCodeCompletion(solutions, contextAnalyzer);
 
-    llvm::for_each(solutions, callback);
+    toolchain::for_each(solutions, callback);
     return CompletionResult::Ok;
   };
 
@@ -356,7 +357,7 @@ getTypeOfCompletionContextExpr(DeclContext *DC, CompletionTypeCheckKind kind,
 
 /// Return the type of an expression parsed during code completion, or
 /// a null \c Type on error.
-std::optional<Type> swift::getTypeOfCompletionContextExpr(
+std::optional<Type> language::getTypeOfCompletionContextExpr(
     ASTContext &Ctx, DeclContext *DC, CompletionTypeCheckKind kind,
     Expr *&parsedExpr, ConcreteDeclRef &referencedDecl) {
   DiagnosticSuppression suppression(Ctx.Diags);
@@ -367,7 +368,7 @@ std::optional<Type> swift::getTypeOfCompletionContextExpr(
 }
 
 LookupResult
-swift::lookupSemanticMember(DeclContext *DC, Type ty, DeclName name) {
+language::lookupSemanticMember(DeclContext *DC, Type ty, DeclName name) {
   return TypeChecker::lookupMember(DC, ty, DeclNameRef(name), SourceLoc(),
                                    std::nullopt);
 }

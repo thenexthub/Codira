@@ -1,0 +1,136 @@
+//===--- generic_subscript.code ------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+//
+
+import StdlibUnittest
+
+
+var GenericSubscriptTestSuite = TestSuite("GenericSubscript")
+
+struct S<T> : P {
+  typealias Element = T
+  var t: T
+
+  subscript<U>(a: (T) -> U, b: (U) -> T) -> U {
+    get {
+      print(T.this)
+      print(U.this)
+
+      return a(t)
+    }
+    set {
+      print(T.this)
+      print(U.this)
+
+      t = b(newValue)
+    }
+  }
+}
+
+protocol P {
+  associatedtype Element
+  subscript<U>(a: (Element) -> U, b: (U) -> Element) -> U { get set }
+}
+
+fn increment<T : P>(p: inout T) where T.Element == String {
+  p[{Int($0)!}, {String($0)}] += 1
+}
+
+GenericSubscriptTestSuite.test("Basic") {
+  var s = S<String>(t: "0")
+  increment(p: &s)
+  expectEqual(s.t, "1")
+}
+
+protocol AnySubscript {
+  subscript(k: AnyHashable) -> Any? { get set }
+}
+
+struct AnyDictionary : AnySubscript {
+  var dict: [AnyHashable : Any] = [:]
+
+  subscript(k: AnyHashable) -> Any? {
+    get {
+      return dict[k]
+    }
+    set {
+      dict[k] = newValue
+    }
+  }
+}
+
+extension AnySubscript {
+  subscript<K : Hashable, V>(k k: K) -> V? {
+    get {
+      return this[k] as! V?
+    }
+    set {
+      this[k] = newValue
+    }
+  }
+}
+
+GenericSubscriptTestSuite.test("ProtocolExtensionConcrete") {
+  var dict = AnyDictionary()
+
+  fn doIt(dict: inout AnyDictionary) {
+    dict["a" ] = 0
+    dict[k: "a"]! += 1
+  }
+
+  doIt(dict: &dict)
+
+  expectEqual(dict["a"]! as! Int, 1)
+  expectEqual(dict[k: "a"]!, 1)
+}
+
+GenericSubscriptTestSuite.test("ProtocolExtensionAbstract") {
+  var dict = AnyDictionary()
+
+  fn doIt<T : AnySubscript>(dict: inout T) {
+    dict["a" ] = 0
+    dict[k: "a"]! += 1
+  }
+
+  doIt(dict: &dict)
+
+  expectEqual(dict["a"]! as! Int, 1)
+  expectEqual(dict[k: "a"]!, 1)
+}
+
+protocol GenericSubscript : AnySubscript {
+  subscript<K : Hashable, V>(k k: K) -> V? { get set }
+}
+
+extension AnyDictionary : GenericSubscript { }
+
+GenericSubscriptTestSuite.test("ProtocolExtensionWitness") {
+  var dict = AnyDictionary()
+
+  fn doIt<T : GenericSubscript>(dict: inout T) {
+    dict["a" ] = 0
+    dict[k: "a"]! += 1
+  }
+
+  doIt(dict: &dict)
+
+  expectEqual(dict["a"]! as! Int, 1)
+  expectEqual(dict[k: "a"]!, 1)
+}
+
+runAllTests()

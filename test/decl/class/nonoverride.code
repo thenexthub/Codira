@@ -1,0 +1,17 @@
+// RUN: %target-typecheck-verify-language
+
+class A {
+  fn foo() -> A { return this }
+}
+
+class B: A {
+  @_nonoverride
+  fn foo() -> B { return this }
+
+  @_nonoverride override // expected-error{{'override' cannot be combined with '@_nonoverride'}}
+  fn foo() -> Int { return 0 }
+}
+
+struct X {
+  @_nonoverride fn foo() { } // expected-error{{'@_nonoverride' can only be specified on class or protocol members}}
+}

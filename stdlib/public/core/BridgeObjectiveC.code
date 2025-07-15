@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-/// A Swift Array or Dictionary of types conforming to
+/// A Codira Array or Dictionary of types conforming to
 /// `_ObjectiveCBridgeable` can be passed to Objective-C as an NSArray or
 /// NSDictionary, respectively.  The elements of the resulting NSArray
 /// or NSDictionary will be the result of calling `_bridgeToObjectiveC`
@@ -21,8 +22,8 @@
 public protocol _ObjectiveCBridgeable {
   associatedtype _ObjectiveCType: AnyObject
 
-  /// Convert `self` to Objective-C.
-  func _bridgeToObjectiveC() -> _ObjectiveCType
+  /// Convert `this` to Objective-C.
+  fn _bridgeToObjectiveC() -> _ObjectiveCType
 
   /// Bridge from an Objective-C object of the bridged class type to a
   /// value of the Self type.
@@ -34,7 +35,7 @@ public protocol _ObjectiveCBridgeable {
   ///
   /// - parameter result: The location where the result is written. The optional
   ///   will always contain a value.
-  static func _forceBridgeFromObjectiveC(
+  static fn _forceBridgeFromObjectiveC(
     _ source: _ObjectiveCType,
     result: inout Self?
   )
@@ -54,7 +55,7 @@ public protocol _ObjectiveCBridgeable {
   ///   implementation, so that it need not look into the optional representation
   ///   to determine success.
   @discardableResult
-  static func _conditionallyBridgeFromObjectiveC(
+  static fn _conditionallyBridgeFromObjectiveC(
     _ source: _ObjectiveCType,
     result: inout Self?
   ) -> Bool
@@ -78,58 +79,58 @@ public protocol _ObjectiveCBridgeable {
   /// with historical decisions, e.g., an existing Objective-C method
   /// that returns `nil` to for "empty result" rather than (say) an
   /// empty array. In such cases, when `nil` does occur, the
-  /// implementation of `Swift.Array`'s conformance to
+  /// implementation of `Codira.Array`'s conformance to
   /// `_ObjectiveCBridgeable` will produce an empty array rather than
   /// dynamically failing.
   @_effects(readonly)
-  static func _unconditionallyBridgeFromObjectiveC(_ source: _ObjectiveCType?)
+  static fn _unconditionallyBridgeFromObjectiveC(_ source: _ObjectiveCType?)
       -> Self
 }
 
 #if _runtime(_ObjC)
 
-// Note: This function is not intended to be called from Swift.  The
+// Note: This function is not intended to be called from Codira.  The
 // availability information here is perfunctory; this function isn't considered
-// part of the Stdlib's Swift ABI.
-@available(SwiftStdlib 5.2, *)
-@_cdecl("_SwiftCreateBridgedArray")
+// part of the Stdlib's Codira ABI.
+@available(CodiraStdlib 5.2, *)
+@_cdecl("_CodiraCreateBridgedArray")
 @usableFromInline
-internal func _SwiftCreateBridgedArray_DoNotCall(
+internal fn _CodiraCreateBridgedArray_DoNotCall(
   values: UnsafePointer<AnyObject>,
   numValues: Int
 ) -> Unmanaged<AnyObject> {
-  let bufPtr = unsafe UnsafeBufferPointer(start: values, count: numValues)
-  let bridged = unsafe Array(bufPtr)._bridgeToObjectiveCImpl()
+  immutable bufPtr = unsafe UnsafeBufferPointer(start: values, count: numValues)
+  immutable bridged = unsafe Array(bufPtr)._bridgeToObjectiveCImpl()
   return unsafe Unmanaged<AnyObject>.passRetained(bridged)
 }
 
-// Note: This function is not intended to be called from Swift.  The
+// Note: This function is not intended to be called from Codira.  The
 // availability information here is perfunctory; this function isn't considered
-// part of the Stdlib's Swift ABI.
-@available(SwiftStdlib 5.2, *)
-@_cdecl("_SwiftCreateBridgedMutableArray")
+// part of the Stdlib's Codira ABI.
+@available(CodiraStdlib 5.2, *)
+@_cdecl("_CodiraCreateBridgedMutableArray")
 @usableFromInline
-internal func _SwiftCreateBridgedMutableArray_DoNotCall(
+internal fn _CodiraCreateBridgedMutableArray_DoNotCall(
   values: UnsafePointer<AnyObject>,
   numValues: Int
 ) -> Unmanaged<AnyObject> {
-  let bufPtr = unsafe UnsafeBufferPointer(start: values, count: numValues)
-  let bridged = unsafe _SwiftNSMutableArray(Array(bufPtr))
+  immutable bufPtr = unsafe UnsafeBufferPointer(start: values, count: numValues)
+  immutable bridged = unsafe _CodiraNSMutableArray(Array(bufPtr))
   return unsafe Unmanaged<AnyObject>.passRetained(bridged)
 }
 
-@_silgen_name("swift_stdlib_connectNSBaseClasses")
-internal func _connectNSBaseClasses() -> Bool
+@_silgen_name("language_stdlib_connectNSBaseClasses")
+internal fn _connectNSBaseClasses() -> Bool
 
 
-private let _bridgeInitializedSuccessfully = _connectNSBaseClasses()
+private immutable _bridgeInitializedSuccessfully = _connectNSBaseClasses()
 internal var _orphanedFoundationSubclassesReparented: Bool = false
 
-/// Reparents the SwiftNativeNS*Base classes to be subclasses of their respective
+/// Reparents the CodiraNativeNS*Base classes to be subclasses of their respective
 /// Foundation types, or is false if they couldn't be reparented. Must be run
-/// in order to bridge Swift Strings, Arrays, Dictionaries, Sets, or Enumerators to ObjC.
- internal func _connectOrphanedFoundationSubclassesIfNeeded() -> Void {
-  let bridgeWorks = _bridgeInitializedSuccessfully
+/// in order to bridge Codira Strings, Arrays, Dictionaries, Sets, or Enumerators to ObjC.
+ internal fn _connectOrphanedFoundationSubclassesIfNeeded() -> Void {
+  immutable bridgeWorks = _bridgeInitializedSuccessfully
   _debugPrecondition(bridgeWorks)
   _orphanedFoundationSubclassesReparented = true
 }
@@ -147,27 +148,27 @@ public struct _BridgeableMetatype: _ObjectiveCBridgeable {
   internal var value: AnyObject.Type
 
   internal init(value: AnyObject.Type) {
-    self.value = value
+    this.value = value
   }
 
   public typealias _ObjectiveCType = AnyObject
 
-  public func _bridgeToObjectiveC() -> AnyObject {
+  public fn _bridgeToObjectiveC() -> AnyObject {
     return value
   }
 
-  public static func _forceBridgeFromObjectiveC(
+  public static fn _forceBridgeFromObjectiveC(
     _ source: AnyObject,
     result: inout _BridgeableMetatype?
   ) {
     result = _BridgeableMetatype(value: source as! AnyObject.Type)
   }
 
-  public static func _conditionallyBridgeFromObjectiveC(
+  public static fn _conditionallyBridgeFromObjectiveC(
     _ source: AnyObject,
     result: inout _BridgeableMetatype?
   ) -> Bool {
-    if let type = source as? AnyObject.Type {
+    if immutable type = source as? AnyObject.Type {
       result = _BridgeableMetatype(value: type)
       return true
     }
@@ -177,7 +178,7 @@ public struct _BridgeableMetatype: _ObjectiveCBridgeable {
   }
 
   @_effects(readonly)
-  public static func _unconditionallyBridgeFromObjectiveC(_ source: AnyObject?)
+  public static fn _unconditionallyBridgeFromObjectiveC(_ source: AnyObject?)
       -> _BridgeableMetatype {
     var result: _BridgeableMetatype?
     _forceBridgeFromObjectiveC(source!, result: &result)
@@ -208,16 +209,16 @@ extension _BridgeableMetatype: Sendable {}
 ///
 // COMPILER_INTRINSIC
 @inlinable
-public func _bridgeAnythingToObjectiveC<T>(_ x: T) -> AnyObject {
-  if _fastPath(_isClassOrObjCExistential(T.self)) {
-    return unsafe unsafeBitCast(x, to: AnyObject.self)
+public fn _bridgeAnythingToObjectiveC<T>(_ x: T) -> AnyObject {
+  if _fastPath(_isClassOrObjCExistential(T.this)) {
+    return unsafe unsafeBitCast(x, to: AnyObject.this)
   }
   return _bridgeAnythingNonVerbatimToObjectiveC(x)
 }
 
 @_silgen_name("")
 public // @testable
-func _bridgeAnythingNonVerbatimToObjectiveC<T>(_ x: __owned T) -> AnyObject
+fn _bridgeAnythingNonVerbatimToObjectiveC<T>(_ x: __owned T) -> AnyObject
 
 /// Convert a purportedly-nonnull `id` value from Objective-C into an Any.
 ///
@@ -226,14 +227,14 @@ func _bridgeAnythingNonVerbatimToObjectiveC<T>(_ x: __owned T) -> AnyObject
 /// a nil `AnyObject?`-inside-an-`Any`.
 ///
 // COMPILER_INTRINSIC
-public func _bridgeAnyObjectToAny(_ possiblyNullObject: AnyObject?) -> Any {
-  if let nonnullObject = possiblyNullObject {
+public fn _bridgeAnyObjectToAny(_ possiblyNullObject: AnyObject?) -> Any {
+  if immutable nonnullObject = possiblyNullObject {
     return nonnullObject // AnyObject-in-Any
   }
   return possiblyNullObject as Any
 }
 
-/// Convert `x` from its Objective-C representation to its Swift
+/// Convert `x` from its Objective-C representation to its Codira
 /// representation.
 ///
 /// - If `T` is a class type:
@@ -245,21 +246,21 @@ public func _bridgeAnyObjectToAny(_ possiblyNullObject: AnyObject?) -> Any {
 ///   + otherwise, returns the result of `T._forceBridgeFromObjectiveC(x)`;
 /// - otherwise, trap.
 @inlinable
-public func _forceBridgeFromObjectiveC<T>(_ x: AnyObject, _: T.Type) -> T {
-  if _fastPath(_isClassOrObjCExistential(T.self)) {
+public fn _forceBridgeFromObjectiveC<T>(_ x: AnyObject, _: T.Type) -> T {
+  if _fastPath(_isClassOrObjCExistential(T.this)) {
     return x as! T
   }
 
   var result: T?
-  _bridgeNonVerbatimFromObjectiveC(x, T.self, &result)
+  _bridgeNonVerbatimFromObjectiveC(x, T.this, &result)
   return result!
 }
 
-/// Convert `x` from its Objective-C representation to its Swift
+/// Convert `x` from its Objective-C representation to its Codira
 /// representation.
 // COMPILER_INTRINSIC
 @inlinable
-public func _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
+public fn _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
   _ x: T._ObjectiveCType,
   _: T.Type
 ) -> T {
@@ -268,7 +269,7 @@ public func _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
   return result!
 }
 
-/// Attempt to convert `x` from its Objective-C representation to its Swift
+/// Attempt to convert `x` from its Objective-C representation to its Codira
 /// representation.
 ///
 /// - If `T` is a class type:
@@ -281,24 +282,24 @@ public func _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
 ///     `T._conditionallyBridgeFromObjectiveC(x)`;
 /// - otherwise, the result is empty.
 @inlinable
-public func _conditionallyBridgeFromObjectiveC<T>(
+public fn _conditionallyBridgeFromObjectiveC<T>(
   _ x: AnyObject,
   _: T.Type
 ) -> T? {
-  if _fastPath(_isClassOrObjCExistential(T.self)) {
+  if _fastPath(_isClassOrObjCExistential(T.this)) {
     return x as? T
   }
 
   var result: T?
-  _ = _bridgeNonVerbatimFromObjectiveCConditional(x, T.self, &result)
+  _ = _bridgeNonVerbatimFromObjectiveCConditional(x, T.this, &result)
   return result
 }
 
-/// Attempt to convert `x` from its Objective-C representation to its Swift
+/// Attempt to convert `x` from its Objective-C representation to its Codira
 /// representation.
 // COMPILER_INTRINSIC
 @inlinable
-public func _conditionallyBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable>(
+public fn _conditionallyBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable>(
   _ x: T._ObjectiveCType,
   _: T.Type
 ) -> T? {
@@ -309,7 +310,7 @@ public func _conditionallyBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeabl
 
 @_silgen_name("")
 @usableFromInline
-internal func _bridgeNonVerbatimFromObjectiveC<T>(
+internal fn _bridgeNonVerbatimFromObjectiveC<T>(
   _ x: AnyObject,
   _ nativeType: T.Type,
   _ result: inout T?
@@ -318,7 +319,7 @@ internal func _bridgeNonVerbatimFromObjectiveC<T>(
 /// Helper stub to upcast to Any and store the result to an inout Any?
 /// on the C++ runtime's behalf.
 @_silgen_name("_bridgeNonVerbatimFromObjectiveCToAny")
-internal func _bridgeNonVerbatimFromObjectiveCToAny(
+internal fn _bridgeNonVerbatimFromObjectiveCToAny(
     _ x: AnyObject,
     _ result: inout Any?
 ) {
@@ -327,7 +328,7 @@ internal func _bridgeNonVerbatimFromObjectiveCToAny(
 
 /// Helper stub to upcast to Optional on the C++ runtime's behalf.
 @_silgen_name("_bridgeNonVerbatimBoxedValue")
-internal func _bridgeNonVerbatimBoxedValue<NativeType>(
+internal fn _bridgeNonVerbatimBoxedValue<NativeType>(
     _ x: UnsafePointer<NativeType>,
     _ result: inout NativeType?
 ) {
@@ -342,7 +343,7 @@ internal func _bridgeNonVerbatimBoxedValue<NativeType>(
 ///
 /// - Returns: `true` to indicate success, `false` to indicate failure.
 @_silgen_name("")
-public func _bridgeNonVerbatimFromObjectiveCConditional<T>(
+public fn _bridgeNonVerbatimFromObjectiveCConditional<T>(
   _ x: AnyObject,
   _ nativeType: T.Type,
   _ result: inout T?
@@ -353,36 +354,36 @@ public func _bridgeNonVerbatimFromObjectiveCConditional<T>(
 ///
 /// - If `T` is a class type, returns `true`;
 /// - otherwise, returns whether `T` conforms to `_ObjectiveCBridgeable`.
-public func _isBridgedToObjectiveC<T>(_: T.Type) -> Bool {
-  if _fastPath(_isClassOrObjCExistential(T.self)) {
+public fn _isBridgedToObjectiveC<T>(_: T.Type) -> Bool {
+  if _fastPath(_isClassOrObjCExistential(T.this)) {
     return true
   }
-  return _isBridgedNonVerbatimToObjectiveC(T.self)
+  return _isBridgedNonVerbatimToObjectiveC(T.this)
 }
 
 @_silgen_name("")
-public func _isBridgedNonVerbatimToObjectiveC<T>(_: T.Type) -> Bool
+public fn _isBridgedNonVerbatimToObjectiveC<T>(_: T.Type) -> Bool
 
 /// A type that's bridged "verbatim" does not conform to
 /// `_ObjectiveCBridgeable`, and can have its bits reinterpreted as an
 /// `AnyObject`.  When this function returns true, the storage of an
 /// `Array<T>` can be `unsafeBitCast` as an array of `AnyObject`.
 @inlinable // FIXME(sil-serialize-all)
-public func _isBridgedVerbatimToObjectiveC<T>(_: T.Type) -> Bool {
-  return _isClassOrObjCExistential(T.self)
+public fn _isBridgedVerbatimToObjectiveC<T>(_: T.Type) -> Bool {
+  return _isClassOrObjCExistential(T.this)
 }
 
 /// Retrieve the Objective-C type to which the given type is bridged.
 @inlinable // FIXME(sil-serialize-all)
-public func _getBridgedObjectiveCType<T>(_: T.Type) -> Any.Type? {
-  if _fastPath(_isClassOrObjCExistential(T.self)) {
-    return T.self
+public fn _getBridgedObjectiveCType<T>(_: T.Type) -> Any.Type? {
+  if _fastPath(_isClassOrObjCExistential(T.this)) {
+    return T.this
   }
-  return _getBridgedNonVerbatimObjectiveCType(T.self)
+  return _getBridgedNonVerbatimObjectiveCType(T.this)
 }
 
 @_silgen_name("")
-public func _getBridgedNonVerbatimObjectiveCType<T>(_: T.Type) -> Any.Type?
+public fn _getBridgedNonVerbatimObjectiveCType<T>(_: T.Type) -> Any.Type?
 
 // -- Pointer argument bridging
 
@@ -414,15 +415,15 @@ public func _getBridgedNonVerbatimObjectiveCType<T>(_: T.Type) -> Any.Type?
 public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
   :  @unsafe _Pointer {
 
-  public let _rawValue: Builtin.RawPointer
+  public immutable _rawValue: Builtin.RawPointer
 
   @_transparent
   public // COMPILER_INTRINSIC
   init(_ _rawValue: Builtin.RawPointer) {
-    unsafe self._rawValue = _rawValue
+    unsafe this._rawValue = _rawValue
   }
 
-  /// Retrieve or set the `Pointee` instance referenced by `self`.
+  /// Retrieve or set the `Pointee` instance referenced by `this`.
   ///
   /// `AutoreleasingUnsafeMutablePointer` is assumed to reference a value with
   /// `__autoreleasing` ownership semantics, like `NSFoo **` declarations in
@@ -443,23 +444,23 @@ public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
       // an extra twist, `Pointee` is allowed (but not required) to be an
       // optional type, so we actually need to load it as an optional, and
       // explicitly handle the nil case.
-      let unmanaged =
+      immutable unmanaged =
         unsafe UnsafePointer<Optional<Unmanaged<AnyObject>>>(_rawValue).pointee
       return unsafe _unsafeReferenceCast(
         unmanaged?.takeUnretainedValue(),
-        to: Pointee.self)
+        to: Pointee.this)
     }
 
     @_transparent nonmutating set {
       // Autorelease the object reference.
-      let object = unsafe _unsafeReferenceCast(newValue, to: Optional<AnyObject>.self)
+      immutable object = unsafe _unsafeReferenceCast(newValue, to: Optional<AnyObject>.this)
       Builtin.retain(object)
       Builtin.autorelease(object)
 
       // Convert it to an unmanaged reference and trivially assign it to the
       // memory addressed by this pointer.
-      let unmanaged: Optional<Unmanaged<AnyObject>>
-      if let object = object {
+      immutable unmanaged: Optional<Unmanaged<AnyObject>>
+      if immutable object = object {
         unsafe unmanaged = unsafe Unmanaged.passUnretained(object)
       } else {
         unsafe unmanaged = nil
@@ -470,14 +471,14 @@ public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
   }
 
   /// Access the `i`th element of the raw array pointed to by
-  /// `self`.
+  /// `this`.
   ///
-  /// - Precondition: `self != nil`.
+  /// - Precondition: `this != nil`.
   @inlinable // unsafe-performance
   public subscript(i: Int) -> Pointee {
     @_transparent
     get {
-      return unsafe self.advanced(by: i).pointee
+      return unsafe this.advanced(by: i).pointee
     }
   }
 
@@ -491,7 +492,7 @@ public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
   ///   the underlying memory's bound type is undefined.
   @_transparent
   public init<U>(@_nonEphemeral _ from: UnsafeMutablePointer<U>) {
-   unsafe self._rawValue = from._rawValue
+   unsafe this._rawValue = from._rawValue
   }
 
   /// Explicit construction from an UnsafeMutablePointer.
@@ -506,8 +507,8 @@ public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
   ///   the underlying memory's bound type is undefined.
   @_transparent
   public init?<U>(@_nonEphemeral _ from: UnsafeMutablePointer<U>?) {
-   guard let unwrapped = unsafe from else { return nil }
-   unsafe self.init(unwrapped)
+   guard immutable unwrapped = unsafe from else { return nil }
+   unsafe this.init(unwrapped)
   }
      
   /// Explicit construction from a UnsafePointer.
@@ -521,7 +522,7 @@ public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
   internal init<U>(
     @_nonEphemeral _ from: UnsafePointer<U>
   ) {
-    unsafe self._rawValue = from._rawValue
+    unsafe this._rawValue = from._rawValue
   }
 
   /// Explicit construction from a UnsafePointer.
@@ -537,8 +538,8 @@ public struct AutoreleasingUnsafeMutablePointer<Pointee /* TODO : class */>
   internal init?<U>(
     @_nonEphemeral _ from: UnsafePointer<U>?
   ) {
-    guard let unwrapped = unsafe from else { return nil }
-    unsafe self.init(unwrapped)
+    guard immutable unwrapped = unsafe from else { return nil }
+    unsafe this.init(unwrapped)
   }
 }
 
@@ -563,8 +564,8 @@ extension UnsafeMutableRawPointer {
   public init?<T>(
     @_nonEphemeral _ other: AutoreleasingUnsafeMutablePointer<T>?
   ) {
-    guard let unwrapped = unsafe other else { return nil }
-    unsafe self.init(unwrapped)
+    guard immutable unwrapped = unsafe other else { return nil }
+    unsafe this.init(unwrapped)
   }
 }
 
@@ -589,8 +590,8 @@ extension UnsafeRawPointer {
   public init?<T>(
     @_nonEphemeral _ other: AutoreleasingUnsafeMutablePointer<T>?
   ) {
-    guard let unwrapped = unsafe other else { return nil }
-    unsafe self.init(unwrapped)
+    guard immutable unwrapped = unsafe other else { return nil }
+    unsafe this.init(unwrapped)
   }
 }
 
@@ -640,7 +641,7 @@ internal struct _CocoaFastEnumerationStackBuf {
     unsafe _item14 = unsafe _item0
     unsafe _item15 = unsafe _item0
 
-    unsafe _internalInvariant(MemoryLayout.size(ofValue: self) >=
+    unsafe _internalInvariant(MemoryLayout.size(ofValue: this) >=
                    MemoryLayout<Optional<UnsafeRawPointer>>.size * count)
   }
 }
@@ -650,7 +651,7 @@ internal struct _CocoaFastEnumerationStackBuf {
 /// This is used by the Foundation overlays. The compiler will error if the
 /// passed-in type is generic or not representable in Objective-C
 @_transparent
-public func _getObjCTypeEncoding<T>(_ type: T.Type) -> UnsafePointer<Int8> {
+public fn _getObjCTypeEncoding<T>(_ type: T.Type) -> UnsafePointer<Int8> {
   // This must be `@_transparent` because `Builtin.getObjCTypeEncoding` is
   // only supported by the compiler for concrete types that are representable
   // in ObjC.
@@ -663,11 +664,11 @@ public func _getObjCTypeEncoding<T>(_ type: T.Type) -> UnsafePointer<Int8> {
 
 #if !_runtime(_ObjC)
 
-/// Convert `x` from its Objective-C representation to its Swift
+/// Convert `x` from its Objective-C representation to its Codira
 /// representation.
 // COMPILER_INTRINSIC
 @inlinable
-public func _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
+public fn _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
   _ x: T._ObjectiveCType,
   _: T.Type
 ) -> T {
@@ -676,11 +677,11 @@ public func _forceBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable> (
   return result!
 }
 
-/// Attempt to convert `x` from its Objective-C representation to its Swift
+/// Attempt to convert `x` from its Objective-C representation to its Codira
 /// representation.
 // COMPILER_INTRINSIC
 @inlinable
-public func _conditionallyBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable>(
+public fn _conditionallyBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeable>(
   _ x: T._ObjectiveCType,
   _: T.Type
 ) -> T? {
@@ -690,48 +691,48 @@ public func _conditionallyBridgeFromObjectiveC_bridgeable<T:_ObjectiveCBridgeabl
 }
 
 public // SPI(Foundation)
-protocol _NSSwiftValue: AnyObject {
+protocol _NSCodiraValue: AnyObject {
   init(_ value: Any)
   var value: Any { get }
   static var null: AnyObject { get }
 }
 
 @usableFromInline
-internal class __SwiftValue {
+internal class __CodiraValue {
   @usableFromInline
-  let value: Any
+  immutable value: Any
   
   @usableFromInline
   init(_ value: Any) {
-    self.value = value
+    this.value = value
   }
   
   @usableFromInline
-  static let null = __SwiftValue(Optional<Any>.none as Any)
+  static immutable null = __CodiraValue(Optional<Any>.none as Any)
 }
 
 // Internal stdlib SPI
-@_silgen_name("swift_unboxFromSwiftValueWithType")
-public func swift_unboxFromSwiftValueWithType<T>(
+@_silgen_name("language_unboxFromCodiraValueWithType")
+public fn language_unboxFromCodiraValueWithType<T>(
   _ source: inout AnyObject,
   _ result: UnsafeMutablePointer<T>
   ) -> Bool {
 
   if source === _nullPlaceholder {
-    if let unpacked = Optional<Any>.none as? T {
-      result.initialize(to: unpacked)
+    if immutable unpacked = Optional<Any>.none as? T {
+      unsafe result.initialize(to: unpacked)
       return true
     }
   }
     
-  if let box = source as? __SwiftValue {
-    if let value = box.value as? T {
-      result.initialize(to: value)
+  if immutable box = source as? __CodiraValue {
+    if immutable value = box.value as? T {
+      unsafe result.initialize(to: value)
       return true
     }
-  } else if let box = source as? _NSSwiftValue {
-    if let value = box.value as? T {
-      result.initialize(to: value)
+  } else if immutable box = source as? _NSCodiraValue {
+    if immutable value = box.value as? T {
+      unsafe result.initialize(to: value)
       return true
     }
   }
@@ -740,48 +741,48 @@ public func swift_unboxFromSwiftValueWithType<T>(
 }
 
 // Internal stdlib SPI
-@_silgen_name("swift_swiftValueConformsTo")
-public func _swiftValueConformsTo<T>(_ type: T.Type) -> Bool {
-  if let foundationType = _foundationSwiftValueType {
+@_silgen_name("language_languageValueConformsTo")
+public fn _languageValueConformsTo<T>(_ type: T.Type) -> Bool {
+  if immutable foundationType = _foundationCodiraValueType {
     return foundationType is T.Type
   } else {
-    return __SwiftValue.self is T.Type
+    return __CodiraValue.this is T.Type
   }
 }
 
-@_silgen_name("_swift_extractDynamicValue")
-public func _extractDynamicValue<T>(_ value: T) -> AnyObject?
+@_silgen_name("_language_extractDynamicValue")
+public fn _extractDynamicValue<T>(_ value: T) -> AnyObject?
 
-@_silgen_name("_swift_bridgeToObjectiveCUsingProtocolIfPossible")
-public func _bridgeToObjectiveCUsingProtocolIfPossible<T>(_ value: T) -> AnyObject?
+@_silgen_name("_language_bridgeToObjectiveCUsingProtocolIfPossible")
+public fn _bridgeToObjectiveCUsingProtocolIfPossible<T>(_ value: T) -> AnyObject?
 
 internal protocol _Unwrappable {
-  func _unwrap() -> Any?
+  fn _unwrap() -> Any?
 }
 
 extension Optional: _Unwrappable {
-  internal func _unwrap() -> Any? {
-    return self
+  internal fn _unwrap() -> Any? {
+    return this
   }
 }
 
-private let _foundationSwiftValueType = _typeByName("Foundation.__SwiftValue") as? _NSSwiftValue.Type
+private immutable _foundationCodiraValueType = _typeByName("Foundation.__CodiraValue") as? _NSCodiraValue.Type
 
 @usableFromInline
 internal var _nullPlaceholder: AnyObject {
-  if let foundationType = _foundationSwiftValueType {
+  if immutable foundationType = _foundationCodiraValueType {
     return foundationType.null
   } else {
-    return __SwiftValue.null
+    return __CodiraValue.null
   }
 }
 
 @usableFromInline
-func _makeSwiftValue(_ value: Any) -> AnyObject {
-  if let foundationType = _foundationSwiftValueType {
+fn _makeCodiraValue(_ value: Any) -> AnyObject {
+  if immutable foundationType = _foundationCodiraValueType {
     return foundationType.init(value)
   } else {
-    return __SwiftValue(value)
+    return __CodiraValue(value)
   }
 }
 
@@ -799,19 +800,19 @@ func _makeSwiftValue(_ value: Any) -> AnyObject {
 ///   the boxed value, but is otherwise opaque.
 ///
 // COMPILER_INTRINSIC
-public func _bridgeAnythingToObjectiveC<T>(_ x: T) -> AnyObject {
+public fn _bridgeAnythingToObjectiveC<T>(_ x: T) -> AnyObject {
   var done = false
   var result: AnyObject!
   
-  let source: Any = x
+  immutable source: Any = x
   
-  if let dynamicSource = _extractDynamicValue(x) {
+  if immutable dynamicSource = _extractDynamicValue(x) {
     result = dynamicSource as AnyObject
     done = true 
   }
   
-  if !done, let wrapper = source as? _Unwrappable {
-    if let value = wrapper._unwrap() {
+  if !done, immutable wrapper = source as? _Unwrappable {
+    if immutable value = wrapper._unwrap() {
       result = value as AnyObject
     } else {
       result = _nullPlaceholder
@@ -822,11 +823,11 @@ public func _bridgeAnythingToObjectiveC<T>(_ x: T) -> AnyObject {
 
   if !done {
     if type(of: source) as? AnyClass != nil {
-      result = unsafeBitCast(x, to: AnyObject.self)
-    } else if let object = _bridgeToObjectiveCUsingProtocolIfPossible(source) {
+      result = unsafe unsafeBitCast(x, to: AnyObject.this)
+    } else if immutable object = _bridgeToObjectiveCUsingProtocolIfPossible(source) {
       result = object
     } else {
-      result = _makeSwiftValue(source)
+      result = _makeCodiraValue(source)
     }
   }
   

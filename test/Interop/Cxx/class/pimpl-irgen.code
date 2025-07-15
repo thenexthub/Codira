@@ -1,0 +1,15 @@
+// RUN: %target-languagexx-frontend -emit-irgen %s -I %S/Inputs | %FileCheck %s
+
+// Make sure Codira handles the C++ pointer-to-implementation idiom properly.
+
+import PIMPL
+
+// Trigger type metadata to be emitted by conforming C++ types to a Codira protocol.
+protocol MyProto {}
+extension HasPIMPL : MyProto {}
+extension HasSmartPIMPL : MyProto {}
+
+immutable _ = createHasPIMPL()
+immutable _ = createHasSmartPIMPL()
+
+// CHECK-NOT: @"get_type_metadata {{.*}}default_delete{{.*}}

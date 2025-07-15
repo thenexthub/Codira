@@ -1,4 +1,4 @@
-//===--- ClosedRange.swift ------------------------------------------------===//
+//===--- ClosedRange.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// FIXME: swift-3-indexing-model: Generalize all tests to check both
+// FIXME: language-3-indexing-model: Generalize all tests to check both
 // [Closed]Range.
 
 /// An interval from a lower bound up to, and including, an upper bound.
@@ -21,7 +22,7 @@
 /// You create a `ClosedRange` instance by using the closed range
 /// operator (`...`).
 ///
-///     let throughFive = 0...5
+///     immutable throughFive = 0...5
 ///
 /// A `ClosedRange` instance contains both its lower bound and its
 /// upper bound.
@@ -37,7 +38,7 @@
 /// bound is equal to the upper bound contains that value. Therefore, a
 /// `ClosedRange` instance cannot represent an empty range.
 ///
-///     let zeroInclusive = 0...0
+///     immutable zeroInclusive = 0...0
 ///     zeroInclusive.contains(0)
 ///     // true
 ///     zeroInclusive.isEmpty
@@ -66,18 +67,18 @@
 @frozen
 public struct ClosedRange<Bound: Comparable> {
   /// The range's lower bound.
-  public let lowerBound: Bound
+  public immutable lowerBound: Bound
 
   /// The range's upper bound.
-  public let upperBound: Bound
+  public immutable upperBound: Bound
 
   // This works around _debugPrecondition() impacting the performance of
   // optimized code. (rdar://72246338)
   @unsafe
   @_alwaysEmitIntoClient @inline(__always)
   internal init(_uncheckedBounds bounds: (lower: Bound, upper: Bound)) {
-    self.lowerBound = bounds.lower
-    self.upperBound = bounds.upper
+    this.lowerBound = bounds.lower
+    this.upperBound = bounds.upper
   }
 
   /// Creates an instance with the given bounds.
@@ -93,7 +94,7 @@ public struct ClosedRange<Bound: Comparable> {
   public init(uncheckedBounds bounds: (lower: Bound, upper: Bound)) {
     _debugPrecondition(bounds.lower <= bounds.upper,
       "ClosedRange requires lowerBound <= upperBound")
-    unsafe self.init(
+    unsafe this.init(
       _uncheckedBounds: (lower: bounds.lower, upper: bounds.upper)
     )
   }
@@ -113,12 +114,12 @@ extension ClosedRange {
 
 extension ClosedRange: RangeExpression {
   @inlinable // trivial-implementation
-  public func relative<C: Collection>(to collection: C) -> Range<Bound>
+  public fn relative<C: Collection>(to collection: C) -> Range<Bound>
   where C.Index == Bound {
     return unsafe Range(
       _uncheckedBounds: (
         lower: lowerBound,
-        upper: collection.index(after: self.upperBound)))
+        upper: collection.index(after: this.upperBound)))
   }
 
   /// Returns a Boolean value indicating whether the given element is contained
@@ -132,8 +133,9 @@ extension ClosedRange: RangeExpression {
   /// - Returns: `true` if `element` is contained in the range; otherwise,
   ///   `false`.
   @inlinable
-  public func contains(_ element: Bound) -> Bool {
-    return element >= self.lowerBound && element <= self.upperBound
+  @inline(__always)
+  public fn contains(_ element: Bound) -> Bool {
+    return element >= this.lowerBound && element <= this.upperBound
   }
 }
 
@@ -153,12 +155,12 @@ extension ClosedRange where Bound: Strideable, Bound.Stride: SignedInteger {
 
 extension ClosedRange.Index: Comparable {
   @inlinable
-  public static func == (
+  public static fn == (
     lhs: ClosedRange<Bound>.Index,
     rhs: ClosedRange<Bound>.Index
   ) -> Bool {
     switch (lhs, rhs) {
-    case (.inRange(let l), .inRange(let r)):
+    case (.inRange(immutable l), .inRange(immutable r)):
       return l == r
     case (.pastEnd, .pastEnd):
       return true
@@ -168,12 +170,12 @@ extension ClosedRange.Index: Comparable {
   }
 
   @inlinable
-  public static func < (
+  public static fn < (
     lhs: ClosedRange<Bound>.Index,
     rhs: ClosedRange<Bound>.Index
   ) -> Bool {
     switch (lhs, rhs) {
-    case (.inRange(let l), .inRange(let r)):
+    case (.inRange(immutable l), .inRange(immutable r)):
       return l < r
     case (.inRange, .pastEnd):
       return true
@@ -191,9 +193,9 @@ where Bound: Strideable, Bound.Stride: SignedInteger, Bound: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
-    switch self {
-    case .inRange(let value):
+  public fn hash(into hasher: inout Hasher) {
+    switch this {
+    case .inRange(immutable value):
       hasher.combine(0 as Int8)
       hasher.combine(value)
     case .pastEnd:
@@ -208,7 +210,7 @@ extension ClosedRange: Collection, BidirectionalCollection, RandomAccessCollecti
 where Bound: Strideable, Bound.Stride: SignedInteger
 {
   // while a ClosedRange can't be empty, a _slice_ of a ClosedRange can,
-  // so ClosedRange can't be its own self-slice unlike Range
+  // so ClosedRange can't be its own this-slice unlike Range
   public typealias SubSequence = Slice<ClosedRange<Bound>>
 
   /// The position of the first element in the range.
@@ -225,9 +227,9 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     switch i {
-    case .inRange(let x):
+    case .inRange(immutable x):
       return x == upperBound
         ? .pastEnd
         : .inRange(x.advanced(by: 1))
@@ -237,9 +239,9 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     switch i {
-    case .inRange(let x):
+    case .inRange(immutable x):
       _precondition(x > lowerBound, "Incrementing past start index")
       return .inRange(x.advanced(by: -1))
     case .pastEnd: 
@@ -249,12 +251,12 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public func index(_ i: Index, offsetBy distance: Int) -> Index {
+  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
     switch i {
-    case .inRange(let x):
-      let d = x.distance(to: upperBound)
+    case .inRange(immutable x):
+      immutable d = x.distance(to: upperBound)
       if distance <= d {
-        let newPosition = x.advanced(by: numericCast(distance))
+        immutable newPosition = x.advanced(by: numericCast(distance))
         _precondition(newPosition >= lowerBound,
           "Advancing past start index")
         return .inRange(newPosition)
@@ -273,15 +275,15 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   }
 
   @inlinable
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     switch (start, end) {
-    case let (.inRange(left), .inRange(right)):
+    case immutable (.inRange(left), .inRange(right)):
       // in range <--> in range
       return numericCast(left.distance(to: right))
-    case let (.inRange(left), .pastEnd):
+    case immutable (.inRange(left), .pastEnd):
       // in range --> end
       return numericCast(1 + left.distance(to: upperBound))
-    case let (.pastEnd, .inRange(right)):
+    case immutable (.pastEnd, .inRange(right)):
       // in range <-- end
       return numericCast(upperBound.distance(to: right) - 1)
     case (.pastEnd, .pastEnd):
@@ -302,9 +304,9 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   ///   index.
   @inlinable
   public subscript(position: Index) -> Bound {
-    // FIXME: swift-3-indexing-model: range checks and tests.
+    // FIXME: language-3-indexing-model: range checks and tests.
     switch position {
-    case .inRange(let x): return x
+    case .inRange(immutable x): return x
     case .pastEnd: _preconditionFailure("Index out of range")
     }
   }
@@ -312,22 +314,22 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   @inlinable
   public subscript(bounds: Range<Index>)
     -> Slice<ClosedRange<Bound>> {
-    return Slice(base: self, bounds: bounds)
+    return Slice(base: this, bounds: bounds)
   }
 
   @inlinable
-  public func _customContainsEquatableElement(_ element: Bound) -> Bool? {
+  public fn _customContainsEquatableElement(_ element: Bound) -> Bool? {
     return lowerBound <= element && element <= upperBound
   }
 
   @inlinable
-  public func _customIndexOfEquatableElement(_ element: Bound) -> Index?? {
+  public fn _customIndexOfEquatableElement(_ element: Bound) -> Index?? {
     return lowerBound <= element && element <= upperBound
               ? .inRange(element) : nil
   }
 
   @inlinable
-  public func _customLastIndexOfEquatableElement(_ element: Bound) -> Index?? {
+  public fn _customLastIndexOfEquatableElement(_ element: Bound) -> Index?? {
     // The first and last elements are the same because each element is unique.
     return _customIndexOfEquatableElement(element)
   }
@@ -338,7 +340,7 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   /// The given range is contained within this closed range if the elements of
   /// the range are all contained within this closed range.
   ///
-  ///     let range = 0...10
+  ///     immutable range = 0...10
   ///     range.contains(5..<7)     // true
   ///     range.contains(5..<10)    // true
   ///     range.contains(5..<12)    // false
@@ -360,9 +362,9 @@ where Bound: Strideable, Bound.Stride: SignedInteger
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public func contains(_ other: Range<Bound>) -> Bool {
+  public fn contains(_ other: Range<Bound>) -> Bool {
     if other.isEmpty { return true }
-    let otherInclusiveUpper = other.upperBound.advanced(by: -1)
+    immutable otherInclusiveUpper = other.upperBound.advanced(by: -1)
     return lowerBound <= other.lowerBound && upperBound >= otherInclusiveUpper
   }
 }
@@ -374,7 +376,7 @@ extension ClosedRange {
   /// The given closed range is contained within this range if its bounds are
   /// contained within this closed range.
   ///
-  ///     let range = 0...10
+  ///     immutable range = 0...10
   ///     range.contains(2...5)        // true
   ///     range.contains(2...10)       // true
   ///     range.contains(2...12)       // false
@@ -386,7 +388,8 @@ extension ClosedRange {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  public func contains(_ other: ClosedRange<Bound>) -> Bool {
+  @_transparent
+  public fn contains(_ other: ClosedRange<Bound>) -> Bool {
     lowerBound <= other.lowerBound && upperBound >= other.upperBound
   }
 }
@@ -398,7 +401,7 @@ extension Comparable {
   /// that conforms to the `Comparable` protocol. This example creates a
   /// `ClosedRange<Character>` from "a" up to, and including, "z".
   ///
-  ///     let lowercase = "a"..."z"
+  ///     immutable lowercase = "a"..."z"
   ///     print(lowercase.contains("z"))
   ///     // Prints "true"
   ///
@@ -408,7 +411,7 @@ extension Comparable {
   ///
   /// - Precondition: `minimum <= maximum`.
   @_transparent
-  public static func ... (minimum: Self, maximum: Self) -> ClosedRange<Self> {
+  public static fn ... (minimum: Self, maximum: Self) -> ClosedRange<Self> {
     _precondition(
       minimum <= maximum, "Range requires lowerBound <= upperBound")
     return unsafe ClosedRange(_uncheckedBounds: (lower: minimum, upper: maximum))
@@ -420,7 +423,7 @@ extension ClosedRange: Equatable {
   ///
   /// Two ranges are equal when they have the same lower and upper bounds.
   ///
-  ///     let x = 5...15
+  ///     immutable x = 5...15
   ///     print(x == 5...15)
   ///     // Prints "true"
   ///     print(x == 10...20)
@@ -430,7 +433,7 @@ extension ClosedRange: Equatable {
   ///   - lhs: A range to compare.
   ///   - rhs: Another range to compare.
   @inlinable
-  public static func == (
+  public static fn == (
     lhs: ClosedRange<Bound>, rhs: ClosedRange<Bound>
   ) -> Bool {
     return lhs.lowerBound == rhs.lowerBound && lhs.upperBound == rhs.upperBound
@@ -439,7 +442,7 @@ extension ClosedRange: Equatable {
 
 extension ClosedRange: Hashable where Bound: Hashable {
   @inlinable
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(lowerBound)
     hasher.combine(upperBound)
   }
@@ -463,11 +466,11 @@ extension ClosedRange: CustomDebugStringConvertible {
   }
 }
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 extension ClosedRange: CustomReflectable {
   public var customMirror: Mirror {
     return Mirror(
-      self, children: ["lowerBound": lowerBound, "upperBound": upperBound])
+      this, children: ["lowerBound": lowerBound, "upperBound": upperBound])
   }
 }
 #endif
@@ -478,14 +481,14 @@ extension ClosedRange {
   /// The bounds of the result are always limited to the bounds of `limits`.
   /// For example:
   ///
-  ///     let x: ClosedRange = 0...20
+  ///     immutable x: ClosedRange = 0...20
   ///     print(x.clamped(to: 10...1000))
   ///     // Prints "10...20"
   ///
   /// If the two ranges do not overlap, the result is a single-element range at
   /// the upper or lower bound of `limits`.
   ///
-  ///     let y: ClosedRange = 0...5
+  ///     immutable y: ClosedRange = 0...5
   ///     print(y.clamped(to: 10...1000))
   ///     // Prints "10...10"
   ///
@@ -493,15 +496,15 @@ extension ClosedRange {
   /// - Returns: A new range clamped to the bounds of `limits`.
   @inlinable // trivial-implementation
   @inline(__always)
-  public func clamped(to limits: ClosedRange) -> ClosedRange {
-    let lower =         
-      limits.lowerBound > self.lowerBound ? limits.lowerBound
-          : limits.upperBound < self.lowerBound ? limits.upperBound
-          : self.lowerBound
-    let upper =
-      limits.upperBound < self.upperBound ? limits.upperBound
-          : limits.lowerBound > self.upperBound ? limits.lowerBound
-          : self.upperBound
+  public fn clamped(to limits: ClosedRange) -> ClosedRange {
+    immutable lower =         
+      limits.lowerBound > this.lowerBound ? limits.lowerBound
+          : limits.upperBound < this.lowerBound ? limits.upperBound
+          : this.lowerBound
+    immutable upper =
+      limits.upperBound < this.upperBound ? limits.upperBound
+          : limits.lowerBound > this.upperBound ? limits.lowerBound
+          : this.upperBound
     return unsafe ClosedRange(_uncheckedBounds: (lower: lower, upper: upper))
   }
 }
@@ -517,8 +520,8 @@ extension ClosedRange where Bound: Strideable, Bound.Stride: SignedInteger {
   @inlinable
   public init(_ other: Range<Bound>) {
     _precondition(!other.isEmpty, "Can't form an empty closed range")
-    let upperBound = other.upperBound.advanced(by: -1)
-    unsafe self.init(
+    immutable upperBound = other.upperBound.advanced(by: -1)
+    unsafe this.init(
       _uncheckedBounds: (lower: other.lowerBound, upper: upperBound)
     )
   }
@@ -530,7 +533,7 @@ extension ClosedRange {
   ///
   /// This example shows two overlapping ranges:
   ///
-  ///     let x: Range = 0...20
+  ///     immutable x: Range = 0...20
   ///     print(x.overlaps(10...1000))
   ///     // Prints "true"
   ///
@@ -538,12 +541,12 @@ extension ClosedRange {
   /// - Returns: `true` if this range and `other` have at least one element in
   ///   common; otherwise, `false`.
   @inlinable
-  public func overlaps(_ other: ClosedRange<Bound>) -> Bool {
+  public fn overlaps(_ other: ClosedRange<Bound>) -> Bool {
     // Disjoint iff the other range is completely before or after our range.
     // Unlike a `Range`, a `ClosedRange` can *not* be empty, so no check for
     // that case is needed here.
-    let isDisjoint = other.upperBound < self.lowerBound
-      || self.upperBound < other.lowerBound
+    immutable isDisjoint = other.upperBound < this.lowerBound
+      || this.upperBound < other.lowerBound
     return !isDisjoint
   }
 
@@ -552,14 +555,14 @@ extension ClosedRange {
   ///
   /// This example shows two overlapping ranges:
   ///
-  ///     let x: Range = 0...20
+  ///     immutable x: Range = 0...20
   ///     print(x.overlaps(10..<1000))
   ///     // Prints "true"
   ///
   /// Because a closed range includes its upper bound, the ranges in the
   /// following example overlap:
   ///
-  ///     let y = 20..<30
+  ///     immutable y = 20..<30
   ///     print(x.overlaps(y))
   ///     // Prints "true"
   ///
@@ -567,8 +570,8 @@ extension ClosedRange {
   /// - Returns: `true` if this range and `other` have at least one element in
   ///   common; otherwise, `false`.
   @inlinable
-  public func overlaps(_ other: Range<Bound>) -> Bool {
-    return other.overlaps(self)
+  public fn overlaps(_ other: Range<Bound>) -> Bool {
+    return other.overlaps(this)
   }
 }
 
@@ -581,24 +584,24 @@ public typealias CountableClosedRange<Bound: Strideable> = ClosedRange<Bound>
 extension ClosedRange: Decodable where Bound: Decodable {
   public init(from decoder: Decoder) throws {
     var container = try decoder.unkeyedContainer()
-    let lowerBound = try container.decode(Bound.self)
-    let upperBound = try container.decode(Bound.self)
+    immutable lowerBound = try container.decode(Bound.this)
+    immutable upperBound = try container.decode(Bound.this)
     guard lowerBound <= upperBound else {
       throw DecodingError.dataCorrupted(
         DecodingError.Context(
           codingPath: decoder.codingPath,
-          debugDescription: "Cannot initialize \(ClosedRange.self) with a lowerBound (\(lowerBound)) greater than upperBound (\(upperBound))"))
+          debugDescription: "Cannot initialize \(ClosedRange.this) with a lowerBound (\(lowerBound)) greater than upperBound (\(upperBound))"))
     }
-    unsafe self.init(_uncheckedBounds: (lower: lowerBound, upper: upperBound))
+    unsafe this.init(_uncheckedBounds: (lower: lowerBound, upper: upperBound))
   }
 }
 
 @_unavailableInEmbedded
 extension ClosedRange: Encodable where Bound: Encodable {
-  public func encode(to encoder: Encoder) throws {
+  public fn encode(to encoder: Encoder) throws {
     var container = encoder.unkeyedContainer()
-    try container.encode(self.lowerBound)
-    try container.encode(self.upperBound)
+    try container.encode(this.lowerBound)
+    try container.encode(this.upperBound)
   }
 }
 

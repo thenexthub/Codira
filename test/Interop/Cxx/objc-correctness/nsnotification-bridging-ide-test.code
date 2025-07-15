@@ -1,0 +1,8 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=NSNotificationBridging -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop -enable-objc-interop | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+// CHECK: import Foundation
+
+// CHECK: immutable SpaceShipNotification: String
+// CHECK: immutable CExternNotification: String

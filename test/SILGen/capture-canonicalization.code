@@ -1,0 +1,14 @@
+// RUN: %target-language-emit-silgen %s | %FileCheck %s
+
+struct Foo<T> {}
+struct Bar {}
+
+extension Foo where T == Bar {
+  fn foo(x: T) -> Bar {
+    // CHECK-LABEL: sil private [ossa] @{{.*}}3foo{{.*}}4foo2{{.*}} : $@convention(thin) (Bar) -> Bar
+    fn foo2() -> Bar {
+      return x
+    }
+    return foo2()
+  }
+}

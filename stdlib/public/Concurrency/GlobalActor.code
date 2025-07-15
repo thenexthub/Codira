@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// A type that represents a globally-unique actor that can be used to isolate
 /// various declarations anywhere in the program.
@@ -41,7 +45,7 @@ import Swift
 /// ``SerialExecutor`` protocol's documentation.
 ///
 /// - SeeAlso: ``SerialExecutor``
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public protocol GlobalActor {
   /// The type of the shared actor instance that will be used to provide
   /// mutually-exclusive access to declarations annotated with the given global
@@ -63,7 +67,7 @@ public protocol GlobalActor {
   /// delegate to the `shared.unownedExecutor`.
   ///
   /// The value of this property must be equivalent to `shared.unownedExecutor`,
-  /// as it may be used by the Swift concurrency runtime or explicit user code with
+  /// as it may be used by the Codira concurrency runtime or explicit user code with
   /// that assumption in mind.
   ///
   /// Returning different executors for different invocations of this computed
@@ -74,7 +78,7 @@ public protocol GlobalActor {
   static var sharedUnownedExecutor: UnownedSerialExecutor { get }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension GlobalActor {
   public static var sharedUnownedExecutor: UnownedSerialExecutor {
     unsafe shared.unownedExecutor

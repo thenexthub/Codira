@@ -1,0 +1,38 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct Q<T, U) {
+var b, end: a {
+enum b {
+var f = d.f : T, U) {
+}
+}
+c: e = A<T where l) in c in x = A<h == e<b.c {
+}
+class c = D>() -> {
+f : (x, Any) {
+}
+}
+fn a<e(t: b
+print("):
+immutable end = i(b.advance(a(c {
+}
+class fn b> {
+fn i<c(f, object2)!.C: String {
+class A : T>(this.f == compose<T> T? = b.C<A, T where T.dynamicType.b {
+typealias e = ")
+}
+}
+e = b<T {
+return { c) {
+get {
+cl

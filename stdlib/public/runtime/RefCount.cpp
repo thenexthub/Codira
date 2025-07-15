@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include <cstdio>
@@ -25,7 +26,7 @@ namespace language {
 template <>
 HeapObjectSideTableEntry* RefCounts<InlineRefCountBits>::allocateSideTable(bool failIfDeiniting)
 {
-  auto oldbits = refCounts.load(SWIFT_MEMORY_ORDER_CONSUME);
+  auto oldbits = refCounts.load(LANGUAGE_MEMORY_ORDER_CONSUME);
 
   // Preflight failures before allocating a new side table.
   if (oldbits.hasSideTable()) {
@@ -40,7 +41,7 @@ HeapObjectSideTableEntry* RefCounts<InlineRefCountBits>::allocateSideTable(bool 
   // Preflight passed. Allocate a side table.
 
   // FIXME: custom side table allocator
-  auto side = swift_cxx_newObject<HeapObjectSideTableEntry>(getHeapObject());
+  auto side = language_cxx_newObject<HeapObjectSideTableEntry>(getHeapObject());
 
   auto newbits = InlineRefCountBits(side);
 
@@ -49,7 +50,7 @@ HeapObjectSideTableEntry* RefCounts<InlineRefCountBits>::allocateSideTable(bool 
       // Already have a side table. Return it and delete ours.
       // Read before delete to streamline barriers.
       auto result = oldbits.getSideTable();
-      swift_cxx_deleteObject(side);
+      language_cxx_deleteObject(side);
       return result;
     }
     else if (failIfDeiniting && oldbits.getIsDeiniting()) {
@@ -93,7 +94,7 @@ HeapObject *RefCounts<SideTableRefCountBits>::incrementSlow(SideTableRefCountBit
   }
   else {
     // Retain count overflow.
-    swift::swift_abortRetainOverflow();
+    language::language_abortRetainOverflow();
   }
   return getHeapObject();
 }
@@ -119,7 +120,7 @@ void RefCounts<SideTableRefCountBits>::incrementNonAtomicSlow(SideTableRefCountB
   if (oldbits.isImmortal(false)) {
     return;
   } else {
-    swift::swift_abortRetainOverflow();
+    language::language_abortRetainOverflow();
   }
 }
 
@@ -131,7 +132,7 @@ bool RefCounts<RefCountBits>::tryIncrementSlow(RefCountBits oldbits) {
   else if (oldbits.hasSideTable())
     return oldbits.getSideTable()->tryIncrement();
   else
-    swift::swift_abortRetainOverflow();
+    language::language_abortRetainOverflow();
 }
 template bool RefCounts<InlineRefCountBits>::tryIncrementSlow(InlineRefCountBits oldbits);
 template bool RefCounts<SideTableRefCountBits>::tryIncrementSlow(SideTableRefCountBits oldbits);
@@ -144,7 +145,7 @@ bool RefCounts<RefCountBits>::tryIncrementNonAtomicSlow(RefCountBits oldbits) {
   else if (oldbits.hasSideTable())
     return oldbits.getSideTable()->tryIncrementNonAtomic();
   else
-    swift::swift_abortRetainOverflow();
+    language::language_abortRetainOverflow();
 }
 template bool RefCounts<InlineRefCountBits>::tryIncrementNonAtomicSlow(InlineRefCountBits oldbits);
 template bool RefCounts<SideTableRefCountBits>::tryIncrementNonAtomicSlow(SideTableRefCountBits oldbits);
@@ -166,18 +167,18 @@ void RefCounts<RefCountBits>::incrementUnownedSlow(uint32_t n) {
   if (side)
     return side->incrementUnowned(n);
   // Overflow but side table allocation failed.
-  swift_abortUnownedRetainOverflow();
+  language_abortUnownedRetainOverflow();
 }
 
 template void RefCounts<InlineRefCountBits>::incrementUnownedSlow(uint32_t n);
 template <>
 void RefCounts<SideTableRefCountBits>::incrementUnownedSlow(uint32_t n) {
   // Overflow from side table to a new side table?!
-  swift_abortUnownedRetainOverflow();
+  language_abortUnownedRetainOverflow();
 }
   
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-void _swift_stdlib_immortalize(void *obj) {
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+void _language_stdlib_immortalize(void *obj) {
   auto heapObj = reinterpret_cast<HeapObject *>(obj);
   heapObj->refCounts.setIsImmortal(true);
 }

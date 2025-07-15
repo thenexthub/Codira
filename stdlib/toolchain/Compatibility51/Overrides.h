@@ -1,4 +1,4 @@
-//===--- Overrides.h - Compat overrides for Swift 5.0 runtime ------s------===//
+//===--- Overrides.h - Compat overrides for Codira 5.0 runtime ------s------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file provides compatibility override hooks for Swift 5.1 runtimes.
+//  This file provides compatibility override hooks for Codira 5.1 runtimes.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Metadata.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
-using ConformsToSwiftProtocol_t =
+using ConformsToCodiraProtocol_t =
   const ProtocolConformanceDescriptor *(const Metadata * const type,
                                         const ProtocolDescriptor *protocol,
-                                        llvm::StringRef moduleName);
+                                        toolchain::StringRef moduleName);
 
 const ProtocolConformanceDescriptor *
-swift51override_conformsToSwiftProtocol(const Metadata * const type,
+language51override_conformsToCodiraProtocol(const Metadata * const type,
                                         const ProtocolDescriptor *protocol,
-                                        llvm::StringRef moduleName,
-                                        ConformsToSwiftProtocol_t *original);
+                                        toolchain::StringRef moduleName,
+                                        ConformsToCodiraProtocol_t *original);
 
 } // end namespace language

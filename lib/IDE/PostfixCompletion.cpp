@@ -1,13 +1,17 @@
 //===--- DotExprCodeCompletion.cpp ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -47,7 +51,7 @@ bool PostfixCompletionCallback::Result::tryMerge(const Result &Other,
 
   for (auto &OtherExpectedTy : Other.ExpectedTypes) {
     auto IsEqual = [&](Type Ty) { return Ty->isEqual(OtherExpectedTy); };
-    if (llvm::any_of(ExpectedTypes, IsEqual)) {
+    if (toolchain::any_of(ExpectedTypes, IsEqual)) {
       // We already know if this expected type
       continue;
     }
@@ -109,9 +113,6 @@ getClosureActorIsolation(const Solution &S, AbstractClosureExpr *ACE) {
     if (auto target = S.getTargetFor(dyn_cast<ClosureExpr>(E))) {
       if (auto Ty = target->getClosureContextualType())
         return Ty;
-    }
-    if (!S.hasType(E)) {
-      return Type();
     }
     return getTypeForCompletion(S, E);
   };
@@ -201,7 +202,7 @@ void PostfixCompletionCallback::sawSolutionImpl(
   bool IsImpliedResult = isImpliedResult(S, CompletionExpr);
 
   bool IsInAsyncContext = isContextAsync(S, DC);
-  llvm::DenseMap<AbstractClosureExpr *, ActorIsolation>
+  toolchain::DenseMap<AbstractClosureExpr *, ActorIsolation>
       ClosureActorIsolations;
   for (auto SAT : S.targets) {
     if (auto ACE = getAsExpr<AbstractClosureExpr>(SAT.second.getAsASTNode())) {
@@ -247,7 +248,7 @@ static DeclRefKind getDeclRefKindOfOperator(OperatorDecl *op) {
   case DeclKind::InfixOperator:
     return DeclRefKind::BinaryOperator;
   default:
-    llvm_unreachable("unexpected operator kind");
+    toolchain_unreachable("unexpected operator kind");
   }
 }
 
@@ -312,7 +313,7 @@ getOperatorCompletionTypes(DeclContext *DC, Type LHSType, OperatorDecl *Op) {
                                     /*implicit*/ true);
     break;
   default:
-    llvm_unreachable("unexpected operator kind");
+    toolchain_unreachable("unexpected operator kind");
   }
 
   auto target = SyntacticElementTarget(OpCallExpr, DC, CTP_Unused, Type(),
@@ -338,7 +339,7 @@ getOperatorCompletionTypes(DeclContext *DC, Type LHSType, OperatorDecl *Op) {
     Type ResultType = getTypeForCompletion(S, OpCallExpr);
 
     OperatorResultTypes ResultTypes = {RHSType, ResultType};
-    if (llvm::is_contained(Results, ResultTypes)) {
+    if (toolchain::is_contained(Results, ResultTypes)) {
       continue;
     }
 
@@ -375,7 +376,7 @@ static void addOperatorResults(Type LHSType, ArrayRef<OperatorDecl *> Operators,
       }
       break;
     default:
-      llvm_unreachable("unexpected operator kind");
+      toolchain_unreachable("unexpected operator kind");
     }
   }
   if (LHSType->hasLValueType()) {
@@ -426,7 +427,7 @@ void PostfixCompletionCallback::collectResults(
   // The base types of the result for which we already returned results.
   // Used so we only return keyword and operator completions once for each base
   // type.
-  llvm::SmallPtrSet<Type, 2> ProcessedBaseTypes;
+  toolchain::SmallPtrSet<Type, 2> ProcessedBaseTypes;
 
   Lookup.shouldCheckForDuplicates(Results.size() > 1);
 

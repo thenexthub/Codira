@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the WitnessIndex type, used for drilling into a
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_WITNESSINDEX_H
-#define SWIFT_IRGEN_WITNESSINDEX_H
+#ifndef LANGUAGE_IRGEN_WITNESSINDEX_H
+#define LANGUAGE_IRGEN_WITNESSINDEX_H
 
 #include "language/ABI/MetadataValues.h"
 #include "language/IRGen/ValueWitness.h"

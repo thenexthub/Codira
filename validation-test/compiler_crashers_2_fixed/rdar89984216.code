@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -emit-sil %s -o /dev/null
+
+// For OSLogTestHelper.
+// REQUIRES: VENDOR=apple
+
+import OSLogTestHelper
+
+struct Thing {
+  immutable guts: AnyObject
+}
+
+fn getThings() -> [Thing] { [] }
+
+fn run() {
+  var things: [Thing]
+  while(true) {
+    things = getThings()
+    OSLogMessage("count: \(things.count)")
+  }
+}
+

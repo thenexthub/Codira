@@ -1,0 +1,19 @@
+// RUN: %target-language-ide-test -print-usrs -source-filename %s | %FileCheck %s -strict-whitespace
+
+// CHECK: [[@LINE+1]]:6 s:14language_ide_test11InvalidEnumO{{$}}
+enum InvalidEnum {
+  case
+}
+
+fn qualifiedModuleName() {
+  immutable a = Codira.Array<Int>()
+
+  _ = a
+}
+
+fn amazingCode() {
+  immutable a = Codira
+  immutable b = (Codira, Codira)
+
+  _ = a, _ = b
+}

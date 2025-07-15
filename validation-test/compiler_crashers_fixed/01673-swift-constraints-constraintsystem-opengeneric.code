@@ -1,0 +1,25 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn g<d: a {
+protocol a {
+}
+typealias C {
+fn b: a {
+}
+}
+d<U -> ("cd"
+"a: C(Any) -> {
+class b<d: b where B == g<T>>(n: c: Int>, length: A".Element>(f(h>(b: Int = 1)
+case c, e: P {
+class fn x(")
+immutable h = b:

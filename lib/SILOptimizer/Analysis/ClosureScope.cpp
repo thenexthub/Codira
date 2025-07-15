@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Implementation of ClosureScopeAnalysis.
@@ -25,7 +26,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/iterator.h"
+#include "toolchain/ADT/iterator.h"
 
 namespace language {
 
@@ -51,10 +52,10 @@ class ClosureGraph {
   };
 
   using EdgePos = std::vector<Edge>::iterator;
-  using EdgeRange = llvm::iterator_range<EdgePos>;
+  using EdgeRange = toolchain::iterator_range<EdgePos>;
 
   struct NodeIterator
-      : llvm::iterator_adaptor_base<
+      : toolchain::iterator_adaptor_base<
             NodeIterator, EdgePos, std::random_access_iterator_tag,
             SILFunction *, ptrdiff_t, SILFunction *, SILFunction *> {
 
@@ -91,7 +92,7 @@ class ClosureGraph {
   // be referenced recursively, even within a different closure. Notice that
   // capturedInt is captured from the outer-most function, but is passed down
   //
-  //   func localFunc(b: Apply) {
+  //   fn localFunc(b: Apply) {
   //     capturedInt += 1
   //     let closure = { (c: Apply) in
   //       c.apply(localFunc)
@@ -147,7 +148,7 @@ protected:
 
   void finalize();
 
-  SWIFT_ASSERT_ONLY_DECL(void dump());
+  LANGUAGE_ASSERT_ONLY_DECL(void dump());
 };
 
 bool ClosureGraph::visitClosureScopes(
@@ -176,8 +177,8 @@ void ClosureGraph::erase(SILFunction *function) {
       return edge.from == function || edge.to == function;
     }
   };
-  llvm::erase_if(functionToClosures, RefersToFunction{function});
-  llvm::erase_if(closureToFunctions, RefersToFunction{function});
+  toolchain::erase_if(functionToClosures, RefersToFunction{function});
+  toolchain::erase_if(closureToFunctions, RefersToFunction{function});
 }
 
 // Handle both partial_apply and directly applied closures of the form:
@@ -211,31 +212,31 @@ void ClosureGraph::recordScope(ApplySite apply) {
 }
 
 void ClosureGraph::finalize() {
-  llvm::stable_sort(functionToClosures);
-  llvm::stable_sort(closureToFunctions);
+  toolchain::stable_sort(functionToClosures);
+  toolchain::stable_sort(closureToFunctions);
 
-  LLVM_DEBUG(dump());
+  TOOLCHAIN_DEBUG(dump());
 }
 
 #ifndef NDEBUG
 static void dumpFunctionName(SILFunction *function) {
   auto opts = Demangle::DemangleOptions::SimplifiedUIDemangleOptions();
   opts.ShowAsyncResumePartial = true;
-  llvm::dbgs() << Demangle::demangleSymbolAsString(function->getName(), opts)
+  toolchain::dbgs() << Demangle::demangleSymbolAsString(function->getName(), opts)
                << " '" << function->getName() << "'\n";
 }
 
 void ClosureGraph::dump() {
-  llvm::dbgs() << "\n";
+  toolchain::dbgs() << "\n";
   SILFunction *currentFunc = nullptr;
   for (auto &edge : functionToClosures) {
     auto *scopeFunc = edge.from;
     if (currentFunc != scopeFunc) {
       currentFunc = scopeFunc;
-      llvm::dbgs() << "SCOPE: ";
+      toolchain::dbgs() << "SCOPE: ";
       dumpFunctionName(scopeFunc);
     }
-    llvm::dbgs() << "    CLOSURE: ";
+    toolchain::dbgs() << "    CLOSURE: ";
     dumpFunctionName(edge.to);
   }
   currentFunc = nullptr;
@@ -243,10 +244,10 @@ void ClosureGraph::dump() {
     auto *closure = edge.from;
     if (currentFunc != closure) {
       currentFunc = closure;
-      llvm::dbgs() << "CLOSURE: ";
+      toolchain::dbgs() << "CLOSURE: ";
       dumpFunctionName(closure);
     }
-    llvm::dbgs() << "    SCOPE: ";
+    toolchain::dbgs() << "    SCOPE: ";
     dumpFunctionName(edge.to);
   }
 }
@@ -304,8 +305,8 @@ SILAnalysis *createClosureScopeAnalysis(SILModule *M) {
 class ClosureFunctionOrder::ClosureDFS {
   ClosureFunctionOrder &functionOrder;
 
-  llvm::SmallBitVector visited;
-  llvm::SmallBitVector finished;
+  toolchain::SmallBitVector visited;
+  toolchain::SmallBitVector finished;
 
   SmallVector<SILFunction *, 4> postorderClosures;
 
@@ -327,8 +328,8 @@ public:
 
     // Closures are discovered in postorder, bottom-up.
     // Reverse-append them onto the top-down function list.
-    llvm::append_range(functionOrder.topDownFunctions,
-                       llvm::reverse(postorderClosures));
+    toolchain::append_range(functionOrder.topDownFunctions,
+                       toolchain::reverse(postorderClosures));
   }
 
 protected:
@@ -386,17 +387,17 @@ void ClosureFunctionOrder::compute() {
   for (auto *closure : closureWorklist) {
     dfs.performDFS(closure);
   }
-  LLVM_DEBUG(dump());
+  TOOLCHAIN_DEBUG(dump());
   assert(numFunctions == topDownFunctions.size() && "DFS missed a function");
 }
 
 #ifndef NDEBUG
 void ClosureFunctionOrder::dump() {
-  llvm::dbgs() << "\nRPO function order:\n";
+  toolchain::dbgs() << "\nRPO function order:\n";
   for (auto *function : getTopDownFunctions()) {
-    llvm::dbgs() << "[" << function->getIndex() << "] ";
+    toolchain::dbgs() << "[" << function->getIndex() << "] ";
     if (isHeadOfClosureCycle(function))
-      llvm::dbgs() << "CYCLE HEAD: ";
+      toolchain::dbgs() << "CYCLE HEAD: ";
 
     dumpFunctionName(function);
   }

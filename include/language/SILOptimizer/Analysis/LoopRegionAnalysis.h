@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Purpose
@@ -116,8 +117,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_LOOPNESTANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_LOOPNESTANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_LOOPNESTANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_LOOPNESTANALYSIS_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/Basic/BlotSetVector.h"
@@ -129,7 +130,7 @@
 #include "language/SIL/LoopInfo.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -141,7 +142,7 @@ namespace language {
 /// data is tail allocated so that the basic block case is not penalized by
 /// storing this unnecessary information.
 class LoopRegion {
-  // FIXME: This should use llvm::TrailingObjects for its tail allocations, but
+  // FIXME: This should use toolchain::TrailingObjects for its tail allocations, but
   // that requires restructuring the file a bit.
 
   /// This is a data structure that is an unsigned integer with a top bit flag
@@ -243,8 +244,8 @@ public:
   /// region.
   class subregion_iterator {
     friend struct SubregionData;
-    llvm::SmallVectorImpl<SubregionID>::const_iterator InnerIter;
-    const llvm::SmallVectorImpl<std::pair<unsigned, unsigned>> *Subloops;
+    toolchain::SmallVectorImpl<SubregionID>::const_iterator InnerIter;
+    const toolchain::SmallVectorImpl<std::pair<unsigned, unsigned>> *Subloops;
 
     /// A flag that says that this iterator is an invalid iterator belonging to
     /// a basic block. The iterator can only be compared against another invalid
@@ -258,8 +259,8 @@ public:
     unsigned IsInvalid : 1;
 
     subregion_iterator(
-        llvm::SmallVectorImpl<SubregionID>::const_iterator iter,
-        const llvm::SmallVectorImpl<std::pair<unsigned, unsigned>> *subloops)
+        toolchain::SmallVectorImpl<SubregionID>::const_iterator iter,
+        const toolchain::SmallVectorImpl<std::pair<unsigned, unsigned>> *subloops)
         : InnerIter(iter), Subloops(subloops), IsInvalid(false) {}
 
   public:
@@ -278,7 +279,7 @@ public:
     /// Return the index of the current subregion index.
     unsigned operator*() const {
       if (IsInvalid)
-        llvm_unreachable("Invalid Iterator?!");
+        toolchain_unreachable("Invalid Iterator?!");
       auto ID = *InnerIter;
       if (!ID.IsLoop)
         return ID.ID;
@@ -287,36 +288,36 @@ public:
           return p.second;
         }
       }
-      llvm_unreachable("Out of sync subloops array?!");
+      toolchain_unreachable("Out of sync subloops array?!");
     }
 
     subregion_iterator &operator++() {
       if (IsInvalid)
-        llvm_unreachable("Invalid Iterator?!");
+        toolchain_unreachable("Invalid Iterator?!");
       InnerIter++;
       return *this;
     }
     subregion_iterator operator++(int) {
       if (IsInvalid)
-        llvm_unreachable("Invalid Iterator?!");
+        toolchain_unreachable("Invalid Iterator?!");
       return subregion_iterator(InnerIter++, Subloops);
     }
     subregion_iterator &operator--() {
       if (IsInvalid)
-        llvm_unreachable("Invalid Iterator?!");
+        toolchain_unreachable("Invalid Iterator?!");
       InnerIter--;
       return *this;
     }
     subregion_iterator operator--(int) {
       if (IsInvalid)
-        llvm_unreachable("Invalid Iterator?!");
+        toolchain_unreachable("Invalid Iterator?!");
       return subregion_iterator(InnerIter--, Subloops);
     }
     bool operator==(subregion_iterator rhs) const {
       if (IsInvalid) {
         if (rhs.IsInvalid)
           return true;
-        llvm_unreachable("Invalid Iterator?!");
+        toolchain_unreachable("Invalid Iterator?!");
       }
       return InnerIter == rhs.InnerIter;
     }
@@ -328,10 +329,10 @@ public:
   /// region.
   class backedge_iterator {
     friend struct SubregionData;
-    using InnerIterTy = llvm::SmallVectorImpl<unsigned>::const_iterator;
+    using InnerIterTy = toolchain::SmallVectorImpl<unsigned>::const_iterator;
     std::optional<InnerIterTy> InnerIter;
 
-    backedge_iterator(llvm::SmallVectorImpl<unsigned>::const_iterator iter)
+    backedge_iterator(toolchain::SmallVectorImpl<unsigned>::const_iterator iter)
         : InnerIter(iter) {}
 
   public:
@@ -372,7 +373,7 @@ public:
     }
     bool operator==(backedge_iterator rhs) const {
       if (InnerIter.has_value() != rhs.InnerIter.has_value())
-        llvm_unreachable("Comparing uncomparable iterators");
+        toolchain_unreachable("Comparing uncomparable iterators");
       // Now we know that the two either both have values or both do not have
       // values.
       if (!InnerIter.has_value())
@@ -386,7 +387,7 @@ public:
 private:
   /// A pointer to one of a Loop, Basic Block, or Function represented by this
   /// region.
-  llvm::PointerUnion<FunctionTy *, LoopTy *, BlockTy *> Ptr;
+  toolchain::PointerUnion<FunctionTy *, LoopTy *, BlockTy *> Ptr;
 
   /// The ID of this region.
   unsigned ID;
@@ -395,7 +396,7 @@ private:
   std::optional<unsigned> ParentID;
 
   /// The IDs of the predecessor regions of this region.
-  llvm::SmallVector<unsigned, 4> Preds;
+  toolchain::SmallVector<unsigned, 4> Preds;
 
   /// The IDs of the local and non-local successor regions of this region.
   ///
@@ -452,7 +453,7 @@ private:
     /// have exactly one back edge block. But we want to be correct even in a
     /// non-canonicalized case implying that we need to be able to support
     /// multiple backedge blocks.
-    llvm::SmallVector<unsigned, 1> BackedgeRegions;
+    toolchain::SmallVector<unsigned, 1> BackedgeRegions;
 
     /// A list of subregion IDs of this region sorted in RPO order.
     ///
@@ -463,16 +464,16 @@ private:
     /// subregions of this region. What is key to notice is that a loop is
     /// represented by the RPO number of its header. We use an auxiliary map to
     /// map the preheader's RPO number to the loop's ID.
-    llvm::SmallVector<SubregionID, 16> Subregions;
+    toolchain::SmallVector<SubregionID, 16> Subregions;
 
     /// A map from RPO number of a subregion loop's preheader to a subloop
     /// regions id. This is necessary since we represent a loop in the
     /// Subregions array by the RPO number of its header.
-    llvm::SmallVector<std::pair<unsigned, unsigned>, 2> Subloops;
+    toolchain::SmallVector<std::pair<unsigned, unsigned>, 2> Subloops;
 
     /// A list of subregions with non-local successors. This is the actual ID
     /// of the subregion since we do not care about any ordering.
-    llvm::SmallVector<unsigned, 2> ExitingSubregions;
+    toolchain::SmallVector<unsigned, 2> ExitingSubregions;
 
     subregion_iterator begin() const {
       return subregion_iterator(Subregions.begin(), &Subloops);
@@ -729,10 +730,10 @@ public:
   }
 
   void dump(bool isVerbose = false) const;
-  void print(llvm::raw_ostream &os, bool isShort = false,
+  void print(toolchain::raw_ostream &os, bool isShort = false,
              bool isVerbose = false) const;
   void dumpName() const;
-  void printName(llvm::raw_ostream &os) const;
+  void printName(toolchain::raw_ostream &os) const;
 
 private:
   LoopRegion(LoopTy *L, unsigned Idx)
@@ -821,15 +822,15 @@ private:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 
-raw_ostream &operator<<(raw_ostream &os, swift::LoopRegion &LR);
-raw_ostream &operator<<(raw_ostream &os, swift::LoopRegion::SuccessorID &S);
+raw_ostream &operator<<(raw_ostream &os, language::LoopRegion &LR);
+raw_ostream &operator<<(raw_ostream &os, language::LoopRegion::SuccessorID &S);
 
-template <> struct DenseMapInfo<swift::LoopRegion::SuccessorID> {
-  using Type = swift::LoopRegion::SuccessorID;
+template <> struct DenseMapInfo<language::LoopRegion::SuccessorID> {
+  using Type = language::LoopRegion::SuccessorID;
 
   static_assert(sizeof(Type) == sizeof(unsigned),
                 "Expected SuccessorID to be the size of an unsigned!");
@@ -839,16 +840,16 @@ template <> struct DenseMapInfo<swift::LoopRegion::SuccessorID> {
   static inline Type getTombstoneKey() {
     return Type(DenseMapInfo<unsigned>::getTombstoneKey());
   }
-  static unsigned getHashValue(const swift::LoopRegion::SuccessorID Val) {
+  static unsigned getHashValue(const language::LoopRegion::SuccessorID Val) {
     return DenseMapInfo<unsigned>::getHashValue(Val.asInt());
   }
-  static bool isEqual(const swift::LoopRegion::SuccessorID LHS,
-                      const swift::LoopRegion::SuccessorID RHS) {
+  static bool isEqual(const language::LoopRegion::SuccessorID LHS,
+                      const language::LoopRegion::SuccessorID RHS) {
     return LHS == RHS;
   }
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 namespace language {
 
@@ -863,7 +864,7 @@ class LoopRegionFunctionInfo {
   FunctionTy *F;
 
   /// A bump ptr allocator that we allocate regions from.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   /// The ID in the IDToRegionMap of the Region associated with \p F.
   std::optional<unsigned> FunctionRegionID;
@@ -872,11 +873,11 @@ class LoopRegionFunctionInfo {
   /// with the BB.
   ///
   /// *NOTE* This ID is *also* the function level RPO number of the BB.
-  llvm::DenseMap<BlockTy *, unsigned> BBToIDMap;
+  toolchain::DenseMap<BlockTy *, unsigned> BBToIDMap;
 
   /// A map from a Loop to the ID in the IDToRegionMap of the Region associated
   /// with the loop.
-  llvm::DenseMap<LoopTy *, unsigned> LoopToIDMap;
+  toolchain::DenseMap<LoopTy *, unsigned> LoopToIDMap;
 
   /// A map from an unsigned integer ID to a region.
   ///
@@ -975,7 +976,7 @@ public:
   FunctionTy *getFunction() const { return F; }
 
   void dump() const;
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
   void viewLoopRegions() const;
   void verify();
 

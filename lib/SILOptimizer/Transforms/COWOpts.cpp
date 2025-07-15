@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass optimizes begin_cow_mutation and end_cow_mutation patterns.
@@ -26,7 +27,7 @@
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/StackList.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -84,7 +85,7 @@ void COWOptsPass::run() {
   if (!F->shouldOptimize())
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "*** COW optimization on function: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** COW optimization on function: "
                           << F->getName() << " ***\n");
 
   AA = PM->getAnalysis<AliasAnalysis>(F);
@@ -122,8 +123,8 @@ static SILValue skipStructAndExtract(SILValue value) {
 }
 
 bool COWOptsPass::optimizeBeginCOW(BeginCOWMutationInst *BCM) {
-  LLVM_DEBUG(llvm::dbgs() << "Looking at: ");
-  LLVM_DEBUG(BCM->dump());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Looking at: ");
+  TOOLCHAIN_DEBUG(BCM->dump());
 
   SILFunction *function = BCM->getFunction();
   StackList<EndCOWMutationInst *> endCOWMutationInsts(function);
@@ -193,20 +194,20 @@ bool COWOptsPass::optimizeBeginCOW(BeginCOWMutationInst *BCM) {
             // Don't immediately bail on a store instruction. Instead, remember
             // it and check if it interferes with any (potential) load.
             if (storeAddrsFound.insert(store->getDest())) {
-              LLVM_DEBUG(llvm::dbgs() << "Found store escape, record: ");
-              LLVM_DEBUG(inst->dump());
+              TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found store escape, record: ");
+              TOOLCHAIN_DEBUG(inst->dump());
               storeAddrs.push_back(store->getDest());
               numStoresFound += 1;
             }
           } else {
-            LLVM_DEBUG(llvm::dbgs() << "Found non-store escape, bailing out: ");
-            LLVM_DEBUG(inst->dump());
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found non-store escape, bailing out: ");
+            TOOLCHAIN_DEBUG(inst->dump());
             return false;
           }
         }
         if (inst->mayReadFromMemory()) {
-          LLVM_DEBUG(llvm::dbgs() << "Found a may read inst, record: ");
-          LLVM_DEBUG(inst->dump());
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found a may read inst, record: ");
+          TOOLCHAIN_DEBUG(inst->dump());
           potentialLoadInsts.push_back(inst);
           numLoadsFound += 1;
         }
@@ -238,9 +239,9 @@ bool COWOptsPass::optimizeBeginCOW(BeginCOWMutationInst *BCM) {
       for (SILInstruction *load : potentialLoadInsts) {
         for (SILValue storeAddr : storeAddrs) {
           if (!AA || AA->mayReadFromMemory(load, storeAddr)) {
-            LLVM_DEBUG(llvm::dbgs() << "Found a store address aliasing with a load:");
-            LLVM_DEBUG(load->dump());
-            LLVM_DEBUG(storeAddr->dump());
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found a store address aliasing with a load:");
+            TOOLCHAIN_DEBUG(load->dump());
+            TOOLCHAIN_DEBUG(storeAddr->dump());
             return false;
           }
         }
@@ -305,7 +306,7 @@ void COWOptsPass::collectEscapePoints(SILValue v,
 
 } // end anonymous namespace
 
-SILTransform *swift::createCOWOpts() {
+SILTransform *language::createCOWOpts() {
   return new COWOptsPass();
 }
 

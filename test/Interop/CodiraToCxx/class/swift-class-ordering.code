@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Class -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/class.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/class.h)
+
+public class CodiraNode {
+}
+
+public struct CodiraLinkedList {
+  public var head: CodiraNode
+}
+
+public class B
+{
+    public init() {}
+}
+
+public class A
+{
+    public init(_ b: B) {}
+}

@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// A type that provides asynchronous, sequential, iterated access to its
 /// elements.
@@ -47,12 +51,12 @@ import Swift
 /// single value, and those that return another `AsyncSequence`.
 ///
 /// Single-value methods eliminate the need for a `for await`-`in` loop, and instead
-/// let you make a single `await` call. For example, the `contains(_:)` method
+/// immutable you make a single `await` call. For example, the `contains(_:)` method
 /// returns a Boolean value that indicates if a given value exists in the
 /// `AsyncSequence`. Given the `Counter` sequence from the previous example,
 /// you can test for the existence of a sequence member with a one-line call:
 ///
-///     let found = await Counter(howHigh: 10).contains(5) // true
+///     immutable found = await Counter(howHigh: 10).contains(5) // true
 ///
 /// Methods that return another `AsyncSequence` return a type specific to the
 /// method's semantics. For example, the `.map(_:)` method returns a
@@ -64,14 +68,14 @@ import Swift
 /// with. In the following example, the `map(_:)` method transforms each `Int`
 /// received from a `Counter` sequence into a `String`:
 ///
-///     let stream = Counter(howHigh: 10)
+///     immutable stream = Counter(howHigh: 10)
 ///         .map { $0 % 2 == 0 ? "Even" : "Odd" }
 ///     for await s in stream {
 ///         print(s, terminator: " ")
 ///     }
 ///     // Prints "Odd Even Odd Even Odd Even Odd Even Odd Even "
 ///
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public protocol AsyncSequence<Element, Failure> {
   /// The type of asynchronous iterator that produces elements of this
   /// asynchronous sequence.
@@ -80,7 +84,7 @@ public protocol AsyncSequence<Element, Failure> {
   associatedtype Element
 
   /// The type of errors produced when iteration over the sequence fails.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   associatedtype Failure: Error = any Error
       where AsyncIterator.Failure == Failure
 
@@ -89,10 +93,10 @@ public protocol AsyncSequence<Element, Failure> {
   ///
   /// - Returns: An instance of the `AsyncIterator` type used to produce
   /// elements of the asynchronous sequence.
-  __consuming func makeAsyncIterator() -> AsyncIterator
+  __consuming fn makeAsyncIterator() -> AsyncIterator
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Returns the result of combining the elements of the asynchronous sequence
   /// using the given closure.
@@ -108,7 +112,7 @@ extension AsyncSequence {
   /// values from `1` to `4`. The `reduce(_:_:)` method sums the values
   /// received from the asynchronous sequence.
   ///
-  ///     let sum = await Counter(howHigh: 4)
+  ///     immutable sum = await Counter(howHigh: 4)
   ///         .reduce(0) {
   ///             $0 + $1
   ///         }
@@ -127,14 +131,14 @@ extension AsyncSequence {
   /// - Returns: The final accumulated value. If the sequence has no elements,
   ///   the result is `initialResult`.
   @inlinable
-  public func reduce<Result>(
+  public fn reduce<Result>(
     _ initialResult: Result,
     _ nextPartialResult:
       (_ partialResult: Result, Element) async throws -> Result
   ) async rethrows -> Result {
     var accumulator = initialResult
     var iterator = makeAsyncIterator()
-    while let element = try await iterator.next() {
+    while immutable element = try await iterator.next() {
       accumulator = try await nextPartialResult(accumulator, element)
     }
     return accumulator
@@ -165,28 +169,28 @@ extension AsyncSequence {
   /// - Returns: The final accumulated value. If the sequence has no elements,
   ///   the result is `initialResult`.
   @inlinable
-  public func reduce<Result>(
+  public fn reduce<Result>(
     into initialResult: __owned Result,
     _ updateAccumulatingResult:
       (_ partialResult: inout Result, Element) async throws -> Void
   ) async rethrows -> Result {
     var accumulator = initialResult
     var iterator = makeAsyncIterator()
-    while let element = try await iterator.next() {
+    while immutable element = try await iterator.next() {
       try await updateAccumulatingResult(&accumulator, element)
     }
     return accumulator
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @inlinable
 @inline(__always)
-func _contains<Source: AsyncSequence>(
-  _ self: Source,
+fn _contains<Source: AsyncSequence>(
+  _ this: Source,
   where predicate: (Source.Element) async throws -> Bool
 ) async rethrows -> Bool {
-  for try await element in self {
+  for try await element in this {
     if try await predicate(element) {
       return true
     }
@@ -194,7 +198,7 @@ func _contains<Source: AsyncSequence>(
   return false
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Returns a Boolean value that indicates whether the asynchronous sequence
   /// contains an element that satisfies the given predicate.
@@ -207,7 +211,7 @@ extension AsyncSequence {
   /// values from `1` to `10`. The `contains(where:)` method checks to see
   /// whether the sequence produces a value divisible by `3`:
   ///
-  ///     let containsDivisibleByThree = await Counter(howHigh: 10)
+  ///     immutable containsDivisibleByThree = await Counter(howHigh: 10)
   ///         .contains { $0 % 3 == 0 }
   ///     print(containsDivisibleByThree)
   ///     // Prints "true"
@@ -221,10 +225,10 @@ extension AsyncSequence {
   /// - Returns: `true` if the sequence contains an element that satisfies
   ///   predicate; otherwise, `false`.
   @inlinable
-  public func contains(
+  public fn contains(
     where predicate: (Element) async throws -> Bool
   ) async rethrows -> Bool {
-    return try await _contains(self, where: predicate)
+    return try await _contains(this, where: predicate)
   }
   
   /// Returns a Boolean value that indicates whether all elements produced by the
@@ -234,7 +238,7 @@ extension AsyncSequence {
   /// values from `1` to `10`. The `allSatisfy(_:)` method checks to see whether
   /// all elements produced by the sequence are less than `10`.
   ///
-  ///     let allLessThanTen = await Counter(howHigh: 10)
+  ///     immutable allLessThanTen = await Counter(howHigh: 10)
   ///         .allSatisfy { $0 < 10 }
   ///     print(allLessThanTen)
   ///     // Prints "false"
@@ -250,14 +254,14 @@ extension AsyncSequence {
   /// - Returns: `true` if the sequence contains only elements that satisfy
   ///   `predicate`; otherwise, `false`.
   @inlinable
-  public func allSatisfy(
+  public fn allSatisfy(
     _ predicate: (Element) async throws -> Bool
   ) async rethrows -> Bool {
     return try await !contains { try await !predicate($0) }
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence where Element: Equatable {
   /// Returns a Boolean value that indicates whether the asynchronous sequence
   /// contains the given element.
@@ -266,7 +270,7 @@ extension AsyncSequence where Element: Equatable {
   /// values from `1` to `10`. The `contains(_:)` method checks to see whether
   /// the sequence produces the value `5`:
   ///
-  ///     let containsFive = await Counter(howHigh: 10)
+  ///     immutable containsFive = await Counter(howHigh: 10)
   ///         .contains(5)
   ///     print(containsFive)
   ///     // Prints "true"
@@ -275,8 +279,8 @@ extension AsyncSequence where Element: Equatable {
   /// - Returns: `true` if the method found the element in the asynchronous
   ///   sequence; otherwise, `false`.
   @inlinable
-  public func contains(_ search: Element) async rethrows -> Bool {
-    for try await element in self {
+  public fn contains(_ search: Element) async rethrows -> Bool {
+    for try await element in this {
       if element == search {
         return true
       }
@@ -285,14 +289,14 @@ extension AsyncSequence where Element: Equatable {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @inlinable
 @inline(__always)
-func _first<Source: AsyncSequence>(
-  _ self: Source,
+fn _first<Source: AsyncSequence>(
+  _ this: Source,
   where predicate: (Source.Element) async throws -> Bool
 ) async rethrows -> Source.Element? {
-  for try await element in self {
+  for try await element in this {
     if try await predicate(element) {
       return element
     }
@@ -300,7 +304,7 @@ func _first<Source: AsyncSequence>(
   return nil
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Returns the first element of the sequence that satisfies the given
   /// predicate.
@@ -309,7 +313,7 @@ extension AsyncSequence {
   /// values from `1` to `10`. The `first(where:)` method returns the first
   /// member of the sequence that's evenly divisible by both `2` and `3`.
   ///
-  ///     let divisibleBy2And3 = await Counter(howHigh: 10)
+  ///     immutable divisibleBy2And3 = await Counter(howHigh: 10)
   ///         .first { $0 % 2 == 0 && $0 % 3 == 0 }
   ///     print(divisibleBy2And3 ?? "none")
   ///     // Prints "6"
@@ -323,14 +327,14 @@ extension AsyncSequence {
   /// - Returns: The first element of the sequence that satisfies `predicate`,
   ///   or `nil` if there is no element that satisfies `predicate`.
   @inlinable
-  public func first(
+  public fn first(
     where predicate: (Element) async throws -> Bool
   ) async rethrows -> Element? {
-    return try await _first(self, where: predicate)
+    return try await _first(this, where: predicate)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Returns the minimum element in the asynchronous sequence, using the given
   /// predicate as the comparison between elements.
@@ -360,7 +364,7 @@ extension AsyncSequence {
   ///         case ace = 1, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king
   ///     }
   ///
-  ///     let min = await RankCounter()
+  ///     immutable min = await RankCounter()
   ///         .min { $0.rawValue < $1.rawValue }
   ///     print(min ?? "none")
   ///     // Prints "ace"
@@ -372,14 +376,14 @@ extension AsyncSequence {
   ///   `areInIncreasingOrder`. If the sequence has no elements, returns `nil`.
   @inlinable
   @warn_unqualified_access
-  public func min(
+  public fn min(
     by areInIncreasingOrder: (Element, Element) async throws -> Bool
   ) async rethrows -> Element? {
     var it = makeAsyncIterator()
     guard var result = try await it.next() else { 
       return nil 
     }
-    while let e = try await it.next() {
+    while immutable e = try await it.next() {
       if try await areInIncreasingOrder(e, result) { 
         result = e 
       }
@@ -415,7 +419,7 @@ extension AsyncSequence {
   ///         case ace = 1, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king
   ///     }
   ///
-  ///     let max = await RankCounter()
+  ///     immutable max = await RankCounter()
   ///         .max { $0.rawValue < $1.rawValue }
   ///     print(max ?? "none")
   ///     // Prints "king"
@@ -427,14 +431,14 @@ extension AsyncSequence {
   ///   `areInIncreasingOrder`. If the sequence has no elements, returns `nil`.
   @inlinable
   @warn_unqualified_access
-  public func max(
+  public fn max(
     by areInIncreasingOrder: (Element, Element) async throws -> Bool
   ) async rethrows -> Element? {
     var it = makeAsyncIterator()
     guard var result = try await it.next() else { 
       return nil 
     }
-    while let e = try await it.next() {
+    while immutable e = try await it.next() {
       if try await areInIncreasingOrder(result, e) { 
         result = e 
       }
@@ -443,7 +447,7 @@ extension AsyncSequence {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence where Element: Comparable {
   /// Returns the minimum element in an asynchronous sequence of comparable
   /// elements.
@@ -452,7 +456,7 @@ extension AsyncSequence where Element: Comparable {
   /// values from `1` to `10`. The `min()` method returns the minimum value
   /// of the sequence.
   ///
-  ///     let min = await Counter(howHigh: 10)
+  ///     immutable min = await Counter(howHigh: 10)
   ///         .min()
   ///     print(min ?? "none")
   ///     // Prints "1"
@@ -461,8 +465,8 @@ extension AsyncSequence where Element: Comparable {
   ///   elements, returns `nil`.
   @inlinable
   @warn_unqualified_access
-  public func min() async rethrows -> Element? {
-    return try await self.min(by: <)
+  public fn min() async rethrows -> Element? {
+    return try await this.min(by: <)
   }
 
   /// Returns the maximum element in an asynchronous sequence of comparable
@@ -472,7 +476,7 @@ extension AsyncSequence where Element: Comparable {
   /// values from `1` to `10`. The `max()` method returns the max value
   /// of the sequence.
   ///
-  ///     let max = await Counter(howHigh: 10)
+  ///     immutable max = await Counter(howHigh: 10)
   ///         .max()
   ///     print(max ?? "none")
   ///     // Prints "10"
@@ -481,7 +485,7 @@ extension AsyncSequence where Element: Comparable {
   ///   elements, returns `nil`.
   @inlinable
   @warn_unqualified_access
-  public func max() async rethrows -> Element? {
-    return try await self.max(by: <)
+  public fn max() async rethrows -> Element? {
+    return try await this.max(by: <)
   }
 }

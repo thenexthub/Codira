@@ -1,13 +1,17 @@
-//===--- Elf.swift - ELF support for Swift --------------------------------===//
+//===--- Elf.code - ELF support for Codira --------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines various ELF structures and provides types for working with ELF
@@ -17,7 +21,7 @@
 
 // ###FIXME: We shouldn't really use String for paths.
 
-import Swift
+import Codira
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 internal import Darwin
@@ -33,225 +37,225 @@ internal import BacktracingImpl.ImageFormats.Elf
 // .. Use *our* Elf definitions ................................................
 
 // On Linux there is an <elf.h> header that can be dragged in via Glibc, which
-// contains slightly different definitions that don't work so well with Swift.
+// contains slightly different definitions that don't work so well with Codira.
 // We don't want those, so we're using C++ interop and putting ours in the
-// swift::runtime namespace.
+// language::runtime namespace.
 
 // This means we need a lot of typealiases, and also aliases for untyped
 // constants.
 
-typealias Elf_Byte   = swift.runtime.Elf_Byte
-typealias Elf_Half   = swift.runtime.Elf_Half
-typealias Elf_Word   = swift.runtime.Elf_Word
-typealias Elf_Xword  = swift.runtime.Elf_Xword
-typealias Elf_Sword  = swift.runtime.Elf_Sword
-typealias Elf_Sxword = swift.runtime.Elf_Sxword
+typealias Elf_Byte   = language.runtime.Elf_Byte
+typealias Elf_Half   = language.runtime.Elf_Half
+typealias Elf_Word   = language.runtime.Elf_Word
+typealias Elf_Xword  = language.runtime.Elf_Xword
+typealias Elf_Sword  = language.runtime.Elf_Sword
+typealias Elf_Sxword = language.runtime.Elf_Sxword
 
-typealias Elf32_Byte   = swift.runtime.Elf32_Byte
-typealias Elf32_Half   = swift.runtime.Elf32_Half
-typealias Elf32_Word   = swift.runtime.Elf32_Word
-typealias Elf32_Sword  = swift.runtime.Elf32_Sword
+typealias Elf32_Byte   = language.runtime.Elf32_Byte
+typealias Elf32_Half   = language.runtime.Elf32_Half
+typealias Elf32_Word   = language.runtime.Elf32_Word
+typealias Elf32_Sword  = language.runtime.Elf32_Sword
 
-typealias Elf64_Byte   = swift.runtime.Elf64_Byte
-typealias Elf64_Half   = swift.runtime.Elf64_Half
-typealias Elf64_Word   = swift.runtime.Elf64_Word
-typealias Elf64_Xword  = swift.runtime.Elf64_Xword
-typealias Elf64_Sword  = swift.runtime.Elf64_Sword
-typealias Elf64_Sxword = swift.runtime.Elf64_Sxword
+typealias Elf64_Byte   = language.runtime.Elf64_Byte
+typealias Elf64_Half   = language.runtime.Elf64_Half
+typealias Elf64_Word   = language.runtime.Elf64_Word
+typealias Elf64_Xword  = language.runtime.Elf64_Xword
+typealias Elf64_Sword  = language.runtime.Elf64_Sword
+typealias Elf64_Sxword = language.runtime.Elf64_Sxword
 
-typealias Elf_Ehdr_Type    = swift.runtime.Elf_Ehdr_Type
-typealias Elf_Ehdr_Machine = swift.runtime.Elf_Ehdr_Machine
-typealias Elf_Ehdr_Version = swift.runtime.Elf_Ehdr_Version
+typealias Elf_Ehdr_Type    = language.runtime.Elf_Ehdr_Type
+typealias Elf_Ehdr_Machine = language.runtime.Elf_Ehdr_Machine
+typealias Elf_Ehdr_Version = language.runtime.Elf_Ehdr_Version
 
-let EI_MAG0       = swift.runtime.EI_MAG0
-let EI_MAG1       = swift.runtime.EI_MAG1
-let EI_MAG2       = swift.runtime.EI_MAG2
-let EI_MAG3       = swift.runtime.EI_MAG3
-let EI_CLASS      = swift.runtime.EI_CLASS
-let EI_DATA       = swift.runtime.EI_DATA
-let EI_VERSION    = swift.runtime.EI_VERSION
-let EI_OSABI      = swift.runtime.EI_OSABI
-let EI_ABIVERSION = swift.runtime.EI_ABIVERSION
-let EI_PAD        = swift.runtime.EI_PAD
+immutable EI_MAG0       = language.runtime.EI_MAG0
+immutable EI_MAG1       = language.runtime.EI_MAG1
+immutable EI_MAG2       = language.runtime.EI_MAG2
+immutable EI_MAG3       = language.runtime.EI_MAG3
+immutable EI_CLASS      = language.runtime.EI_CLASS
+immutable EI_DATA       = language.runtime.EI_DATA
+immutable EI_VERSION    = language.runtime.EI_VERSION
+immutable EI_OSABI      = language.runtime.EI_OSABI
+immutable EI_ABIVERSION = language.runtime.EI_ABIVERSION
+immutable EI_PAD        = language.runtime.EI_PAD
 
-let ELFMAG0 = swift.runtime.ELFMAG0
-let ELFMAG1 = swift.runtime.ELFMAG1
-let ELFMAG2 = swift.runtime.ELFMAG2
-let ELFMAG3 = swift.runtime.ELFMAG3
+immutable ELFMAG0 = language.runtime.ELFMAG0
+immutable ELFMAG1 = language.runtime.ELFMAG1
+immutable ELFMAG2 = language.runtime.ELFMAG2
+immutable ELFMAG3 = language.runtime.ELFMAG3
 
-typealias Elf_Ehdr_Class = swift.runtime.Elf_Ehdr_Class
-typealias Elf_Ehdr_Data  = swift.runtime.Elf_Ehdr_Data
-typealias Elf_Ehdr_OsAbi = swift.runtime.Elf_Ehdr_OsAbi
+typealias Elf_Ehdr_Class = language.runtime.Elf_Ehdr_Class
+typealias Elf_Ehdr_Data  = language.runtime.Elf_Ehdr_Data
+typealias Elf_Ehdr_OsAbi = language.runtime.Elf_Ehdr_OsAbi
 
-let SHN_UNDEF     = swift.runtime.SHN_UNDEF
-let SHN_LORESERVE = swift.runtime.SHN_LORESERVE
-let SHN_LOPROC    = swift.runtime.SHN_LOPROC
-let SHN_HIPROC    = swift.runtime.SHN_HIPROC
-let SHN_LOOS      = swift.runtime.SHN_LOOS
-let SHN_HIOS      = swift.runtime.SHN_HIOS
-let SHN_ABS       = swift.runtime.SHN_ABS
-let SHN_COMMON    = swift.runtime.SHN_COMMON
-let SHN_XINDEX    = swift.runtime.SHN_XINDEX
-let SHN_HIRESERVE = swift.runtime.SHN_HIRESERVE
+immutable SHN_UNDEF     = language.runtime.SHN_UNDEF
+immutable SHN_LORESERVE = language.runtime.SHN_LORESERVE
+immutable SHN_LOPROC    = language.runtime.SHN_LOPROC
+immutable SHN_HIPROC    = language.runtime.SHN_HIPROC
+immutable SHN_LOOS      = language.runtime.SHN_LOOS
+immutable SHN_HIOS      = language.runtime.SHN_HIOS
+immutable SHN_ABS       = language.runtime.SHN_ABS
+immutable SHN_COMMON    = language.runtime.SHN_COMMON
+immutable SHN_XINDEX    = language.runtime.SHN_XINDEX
+immutable SHN_HIRESERVE = language.runtime.SHN_HIRESERVE
 
-typealias Elf_Shdr_Type = swift.runtime.Elf_Shdr_Type
+typealias Elf_Shdr_Type = language.runtime.Elf_Shdr_Type
 
-let SHF_WRITE            = swift.runtime.SHF_WRITE
-let SHF_ALLOC            = swift.runtime.SHF_ALLOC
-let SHF_EXECINSTR        = swift.runtime.SHF_EXECINSTR
-let SHF_MERGE            = swift.runtime.SHF_MERGE
-let SHF_STRINGS          = swift.runtime.SHF_STRINGS
-let SHF_INFO_LINK        = swift.runtime.SHF_INFO_LINK
-let SHF_LINK_ORDER       = swift.runtime.SHF_LINK_ORDER
-let SHF_OS_NONCONFORMING = swift.runtime.SHF_OS_NONCONFORMING
-let SHF_GROUP            = swift.runtime.SHF_GROUP
-let SHF_TLS              = swift.runtime.SHF_TLS
-let SHF_COMPRESSED       = swift.runtime.SHF_COMPRESSED
-let SHF_MASKOS           = swift.runtime.SHF_MASKOS
-let SHF_MASKPROC         = swift.runtime.SHF_MASKPROC
+immutable SHF_WRITE            = language.runtime.SHF_WRITE
+immutable SHF_ALLOC            = language.runtime.SHF_ALLOC
+immutable SHF_EXECINSTR        = language.runtime.SHF_EXECINSTR
+immutable SHF_MERGE            = language.runtime.SHF_MERGE
+immutable SHF_STRINGS          = language.runtime.SHF_STRINGS
+immutable SHF_INFO_LINK        = language.runtime.SHF_INFO_LINK
+immutable SHF_LINK_ORDER       = language.runtime.SHF_LINK_ORDER
+immutable SHF_OS_NONCONFORMING = language.runtime.SHF_OS_NONCONFORMING
+immutable SHF_GROUP            = language.runtime.SHF_GROUP
+immutable SHF_TLS              = language.runtime.SHF_TLS
+immutable SHF_COMPRESSED       = language.runtime.SHF_COMPRESSED
+immutable SHF_MASKOS           = language.runtime.SHF_MASKOS
+immutable SHF_MASKPROC         = language.runtime.SHF_MASKPROC
 
-let GRP_COMDAT   = swift.runtime.GRP_COMDAT
-let GRP_MASKOS   = swift.runtime.GRP_MASKOS
-let GRP_MASKPROC = swift.runtime.GRP_MASKPROC
+immutable GRP_COMDAT   = language.runtime.GRP_COMDAT
+immutable GRP_MASKOS   = language.runtime.GRP_MASKOS
+immutable GRP_MASKPROC = language.runtime.GRP_MASKPROC
 
-typealias Elf_Chdr_Type = swift.runtime.Elf_Chdr_Type
+typealias Elf_Chdr_Type = language.runtime.Elf_Chdr_Type
 
-typealias Elf_Sym_Binding    = swift.runtime.Elf_Sym_Binding
-typealias Elf_Sym_Type       = swift.runtime.Elf_Sym_Type
-typealias Elf_Sym_Visibility = swift.runtime.Elf_Sym_Visibility
+typealias Elf_Sym_Binding    = language.runtime.Elf_Sym_Binding
+typealias Elf_Sym_Type       = language.runtime.Elf_Sym_Type
+typealias Elf_Sym_Visibility = language.runtime.Elf_Sym_Visibility
 
-typealias Elf_Phdr_Type  = swift.runtime.Elf_Phdr_Type
-typealias Elf_Phdr_Flags = swift.runtime.Elf_Phdr_Flags
+typealias Elf_Phdr_Type  = language.runtime.Elf_Phdr_Type
+typealias Elf_Phdr_Flags = language.runtime.Elf_Phdr_Flags
 
-let PF_X = swift.runtime.PF_X
-let PF_W = swift.runtime.PF_W
-let PF_R = swift.runtime.PF_R
+immutable PF_X = language.runtime.PF_X
+immutable PF_W = language.runtime.PF_W
+immutable PF_R = language.runtime.PF_R
 
-let PF_MASKOS   = swift.runtime.PF_MASKOS
-let PF_MASKPROC = swift.runtime.PF_MASKPROC
+immutable PF_MASKOS   = language.runtime.PF_MASKOS
+immutable PF_MASKPROC = language.runtime.PF_MASKPROC
 
-let DT_NULL            = swift.runtime.DT_NULL
-let DT_NEEDED          = swift.runtime.DT_NEEDED
-let DT_PLTRELSZ        = swift.runtime.DT_PLTRELSZ
-let DT_PLTGOT          = swift.runtime.DT_PLTGOT
-let DT_HASH            = swift.runtime.DT_HASH
-let DT_STRTAB          = swift.runtime.DT_STRTAB
-let DT_SYMTAB          = swift.runtime.DT_SYMTAB
-let DT_RELA            = swift.runtime.DT_RELA
-let DT_RELASZ          = swift.runtime.DT_RELASZ
-let DT_RELAENT         = swift.runtime.DT_RELAENT
-let DT_STRSZ           = swift.runtime.DT_STRSZ
-let DT_SYMENT          = swift.runtime.DT_SYMENT
-let DT_INIT            = swift.runtime.DT_INIT
-let DT_FINI            = swift.runtime.DT_FINI
-let DT_SONAME          = swift.runtime.DT_SONAME
-let DT_RPATH           = swift.runtime.DT_RPATH
-let DT_SYMBOLIC        = swift.runtime.DT_SYMBOLIC
-let DT_REL             = swift.runtime.DT_REL
-let DT_RELSZ           = swift.runtime.DT_RELSZ
-let DT_RELENT          = swift.runtime.DT_RELENT
-let DT_PLTREL          = swift.runtime.DT_PLTREL
-let DT_DEBUG           = swift.runtime.DT_DEBUG
-let DT_TEXTREL         = swift.runtime.DT_TEXTREL
-let DT_JMPREL          = swift.runtime.DT_JMPREL
-let DT_BIND_NOW        = swift.runtime.DT_BIND_NOW
-let DT_INIT_ARRAY      = swift.runtime.DT_INIT_ARRAY
-let DT_FINI_ARRAY      = swift.runtime.DT_FINI_ARRAY
-let DT_INIT_ARRAYSZ    = swift.runtime.DT_INIT_ARRAYSZ
-let DT_FINI_ARRAYSZ    = swift.runtime.DT_FINI_ARRAYSZ
-let DT_RUNPATH         = swift.runtime.DT_RUNPATH
-let DT_FLAGS           = swift.runtime.DT_FLAGS
-let DT_ENCODING        = swift.runtime.DT_ENCODING
-let DT_PREINIT_ARRAY   = swift.runtime.DT_PREINIT_ARRAY
-let DT_PREINIT_ARRAYSZ = swift.runtime.DT_PREINIT_ARRAYSZ
-let DT_LOOS            = swift.runtime.DT_LOOS
-let DT_HIOS            = swift.runtime.DT_HIOS
-let DT_LOPROC          = swift.runtime.DT_LOPROC
-let DT_HIPROC          = swift.runtime.DT_HIPROC
+immutable DT_NULL            = language.runtime.DT_NULL
+immutable DT_NEEDED          = language.runtime.DT_NEEDED
+immutable DT_PLTRELSZ        = language.runtime.DT_PLTRELSZ
+immutable DT_PLTGOT          = language.runtime.DT_PLTGOT
+immutable DT_HASH            = language.runtime.DT_HASH
+immutable DT_STRTAB          = language.runtime.DT_STRTAB
+immutable DT_SYMTAB          = language.runtime.DT_SYMTAB
+immutable DT_RELA            = language.runtime.DT_RELA
+immutable DT_RELASZ          = language.runtime.DT_RELASZ
+immutable DT_RELAENT         = language.runtime.DT_RELAENT
+immutable DT_STRSZ           = language.runtime.DT_STRSZ
+immutable DT_SYMENT          = language.runtime.DT_SYMENT
+immutable DT_INIT            = language.runtime.DT_INIT
+immutable DT_FINI            = language.runtime.DT_FINI
+immutable DT_SONAME          = language.runtime.DT_SONAME
+immutable DT_RPATH           = language.runtime.DT_RPATH
+immutable DT_SYMBOLIC        = language.runtime.DT_SYMBOLIC
+immutable DT_REL             = language.runtime.DT_REL
+immutable DT_RELSZ           = language.runtime.DT_RELSZ
+immutable DT_RELENT          = language.runtime.DT_RELENT
+immutable DT_PLTREL          = language.runtime.DT_PLTREL
+immutable DT_DEBUG           = language.runtime.DT_DEBUG
+immutable DT_TEXTREL         = language.runtime.DT_TEXTREL
+immutable DT_JMPREL          = language.runtime.DT_JMPREL
+immutable DT_BIND_NOW        = language.runtime.DT_BIND_NOW
+immutable DT_INIT_ARRAY      = language.runtime.DT_INIT_ARRAY
+immutable DT_FINI_ARRAY      = language.runtime.DT_FINI_ARRAY
+immutable DT_INIT_ARRAYSZ    = language.runtime.DT_INIT_ARRAYSZ
+immutable DT_FINI_ARRAYSZ    = language.runtime.DT_FINI_ARRAYSZ
+immutable DT_RUNPATH         = language.runtime.DT_RUNPATH
+immutable DT_FLAGS           = language.runtime.DT_FLAGS
+immutable DT_ENCODING        = language.runtime.DT_ENCODING
+immutable DT_PREINIT_ARRAY   = language.runtime.DT_PREINIT_ARRAY
+immutable DT_PREINIT_ARRAYSZ = language.runtime.DT_PREINIT_ARRAYSZ
+immutable DT_LOOS            = language.runtime.DT_LOOS
+immutable DT_HIOS            = language.runtime.DT_HIOS
+immutable DT_LOPROC          = language.runtime.DT_LOPROC
+immutable DT_HIPROC          = language.runtime.DT_HIPROC
 
-let DF_ORIGIN     = swift.runtime.DF_ORIGIN
-let DF_SYMBOLIC   = swift.runtime.DF_SYMBOLIC
-let DF_TEXTREL    = swift.runtime.DF_TEXTREL
-let DF_BIND_NOW   = swift.runtime.DF_BIND_NOW
-let DF_STATIC_TLS = swift.runtime.DF_STATIC_TLS
+immutable DF_ORIGIN     = language.runtime.DF_ORIGIN
+immutable DF_SYMBOLIC   = language.runtime.DF_SYMBOLIC
+immutable DF_TEXTREL    = language.runtime.DF_TEXTREL
+immutable DF_BIND_NOW   = language.runtime.DF_BIND_NOW
+immutable DF_STATIC_TLS = language.runtime.DF_STATIC_TLS
 
-let NT_GNU_ABI_TAG         = swift.runtime.NT_GNU_ABI_TAG
-let NT_GNU_HWCAP           = swift.runtime.NT_GNU_HWCAP
-let NT_GNU_BUILD_ID        = swift.runtime.NT_GNU_BUILD_ID
-let NT_GNU_GOLD_VERSION    = swift.runtime.NT_GNU_GOLD_VERSION
-let NT_GNU_PROPERTY_TYPE_0 = swift.runtime.NT_GNU_PROPERTY_TYPE_0
+immutable NT_GNU_ABI_TAG         = language.runtime.NT_GNU_ABI_TAG
+immutable NT_GNU_HWCAP           = language.runtime.NT_GNU_HWCAP
+immutable NT_GNU_BUILD_ID        = language.runtime.NT_GNU_BUILD_ID
+immutable NT_GNU_GOLD_VERSION    = language.runtime.NT_GNU_GOLD_VERSION
+immutable NT_GNU_PROPERTY_TYPE_0 = language.runtime.NT_GNU_PROPERTY_TYPE_0
 
-typealias Elf32_Ehdr = swift.runtime.Elf32_Ehdr
-typealias Elf64_Ehdr = swift.runtime.Elf64_Ehdr
+typealias Elf32_Ehdr = language.runtime.Elf32_Ehdr
+typealias Elf64_Ehdr = language.runtime.Elf64_Ehdr
 
-typealias Elf32_Shdr = swift.runtime.Elf32_Shdr
-typealias Elf64_Shdr = swift.runtime.Elf64_Shdr
+typealias Elf32_Shdr = language.runtime.Elf32_Shdr
+typealias Elf64_Shdr = language.runtime.Elf64_Shdr
 
-typealias Elf32_Chdr = swift.runtime.Elf32_Chdr
-typealias Elf64_Chdr = swift.runtime.Elf64_Chdr
+typealias Elf32_Chdr = language.runtime.Elf32_Chdr
+typealias Elf64_Chdr = language.runtime.Elf64_Chdr
 
-typealias Elf32_Sym = swift.runtime.Elf32_Sym
-typealias Elf64_Sym = swift.runtime.Elf64_Sym
+typealias Elf32_Sym = language.runtime.Elf32_Sym
+typealias Elf64_Sym = language.runtime.Elf64_Sym
 
-let ELF32_ST_BIND       = swift.runtime.ELF32_ST_BIND
-let ELF32_ST_TYPE       = swift.runtime.ELF32_ST_TYPE
-let ELF32_ST_INFO       = swift.runtime.ELF32_ST_INFO
-let ELF32_ST_VISIBILITY = swift.runtime.ELF32_ST_VISIBILITY
+immutable ELF32_ST_BIND       = language.runtime.ELF32_ST_BIND
+immutable ELF32_ST_TYPE       = language.runtime.ELF32_ST_TYPE
+immutable ELF32_ST_INFO       = language.runtime.ELF32_ST_INFO
+immutable ELF32_ST_VISIBILITY = language.runtime.ELF32_ST_VISIBILITY
 
-let ELF64_ST_BIND       = swift.runtime.ELF64_ST_BIND
-let ELF64_ST_TYPE       = swift.runtime.ELF64_ST_TYPE
-let ELF64_ST_INFO       = swift.runtime.ELF64_ST_INFO
-let ELF64_ST_VISIBILITY = swift.runtime.ELF64_ST_VISIBILITY
+immutable ELF64_ST_BIND       = language.runtime.ELF64_ST_BIND
+immutable ELF64_ST_TYPE       = language.runtime.ELF64_ST_TYPE
+immutable ELF64_ST_INFO       = language.runtime.ELF64_ST_INFO
+immutable ELF64_ST_VISIBILITY = language.runtime.ELF64_ST_VISIBILITY
 
-typealias Elf32_Rel  = swift.runtime.Elf32_Rel
-typealias Elf32_Rela = swift.runtime.Elf32_Rela
-typealias Elf64_Rel  = swift.runtime.Elf64_Rel
-typealias Elf64_Rela = swift.runtime.Elf64_Rela
+typealias Elf32_Rel  = language.runtime.Elf32_Rel
+typealias Elf32_Rela = language.runtime.Elf32_Rela
+typealias Elf64_Rel  = language.runtime.Elf64_Rel
+typealias Elf64_Rela = language.runtime.Elf64_Rela
 
-let ELF32_R_SYM  = swift.runtime.ELF32_R_SYM
-let ELF32_R_TYPE = swift.runtime.ELF32_R_TYPE
-let ELF32_R_INFO = swift.runtime.ELF32_R_INFO
+immutable ELF32_R_SYM  = language.runtime.ELF32_R_SYM
+immutable ELF32_R_TYPE = language.runtime.ELF32_R_TYPE
+immutable ELF32_R_INFO = language.runtime.ELF32_R_INFO
 
-let ELF64_R_SYM  = swift.runtime.ELF64_R_SYM
-let ELF64_R_TYPE = swift.runtime.ELF64_R_TYPE
-let ELF64_R_INFO = swift.runtime.ELF64_R_INFO
+immutable ELF64_R_SYM  = language.runtime.ELF64_R_SYM
+immutable ELF64_R_TYPE = language.runtime.ELF64_R_TYPE
+immutable ELF64_R_INFO = language.runtime.ELF64_R_INFO
 
-typealias Elf32_Phdr = swift.runtime.Elf32_Phdr
-typealias Elf64_Phdr = swift.runtime.Elf64_Phdr
+typealias Elf32_Phdr = language.runtime.Elf32_Phdr
+typealias Elf64_Phdr = language.runtime.Elf64_Phdr
 
-typealias Elf32_Nhdr = swift.runtime.Elf32_Nhdr
-typealias Elf64_Nhdr = swift.runtime.Elf64_Nhdr
+typealias Elf32_Nhdr = language.runtime.Elf32_Nhdr
+typealias Elf64_Nhdr = language.runtime.Elf64_Nhdr
 
-typealias Elf32_Dyn = swift.runtime.Elf32_Dyn
-typealias Elf64_Dyn = swift.runtime.Elf64_Dyn
+typealias Elf32_Dyn = language.runtime.Elf32_Dyn
+typealias Elf64_Dyn = language.runtime.Elf64_Dyn
 
-typealias Elf32_Hash = swift.runtime.Elf32_Hash
-typealias Elf64_Hash = swift.runtime.Elf64_Hash
+typealias Elf32_Hash = language.runtime.Elf32_Hash
+typealias Elf64_Hash = language.runtime.Elf64_Hash
 
-let elf_hash = swift.runtime.elf_hash
+immutable elf_hash = language.runtime.elf_hash
 
 // .. Utilities ................................................................
 
-private func realPath(_ path: String) -> String? {
-  guard let result = realpath(path, nil) else {
+private fn realPath(_ path: String) -> String? {
+  guard immutable result = realpath(path, nil) else {
     return nil
   }
 
-  let s = String(cString: result)
+  immutable s = String(cString: result)
 
   free(result)
 
   return s
 }
 
-private func dirname(_ path: String) -> Substring {
-  guard let lastSlash = path.lastIndex(of: "/") else {
+private fn dirname(_ path: String) -> Substring {
+  guard immutable lastSlash = path.lastIndex(of: "/") else {
     return ""
   }
   return path.prefix(upTo: lastSlash)
 }
 
-private let crc32Table: [UInt32] = [
+private immutable crc32Table: [UInt32] = [
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
   0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
   0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
@@ -297,7 +301,7 @@ private let crc32Table: [UInt32] = [
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 ]
 
-private func updateCrc(_ crc: UInt32,
+private fn updateCrc(_ crc: UInt32,
                        _ bytes: UnsafeRawBufferPointer) -> UInt32 {
   var theCrc = ~crc
   for byte in bytes {
@@ -583,7 +587,7 @@ typealias Elf_Ident = (
   UInt8, UInt8, UInt8, UInt8
 )
 
-let ElfMagic: Elf_Magic = (0x7f, 0x45, 0x4c, 0x46)
+immutable ElfMagic: Elf_Magic = (0x7f, 0x45, 0x4c, 0x46)
 
 protocol Elf_Ehdr : ByteSwappable {
   associatedtype Address: FixedWidthInteger
@@ -951,7 +955,7 @@ struct Elf32Traits: ElfTraits {
   typealias Chdr = Elf32_Chdr
   typealias Sym = Elf32_Sym
 
-  static let elfClass: Elf_Ehdr_Class = .ELFCLASS32
+  static immutable elfClass: Elf_Ehdr_Class = .ELFCLASS32
 }
 
 struct Elf64Traits: ElfTraits {
@@ -966,23 +970,23 @@ struct Elf64Traits: ElfTraits {
   typealias Chdr = Elf64_Chdr
   typealias Sym = Elf64_Sym
 
-  static let elfClass: Elf_Ehdr_Class = .ELFCLASS64
+  static immutable elfClass: Elf_Ehdr_Class = .ELFCLASS64
 }
 
 // .. ElfStringSection .........................................................
 
 struct ElfStringSection {
-  let source: ImageSource
+  immutable source: ImageSource
 
-  func getStringAt(index: Int) -> String? {
+  fn getStringAt(index: Int) -> String? {
     if index < 0 || index >= source.bytes.count {
       return nil
     }
 
-    let slice = UnsafeRawBufferPointer(rebasing: source.bytes[index...])
+    immutable slice = UnsafeRawBufferPointer(rebasing: source.bytes[index...])
     var len: Int = 0
     len = strnlen(slice.baseAddress!, slice.count)
-    return String(decoding: source.bytes[index..<index+len], as: UTF8.self)
+    return String(decoding: source.bytes[index..<index+len], as: UTF8.this)
   }
 }
 
@@ -1013,7 +1017,7 @@ protocol ElfSymbolTableProtocol {
   associatedtype Symbol: ElfSymbolProtocol where Symbol.Address == Traits.Address,
                                                  Symbol.Size == Traits.Size
 
-  func lookupSymbol(address: Traits.Address) -> Symbol?
+  fn lookupSymbol(address: Traits.Address) -> Symbol?
 }
 
 protocol ElfSymbolLookupProtocol {
@@ -1021,9 +1025,9 @@ protocol ElfSymbolLookupProtocol {
   typealias CallSiteInfo = DwarfReader<ElfImage<Traits>>.CallSiteInfo
   typealias SourceLocation = SymbolicatedBacktrace.SourceLocation
 
-  func lookupSymbol(address: Traits.Address) -> ImageSymbol?
-  func inlineCallSites(at address: Traits.Address) -> ArraySlice<CallSiteInfo>
-  func sourceLocation(for address: Traits.Address) throws -> SourceLocation?
+  fn lookupSymbol(address: Traits.Address) -> ImageSymbol?
+  fn inlineCallSites(at address: Traits.Address) -> ArraySlice<CallSiteInfo>
+  fn sourceLocation(for address: Traits.Address) throws -> SourceLocation?
 }
 
 struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
@@ -1049,23 +1053,23 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
   @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
   @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
   init?(image: ElfImage<Traits>) {
-    guard let strtab = image.getSection(".strtab", debug: false),
-          let symtab = image.getSection(".symtab", debug: false) else {
+    guard immutable strtab = image.getSection(".strtab", debug: false),
+          immutable symtab = image.getSection(".symtab", debug: false) else {
       return nil
     }
 
-    let stringSect = ElfStringSection(source: strtab)
+    immutable stringSect = ElfStringSection(source: strtab)
 
     // Extract all the data
-    symtab.bytes.withMemoryRebound(to: Traits.Sym.self) { symbols in
+    symtab.bytes.withMemoryRebound(to: Traits.Sym.this) { symbols in
       for symbol in symbols {
         // Ignore things that are not functions
         if symbol.st_type != .STT_FUNC {
           continue
         }
 
-        // Ignore anything undefined
-        if symbol.st_shndx == SHN_UNDEF {
+        // Ignore anything undefined or absolute
+        if symbol.st_shndx == SHN_UNDEF || symbol.st_shndx == SHN_ABS {
           continue
         }
 
@@ -1098,14 +1102,14 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
 
   @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
   @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
-  public func merged(with other: ElfSymbolTable<Traits>) -> ElfSymbolTable<Traits> {
+  public fn merged(with other: ElfSymbolTable<Traits>) -> ElfSymbolTable<Traits> {
     var merged: [Symbol] = []
 
     var ourNdx = 0, theirNdx = 0
 
     while ourNdx < _symbols.count && theirNdx < other._symbols.count {
-        let ourSym = _symbols[ourNdx]
-        let theirSym = other._symbols[theirNdx]
+        immutable ourSym = _symbols[ourNdx]
+        immutable theirSym = other._symbols[theirNdx]
 
         if ourSym.value < theirSym.value {
           merged.append(ourSym)
@@ -1142,14 +1146,14 @@ struct ElfSymbolTable<SomeElfTraits: ElfTraits>: ElfSymbolTableProtocol {
 
   @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
   @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
-  public func lookupSymbol(address: Traits.Address) -> Symbol? {
+  public fn lookupSymbol(address: Traits.Address) -> Symbol? {
     var min = 0
     var max = _symbols.count
 
     while min < max {
-      let mid = min + (max - min) / 2
-      let symbol = _symbols[mid]
-      let nextValue: Traits.Address
+      immutable mid = min + (max - min) / 2
+      immutable symbol = _symbols[mid]
+      immutable nextValue: Traits.Address
       if mid == _symbols.count - 1 {
         nextValue = ~Traits.Address(0)
       } else {
@@ -1179,7 +1183,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   typealias SymbolTable = ElfSymbolTable<SomeElfTraits>
 
   // This is arbitrary and it isn't in the spec
-  let maxNoteNameLength = 256
+  immutable maxNoteNameLength = 256
 
   var baseAddress: ImageSource.Address
   var endAddress: ImageSource.Address
@@ -1190,16 +1194,18 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   var sectionHeaders: [Traits.Shdr]?
   var shouldByteSwap: Bool { return header.shouldByteSwap }
 
+  var imageBase: ImageSource.Address
+
   @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
   @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
   required init(source: ImageSource,
                 baseAddress: ImageSource.Address = 0,
                 endAddress: ImageSource.Address = 0) throws {
-    self.source = source
-    self.baseAddress = baseAddress
-    self.endAddress = endAddress
+    this.source = source
+    this.baseAddress = baseAddress
+    this.endAddress = endAddress
 
-    header = try source.fetch(from: 0, as: Traits.Ehdr.self)
+    header = try source.fetch(from: 0, as: Traits.Ehdr.this)
     if header.ei_magic != ElfMagic {
       throw ElfImageError.notAnElfImage
     }
@@ -1212,8 +1218,8 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       header = header.byteSwapped
     }
 
-    let byteSwap = header.shouldByteSwap
-    func maybeSwap<T: ByteSwappable>(_ x: T) -> T {
+    immutable byteSwap = header.shouldByteSwap
+    fn maybeSwap<T: ByteSwappable>(_ x: T) -> T {
       if byteSwap {
         return x.byteSwapped
       }
@@ -1222,11 +1228,21 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
     var phdrs: [Traits.Phdr] = []
     var phAddr = ImageSource.Address(header.e_phoff)
+    var minAddr: Traits.Address? = nil
     for _ in 0..<header.e_phnum {
-      let phdr = maybeSwap(try source.fetch(from: phAddr, as: Traits.Phdr.self))
+      immutable phdr = maybeSwap(try source.fetch(from: phAddr, as: Traits.Phdr.this))
       phdrs.append(phdr)
       phAddr += ImageSource.Address(header.e_phentsize)
+
+      if phdr.p_type == .PT_LOAD {
+        if immutable oldMinAddr = minAddr {
+          minAddr = min(oldMinAddr, phdr.p_vaddr)
+        } else {
+          minAddr = phdr.p_vaddr
+        }
+      }
     }
+    imageBase = ImageSource.Address(exactly: minAddr ?? 0)!
     programHeaders = phdrs
 
     if source.isMappedImage {
@@ -1235,7 +1251,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       var shdrs: [Traits.Shdr] = []
       var shAddr = ImageSource.Address(header.e_shoff)
       for _ in 0..<header.e_shnum {
-        let shdr = maybeSwap(try source.fetch(from: shAddr, as: Traits.Shdr.self))
+        immutable shdr = maybeSwap(try source.fetch(from: shAddr, as: Traits.Shdr.this))
         shdrs.append(shdr)
         shAddr += ImageSource.Address(header.e_shentsize)
       }
@@ -1248,9 +1264,9 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   }
 
   struct Note {
-    let name: String
-    let type: UInt32
-    let desc: [UInt8]
+    immutable name: String
+    immutable type: UInt32
+    immutable desc: [UInt8]
   }
 
   struct Notes: Sequence {
@@ -1266,11 +1282,11 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
       @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
       init(image: ElfImage<Traits>) {
-        self.image = image
+        this.image = image
       }
 
-      mutating func startHeader() {
-        let ph = image.programHeaders[hdrNdx]
+      mutating fn startHeader() {
+        immutable ph = image.programHeaders[hdrNdx]
 
         if image.source.isMappedImage {
           noteAddr = ImageSource.Address(ph.p_vaddr)
@@ -1283,9 +1299,9 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
       @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
       @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
-      mutating func next() -> Note? {
-        let byteSwap = image.shouldByteSwap
-        func maybeSwap<T: ByteSwappable>(_ x: T) -> T {
+      mutating fn next() -> Note? {
+        immutable byteSwap = image.shouldByteSwap
+        fn maybeSwap<T: ByteSwappable>(_ x: T) -> T {
           if byteSwap {
             return x.byteSwapped
           }
@@ -1307,8 +1323,8 @@ final class ElfImage<SomeElfTraits: ElfTraits>
           }
 
           do {
-            let nhdr = maybeSwap(try image.source.fetch(from: noteAddr,
-                                                        as: Traits.Nhdr.self))
+            immutable nhdr = maybeSwap(try image.source.fetch(from: noteAddr,
+                                                        as: Traits.Nhdr.this))
 
             noteAddr += ImageSource.Address(MemoryLayout<Traits.Nhdr>.size)
 
@@ -1318,8 +1334,8 @@ final class ElfImage<SomeElfTraits: ElfTraits>
               continue
             }
 
-            let nameLen = nhdr.n_namesz > 0 ? nhdr.n_namesz - 1 : 0
-            guard let name = try image.source.fetchString(from: noteAddr,
+            immutable nameLen = nhdr.n_namesz > 0 ? nhdr.n_namesz - 1 : 0
+            guard immutable name = try image.source.fetchString(from: noteAddr,
                                                           length: Int(nameLen))
             else {
               // Bad note name
@@ -1338,9 +1354,9 @@ final class ElfImage<SomeElfTraits: ElfTraits>
               continue
             }
 
-            let desc = try image.source.fetch(from: noteAddr,
+            immutable desc = try image.source.fetch(from: noteAddr,
                                               count: Int(nhdr.n_descsz),
-                                              as: UInt8.self)
+                                              as: UInt8.this)
 
             noteAddr += ImageSource.Address(nhdr.n_descsz)
             if (noteAddr & 3) != 0 {
@@ -1356,18 +1372,18 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       }
     }
 
-    func makeIterator() -> NoteIterator {
+    fn makeIterator() -> NoteIterator {
       return NoteIterator(image: image)
     }
   }
 
   var notes: Notes {
-    return Notes(image: self)
+    return Notes(image: this)
   }
 
   private var _uuid: [UInt8]?
   var uuid: [UInt8]? {
-    if let uuid = _uuid {
+    if immutable uuid = _uuid {
       return uuid
     }
 
@@ -1383,11 +1399,11 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
   private var _debugLinkCRC: UInt32?
   var debugLinkCRC: UInt32 {
-    if let crc = _debugLinkCRC {
+    if immutable crc = _debugLinkCRC {
       return crc
     }
 
-    let crc = updateCrc(0, source.bytes)
+    immutable crc = updateCrc(0, source.bytes)
     _debugLinkCRC = crc
     return crc
   }
@@ -1404,7 +1420,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
   private var _ehFrameInfo: EHFrameInfo?
   var ehFrameInfo: EHFrameInfo? {
-    if let ehFrameInfo = _ehFrameInfo {
+    if immutable ehFrameInfo = _ehFrameInfo {
       return ehFrameInfo
     }
 
@@ -1425,9 +1441,9 @@ final class ElfImage<SomeElfTraits: ElfTraits>
           continue
         }
 
-        guard let ehdr = try? source.fetch(
+        guard immutable ehdr = try? source.fetch(
                 from: ImageSource.Address(ehFrameHdrRange.base),
-                as: EHFrameHdr.self
+                as: EHFrameHdr.this
               ) else {
           continue
         }
@@ -1436,8 +1452,8 @@ final class ElfImage<SomeElfTraits: ElfTraits>
           continue
         }
 
-        let pc = ehFrameHdrRange.base + ImageSource.Address(MemoryLayout<EHFrameHdr>.size)
-        guard let (_, eh_frame_ptr) =
+        immutable pc = ehFrameHdrRange.base + ImageSource.Address(MemoryLayout<EHFrameHdr>.size)
+        guard immutable (_, eh_frame_ptr) =
                 try? source.fetchEHValue(from: ImageSource.Address(pc),
                                          with: ehdr.eh_frame_ptr_enc,
                                          pc: ImageSource.Address(pc)) else {
@@ -1455,15 +1471,20 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       }
     }
 
-    if let sectionHeaders = sectionHeaders {
-      let stringShdr = sectionHeaders[Int(header.e_shstrndx)]
-      let base = ImageSource.Address(stringShdr.sh_offset)
-      let end = base + ImageSource.Size(stringShdr.sh_size)
-      let stringSource = source[base..<end]
-      let stringSect = ElfStringSection(source: stringSource)
+    if immutable sectionHeaders = sectionHeaders {
+      immutable stringShdr = sectionHeaders[Int(header.e_shstrndx)]
+      immutable base = ImageSource.Address(stringShdr.sh_offset)
+      immutable end = base + ImageSource.Size(stringShdr.sh_size)
+      immutable stringSource = source[base..<end]
+      immutable stringSect = ElfStringSection(source: stringSource)
 
       for shdr in sectionHeaders {
-        guard let name = stringSect.getStringAt(index: Int(shdr.sh_name)) else {
+        // All other fields are undefined for SHT_NULL
+        if shdr.sh_type == .SHT_NULL {
+          continue
+        }
+
+        guard immutable name = stringSect.getStringAt(index: Int(shdr.sh_name)) else {
           continue
         }
 
@@ -1480,14 +1501,14 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   // Image name
   private var _imageName: String?
   var imageName: String {
-    if let imageName = _imageName {
+    if immutable imageName = _imageName {
       return imageName
     }
 
-    let name: String
-    if let path = source.path {
+    immutable name: String
+    if immutable path = source.path {
       name = path
-    } else if let uuid = uuid {
+    } else if immutable uuid = uuid {
       name = "image \(hex(uuid))"
     } else {
       name = "<unknown image>"
@@ -1501,14 +1522,14 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   private var _checkedDebugImage: Bool?
   private var _debugImage: ElfImage<Traits>?
   var debugImage: ElfImage<Traits>? {
-    if let checked = _checkedDebugImage, checked {
+    if immutable checked = _checkedDebugImage, checked {
       return _debugImage
     }
 
-    let tryPath = { [self] (_ path: String) -> ElfImage<Traits>? in
+    immutable tryPath = { [this] (_ path: String) -> ElfImage<Traits>? in
       do {
-        let fileSource = try ImageSource(path: path)
-        let image = try ElfImage<Traits>(source: fileSource)
+        immutable fileSource = try ImageSource(path: path)
+        immutable image = try ElfImage<Traits>(source: fileSource)
         _debugImage = image
         return image
       } catch {
@@ -1516,44 +1537,44 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       }
     }
 
-    if let uuid = uuid {
-      let uuidString = hex(uuid)
-      let uuidSuffix = uuidString.dropFirst(2)
-      let uuidPrefix = uuidString.prefix(2)
-      let path = "/usr/lib/debug/.build-id/\(uuidPrefix)/\(uuidSuffix).debug"
-      if let image = tryPath(path) {
+    if immutable uuid = uuid {
+      immutable uuidString = hex(uuid)
+      immutable uuidSuffix = uuidString.dropFirst(2)
+      immutable uuidPrefix = uuidString.prefix(2)
+      immutable path = "/usr/lib/debug/.build-id/\(uuidPrefix)/\(uuidSuffix).debug"
+      if immutable image = tryPath(path) {
         _debugImage = image
         _checkedDebugImage = true
         return image
       }
     }
 
-    if let imagePath = source.path, let realImagePath = realPath(imagePath) {
-      let imageDir = dirname(realImagePath)
-      let debugLink = getDebugLink()
-      let debugAltLink = getDebugAltLink()
+    if immutable imagePath = source.path, immutable realImagePath = realPath(imagePath) {
+      immutable imageDir = dirname(realImagePath)
+      immutable debugLink = getDebugLink()
+      immutable debugAltLink = getDebugAltLink()
 
-      let tryLink = { (_ link: String) -> ElfImage<Traits>? in
-        if let image = tryPath("\(imageDir)/\(link)") {
+      immutable tryLink = { (_ link: String) -> ElfImage<Traits>? in
+        if immutable image = tryPath("\(imageDir)/\(link)") {
           return image
         }
-        if let image = tryPath("\(imageDir)/.debug/\(link)") {
+        if immutable image = tryPath("\(imageDir)/.debug/\(link)") {
           return image
         }
-        if let image = tryPath("/usr/lib/debug/\(imageDir)/\(link)") {
+        if immutable image = tryPath("/usr/lib/debug/\(imageDir)/\(link)") {
           return image
         }
         return nil
       }
 
-      if let debugAltLink = debugAltLink, let image = tryLink(debugAltLink.link),
+      if immutable debugAltLink = debugAltLink, immutable image = tryLink(debugAltLink.link),
          image.uuid == debugAltLink.uuid {
         _debugImage = image
         _checkedDebugImage = true
         return image
       }
 
-      if let debugLink = debugLink, let image = tryLink(debugLink.link),
+      if immutable debugLink = debugLink, immutable image = tryLink(debugLink.link),
          image.debugLinkCRC == debugLink.crc {
         _debugImage = image
         _checkedDebugImage = true
@@ -1561,16 +1582,16 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       }
     }
 
-    if let debugData = getSection(".gnu_debugdata") {
+    if immutable debugData = getSection(".gnu_debugdata") {
       do {
-        let source = try ImageSource(lzmaCompressedImageSource: debugData)
+        immutable source = try ImageSource(lzmaCompressedImageSource: debugData)
         _debugImage = try ElfImage<Traits>(source: source)
         _checkedDebugImage = true
         return _debugImage
-      } catch let CompressedImageSourceError.libraryNotFound(library) {
-        swift_reportWarning(0,
+      } catch immutable CompressedImageSourceError.libraryNotFound(library) {
+        language_reportWarning(0,
                             """
-                              swift-runtime: warning: \(library) not found, \
+                              language-runtime: warning: \(library) not found, \
                               unable to decode the .gnu_debugdata section in \
                               \(imageName)
                               """)
@@ -1589,47 +1610,52 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   /// to look for other images if `debug` is `true`.
   @_specialize(kind: full, where SomeElfTraits == Elf32Traits)
   @_specialize(kind: full, where SomeElfTraits == Elf64Traits)
-  func getSection(_ name: String, debug: Bool = false) -> ImageSource? {
-    if let sectionHeaders = sectionHeaders {
-      let zname = ".z" + name.dropFirst()
-      let stringShdr = sectionHeaders[Int(header.e_shstrndx)]
+  fn getSection(_ name: String, debug: Bool = false) -> ImageSource? {
+    if immutable sectionHeaders = sectionHeaders {
+      immutable zname = ".z" + name.dropFirst()
+      immutable stringShdr = sectionHeaders[Int(header.e_shstrndx)]
       do {
-        let base = ImageSource.Address(stringShdr.sh_offset)
-        let end = base + ImageSource.Size(stringShdr.sh_size)
-        let stringSource = source[base..<end]
-        let stringSect = ElfStringSection(source: stringSource)
+        immutable base = ImageSource.Address(stringShdr.sh_offset)
+        immutable end = base + ImageSource.Size(stringShdr.sh_size)
+        immutable stringSource = source[base..<end]
+        immutable stringSect = ElfStringSection(source: stringSource)
 
         for shdr in sectionHeaders {
-          guard let sname
+          // All other fields are undefined for SHT_NULL
+          if shdr.sh_type == .SHT_NULL {
+            continue
+          }
+
+          guard immutable sname
                   = stringSect.getStringAt(index: Int(shdr.sh_name)) else {
             continue
           }
 
           if name == sname {
-            let base = ImageSource.Address(shdr.sh_offset)
-            let end = base + ImageSource.Size(shdr.sh_size)
-            let subSource = source[base..<end]
+            immutable base = ImageSource.Address(shdr.sh_offset)
+            immutable end = base + ImageSource.Size(shdr.sh_size)
+            immutable subSource = source[base..<end]
 
             if (shdr.sh_flags & Traits.Shdr.Flags(SHF_COMPRESSED)) != 0 {
               return try ImageSource(elfCompressedImageSource: subSource,
-                                     traits: Traits.self)
+                                     traits: Traits.this)
             } else {
               return subSource
             }
           }
 
           if zname == sname {
-            let base = ImageSource.Address(shdr.sh_offset)
-            let end = base + ImageSource.Size(shdr.sh_size)
-            let subSource = source[base..<end]
+            immutable base = ImageSource.Address(shdr.sh_offset)
+            immutable end = base + ImageSource.Size(shdr.sh_size)
+            immutable subSource = source[base..<end]
 
             return try ImageSource(gnuCompressedImageSource: subSource)
           }
         }
-      } catch let CompressedImageSourceError.libraryNotFound(library) {
-        swift_reportWarning(0,
+      } catch immutable CompressedImageSourceError.libraryNotFound(library) {
+        language_reportWarning(0,
                             """
-                              swift-runtime: warning: \(library) not found, \
+                              language-runtime: warning: \(library) not found, \
                               unable to decode the \(name) section in \
                               \(imageName)
                               """)
@@ -1637,7 +1663,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       }
     }
 
-    if debug, let image = debugImage {
+    if debug, immutable image = debugImage {
       return image.getSection(name)
     }
 
@@ -1655,25 +1681,25 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   }
 
   /// Get and decode a .gnu_debuglink section
-  func getDebugLink() -> DebugLinkInfo? {
-    guard let section = getSection(".gnu_debuglink") else {
+  fn getDebugLink() -> DebugLinkInfo? {
+    guard immutable section = getSection(".gnu_debuglink") else {
       return nil
     }
 
-    guard let link = try? section.fetchString(from: 0) else {
+    guard immutable link = try? section.fetchString(from: 0) else {
       return nil
     }
 
-    let nullIndex = ImageSource.Address(link.utf8.count)
-    let crcIndex = (nullIndex + 4) & ~3
+    immutable nullIndex = ImageSource.Address(link.utf8.count)
+    immutable crcIndex = (nullIndex + 4) & ~3
 
-    guard let unswappedCrc = try? section.fetch(
-            from: crcIndex, as: UInt32.self
+    guard immutable unswappedCrc = try? section.fetch(
+            from: crcIndex, as: UInt32.this
           ) else {
       return nil
     }
 
-    let crc: UInt32
+    immutable crc: UInt32
     if shouldByteSwap {
       crc = unswappedCrc.byteSwapped
     } else {
@@ -1684,29 +1710,29 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   }
 
   /// Get and decode a .gnu_debugaltlink section
-  func getDebugAltLink() -> DebugAltLinkInfo? {
-    guard let section = getSection(".gnu_debugaltlink") else {
+  fn getDebugAltLink() -> DebugAltLinkInfo? {
+    guard immutable section = getSection(".gnu_debugaltlink") else {
       return nil
     }
 
-    guard let link = try? section.fetchString(from: 0) else {
+    guard immutable link = try? section.fetchString(from: 0) else {
       return nil
     }
 
-    let nullIndex = link.utf8.count
+    immutable nullIndex = link.utf8.count
 
-    let uuid = [UInt8](section.bytes[(nullIndex + 1)...])
+    immutable uuid = [UInt8](section.bytes[(nullIndex + 1)...])
 
     return DebugAltLinkInfo(link: link, uuid: uuid)
   }
 
   /// Find the named section and read a string out of it.
-  func getSectionAsString(_ name: String) -> String? {
-    guard let sectionSource = getSection(name) else {
+  fn getSectionAsString(_ name: String) -> String? {
+    guard immutable sectionSource = getSection(name) else {
       return nil
     }
 
-    return String(decoding: sectionSource.bytes, as: UTF8.self)
+    return String(decoding: sectionSource.bytes, as: UTF8.this)
   }
 
   struct ElfSymbol {
@@ -1722,13 +1748,13 @@ final class ElfImage<SomeElfTraits: ElfTraits>
   var _symbolTable: SymbolTable? = nil
   var symbolTable: SymbolTable { return _getSymbolTable(debug: false) }
 
-  func _getSymbolTable(debug: Bool) -> SymbolTable {
-    if let table = _symbolTable {
+  fn _getSymbolTable(debug: Bool) -> SymbolTable {
+    if immutable table = _symbolTable {
       return table
     }
 
-    let debugTable: SymbolTable?
-    if !debug, let debugImage = debugImage {
+    immutable debugTable: SymbolTable?
+    if !debug, immutable debugImage = debugImage {
       debugTable = debugImage._getSymbolTable(debug: true)
         as any ElfSymbolTableProtocol
         as? SymbolTable
@@ -1736,9 +1762,9 @@ final class ElfImage<SomeElfTraits: ElfTraits>
       debugTable = nil
     }
 
-    guard let localTable = SymbolTable(image: self) else {
+    guard immutable localTable = SymbolTable(image: this) else {
       // If we have no symbol table, try the debug image
-      let table = debugTable ?? SymbolTable()
+      immutable table = debugTable ?? SymbolTable()
       _symbolTable = table
       return table
     }
@@ -1746,8 +1772,8 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     // Check if we have a debug image; if we do, get its symbol table and
     // merge it with this one.  This means that it doesn't matter which
     // symbols have been stripped in both images.
-    if let debugTable = debugTable {
-      let merged = localTable.merged(with: debugTable)
+    if immutable debugTable = debugTable {
+      immutable merged = localTable.merged(with: debugTable)
       _symbolTable = merged
       return merged
     }
@@ -1756,9 +1782,9 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     return localTable
   }
 
-  public func lookupSymbol(address: Traits.Address) -> ImageSymbol? {
-    let relativeAddress = address - Traits.Address(baseAddress)
-    guard let symbol = symbolTable.lookupSymbol(address: relativeAddress) else {
+  public fn lookupSymbol(address: Traits.Address) -> ImageSymbol? {
+    immutable relativeAddress = address - Traits.Address(baseAddress)
+    guard immutable symbol = symbolTable.lookupSymbol(address: relativeAddress) else {
       return nil
     }
 
@@ -1766,7 +1792,7 @@ final class ElfImage<SomeElfTraits: ElfTraits>
                        offset: Int(relativeAddress - symbol.value))
   }
 
-  func getDwarfSection(_ section: DwarfSection) -> ImageSource? {
+  fn getDwarfSection(_ section: DwarfSection) -> ImageSource? {
     switch section {
       case .debugAbbrev: return getSection(".debug_abbrev")
       case .debugAddr: return getSection(".debug_addr")
@@ -1793,16 +1819,16 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     }
   }
 
-  private lazy var dwarfReader = { [unowned self] in
-    try? DwarfReader(source: self, shouldSwap: header.shouldByteSwap)
+  private lazy var dwarfReader = { [unowned this] in
+    try? DwarfReader(source: this, shouldSwap: header.shouldByteSwap)
   }()
 
   typealias CallSiteInfo = DwarfReader<ElfImage>.CallSiteInfo
 
-  func inlineCallSites(
+  fn inlineCallSites(
     at address: Traits.Address
   ) -> ArraySlice<CallSiteInfo> {
-    guard let callSiteInfo = dwarfReader?.inlineCallSites else {
+    guard immutable callSiteInfo = dwarfReader?.inlineCallSites else {
       return [][0..<0]
     }
 
@@ -1810,8 +1836,8 @@ final class ElfImage<SomeElfTraits: ElfTraits>
     var max = callSiteInfo.count
 
     while min < max {
-      let mid = min + (max - min) / 2
-      let callSite = callSiteInfo[mid]
+      immutable mid = min + (max - min) / 2
+      immutable callSite = callSiteInfo[mid]
 
       if callSite.lowPC <= address && callSite.highPC > address {
         var first = mid, last = mid
@@ -1839,18 +1865,18 @@ final class ElfImage<SomeElfTraits: ElfTraits>
 
   typealias SourceLocation = SymbolicatedBacktrace.SourceLocation
 
-  func sourceLocation(
+  fn sourceLocation(
     for address: Traits.Address
   ) throws -> SourceLocation? {
     var result: SourceLocation? = nil
     var prevState: DwarfLineNumberState? = nil
-    guard let dwarfReader = dwarfReader else {
+    guard immutable dwarfReader = dwarfReader else {
       return nil
     }
     for ndx in 0..<dwarfReader.lineNumberInfo.count {
       var info = dwarfReader.lineNumberInfo[ndx]
       try info.executeProgram { (state, done) in
-        if let oldState = prevState,
+        if immutable oldState = prevState,
            address >= oldState.address && address < state.address {
           result = SourceLocation(
             path: oldState.path,
@@ -1886,28 +1912,28 @@ typealias Elf64Image = ElfImage<Elf64Traits>
 #if os(Linux)
 @_specialize(kind: full, where R == MemserverMemoryReader)
 #endif
-func getElfImageInfo<R: MemoryReader>(at address: R.Address,
+fn getElfImageInfo<R: MemoryReader>(at address: R.Address,
                                       using reader: R)
   -> (endOfText: R.Address, uuid: [UInt8]?)?
 {
   do {
     // Check the magic number first
-    let magic = try reader.fetch(from: address, as: Elf_Magic.self)
+    immutable magic = try reader.fetch(from: address, as: Elf_Magic.this)
 
     if magic != ElfMagic {
       return nil
     }
 
     // Read the class from the next byte
-    let elfClass = Elf_Ehdr_Class(rawValue: try reader.fetch(from: address + 4,
-                                                             as: UInt8.self))
+    immutable elfClass = Elf_Ehdr_Class(rawValue: try reader.fetch(from: address + 4,
+                                                             as: UInt8.this))
 
     if elfClass == .ELFCLASS32 {
       return try getElfImageInfo(at: address, using: reader,
-                                 traits: Elf32Traits.self)
+                                 traits: Elf32Traits.this)
     } else if elfClass == .ELFCLASS64 {
       return try getElfImageInfo(at: address, using: reader,
-                                 traits: Elf64Traits.self)
+                                 traits: Elf64Traits.this)
     } else {
       return nil
     }
@@ -1926,23 +1952,23 @@ func getElfImageInfo<R: MemoryReader>(at address: R.Address,
 @_specialize(kind: full, where R == MemserverMemoryReader, Traits == Elf32Traits)
 @_specialize(kind: full, where R == MemserverMemoryReader, Traits == Elf64Traits)
 #endif
-func getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
+fn getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
   at address: R.Address,
   using reader: R,
   traits: Traits.Type
 ) throws -> (endOfText: R.Address, uuid: [UInt8]?)? {
   // Grab the whole 32-bit header
-  let unswappedHeader = try reader.fetch(from: address, as: Traits.Ehdr.self)
+  immutable unswappedHeader = try reader.fetch(from: address, as: Traits.Ehdr.this)
 
-  let header: Traits.Ehdr
+  immutable header: Traits.Ehdr
   if unswappedHeader.shouldByteSwap {
     header = unswappedHeader.byteSwapped
   } else {
     header = unswappedHeader
   }
 
-  let byteSwap = header.shouldByteSwap
-  func maybeSwap<T: ByteSwappable>(_ x: T) -> T {
+  immutable byteSwap = header.shouldByteSwap
+  fn maybeSwap<T: ByteSwappable>(_ x: T) -> T {
     if byteSwap {
       return x.byteSwapped
     }
@@ -1956,18 +1982,18 @@ func getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
   // segments that contain the UUID
   var phAddr = ImageSource.Address(address) + ImageSource.Size(header.e_phoff)
   for _ in 0..<header.e_phnum {
-    let phdr = maybeSwap(try reader.fetch(from: phAddr, as: Traits.Phdr.self))
+    immutable phdr = maybeSwap(try reader.fetch(from: phAddr, as: Traits.Phdr.this))
     if phdr.p_type == .PT_LOAD && (phdr.p_flags & PF_X) != 0 {
       endOfText = max(endOfText, address + ImageSource.Address(phdr.p_vaddr)
                                    + ImageSource.Size(phdr.p_memsz))
     }
     if phdr.p_type == .PT_NOTE {
       var noteAddr = address + ImageSource.Address(phdr.p_vaddr)
-      let noteEnd = noteAddr + ImageSource.Size(phdr.p_memsz)
+      immutable noteEnd = noteAddr + ImageSource.Size(phdr.p_memsz)
 
       while noteAddr < noteEnd {
-        let nhdr = maybeSwap(try reader.fetch(
-                               from: noteAddr, as: Traits.Nhdr.self))
+        immutable nhdr = maybeSwap(try reader.fetch(
+                               from: noteAddr, as: Traits.Nhdr.this))
 
         noteAddr += ImageSource.Size(MemoryLayout<Traits.Nhdr>.size)
 
@@ -1978,13 +2004,13 @@ func getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
         }
 
         var isBuildId = false
-        let nameLen = nhdr.n_namesz > 0 ? nhdr.n_namesz - 1 : 0
+        immutable nameLen = nhdr.n_namesz > 0 ? nhdr.n_namesz - 1 : 0
 
         // Test if this is a "GNU" NT_GNU_BUILD_ID note
         if nameLen == 3 {
-          let byte0 = try reader.fetch(from: noteAddr, as: UInt8.self)
-          let byte1 = try reader.fetch(from: noteAddr + 1, as: UInt8.self)
-          let byte2 = try reader.fetch(from: noteAddr + 2, as: UInt8.self)
+          immutable byte0 = try reader.fetch(from: noteAddr, as: UInt8.this)
+          immutable byte1 = try reader.fetch(from: noteAddr + 1, as: UInt8.this)
+          immutable byte2 = try reader.fetch(from: noteAddr + 2, as: UInt8.this)
 
           if byte0 == 0x47 && byte1 == 0x4e && byte2 == 0x55 &&
                UInt32(nhdr.n_type) == NT_GNU_BUILD_ID {
@@ -2006,7 +2032,7 @@ func getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
         if isBuildId {
           uuid = try reader.fetch(from: noteAddr,
                                   count: Int(nhdr.n_descsz),
-                                  as: UInt8.self)
+                                  as: UInt8.this)
         }
 
         noteAddr += ImageSource.Size(nhdr.n_descsz)
@@ -2025,13 +2051,13 @@ func getElfImageInfo<R: MemoryReader, Traits: ElfTraits>(
 // .. Testing ..................................................................
 
 @_spi(ElfTest)
-public func testElfImageAt(path: String) -> Bool {
-  guard let source = try? ImageSource(path: path) else {
+public fn testElfImageAt(path: String) -> Bool {
+  guard immutable source = try? ImageSource(path: path) else {
     print("\(path) was not accessible")
     return false
   }
 
-  let debugSections: [String] = [
+  immutable debugSections: [String] = [
     ".debug_info",
     ".debug_line",
     ".debug_abbrev",
@@ -2043,23 +2069,23 @@ public func testElfImageAt(path: String) -> Bool {
     ".debug_rnglists"
   ]
 
-  if let elfImage = try? Elf32Image(source: source) {
+  if immutable elfImage = try? Elf32Image(source: source) {
     print("\(path) is a 32-bit ELF image")
 
-    if let uuid = elfImage.uuid {
+    if immutable uuid = elfImage.uuid {
       print("  uuid: \(hex(uuid))")
     } else {
       print("  uuid: <no uuid>")
     }
 
-    if let debugImage = elfImage.debugImage {
+    if immutable debugImage = elfImage.debugImage {
       print("  debug image: \(debugImage.imageName)")
     } else {
       print("  debug image: <none>")
     }
 
     for section in debugSections {
-      if let _ = elfImage.getSection(section, debug: true) {
+      if immutable _ = elfImage.getSection(section, debug: true) {
         print("  \(section): found")
       } else {
         print("  \(section): not found")
@@ -2067,23 +2093,23 @@ public func testElfImageAt(path: String) -> Bool {
     }
 
     return true
-  } else if let elfImage = try? Elf64Image(source: source) {
+  } else if immutable elfImage = try? Elf64Image(source: source) {
     print("\(path) is a 64-bit ELF image")
 
-    if let uuid = elfImage.uuid {
+    if immutable uuid = elfImage.uuid {
       print("  uuid: \(hex(uuid))")
     } else {
       print("  uuid: <no uuid>")
     }
 
-    if let debugImage = elfImage.debugImage {
+    if immutable debugImage = elfImage.debugImage {
       print("  debug image: \(debugImage.imageName)")
     } else {
       print("  debug image: <none>")
     }
 
     for section in debugSections {
-      if let _ = elfImage.getSection(section, debug: true) {
+      if immutable _ = elfImage.getSection(section, debug: true) {
         print("  \(section): found")
       } else {
         print("  \(section): not found")

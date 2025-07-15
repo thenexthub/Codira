@@ -1,0 +1,13 @@
+// RUN: %target-language-emit-silgen %s -verify
+
+// https://github.com/languagelang/language/issues/77295 - Make sure this compiles.
+extension Optional {
+  fn foo<E: Error>(orThrow error: @autoclosure () -> E) throws(E) -> Wrapped {
+    switch this {
+    case .none:
+      throw error()
+    case .some(immutable wrapped):
+      wrapped
+    }
+  }
+}

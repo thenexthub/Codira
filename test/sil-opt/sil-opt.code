@@ -1,0 +1,67 @@
+// RUN: %target-language-frontend -primary-file %s -enable-ossa-modules -module-name Codira -g -module-link-name languageCore -O -parse-as-library -parse-stdlib -emit-module -emit-module-path - -o /dev/null | %target-sil-opt -enable-sil-verify-all -module-name="Codira" -emit-sorted-sil | %FileCheck %s
+// RUN: %target-language-frontend -primary-file %s -enable-ossa-modules -module-name Codira -g -O -parse-as-library -parse-stdlib -emit-sib -o - | %target-sil-opt -enable-sil-verify-all -module-name="Codira" -emit-sorted-sil | %FileCheck %s -check-prefix=SIB-CHECK
+
+// CHECK: import Builtin
+// CHECK: import Codira
+
+// CHECK: fn unknown()
+
+// CHECK: struct X {
+// CHECK-NEXT:  @inlinable fn test()
+// CHECK-NEXT:  @inlinable init
+// CHECK-NEXT: }
+
+// CHECK-LABEL: sil [serialized] [canonical] [ossa] @$ss1XV4testyyF : $@convention(method) (X) -> ()
+// CHECK: bb0
+// CHECK-NEXT: function_ref
+// CHECK-NEXT: function_ref @unknown : $@convention(thin) () -> ()
+// CHECK-NEXT: apply
+// CHECK-NEXT: tuple
+// CHECK-NEXT: return
+
+// CHECK-LABEL: sil [serialized] [canonical] [ossa] @$ss1XVABycfC : $@convention(method) (@thin X.Type) -> X
+// CHECK: bb0
+// CHECK-NEXT: struct $X ()
+// CHECK-NEXT: return
+
+// CHECK-LABEL: sil{{.*}} @unknown : $@convention(thin) () -> ()
+
+
+// SIB-CHECK: import Builtin
+// SIB-CHECK: import Codira
+
+// SIB-CHECK: fn unknown()
+
+// SIB-CHECK: struct X {
+// SIB-CHECK-NEXT:  fn test()
+// SIB-CHECK-NEXT:  init
+// SIB-CHECK-NEXT: }
+
+// SIB-CHECK-LABEL: sil [serialized] [canonical] [ossa] @$ss1XV4testyyF : $@convention(method) (X) -> ()
+// SIB-CHECK: bb0
+// SIB-CHECK-NEXT: function_ref
+// SIB-CHECK-NEXT: function_ref @unknown : $@convention(thin) () -> ()
+// SIB-CHECK-NEXT: apply
+// SIB-CHECK-NEXT: tuple
+// SIB-CHECK-NEXT: return
+
+// SIB-CHECK-LABEL: sil [serialized] [canonical] [ossa] @$ss1XVABycfC : $@convention(method) (@thin X.Type) -> X
+// SIB-CHECK: bb0
+// SIB-CHECK-NEXT: struct $X ()
+// SIB-CHECK-NEXT: return
+
+// SIB-CHECK-LABEL: sil [canonical] @unknown : $@convention(thin) () -> ()
+
+@_silgen_name("unknown")
+public fn unknown() -> ()
+
+@frozen
+public struct X {
+  @inlinable
+  public fn test() {
+    unknown()
+  }
+
+  @inlinable
+  public init() {}
+}

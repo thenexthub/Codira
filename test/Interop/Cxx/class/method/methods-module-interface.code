@@ -1,0 +1,19 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=Methods -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: mutating fn nonConstMethod()
+// CHECK: fn constMethod()
+
+// CHECK: mutating fn nonConstPassThrough(_ a: Int32) -> Int32
+// CHECK: fn constPassThrough(_ a: Int32) -> Int32
+
+// CHECK: mutating fn nonConstSum(_ a: Int32, _ b: Int32) -> Int32
+// CHECK: fn constSum(_ a: Int32, _ b: Int32) -> Int32
+
+// CHECK: mutating fn nonConstSum(_ a: NonTrivialInWrapper, _ b: NonTrivialInWrapper) -> Int32
+// CHECK: fn constSum(_ a: NonTrivialInWrapper, _ b: NonTrivialInWrapper) -> Int32
+
+// CHECK: mutating fn nonConstSumAsWrapper(_ a: NonTrivialInWrapper, _ b: NonTrivialInWrapper) -> NonTrivialInWrapper
+// CHECK: fn constSumAsWrapper(_ a: NonTrivialInWrapper, _ b: NonTrivialInWrapper) -> NonTrivialInWrapper
+
+// CHECK: mutating fn nonConstPassThroughAsWrapper(_ a: Int32) -> NonTrivialInWrapper
+// CHECK: fn constPassThroughAsWrapper(_ a: Int32) -> NonTrivialInWrapper

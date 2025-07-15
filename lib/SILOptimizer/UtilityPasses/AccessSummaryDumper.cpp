@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-access-summary-dumper"
@@ -21,7 +22,7 @@
 #include "language/SILOptimizer/Analysis/AccessSummaryAnalysis.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -35,21 +36,21 @@ class AccessSummaryDumper : public SILModuleTransform {
     auto *analysis = PM->getAnalysis<AccessSummaryAnalysis>();
 
     for (auto &fn : *getModule()) {
-      llvm::outs() << "@" << fn.getName() << "\n";
+      toolchain::outs() << "@" << fn.getName() << "\n";
       if (fn.empty()) {
-        llvm::outs() << "<unknown>\n";
+        toolchain::outs() << "<unknown>\n";
         continue;
       }
       const AccessSummaryAnalysis::FunctionSummary &summary =
           analysis->getOrCreateSummary(&fn);
-      summary.print(llvm::outs(), &fn);
-      llvm::outs() << "\n";
+      summary.print(toolchain::outs(), &fn);
+      toolchain::outs() << "\n";
     }
   }
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createAccessSummaryDumper() {
+SILTransform *language::createAccessSummaryDumper() {
   return new AccessSummaryDumper();
 }

@@ -1,4 +1,4 @@
-//===--- TypeRefs.def - Swift Type References -------------------*- C++ -*-===//
+//===--- TypeRefs.def - Codira Type References -------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines Swift Type Reference Kinds.
+// This file defines Codira Type Reference Kinds.
 //
 //===----------------------------------------------------------------------===//
 
@@ -42,5 +43,7 @@ TYPEREF(SILBox, TypeRef)
 TYPEREF(SILBoxTypeWithLayout, TypeRef)
 TYPEREF(Integer, TypeRef)
 TYPEREF(BuiltinFixedArray, TypeRef)
+TYPEREF(Pack, TypeRef)
+TYPEREF(PackExpansion, TypeRef)
 
 #undef TYPEREF

@@ -1,0 +1,66 @@
+// RUN: %empty-directory(%t)
+
+/// First Test: Check `@_usableFromInline` is not added to types in PackageCMO mode.
+// RUN: %target-language-frontend -parse-as-library %s -O -wmo -enable-library-evolution -experimental-allow-non-resilient-access -experimental-package-cmo -module-name=Lib -package-name pkg -emit-module -o %t/Lib-package-cmo.codemodule
+// RUN: %target-sil-opt -module-name Lib -enable-sil-verify-all %t/Lib-package-cmo.codemodule -o %t/Lib-package-cmo.sil
+// RUN: %FileCheck %s < %t/Lib-package-cmo.sil
+
+/// Second Test: Check .codeinterface files with and without PackageCMO have the same decl signatures without `@_usableFromInline`.
+// RUN: %target-language-frontend -emit-module %s -I %t \
+// RUN:   -module-name Lib -package-name pkg \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Lib.private.codeinterface \
+// RUN:   -emit-package-module-interface-path %t/Lib.package.codeinterface
+// RUN: %FileCheck %s --check-prefixes=CHECK-PKG-INTERFACE,CHECK-INTERFACE < %t/Lib.package.codeinterface
+// RUN: %FileCheck %s --check-prefix=CHECK-INTERFACE < %t/Lib.codeinterface
+
+// RUN: rm -rf %t/Lib.codemodule
+// RUN: rm -rf %t/Lib.codeinterface
+// RUN: rm -rf %t/Lib.private.codeinterface
+// RUN: rm -rf %t/Lib.package.codeinterface
+
+// RUN: %target-language-frontend -emit-module %s -I %t \
+// RUN:   -module-name Lib -package-name pkg \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -O -wmo \
+// RUN:   -experimental-allow-non-resilient-access -experimental-package-cmo \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Lib.private.codeinterface \
+// RUN:   -emit-package-module-interface-path %t/Lib.package.codeinterface
+// RUN: %FileCheck %s --check-prefixes=CHECK-PKG-INTERFACE,CHECK-INTERFACE < %t/Lib.package.codeinterface
+// RUN: %FileCheck %s --check-prefix=CHECK-INTERFACE < %t/Lib.codeinterface
+
+// REQUIRES: language_in_compiler
+
+// CHECK-NOT: @usableFromInline
+final class InternalKlass: PkgKlass {
+    @inline(never)
+    override fn bar() -> Int { return 13 }
+}
+
+package class PkgKlass {
+    @inline(never)
+    package fn bar() -> Int { return 11 }
+}
+
+// CHECK-NOT: sil package [serialized_for_package] [noinline] [canonical] @$s3Lib3fooySiSgAA8PkgKlassCF : $@convention(thin) (@guaranteed PkgKlass) -> Optional<Int> {
+// CHECK-NOT: checked_cast_br PkgKlass in {{.*}} : $PkgKlass to InternalKlass
+@inline(never)
+package fn foo(_ arg: PkgKlass) -> Int? {
+    immutable x = arg as? InternalKlass
+    return x?.bar()
+}
+
+public fn run() -> Int {
+  return PkgKlass().bar()
+}
+
+// CHECK-PKG-INTERFACE-NOT: @usableFromInline
+// CHECK-INTERFACE-NOT: @usableFromInline
+// CHECK-PKG-INTERFACE: package class PkgKlass {
+// CHECK-PKG-INTERFACE:   @inline(never) package fn bar() -> Codira.Int
+// CHECK-PKG-INTERFACE:   @inline(never) package fn foo(_ arg: Lib.PkgKlass) -> Codira.Int?
+// CHECK-INTERFACE: public fn run() -> Codira.Int

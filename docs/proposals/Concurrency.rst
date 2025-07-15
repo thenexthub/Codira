@@ -2,12 +2,12 @@
 
 .. ConcurrencyModel:
 
-*Note*: This document is **not an accepted Swift proposal**. It does not describe Swift's concurrency mechanisms as they currently exist, nor is it a roadmap for the addition of concurrency mechanisms in future versions of Swift.
+*Note*: This document is **not an accepted Codira proposal**. It does not describe Codira's concurrency mechanisms as they currently exist, nor is it a roadmap for the addition of concurrency mechanisms in future versions of Codira.
 
-Swift Thread Safety
+Codira Thread Safety
 ===================
 
-This document describes the Swift thread-safety layer. It includes the
+This document describes the Codira thread-safety layer. It includes the
 motivation for allowing users to write thread-safe code and a concrete proposal
 for changes in the language and the standard library. This is a proposal and
 not a plan of record.
@@ -17,34 +17,34 @@ different kinds of high-level safe concurrency solutions (such as Actors,
 Coroutines, and Async-Await) in a library. This document describes three
 different high-level concurrency solutions to demonstrate the completeness and
 efficacy of the thread-safe layer.  Designing an official high-level concurrency
-model for Swift is outside the scope of this proposal.
+model for Codira is outside the scope of this proposal.
 
 Motivation and Requirements
 ---------------------------
 
 Multi-core processors are ubiquitous and most modern programming languages, such
 as Go, Rust, Java, C#, D, Erlang, and C++, have some kind of support for
-concurrent, parallel or multi-threaded programming. Swift is a safe programming
+concurrent, parallel or multi-threaded programming. Codira is a safe programming
 language that protects the user from bugs such as integer overflow and memory
 corruption by eliminating undefined behavior and by verifying some aspects of
-the program's correctness at runtime. Multi-threaded programs in Swift should
+the program's correctness at runtime. Multi-threaded programs in Codira should
 not break the safety guarantees of the language.
 
-Swift Memory Model
+Codira Memory Model
 ------------------
 
-This section describes the guarantees that unsupervised Swift provides when
+This section describes the guarantees that unsupervised Codira provides when
 writing multi-threaded code and why the minimal guarantees of atomicity that
-Java provide cannot be implemented in Swift.
+Java provide cannot be implemented in Codira.
 
-Let's start by looking at reference counting operations. Swift objects include a
+Let's start by looking at reference counting operations. Codira objects include a
 reference-count field that holds the number of references that point to that
 object. This field is modified using atomic operations.  Atomic operations
 ensure that the reference count field is not corrupted by data races.  However,
 using atomic operations is not enough to ensure thread safety. Consider the
 multi-threaded program below.
 
-.. code-block:: swift
+.. code-block:: language
 
   import Foundation
 
@@ -93,9 +93,9 @@ races can introduce an inconsistent state.
 
 The Java memory model ensures that pointers and primitive types, such as ints
 and floats, are never sliced, even when data races occur.  It would be nice if
-Swift had a similar guarantee. Intuitively we would want all struct or class
+Codira had a similar guarantee. Intuitively we would want all struct or class
 members of primitive types to be aligned to ensure atomic access to the field.
-However, this is not possible in Swift.  Consider the Swift code below::
+However, this is not possible in Codira.  Consider the Codira code below::
 
   enum Fruit {
     case Apple(Int64),
@@ -107,7 +107,7 @@ processors the tag of the enum can't be updated at the same time as the payload.
 In some race conditions we could accidentally interpret the payload of the
 struct as pointer using the value stored into the integer.
 
-To summarize, Swift, just like C++, does not make any guarantees about
+To summarize, Codira, just like C++, does not make any guarantees about
 unsynchronized memory, and the semantic of programs with races is undefined. When
 race conditions occur pointers and primitive data types could be sliced, enums
 may contain the wrong tag, protocols may refer to invalid dispatch tables,
@@ -118,7 +118,7 @@ Achieving thread safety
 
 This section describes a set of rules that ensure thread safety in programs that
 embrace them despite the inherit lack of thread safety in general multi-threaded
-Swift code.
+Codira code.
 
 Safe concurrency is commonly implemented by eliminating shared mutable memory.
 Go, Erlang and Rust ensure some level of program safety by providing mechanisms
@@ -132,24 +132,24 @@ threads and it is not necessary to enforce a hermetic separation between the
 address spaces. It is very useful to be able to share large data structures
 without copying them around. Mutable data can be shared between threads as long
 as the access to the data is synchronized and some program properties are
-verified by the compiler.  In Swift thread safety is implemented by preventing
+verified by the compiler.  In Codira thread safety is implemented by preventing
 threads from sharing mutable memory.
 
 
 Proposal
 ========
 
-In Swift, new threads are created in a new memory enclave that is separate from
+In Codira, new threads are created in a new memory enclave that is separate from
 the parent thread. Values can be copied in and out of the new thread context,
 but the child thread must never obtain a reference that points to the outside
-world. Non-reentrant code needs to be explicitly marked as such. Swift enforces
-these rules statically. The rest of this section describes how Swift ensures
+world. Non-reentrant code needs to be explicitly marked as such. Codira enforces
+these rules statically. The rest of this section describes how Codira ensures
 safety and deals with global variables and unsafe code.
 
 The three basic elements of thread safety
 -----------------------------------------
 
-The Swift language has three features that allow it to ensure thread safety
+The Codira language has three features that allow it to ensure thread safety
 and enforce it at compile time:
 
 1. Copyable Protocol
@@ -181,7 +181,7 @@ manually mark them as Copyable::
 We ensure thread-safety by requiring that code that's executed from a worker
 thread to only access logical copies of data that belongs to other threads. One
 way for user code to break away from the memory enclave is to access **global
-variables**. The Swift compiler must verify that threaded code does not access
+variables**. The Codira compiler must verify that threaded code does not access
 global variables or unsafe code that it can't verify. There are exceptions to
 this rule and the compiler provides special annotations for code that performs
 I/O or calls unsafe code.
@@ -206,12 +206,12 @@ In the example program below the method `fly` may access the global variable
 because it is marked with the attribute `unsafe`. The compiler won't allow this
 method to be executed from a worker-thread.
 
-.. code-block:: swift
+.. code-block:: language
 
   var glob : Int = 1
 
   class Bird {
-    unsafe func fly() { glob = 1}
+    unsafe fn fly() { glob = 1}
   }
 
 In the example program below the `issafe` wrapper is used to explicitly mark a
@@ -221,9 +221,9 @@ the code as safe.
 The function ``logger`` is still considered by the compiler as reentrant and can
 be called by worker-threads.
 
-.. code-block:: swift
+.. code-block:: language
 
-  func logger(_ x : Int) {
+  fn logger(_ x : Int) {
 
     // I know what I'm doing!
     issafe {
@@ -250,10 +250,10 @@ local mutable variables.
 Library developers who implement high-level concurrency libraries can use the
 gateway annotation to mark the functions that launch new threads.
 
-.. code-block:: swift
+.. code-block:: language
 
-  @_semantics("swift.concurrent.launch")
-  public func createTask<ArgsTy>(args : ArgsTy, callback : (ArgsTy) -> Void) {
+  @_semantics("language.concurrent.launch")
+  public fn createTask<ArgsTy>(args : ArgsTy, callback : (ArgsTy) -> Void) {
     ...
   }
 
@@ -291,7 +291,7 @@ will be blocked, meaning that the operating system will put the calling thread t
 new data to arrive to wake the sleeping thread.
 This property allows the Stream to be used as a synchronization mechanism.
 
-The second half of the go concurrency feature is coroutines. In Swift lingo,
+The second half of the go concurrency feature is coroutines. In Codira lingo,
 we'll call them Tasks.  Tasks are functions that are executed by threads
 asynchronously. Tasks could have their own stack (this is an implementation
 detail that is not important at this point) and can run indefinitely.  Tasks are
@@ -322,12 +322,12 @@ Usage Example
 -------------
 This is an example of a tiny concurrent program that uses Tasks and Streams.
 
-.. code-block:: swift
+.. code-block:: language
 
   let input  = Stream<String>()
   let output = Stream<String>()
 
-  func echoServer(_ inp : Stream<String>,
+  fn echoServer(_ inp : Stream<String>,
                   out : Stream<String>) {
     while true { out.push(inp.pop()) }
   }
@@ -350,7 +350,7 @@ In the example below the type declaration of the endpoint helps the type checker
 to deduct the type of the stream arguments and allows the developer to omit the
 declaration of the streams in the closure.
 
-.. code-block:: swift
+.. code-block:: language
 
   let comm : _Endpoint<String, Int> = createTask {
     var counter = 0
@@ -369,7 +369,7 @@ declaration of the streams in the closure.
 
 Stream utilities
 ----------------
-The Swift library can implement a few utilities that will allow users and
+The Codira library can implement a few utilities that will allow users and
 library designers to build cool things:
 
 *  The ``Funnel`` class accepts multiple incoming streams and weaves them into a
@@ -399,11 +399,11 @@ call execute the callback closure in a secure enclave to ensure thread safety.
 
 Example
 -------
-Example of a concurrent program using Futures in Swift.
+Example of a concurrent program using Futures in Codira.
 
-.. code-block:: swift
+.. code-block:: language
 
-  func mergeSort<T : Comparable>(array: ArraySlice<T>) -> [T] {
+  fn mergeSort<T : Comparable>(array: ArraySlice<T>) -> [T] {
 
     if array.count <= 16  { return Array(array).sorted() }
 
@@ -419,14 +419,14 @@ Example of a concurrent program using Futures in Swift.
 
 The program above uses async to execute two tasks that sorts the two halves of
 the array in parallel.  Notice that the arrays in the example above are not
-copied when they are sent to and from the async task.  Swift arrays are
+copied when they are sent to and from the async task.  Codira arrays are
 copy-on-write value types and when an array is copied the underlying storage is
-not copied with it. This feature of arrays allows swift to share arrays between
+not copied with it. This feature of arrays allows language to share arrays between
 threads in a safe manner without copying data.
 
 Here is another example of async calls using trailing closures and enums.
 
-.. code-block:: swift
+.. code-block:: language
 
   enum Shape {
     case circle, oval, square, triangle
@@ -444,7 +444,7 @@ Here is another example of async calls using trailing closures and enums.
   //CHECK: Shape: Oval
   print("Shape: \(res.await())")
 
-Notice that the swift compiler infers that ``Shape`` and `String` can be sent
+Notice that the language compiler infers that ``Shape`` and `String` can be sent
 between the threads.
 
 UI programming with Async
@@ -453,7 +453,7 @@ UI programming with Async
 One of the goals of this proposal is to allow users to develop multi-threaded UI
 applications that are safe.
 
-At the moment Swift users that use GCD are advised to start a new block in a new
+At the moment Codira users that use GCD are advised to start a new block in a new
 thread. Once the task finishes the recommendation is to schedule another block
 that will be executed by the main event loop.
 
@@ -479,9 +479,9 @@ that does all the work in a separate thread (and is verified by the thread
 safety checker), and the second closure is executed by the UI main loop and is
 free to make unsafe calls capture locals and access globals.
 
-.. code-block:: swift
+.. code-block:: language
 
-  @IBAction func onClick(_ sender: AnyObject) {
+  @IBAction fn onClick(_ sender: AnyObject) {
 
     progress.startAnimating()
     label!.text = ""
@@ -518,11 +518,11 @@ The `async` call is actually a wrapper around unsafeAsync, except that it
 contains the annotation that tells the verifier to verify that the code is
 thread-safe (explained in the previous section). For example:
 
-.. code-block:: swift
+.. code-block:: language
 
-  @_semantics("swift.concurrent.async")
+  @_semantics("language.concurrent.async")
   // This annotation tells the compiler to verify the closure and the passed arguments at the call site.
-  public func async<RetTy, ArgsTy>(args: ArgsTy, callback: @escaping (ArgsTy) -> RetTy) -> Future<RetTy> {
+  public fn async<RetTy, ArgsTy>(args: ArgsTy, callback: @escaping (ArgsTy) -> RetTy) -> Future<RetTy> {
     return unsafeAsync(args, callback: callback)
   }
 
@@ -539,13 +539,13 @@ critical section itself is not enough to ensure thread safety because the
 critical section could be accessing memory that is shared between threads that
 are not synchronized on the same lock.
 
-.. code-block:: swift
+.. code-block:: language
 
   final class PrimesCache : Sync, Copyable {
     var cache: [Int : Bool] = [:]
 
-    @_semantics("swift.concurrent.safe")
-    func isPrime(_ num: Int) -> Bool {
+    @_semantics("language.concurrent.safe")
+    fn isPrime(_ num: Int) -> Bool {
       return self.critical {
         if let r = self.cache[num] { return r }
         let b = calcIsPrime(num)
@@ -555,7 +555,7 @@ are not synchronized on the same lock.
     }
   }
 
-  func countPrimes(_ p: PrimesCache) -> Int {
+  fn countPrimes(_ p: PrimesCache) -> Int {
     var sum = 0
     for i in 2..<10_000 where p.isPrime(i) { sum += 1 }
     return sum
@@ -577,9 +577,9 @@ async and futures. The slices of the matrix are not copied when they are moved
 between the threads because ContiguousArray has value semantics and the parallel
 code runs significantly faster.
 
-.. code-block:: swift
+.. code-block:: language
 
-  func ParallelMatMul(_ a: Matrix, _ b: Matrix) -> Matrix {
+  fn ParallelMatMul(_ a: Matrix, _ b: Matrix) -> Matrix {
     assert(a.size == b.size, "size mismatch!")
 
     // Handle small matrices using the serial algorithm.
@@ -632,7 +632,7 @@ Actors communicate using asynchronous messages that don't block. Systems that
 use actors can scale to support millions of concurrent actors because actors are
 not backed by a live thread or by a stack.
 
-In Swift actors could be implemented using classes that inherit from the generic
+In Codira actors could be implemented using classes that inherit from the generic
 ``Actor`` class.  The generic parameter determines the type of messages that the
 actor can accept. The message type needs to be of ``Copyable`` to ensure the
 safety of the model.  The actor class exposes two methods: ``send`` and
@@ -652,14 +652,14 @@ The code below depicts the famous prime numbers sieve program using actors. The
 sieve is made of a long chain of actors that pass messages to one another.
 Finally, a collector actor saves all of the messages into an array.
 
-.. code-block:: swift
+.. code-block:: language
 
   // Simply collect incoming numbers.
   class Collector : Actor<Int> {
 
     var numbers = ContiguousArray<Int>()
 
-    override func accept(_ x: Int) { numbers.append(x) }
+    override fn accept(_ x: Int) { numbers.append(x) }
   }
 
   // Filter numbers that are divisible by an argument.
@@ -672,7 +672,7 @@ Finally, a collector actor saves all of the messages into an array.
       next = n
     }
 
-    override func accept(_ x: Int) {
+    override fn accept(_ x: Int) {
       if x != div && x % div == 0 { return }
       next.send(x)
     }

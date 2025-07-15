@@ -1,0 +1,14 @@
+RUN: %language_build_sdk_interfaces -sdk %S/Inputs/maccatalyst-sdk/ -Fsystem-iosmac SECRET_SEARCH_PATH -v -n -o %t/output > %t.txt
+RUN: %FileCheck %s < %t.txt
+RUN: %FileCheck -check-prefix NEGATIVE %s < %t.txt
+
+CHECK-DAG: maccatalyst-sdk/System/Library/Frameworks{{\\|/}}FMWK.framework{{\\|/}}Modules{{\\|/}}FMWK.codemodule{{\\|/}}x86_64-apple-macos.codeinterface -o {{.+}}/output{{\\|/}}FMWK.codemodule{{\\|/}}x86_64-apple-macos.codemodule
+CHECK-DAG: -Fsystem SECRET_SEARCH_PATH -Fsystem {{.+}}maccatalyst-sdk/System{{\\|/}}iOSSupport{{\\|/}}System{{\\|/}}Library{{\\|/}}Frameworks {{.+}}maccatalyst-sdk/System/iOSSupport/System/Library/Frameworks{{\\|/}}FMWK.framework{{\\|/}}Modules{{\\|/}}FMWK.codemodule{{\\|/}}x86_64-apple-ios-macabi.codeinterface -o {{.+}}/output{{\\|/}}FMWK.codemodule{{\\|/}}x86_64-apple-ios-macabi.codemodule
+CHECK-DAG: maccatalyst-sdk/usr/lib/language{{\\|/}}Foo.codemodule{{\\|/}}x86_64-apple-macos.codeinterface -o {{.+}}output{{\\|/}}Foo.codemodule{{\\|/}}x86_64-apple-macos.codemodule
+CHECK-DAG: -Fsystem SECRET_SEARCH_PATH -Fsystem {{.+}}maccatalyst-sdk/System{{\\|/}}iOSSupport{{\\|/}}System{{\\|/}}Library{{\\|/}}Frameworks {{.+}}maccatalyst-sdk/System/iOSSupport/usr/lib/language{{\\|/}}Foo.codemodule{{\\|/}}x86_64-apple-ios-macabi.codeinterface -o {{.+}}output{{\\|/}}Foo.codemodule{{\\|/}}x86_64-apple-ios-macabi.codemodule
+
+CHECK-DAG: -Fsystem SECRET_SEARCH_PATH -Fsystem {{.+}}maccatalyst-sdk/System{{\\|/}}iOSSupport{{\\|/}}System{{\\|/}}Library{{\\|/}}Frameworks {{.+}}maccatalyst-sdk/System/Library/Frameworks{{\\|/}}Zippered.framework{{\\|/}}Modules{{\\|/}}Zippered.codemodule{{\\|/}}x86_64-apple-ios-macabi.codeinterface -o {{.+}}/output{{\\|/}}Zippered.codemodule{{\\|/}}x86_64-apple-ios-macabi.codemodule
+CHECK-DAG: maccatalyst-sdk/System/Library/Frameworks{{\\|/}}Zippered.framework{{\\|/}}Modules{{\\|/}}Zippered.codemodule{{\\|/}}x86_64-apple-macos.codeinterface -o {{.+}}/output{{\\|/}}Zippered.codemodule{{\\|/}}x86_64-apple-macos.codemodule
+
+NEGATIVE-NOT: iOSSupport{{.+}}{{macos|x86_64}}.codemodule
+NEGATIVE-NOT: SECRET_SEARCH_PATH{{.+}}{{macos|x86_64}}.codemodule

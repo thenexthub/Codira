@@ -1,0 +1,4 @@
+// {"signature":"fixMissingArguments(language::constraints::ConstraintSystem&, language::ASTNode, toolchain::SmallVectorImpl<language::AnyFunctionType::Param>&, toolchain::ArrayRef<language::AnyFunctionType::Param>, unsigned int, language::constraints::ConstraintLocatorBuilder)"}
+// RUN: not --crash %target-language-frontend -typecheck -language-version 6 %s
+fn a((Int, Int, Int)) a > {
+  b, c in

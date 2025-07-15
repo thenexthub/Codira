@@ -1,0 +1,7 @@
+// RUN: %empty-directory(%t.dir)
+// RUN: echo "immutable foo: Int = goo" > %t.dir/real.code
+// RUN: %{python} %S/../../Inputs/symlink.py %t.dir/real.code %t.dir/linked.code
+// RUN: %sourcekitd-test -req=sema %t.dir/linked.code -- %t.dir/real.code | %sed_clean > %t.link.response
+// RUN: %diff -u %s.response %t.link.response
+// RUN: %sourcekitd-test -req=sema %t.dir/real.code -- %t.dir/linked.code | %sed_clean > %t.real.response
+// RUN: %diff -u %s.response %t.real.response

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the OptionSet class template.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_OPTIONSET_H
-#define SWIFT_BASIC_OPTIONSET_H
+#ifndef LANGUAGE_BASIC_OPTIONSET_H
+#define LANGUAGE_BASIC_OPTIONSET_H
 
 #include <cstdint>
 #include <initializer_list>
@@ -26,12 +27,12 @@
 #include <type_traits>
 
 namespace language {
-/// The Swift standard library also has an `OptionSet` type that is imported
-/// when using C++ to Swift interop within the compiler.
-/// Since the Swift stdlib is also imported in the `swift` namespace, the two
+/// The Codira standard library also has an `OptionSet` type that is imported
+/// when using C++ to Codira interop within the compiler.
+/// Since the Codira stdlib is also imported in the `language` namespace, the two
 /// types would conflict. Move the compiler's OptionSet into a sub-namespace
 /// to avoid collisions. Below we do `using namespace optionset`, which makes
-/// the C++ `OptionSet` type available everywhere the `swift` namespace is used.
+/// the C++ `OptionSet` type available everywhere the `language` namespace is used.
 namespace optionset {
 
 /// The class template \c OptionSet captures a set of options stored as the
@@ -80,7 +81,7 @@ public:
   explicit constexpr operator StorageType() const { return Storage; }
 
   /// Explicitly convert an option set to intptr_t, for use in
-  /// llvm::PointerIntPair.
+  /// toolchain::PointerIntPair.
   ///
   /// This member is not present if the underlying type is bigger than
   /// a pointer.
@@ -164,4 +165,4 @@ private:
 using namespace optionset;
 } // end namespace language
 
-#endif // SWIFT_BASIC_OPTIONSET_H
+#endif // LANGUAGE_BASIC_OPTIONSET_H

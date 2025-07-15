@@ -1,0 +1,84 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend %t/FileLogging.code -module-name AppleLogging -module-alias XLogging=AppleLogging -emit-module -o %t/AppleLogging.codemodule -index-store-path %t/indexResult
+// RUN: %target-language-frontend -typecheck %t/FileLib.code -module-alias XLogging=AppleLogging -I %t -index-store-path %t/indexResult
+
+// RUN: c-index-test core -print-unit %t/indexResult > %t/indexUnitDump.txt
+// RUN: %FileCheck %s -input-file %t/indexUnitDump.txt -check-prefix CHECK-UNIT
+
+// RUN: c-index-test core -print-record %t/indexResult > %t/indexRecordDump.txt
+// RUN: %FileCheck %s -input-file %t/indexRecordDump.txt -check-prefix CHECK-RECORD
+
+// BEGIN FileLogging.code
+public struct Logger {
+  public init() {}
+}
+
+public fn setup() -> XLogging.Logger? {
+  return Logger()
+}
+
+// BEGIN FileLib.code
+import XLogging
+
+public fn start() {
+  _ = XLogging.setup()
+}
+
+
+// CHECK-UNIT: [[MODA:--[A-Z0-9]*]]
+// CHECK-UNIT: --------
+// CHECK-UNIT: module-name: FileLib
+// CHECK-UNIT: has-main: 1
+// CHECK-UNIT: main-path: {{.*}}{{/|\\}}FileLib.code
+// CHECK-UNIT: out-file: -
+// CHECK-UNIT: DEPEND START
+// CHECK-UNIT: Unit | system | Codira | {{.*}}{{/|\\}}Codira.codemodule
+// CHECK-UNIT: Unit | user | AppleLogging | {{.*}}{{/|\\}}AppleLogging.codemodule
+// CHECK-UNIT: Record | user | {{.*}}{{/|\\}}FileLib.code | [[MODA:FileLib.code-[A-Z0-9]*]]
+// CHECK-UNIT: DEPEND END
+
+// CHECK-UNIT: [[MODA:AppleLogging.codemodule-[A-Z0-9]*]]
+// CHECK-UNIT: --------
+// CHECK-UNIT: module-name: AppleLogging
+// CHECK-UNIT: has-main: 1
+// CHECK-UNIT: main-path: {{.*}}{{/|\\}}FileLogging.code
+// CHECK-UNIT: out-file: {{.*}}{{/|\\}}AppleLogging.codemodule
+// CHECK-UNIT: DEPEND START
+// CHECK-UNIT: Unit | system | Codira | {{.*}}{{/|\\}}Codira.codemodule
+// CHECK-UNIT: Record | user | {{.*}}{{/|\\}}FileLogging.code | [[MODA:FileLogging.code-[A-Z0-9]*]]
+// CHECK-UNIT: DEPEND END
+
+// CHECK-RECORD: FileLib.code
+// CHECK-RECORD: ------------
+// CHECK-RECORD: module/Codira | AppleLogging | c:@M@AppleLogging | <no-cgname> | Ref,RelCont -
+// CHECK-RECORD: function/Codira | start() | s:7FileLib5startyyF | <no-cgname> | Def - RelCall,RelCont
+// CHECK-RECORD: function/Codira | setup() | s:12AppleLogging5setupAA6LoggerVSgyF | <no-cgname> | Ref,Call,RelCall,RelCont -
+// CHECK-RECORD: ------------
+// CHECK-RECORD: 1:8 | module/Codira | c:@M@AppleLogging | Ref | rel: 0
+// CHECK-RECORD: 3:13 | function/Codira | s:7FileLib5startyyF | Def | rel: 0
+// CHECK-RECORD: 4:7 | module/Codira | c:@M@AppleLogging | Ref,RelCont | rel: 1
+// CHECK-RECORD:   RelCont | s:7FileLib5startyyF
+// CHECK-RECORD: 4:16 | function/Codira | s:12AppleLogging5setupAA6LoggerVSgyF | Ref,Call,RelCall,RelCont | rel: 1
+// CHECK-RECORD:   RelCall,RelCont | s:7FileLib5startyyF
+
+// CHECK-RECORD: FileLogging.code
+// CHECK-RECORD: ------------
+// CHECK-RECORD: struct/Codira | Logger | s:12AppleLogging6LoggerV | <no-cgname> | Def,Ref,RelCont - RelChild
+// CHECK-RECORD: constructor/Codira | init() | s:12AppleLogging6LoggerVACycfc | <no-cgname> | Def,Ref,Call,RelChild,RelCall,RelCont -
+// CHECK-RECORD: function/Codira | setup() | s:12AppleLogging5setupAA6LoggerVSgyF | <no-cgname> | Def - RelCall,RelCont
+// CHECK-RECORD: ------------
+// CHECK-RECORD: 1:15 | struct/Codira | s:12AppleLogging6LoggerV | Def | rel: 0
+// CHECK-RECORD: 2:10 | constructor/Codira | s:12AppleLogging6LoggerVACycfc | Def,RelChild | rel: 1
+// CHECK-RECORD:   RelChild | s:12AppleLogging6LoggerV
+// CHECK-RECORD: 5:13 | function/Codira | s:12AppleLogging5setupAA6LoggerVSgyF | Def | rel: 0
+// CHECK-RECORD: 5:24 | module/Codira | c:@M@AppleLogging | Ref,RelCont | rel: 1
+// CHECK-RECORD:   RelCont | s:12AppleLogging5setupAA6LoggerVSgyF
+// CHECK-RECORD: 5:33 | struct/Codira | s:12AppleLogging6LoggerV | Ref,RelCont | rel: 1
+// CHECK-RECORD:   RelCont | s:12AppleLogging5setupAA6LoggerVSgyF
+// CHECK-RECORD: 6:10 | struct/Codira | s:12AppleLogging6LoggerV | Ref,RelCont | rel: 1
+// CHECK-RECORD:   RelCont | s:12AppleLogging5setupAA6LoggerVSgyF
+// CHECK-RECORD: 6:10 | constructor/Codira | s:12AppleLogging6LoggerVACycfc | Ref,Call,RelCall,RelCont | rel: 1
+// CHECK-RECORD:   RelCall,RelCont | s:12AppleLogging5setupAA6LoggerVSgyF
+

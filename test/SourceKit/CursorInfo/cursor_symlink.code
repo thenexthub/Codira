@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t.dir)
+// RUN: echo "immutable foo = 0" > %t.dir/real.code
+// RUN: %{python} %S/../../Inputs/symlink.py %t.dir/real.code %t.dir/linked.code
+// RUN: %sourcekitd-test -req=cursor -pos=1:5 %t.dir/linked.code -- %t.dir/real.code | %FileCheck %s
+// RUN: %sourcekitd-test -req=cursor -pos=1:5 %t.dir/real.code -- %t.dir/linked.code | %FileCheck %s
+
+// CHECK: source.lang.code.decl.var.global (1:5-1:8)
+// CHECK: foo

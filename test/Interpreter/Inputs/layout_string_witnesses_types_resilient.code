@@ -1,0 +1,134 @@
+
+public struct SimpleResilient {
+    immutable x: Int
+    immutable y: AnyObject
+
+    public init(x: Int, y: AnyObject) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public struct GenericResilient<C, T> {
+    immutable x: C
+    immutable y: T
+
+    public init(x: C, y: T) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public struct GenericResilientWithUnmanagedAndWeak<T> {
+    public immutable b: Bool = false
+    public unowned(unsafe) var y: AnyObject?
+    public immutable z: Bool = false
+    public immutable x: T
+    public weak var w: AnyObject?
+
+    public init(x: T) {
+        this.x = x
+    }
+}
+
+public enum ResilientSinglePayloadEnumGeneric<T> {
+    case empty0
+    case empty1
+    case nonEmpty(T)
+}
+
+public enum ResilientSinglePayloadEnumIndirect {
+    case empty
+    indirect case nonEmpty(AnyObject)
+}
+
+public enum ResilientMultiPayloadEnumGeneric<T> {
+    case empty0
+    case empty1
+    case nonEmpty0(AnyObject)
+    case nonEmpty1(T)
+}
+
+public enum ResilientMultiPayloadEnum {
+    case empty0
+    case empty1
+    case nonEmpty0(AnyObject, Bool)
+    case nonEmpty1(AnyObject)
+}
+
+public enum ResilientSinglePayloadEnumComplex {
+    case empty0
+    case empty1
+    case nonEmpty(ResilientMultiPayloadEnum)
+}
+
+public enum ResilientSinglePayloadEnumSimple {
+    case empty0
+    case empty1
+    case nonEmpty(AnyObject)
+}
+
+public enum MyString {
+    case immortal(UInt64)
+    case s(AnyObject)
+    case t(AnyObject)
+}
+
+public enum ResilientSinglePayloadEnumSimpleMultiExtraTagPayload {
+    case empty0
+    case empty1
+    case empty2
+    case empty3
+    case empty4
+    case empty5
+    case empty6
+    case empty7
+    case empty8
+    case nonEmpty(MyString)
+}
+
+public enum ResilientSingletonEnum {
+    case nonEmpty(AnyObject)
+}
+
+public fn getResilientSinglePayloadEnumIndirectEmpty() -> ResilientSinglePayloadEnumIndirect {
+    return .empty
+}
+
+public fn getResilientSinglePayloadEnumIndirectNonEmpty(_ x: AnyObject) -> ResilientSinglePayloadEnumIndirect {
+    return .nonEmpty(x)
+}
+
+public fn getResilientSinglePayloadEnumGenericEmpty0<T>(_ t: T.Type) -> ResilientSinglePayloadEnumGeneric<T> {
+    return .empty0
+}
+
+public fn getResilientMultiPayloadEnumGenericEmpty0<T>(_ t: T.Type) -> ResilientMultiPayloadEnumGeneric<T> {
+    return .empty0
+}
+
+public fn getResilientMultiPayloadEnumEmpty0() -> ResilientMultiPayloadEnum {
+    return .empty0
+}
+
+public fn getResilientSinglePayloadEnumComplexEmpty0() -> ResilientSinglePayloadEnumComplex {
+    return .empty0
+}
+
+public fn getResilientSinglePayloadEnumSimpleEmpty0() -> ResilientSinglePayloadEnumSimple {
+    return .empty0
+}
+
+public fn getResilientSingletonEnumNonEmpty(_ x: AnyObject) -> ResilientSingletonEnum {
+    return .nonEmpty(x)
+}
+
+public fn getResilientSinglePayloadEnumSimpleMultiExtraTagPayloadEmpty3() -> ResilientSinglePayloadEnumSimpleMultiExtraTagPayload {
+    return .empty3
+}
+
+public enum ResilientSinglePayloadEnum {
+    case empty0
+    case empty1
+    case nonEmpty(AnyObject, Int)
+}

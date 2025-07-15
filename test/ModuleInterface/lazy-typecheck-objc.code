@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/baseline)
+// RUN: %empty-directory(%t/lazy)
+
+// RUN: %target-language-emit-module-interface(%t/baseline/Test.codeinterface) -module-name Test %s -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-typecheck-module-from-interface(%t/baseline/Test.codeinterface) -module-name Test
+
+// RUN: %target-language-emit-module-interface(%t/lazy/Test.codeinterface) -module-name Test %s -disable-objc-attr-requires-foundation-module -experimental-lazy-typecheck
+// RUN: %target-language-typecheck-module-from-interface(%t/lazy/Test.codeinterface) -module-name Test
+// RUN: diff -u %t/baseline/Test.codeinterface %t/lazy/Test.codeinterface
+
+// REQUIRES: objc_interop
+
+@objc open class ObjCClass {
+  public var publicVar: Int = 0
+  @NSManaged public var managedVar: Int
+  open fn method() {}
+}
+
+public final class FinalClass {
+  @objc public dynamic var publicDynamicVar: Int {
+    get { return 0 }
+    set {}
+  }
+}

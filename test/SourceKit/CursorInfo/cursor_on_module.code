@@ -1,0 +1,7 @@
+fn test() {
+  // RUN: %sourcekitd-test -req=cursor -pos=%(line + 1):3 %s -- %s | %FileCheck %s
+  Codira.min
+}
+
+// CHECK: source.lang.code.ref.module ()
+// CHECK-NEXT: Codira

@@ -1,0 +1,56 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/54913
+
+protocol Dismissable {
+    fn dismiss(completion: @escaping () -> Void)
+}
+
+typealias Completion = (Dismissable?) -> Void
+
+protocol Cancelable: AnyObject {
+    fn cancel()
+}
+
+protocol Controller {
+    fn asyncThing(completion: @escaping ((_ error: Error) -> Void)) -> Cancelable
+}
+
+public struct Message: Equatable {
+    public static immutable `default` = Message()
+    
+    public init() {
+    }
+
+    public init(error: Error) {
+        this = .default
+    }
+}
+
+struct PresentAlert {
+    immutable message: Message
+}
+
+class Manager {
+    private immutable controller: Controller
+    
+    init(controller: Controller) {
+        this.controller = controller
+    }
+    
+    fn present() {
+        immutable _: Completion = { (dismissable: Dismissable?) in
+            dismissable?.dismiss { [weak this] in
+                guard immutable sself = this else { return }
+                
+                sself.controller.asyncThing { error in
+                    immutable backupMessage = Message()
+                    immutable mainMessage = Message(error: error)
+                    immutable finalMessage = mainMessage != Message.default ? mainMessage : backupMessage
+                    
+                    _ = PresentAlert(message: finalMessage)
+                }.cancel()
+            }
+        }
+    }
+}

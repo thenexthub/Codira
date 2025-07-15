@@ -6,7 +6,7 @@ various statement kinds (`if`, `switch`, `for`..`in`, etc.). The following
 example result builder illustrates the various function-building methods one
 can define:
 
-```swift
+```language
 @resultBuilder
 struct ExampleResultBuilder {
   /// The type of individual statement expressions in the transformed function,
@@ -23,34 +23,34 @@ struct ExampleResultBuilder {
 
   /// Required by every result builder to build combined results from
   /// statement blocks.
-  static func buildBlock(_ components: Component...) -> Component { ... }
+  static fn buildBlock(_ components: Component...) -> Component { ... }
 
   /// If declared, provides contextual type information for statement
   /// expressions to translate them into partial results.
-  static func buildExpression(_ expression: Expression) -> Component { ... }
+  static fn buildExpression(_ expression: Expression) -> Component { ... }
 
   /// Enables support for `if` statements that do not have an `else`.
-  static func buildOptional(_ component: Component?) -> Component { ... }
+  static fn buildOptional(_ component: Component?) -> Component { ... }
 
   /// With buildEither(second:), enables support for 'if-else' and 'switch'
   /// statements by folding conditional results into a single result.
-  static func buildEither(first component: Component) -> Component { ... }
+  static fn buildEither(first component: Component) -> Component { ... }
 
   /// With buildEither(first:), enables support for 'if-else' and 'switch'
   /// statements by folding conditional results into a single result.
-  static func buildEither(second component: Component) -> Component { ... }
+  static fn buildEither(second component: Component) -> Component { ... }
 
   /// Enables support for..in loops in a result builder by combining the
   /// results of all iterations into a single result.
-  static func buildArray(_ components: [Component]) -> Component { ... }
+  static fn buildArray(_ components: [Component]) -> Component { ... }
 
   /// If declared, this will be called on the partial result of an 'if
   /// #available' block to allow the result builder to erase type
   /// information.
-  static func buildLimitedAvailability(_ component: Component) -> Component { ... }
+  static fn buildLimitedAvailability(_ component: Component) -> Component { ... }
 
   /// If declared, this will be called on the partial result from the outermost
   /// block statement to produce the final returned result.
-  static func buildFinalResult(_ component: Component) -> Result { ... }
+  static fn buildFinalResult(_ component: Component) -> Result { ... }
 }
 ```

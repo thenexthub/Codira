@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/JSONSerialization.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Format.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Format.h"
 
 using namespace language::json;
 using namespace language;
@@ -80,7 +81,7 @@ void Output::endObject() {
   Stream << "}";
 }
 
-bool Output::preflightKey(llvm::StringRef Key, bool Required,
+bool Output::preflightKey(toolchain::StringRef Key, bool Required,
                           bool SameAsDefault, bool &UseDefault, void *&) {
   UseDefault = false;
   if (Required || !SameAsDefault) {
@@ -113,7 +114,7 @@ void Output::beginEnumScalar() {
 
 bool Output::matchEnumScalar(const char *Str, bool Match) {
   if (Match && !EnumerationMatchFound) {
-    llvm::StringRef StrRef(Str);
+    toolchain::StringRef StrRef(Str);
     scalarString(StrRef, true);
     EnumerationMatchFound = true;
   }
@@ -122,7 +123,7 @@ bool Output::matchEnumScalar(const char *Str, bool Match) {
 
 void Output::endEnumScalar() {
   if (!EnumerationMatchFound)
-    llvm_unreachable("bad runtime enum value");
+    toolchain_unreachable("bad runtime enum value");
 }
 
 bool Output::beginBitSetScalar(bool &DoClear) {
@@ -141,7 +142,7 @@ bool Output::bitSetMatch(const char *Str, bool Matches) {
       if (PrettyPrint)
         Stream << ' ';
     }
-    llvm::StringRef StrRef(Str);
+    toolchain::StringRef StrRef(Str);
     scalarString(StrRef, true);
     NeedBitValueComma = true;
   }
@@ -154,7 +155,7 @@ void Output::endBitSetScalar() {
   Stream << ']';
 }
 
-void Output::scalarString(llvm::StringRef &S, bool MustQuote) {
+void Output::scalarString(toolchain::StringRef &S, bool MustQuote) {
   if (MustQuote) {
     Stream << '"';
     for (unsigned char c : S) {
@@ -207,8 +208,8 @@ void Output::scalarString(llvm::StringRef &S, bool MustQuote) {
           Stream << "\\u00";
 
           // Convert the current character into hexadecimal digits.
-          Stream << llvm::hexdigit((c >> 4) & 0xF);
-          Stream << llvm::hexdigit((c >> 0) & 0xF);
+          Stream << toolchain::hexdigit((c >> 4) & 0xF);
+          Stream << toolchain::hexdigit((c >> 0) & 0xF);
         } else {
           // This isn't a control character, so we don't need to escape it.
           // As a result, emit it directly; if it's part of a multi-byte UTF8
@@ -236,70 +237,70 @@ void Output::indent() {
 //  traits for built-in types
 //===----------------------------------------------------------------------===//
 
-llvm::StringRef ScalarReferenceTraits<bool>::stringRef(const bool &Val) {
+toolchain::StringRef ScalarReferenceTraits<bool>::stringRef(const bool &Val) {
   return (Val ? "true" : "false");
 }
 
-llvm::StringRef
-ScalarReferenceTraits<llvm::StringRef>::stringRef(const llvm::StringRef &Val) {
+toolchain::StringRef
+ScalarReferenceTraits<toolchain::StringRef>::stringRef(const toolchain::StringRef &Val) {
   return Val;
 }
 
-llvm::StringRef
+toolchain::StringRef
 ScalarReferenceTraits<std::string>::stringRef(const std::string &Val) {
   return Val;
 }
 
-void ScalarTraits<uint8_t>::output(const uint8_t &Val, llvm::raw_ostream &Out) {
+void ScalarTraits<uint8_t>::output(const uint8_t &Val, toolchain::raw_ostream &Out) {
   // use temp uin32_t because ostream thinks uint8_t is a character
   uint32_t Num = Val;
   Out << Num;
 }
 
 void ScalarTraits<uint16_t>::output(const uint16_t &Val,
-                                    llvm::raw_ostream &Out) {
+                                    toolchain::raw_ostream &Out) {
   Out << Val;
 }
 
 void ScalarTraits<uint32_t>::output(const uint32_t &Val,
-                                    llvm::raw_ostream &Out) {
+                                    toolchain::raw_ostream &Out) {
   Out << Val;
 }
 
 #if defined(_MSC_VER)
 void ScalarTraits<unsigned long>::output(const unsigned long &Val,
-                                         llvm::raw_ostream &Out) {
+                                         toolchain::raw_ostream &Out) {
   Out << Val;
 }
 #endif
 
 void ScalarTraits<uint64_t>::output(const uint64_t &Val,
-                                    llvm::raw_ostream &Out) {
+                                    toolchain::raw_ostream &Out) {
   Out << Val;
 }
 
-void ScalarTraits<int8_t>::output(const int8_t &Val, llvm::raw_ostream &Out) {
+void ScalarTraits<int8_t>::output(const int8_t &Val, toolchain::raw_ostream &Out) {
   // use temp in32_t because ostream thinks int8_t is a character
   int32_t Num = Val;
   Out << Num;
 }
 
-void ScalarTraits<int16_t>::output(const int16_t &Val, llvm::raw_ostream &Out) {
+void ScalarTraits<int16_t>::output(const int16_t &Val, toolchain::raw_ostream &Out) {
   Out << Val;
 }
 
-void ScalarTraits<int32_t>::output(const int32_t &Val, llvm::raw_ostream &Out) {
+void ScalarTraits<int32_t>::output(const int32_t &Val, toolchain::raw_ostream &Out) {
   Out << Val;
 }
 
-void ScalarTraits<int64_t>::output(const int64_t &Val, llvm::raw_ostream &Out) {
+void ScalarTraits<int64_t>::output(const int64_t &Val, toolchain::raw_ostream &Out) {
   Out << Val;
 }
 
-void ScalarTraits<double>::output(const double &Val, llvm::raw_ostream &Out) {
-  Out << llvm::format("%g", Val);
+void ScalarTraits<double>::output(const double &Val, toolchain::raw_ostream &Out) {
+  Out << toolchain::format("%g", Val);
 }
 
-void ScalarTraits<float>::output(const float &Val, llvm::raw_ostream &Out) {
-  Out << llvm::format("%g", Val);
+void ScalarTraits<float>::output(const float &Val, toolchain::raw_ostream &Out) {
+  Out << toolchain::format("%g", Val);
 }

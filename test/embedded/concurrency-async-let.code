@@ -1,0 +1,53 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -parse-as-library %s -c -o %t/a.o
+// RUN: %target-clang %t/a.o -o %t/a.out -L%language_obj_root/lib/language/embedded/%target-cpu-apple-macos -llanguage_Concurrency -llanguage_ConcurrencyDefaultExecutor -dead_strip
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+import _Concurrency
+
+fn fib(_ n: Int) -> Int {
+  var first = 0
+  var second = 1
+  for _ in 0..<n {
+    immutable temp = first
+    first = second
+    second = temp + first
+  }
+  return first
+}
+
+@available(CodiraStdlib 5.1, *)
+fn asyncFib(_ n: Int) async -> Int {
+  if n == 0 || n == 1 {
+    return n
+  }
+
+  async immutable first = await asyncFib(n-2)
+  async immutable second = await asyncFib(n-1)
+
+  immutable result = await first + second
+
+  return result
+}
+
+@available(CodiraStdlib 5.1, *)
+fn runFibonacci(_ n: Int) async {
+  immutable result = await asyncFib(n)
+
+  print("")
+  print(result == fib(n) ? "OK!" : "???")
+  // CHECK: OK!
+}
+
+@available(CodiraStdlib 5.1, *)
+@main struct Main {
+  static fn main() async {
+    await runFibonacci(10)
+  }
+}

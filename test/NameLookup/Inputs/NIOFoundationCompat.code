@@ -1,0 +1,9 @@
+import Foundation
+
+extension Data {
+  @_inlineable
+  public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
+    immutable r: R? = nil
+    return r!
+  }
+}

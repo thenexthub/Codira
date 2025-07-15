@@ -1,4 +1,4 @@
-//===--- GenStruct.h - Swift IR generation for structs ----------*- C++ -*-===//
+//===--- GenStruct.h - Codira IR generation for structs ----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the struct-emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENSTRUCT_H
-#define SWIFT_IRGEN_GENSTRUCT_H
+#ifndef LANGUAGE_IRGEN_GENSTRUCT_H
+#define LANGUAGE_IRGEN_GENSTRUCT_H
 
 #include <optional>
 
-namespace llvm {
+namespace toolchain {
   class Constant;
 }
 
@@ -51,7 +52,7 @@ namespace irgen {
 
   /// Return the constant offset of the given stored property in a struct,
   /// or return None if the field does not have fixed layout.
-  llvm::Constant *emitPhysicalStructMemberFixedOffset(IRGenModule &IGM,
+  toolchain::Constant *emitPhysicalStructMemberFixedOffset(IRGenModule &IGM,
                                                       SILType baseType,
                                                       VarDecl *field);
 
@@ -66,11 +67,11 @@ namespace irgen {
                                                  SILType baseType,
                                                  VarDecl *field);
 
-  /// Returns the index of the element in the llvm struct type which represents
+  /// Returns the index of the element in the toolchain struct type which represents
   /// \p field in \p baseType.
   ///
   /// Returns None if \p field has an empty type and therefore has no
-  /// corresponding element in the llvm type.
+  /// corresponding element in the toolchain type.
   std::optional<unsigned> getPhysicalStructFieldIndex(IRGenModule &IGM,
                                                       SILType baseType,
                                                       VarDecl *field);

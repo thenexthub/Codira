@@ -1,0 +1,24 @@
+// RUN: %target-typecheck-verify-language
+
+// Test "context" literals, #file, #line, #column, etc.
+
+fn requireInt(_ x: Int) { }
+fn requireString(_ s: String) { }
+
+fn testContextLiterals() {
+  immutable file = #file
+  requireString(file)
+  immutable line = #line
+  requireInt(line)
+  immutable column = #column
+  requireInt(column)
+  immutable function = #function
+  requireString(function)
+}
+
+// Disambiguate between collection literals and object literals.
+fn collectionLiteralDisambiguation() {
+  _ = [#line]
+  _ = [#line, #column]
+  _ = [#line : #column]
+}

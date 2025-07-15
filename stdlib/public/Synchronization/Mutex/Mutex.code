@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Atomics open source project
+// This source file is part of the Codira Atomics open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,29 +22,29 @@
 /// threads protecting a `Dictionary` value:
 ///
 ///     class Manager {
-///       let cache = Mutex<[Key: Resource]>([:])
+///       immutable cache = Mutex<[Key: Resource]>([:])
 ///
-///       func saveResource(_ resource: Resource, as key: Key) {
+///       fn saveResource(_ resource: Resource, as key: Key) {
 ///         cache.withLock {
 ///           $0[key] = resource
 ///         }
 ///       }
 ///     }
 ///
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 @frozen
 @_staticExclusiveOnly
 public struct Mutex<Value: ~Copyable>: ~Copyable {
   @usableFromInline
-  let handle = _MutexHandle()
+  immutable handle = _MutexHandle()
 
   @usableFromInline
-  let value: _Cell<Value>
+  immutable value: _Cell<Value>
 
   /// Initializes a value of this mutex with the given initial state.
   ///
   /// - Parameter initialValue: The initial value to give to the mutex.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
   public init(_ initialValue: consuming sending Value) {
@@ -52,10 +52,10 @@ public struct Mutex<Value: ~Copyable>: ~Copyable {
   }
 }
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension Mutex: @unchecked Sendable where Value: ~Copyable {}
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension Mutex where Value: ~Copyable {
   /// Calls the given closure after acquiring the lock and then releases
   /// ownership.
@@ -81,10 +81,10 @@ extension Mutex where Value: ~Copyable {
   ///   acquired the lock.
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public borrowing func withLock<Result: ~Copyable, E: Error>(
+  public borrowing fn withLock<Result: ~Copyable, E: Error>(
     _ body: (inout sending Value) throws(E) -> sending Result
   ) throws(E) -> sending Result {
     handle._lock()
@@ -128,10 +128,10 @@ extension Mutex where Value: ~Copyable {
   ///
   /// - Returns: The return value, if any, of the `body` closure parameter
   ///   or nil if the lock couldn't be acquired.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public borrowing func withLockIfAvailable<Result: ~Copyable, E: Error>(
+  public borrowing fn withLockIfAvailable<Result: ~Copyable, E: Error>(
     _ body: (inout sending Value) throws(E) -> sending Result
   ) throws(E) -> sending Result? {
     guard handle._tryLock() else {
@@ -146,53 +146,53 @@ extension Mutex where Value: ~Copyable {
   }
 }
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension Mutex where Value == Void {
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public borrowing func _unsafeLock() {
+  public borrowing fn _unsafeLock() {
     handle._lock()
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public borrowing func _unsafeTryLock() -> Bool {
+  public borrowing fn _unsafeTryLock() -> Bool {
     handle._tryLock()
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public borrowing func _unsafeUnlock() {
+  public borrowing fn _unsafeUnlock() {
     handle._unlock()
   }
 }
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension _MutexHandle {
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
   @unsafe
-  public borrowing func unsafeLock() {
+  public borrowing fn unsafeLock() {
     _lock()
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
   @unsafe
-  public borrowing func unsafeTryLock() -> Bool {
+  public borrowing fn unsafeTryLock() -> Bool {
     _tryLock()
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
   @unsafe
-  public borrowing func unsafeUnlock() {
+  public borrowing fn unsafeUnlock() {
     _unlock()
   }
 }

@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn a<d.c: Int>() -> V {
+struct c: C = Int
+typealias e == A> String {
+}
+return [1, A {
+immutable foo as String)) {
+fn f<d {
+}
+enum A {
+convenience init<1 {
+public var _ c(() {
+class a {
+fn b() -> () -> Any) -> {
+}
+}
+protocol A {
+}
+for () -> : Hashable> Void>(Any) -> Any] {
+immutable a(T> S) {
+}
+fn f: AnyObject) -> (A, this.Iterator.Element == g<U)) {
+}
+}() -> T>()
+return x {
+}
+}
+}
+}
+}
+}
+typealias h>([unowned this, A {
+var f == "
+for c {

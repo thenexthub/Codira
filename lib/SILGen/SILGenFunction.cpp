@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the primary routines for creating and emitting
@@ -80,11 +81,11 @@ SILGenFunction::SILGenFunction(SILGenModule &SGM, SILFunction &F,
 
       bool consume(ArrayRef<ValueDecl *> values,
                    NullablePtr<DeclContext> baseDC) override {
-        LLVM_DEBUG(ASTScope->print(llvm::errs(), 0, false, false));
+        TOOLCHAIN_DEBUG(ASTScope->print(toolchain::errs(), 0, false, false));
         for (auto &value : values) {
-          LLVM_DEBUG({
+          TOOLCHAIN_DEBUG({
             if (value->hasName())
-              llvm::dbgs() << "+ " << value->getBaseIdentifier() << "\n";
+              toolchain::dbgs() << "+ " << value->getBaseIdentifier() << "\n";
           });
 
           // FIXME: ASTs coming out of the autodiff transformation trigger this.
@@ -138,10 +139,10 @@ DeclName SILGenModule::getMagicFunctionName(DeclContext *dc) {
     // If this is an accessor, use the name of the storage.
     if (auto accessor = dyn_cast<AccessorDecl>(absFunc))
       return accessor->getStorage()->getName();
-    if (auto func = dyn_cast<FuncDecl>(absFunc)) {
+    if (auto fn = dyn_cast<FuncDecl>(absFunc)) {
       // If this is a defer body, use the parent name.
-      if (func->isDeferBody()) {
-        return getMagicFunctionName(func->getParent());
+      if (fn->isDeferBody()) {
+        return getMagicFunctionName(fn->getParent());
       }
     }
 
@@ -172,7 +173,7 @@ DeclName SILGenModule::getMagicFunctionName(DeclContext *dc) {
   if (auto SD = dyn_cast<SubscriptDecl>(dc)) {
     return SD->getName();
   }
-  llvm_unreachable("unexpected #function context");
+  toolchain_unreachable("unexpected #function context");
 }
 
 DeclName SILGenModule::getMagicFunctionName(SILDeclRef ref) {
@@ -211,7 +212,7 @@ DeclName SILGenModule::getMagicFunctionName(SILDeclRef ref) {
   }
   }
 
-  llvm_unreachable("Unhandled SILDeclRefKind in switch.");
+  toolchain_unreachable("Unhandled SILDeclRefKind in switch.");
 }
 
 bool SILGenFunction::referenceAllowed(ValueDecl *decl) {
@@ -233,7 +234,7 @@ bool SILGenFunction::referenceAllowed(ValueDecl *decl) {
     filter |= ModuleDecl::ImportFilterKind::InternalOrBelow;
 
   // Look through public module local imports and their reexports.
-  llvm::SmallVector<ImportedModule, 8> imports;
+  toolchain::SmallVector<ImportedModule, 8> imports;
   thisMod->getImportedModules(imports, filter);
   auto &importCache = getASTContext().getImportCache();
   for (auto &import : imports) {
@@ -469,7 +470,7 @@ SILGenFunction::getOrCreateScope(const ast_scope::ASTScopeImpl *ASTScope,
   if (It != ScopeMap.end())
     return It->second;
 
-  LLVM_DEBUG(ASTScope->print(llvm::errs(), 0, false, false));
+  TOOLCHAIN_DEBUG(ASTScope->print(toolchain::errs(), 0, false, false));
 
   auto cache = [&](const SILDebugScope *SILScope) {
     ScopeMap.insert({{ASTScope, InlinedAt}, SILScope});
@@ -480,7 +481,7 @@ SILGenFunction::getOrCreateScope(const ast_scope::ASTScopeImpl *ASTScope,
 
   // Decide whether to pick a parent scope instead.
   if (ASTScope->ignoreInDebugInfo()) {
-    LLVM_DEBUG(llvm::dbgs() << "ignored\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "ignored\n");
     auto *ParentScope = getOrCreateScope(ASTScope->getParent().getPtrOrNull(),
                                          FnScope, InlinedAt);
     return ParentScope->InlinedCallSite != InlinedAt ? FnScope : ParentScope;
@@ -637,10 +638,10 @@ void SILGenFunction::emitCaptures(SILLocation loc,
     // If we haven't emitted the captured value yet, we're forming a closure
     // to a local function before all of its captures have been emitted. Eg,
     //
-    // func f() { g() } // transitive capture of 'x'
+    // fn f() { g() } // transitive capture of 'x'
     // f() // closure formed here
     // var x = 123 // 'x' defined here
-    // func g() { print(x) } // 'x' captured here
+    // fn g() { print(x) } // 'x' captured here
     //
     auto found = VarLocs.find(vd);
     if (found == VarLocs.end()) {
@@ -1218,7 +1219,7 @@ void SILGenFunction::emitArtificialTopLevel(Decl *mainDecl) {
       {ctx.getIdentifier("UIKit"), SourceLoc()};
 
     ModuleDecl *UIKit = ctx.getClangModuleLoader()->loadModule(
-        SourceLoc(), ImportPath::Module(llvm::ArrayRef(UIKitName)));
+        SourceLoc(), ImportPath::Module(toolchain::ArrayRef(UIKitName)));
     assert(UIKit && "couldn't find UIKit objc module?!");
     SmallVector<ValueDecl *, 2> results;
     UIKit->lookupQualified(UIKit,
@@ -1228,9 +1229,9 @@ void SILGenFunction::emitArtificialTopLevel(Decl *mainDecl) {
 
     // As the comment above alludes, using a qualified lookup into UIKit is
     // *not* sound. In particular, it's possible for the lookup to find the
-    // (deprecated) Swift copy of UIApplicationMain in UIKit and try to call
+    // (deprecated) Codira copy of UIApplicationMain in UIKit and try to call
     // that instead of the C entrypoint. Let's try to force this to happen.
-    auto FoundUIApplicationMain = llvm::find_if(results, [](const ValueDecl *VD) {
+    auto FoundUIApplicationMain = toolchain::find_if(results, [](const ValueDecl *VD) {
       return !VD->getClangNode().isNull();
     });
     assert(FoundUIApplicationMain != results.end() &&
@@ -1423,12 +1424,12 @@ void SILGenFunction::emitAsyncMainThreadStart(SILDeclRef entryPoint) {
   entryBlock->createFunctionArgument(*std::next(paramTypeIter)); // argv
 
   // Lookup necessary functions
-  swift::ASTContext &ctx = entryPoint.getASTContext();
+  language::ASTContext &ctx = entryPoint.getASTContext();
 
   B.setInsertionPoint(entryBlock);
 
   // If we're using a new enough deployment target, and we can find a
-  // DefaultExecutorFactory type, call swift_createExecutors()
+  // DefaultExecutorFactory type, call language_createExecutors()
   Type factoryNonCanTy = SGM.getConfiguredExecutorFactory();
 
   if (isCreateExecutorsFunctionAvailable(SGM) && factoryNonCanTy) {
@@ -1452,7 +1453,7 @@ void SILGenFunction::emitAsyncMainThreadStart(SILDeclRef entryPoint) {
 
     FuncDecl *createExecutorsFuncDecl = SGM.getCreateExecutors();
     assert(createExecutorsFuncDecl
-           && "Failed to find swift_createExecutors function decl");
+           && "Failed to find language_createExecutors function decl");
     SILFunction *createExecutorsSILFunc =
       SGM.getFunction(SILDeclRef(createExecutorsFuncDecl, SILDeclRef::Kind::Func),
                         NotForDefinition);
@@ -1502,14 +1503,14 @@ void SILGenFunction::emitAsyncMainThreadStart(SILDeclRef entryPoint) {
   DestructureTupleInst *structure = B.createDestructureTuple(moduleLoc, task);
   task = structure->getResult(0);
 
-  // Get swiftJobRun
-  FuncDecl *swiftJobRunFuncDecl = SGM.getSwiftJobRun();
-  assert(swiftJobRunFuncDecl && "Failed to find swift_job_run function decl");
-  SILFunction *swiftJobRunSILFunc =
-      SGM.getFunction(SILDeclRef(swiftJobRunFuncDecl, SILDeclRef::Kind::Func),
+  // Get languageJobRun
+  FuncDecl *languageJobRunFuncDecl = SGM.getCodiraJobRun();
+  assert(languageJobRunFuncDecl && "Failed to find language_job_run function decl");
+  SILFunction *languageJobRunSILFunc =
+      SGM.getFunction(SILDeclRef(languageJobRunFuncDecl, SILDeclRef::Kind::Func),
                       NotForDefinition);
-  SILValue swiftJobRunFunc =
-      B.createFunctionRefFor(moduleLoc, swiftJobRunSILFunc);
+  SILValue languageJobRunFunc =
+      B.createFunctionRefFor(moduleLoc, languageJobRunSILFunc);
 
   // Convert task to job
   SILType JobType = SILType::getPrimitiveObjectType(
@@ -1518,23 +1519,23 @@ void SILGenFunction::emitAsyncMainThreadStart(SILDeclRef entryPoint) {
       moduleLoc,
       ctx.getIdentifier(getBuiltinName(BuiltinValueKind::ConvertTaskToJob)),
       JobType, {}, {task});
-  jobResult = wrapCallArgs(jobResult, swiftJobRunFuncDecl, 0);
+  jobResult = wrapCallArgs(jobResult, languageJobRunFuncDecl, 0);
 
   ModuleDecl * moduleDecl = entryPoint.getModuleContext();
 
   SILValue mainExecutor = emitMainExecutor(moduleLoc);
-  mainExecutor = wrapCallArgs(mainExecutor, swiftJobRunFuncDecl, 1);
+  mainExecutor = wrapCallArgs(mainExecutor, languageJobRunFuncDecl, 1);
 
   // Run first part synchronously
-  B.createApply(moduleLoc, swiftJobRunFunc, {}, {jobResult, mainExecutor});
+  B.createApply(moduleLoc, languageJobRunFunc, {}, {jobResult, mainExecutor});
 
   // Start Main loop!
   FuncDecl *drainQueueFuncDecl = SGM.getAsyncMainDrainQueue();
   if (!drainQueueFuncDecl) {
     // If it doesn't exist, we can conjure one up instead of crashing
-    // @available(SwiftStdlib 5.5, *)
-    // @_silgen_name("swift_task_asyncMainDrainQueue")
-    // internal func _asyncMainDrainQueue() -> Never
+    // @available(CodiraStdlib 5.5, *)
+    // @_silgen_name("language_task_asyncMainDrainQueue")
+    // internal fn _asyncMainDrainQueue() -> Never
     ParameterList *emptyParams = ParameterList::createEmpty(getASTContext());
     drainQueueFuncDecl = FuncDecl::createImplicit(
         getASTContext(), StaticSpellingKind::None,
@@ -1546,7 +1547,7 @@ void SILGenFunction::emitAsyncMainThreadStart(SILDeclRef entryPoint) {
         emptyParams,
         getASTContext().getNeverType(), moduleDecl);
     drainQueueFuncDecl->getAttrs().add(new (getASTContext()) SILGenNameAttr(
-        "swift_task_asyncMainDrainQueue", /*raw*/ false, /*implicit*/ true));
+        "language_task_asyncMainDrainQueue", /*raw*/ false, /*implicit*/ true));
   }
 
   SILFunction *drainQueueSILFunc = SGM.getFunction(
@@ -1880,7 +1881,7 @@ SILGenFunction::emitApplyOfSetterToBase(SILLocation loc, SILDeclRef setter,
     SmallVector<ManagedValue, 4> captures;
     emitCaptures(loc, setter, CaptureEmission::AssignByWrapper, captures);
 
-    llvm::transform(captures, std::back_inserter(capturedArgs),
+    toolchain::transform(captures, std::back_inserter(capturedArgs),
                     [](auto &capture) { return capture.getValue(); });
   } else {
     assert(base);
@@ -2006,4 +2007,21 @@ void SILGenFunction::emitAssignOrInit(SILLocation loc, ManagedValue selfValue,
   B.createAssignOrInit(loc, field, selfRef.getValue(),
                        newValue.forward(*this), initFRef, setterFRef,
                        AssignOrInitInst::Unknown);
+}
+
+SILGenFunction::VarLoc::AddressableBuffer *
+SILGenFunction::getAddressableBufferInfo(ValueDecl *vd) {
+  do {
+    auto found = VarLocs.find(vd);
+    if (found == VarLocs.end()) {
+      return nullptr;
+    }
+
+    if (auto orig = found->second.addressableBuffer.stateOrAlias
+                      .dyn_cast<VarDecl*>()) {
+      vd = orig;
+      continue;
+    }
+    return &found->second.addressableBuffer;
+  } while (true);
 }

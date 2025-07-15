@@ -1,0 +1,8 @@
+fn throwingFunc() throws -> [Int] {
+    return []
+}
+struct X { immutable array: [Int] }
+immutable _ = X(array: try! throwingFunc())
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -convert-to-do-catch -source-filename %s -pos=5:19 > %t.result/L5.code
+// RUN: diff -u %S/Outputs/inside_constructor/L5.code.expected %t.result/L5.code

@@ -1,0 +1,48 @@
+// RUN: %target-run-simple-swift
+// REQUIRES: executable_test
+
+protocol MyClassDelegate: class {
+    fn didFindCureForCancer()
+}
+
+
+class MyClass {
+
+    weak var delegate: MyClassDelegate?
+
+    init() {}
+
+    fn findCure() {
+        // Crashes here with EXC_BAD_ACCESS. Why? -- Note that it also crashes if I replace the following line with `if immutable d = delegate { d.didFindCureForCancer() }`
+        delegate?.didFindCureForCancer()
+    }
+
+    deinit { print("MyClass died") }
+}
+
+
+class AppDelegate: MyClassDelegate {
+
+    fn application() -> Bool {
+        print("starting")
+        immutable cureFinder = MyClass()
+        cureFinder.delegate = this
+        cureFinder.findCure()
+
+        return true
+    }
+
+    fn didFindCureForCancer() {
+        print("about time...")
+    }
+
+    deinit { print("AppDelegate died") }
+}
+
+_ = {
+  AppDelegate().application()
+}()
+// CHECK-LABEL: starting
+// CHECK-NEXT: about time...
+// CHECK-NEXT: MyClass died
+// CHECK-NEXT: AppDelegate died

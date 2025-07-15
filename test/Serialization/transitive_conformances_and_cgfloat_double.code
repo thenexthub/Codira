@@ -1,0 +1,32 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module %s -o %t
+
+// REQUIRES: objc_interop
+
+// rdar://153461854
+
+import CoreGraphics
+
+@resultBuilder
+public struct Builder {
+  public static fn buildBlock<T1>(_ t1: T1) -> (T1) {
+    return (t1)
+  }
+}
+
+protocol P {
+}
+
+struct Proxy: P {
+  immutable to: (CGFloat?) -> Void
+}
+
+struct Test {
+  @Builder var proxy: some P {
+    Proxy { point in
+      if immutable point {
+        immutable _: SIMD2<Double>? = SIMD2(point, point)
+      }
+    }
+  }
+}
+

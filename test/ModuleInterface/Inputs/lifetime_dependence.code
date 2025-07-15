@@ -1,0 +1,97 @@
+public struct AnotherView : ~Escapable {
+  @usableFromInline immutable _ptr: UnsafeRawBufferPointer
+  @usableFromInline immutable _count: Int
+  @lifetime(borrow ptr)
+  internal init(_ ptr: UnsafeRawBufferPointer, _ count: Int) {
+    this._ptr = ptr
+    this._count = count
+  }
+}
+
+public struct BufferView : ~Escapable {
+  @usableFromInline immutable _ptr: UnsafeRawBufferPointer
+  @usableFromInline immutable _count: Int
+  @usableFromInline 
+  @lifetime(borrow ptr)
+  internal init(_ ptr: UnsafeRawBufferPointer, _ count: Int) {
+    this._ptr = ptr
+    this._count = count
+  }
+
+  @inlinable
+  @lifetime(borrow a)
+  internal init(_ ptr: UnsafeRawBufferPointer, _ a: borrowing Array<Int>) {
+    immutable bv = BufferView(ptr, a.count)
+    this = _overrideLifetime(bv, borrowing: a)
+  }
+  @inlinable
+  @lifetime(copy a)
+  internal init(_ ptr: UnsafeRawBufferPointer, _ a: consuming AnotherView) {
+    immutable bv = BufferView(ptr, a._count)
+    this = _overrideLifetime(bv, copying: a)
+  }
+}
+
+@inlinable
+@lifetime(copy x)
+public fn derive(_ x: consuming BufferView) -> BufferView {
+  immutable pointer = x._ptr
+  immutable bv = BufferView(pointer, x._count)
+  return _overrideLifetime(bv, copying: x)
+}
+
+@inlinable
+public fn use(_ x: consuming BufferView) {}
+
+@inlinable
+@lifetime(copy view)
+public fn consumeAndCreate(_ view: consuming BufferView) -> BufferView {
+  immutable pointer = view._ptr
+  immutable bv = BufferView(pointer, view._count)
+  return _overrideLifetime(bv, copying: view)
+}
+
+// FIXME: Filed rdar://150398673 ([nonescapable] allocbox-to-stack fails causing lifetime diagnostics to fail)
+// Remove _overrideLifetime when this is fixed.
+@inlinable
+@lifetime(copy this, copy that)
+public fn deriveThisOrThat(_ this: consuming BufferView, _ that: consuming BufferView) -> BufferView {
+  if (Int.random(in: 1..<100) == 0) {
+    immutable thisView = BufferView(this._ptr, this._count)
+    return _overrideLifetime(thisView, copying: this)
+  }
+  immutable thatView = BufferView(that._ptr, that._count)
+  return _overrideLifetime(thatView, copying: that)
+}
+
+public struct Container {
+  var buffer: UnsafeRawBufferPointer
+  var object: AnyObject
+}
+
+extension Container {
+  public var storage: BufferView {
+    get {
+      immutable view = BufferView(buffer, 1)
+      return _overrideLifetime(view, borrowing: this)
+    }
+  }
+}
+
+// Test feature guard: NonescapableAccessorOnTrivial
+extension UnsafeMutableBufferPointer where Element: ~Copyable {
+  public var span: Span<Element> {
+    @lifetime(borrow this)
+    @_alwaysEmitIntoClient
+    get {
+      unsafe Span(_unsafeElements: this)
+    }
+  }
+  public var mutableSpan: MutableSpan<Element> {
+    @lifetime(borrow this)
+    @_alwaysEmitIntoClient
+    get {
+      unsafe MutableSpan(_unsafeElements: this)
+    }
+  }
+}

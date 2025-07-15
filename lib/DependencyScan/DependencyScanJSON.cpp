@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 #include "language/DependencyScan/DependencyScanJSON.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
 #include "language/DependencyScan/DependencyScanImpl.h"
 #include "language/DependencyScan/StringUtils.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
 
 using namespace language;
 using namespace language::dependencies;
 using namespace language::c_string_utils;
-using namespace llvm;
+using namespace toolchain;
 
 namespace {
 std::string quote(StringRef unquoted) {
-  llvm::SmallString<128> buffer;
-  llvm::raw_svector_ostream os(buffer);
+  toolchain::SmallString<128> buffer;
+  toolchain::raw_svector_ostream os(buffer);
   for (const auto ch : unquoted) {
     if (ch == '\\')
       os << '\\';
@@ -42,21 +43,21 @@ std::string quote(StringRef unquoted) {
 
 
 /// Write a string value as JSON.
-void writeJSONValue(llvm::raw_ostream &out, StringRef value,
+void writeJSONValue(toolchain::raw_ostream &out, StringRef value,
                     unsigned indentLevel) {
   out << "\"";
   out << quote(value);
   out << "\"";
 }
 
-void writeJSONValue(llvm::raw_ostream &out, swiftscan_string_ref_t value,
+void writeJSONValue(toolchain::raw_ostream &out, languagescan_string_ref_t value,
                     unsigned indentLevel) {
   out << "\"";
   out << quote(get_C_string(value));
   out << "\"";
 }
 
-void writeJSONValue(llvm::raw_ostream &out, swiftscan_string_set_t *value_set,
+void writeJSONValue(toolchain::raw_ostream &out, languagescan_string_set_t *value_set,
                     unsigned indentLevel) {
   out << "[\n";
 
@@ -76,13 +77,18 @@ void writeJSONValue(llvm::raw_ostream &out, swiftscan_string_set_t *value_set,
 }
 
 /// Write a boolean value as JSON.
-void writeJSONValue(llvm::raw_ostream &out, bool value, unsigned indentLevel) {
+void writeJSONValue(toolchain::raw_ostream &out, bool value, unsigned indentLevel) {
   out.write_escaped(value ? "true" : "false");
+}
+
+/// Write a boolean value as JSON.
+void writeJSONValue(toolchain::raw_ostream &out, uint32_t value, unsigned indentLevel) {
+  out.write_escaped(std::to_string(value));
 }
 
 /// Write a JSON array.
 template <typename T>
-void writeJSONValue(llvm::raw_ostream &out, ArrayRef<T> values,
+void writeJSONValue(toolchain::raw_ostream &out, ArrayRef<T> values,
                     unsigned indentLevel) {
   out << "[\n";
 
@@ -104,14 +110,14 @@ void writeJSONValue(llvm::raw_ostream &out, ArrayRef<T> values,
 
 /// Write a JSON array.
 template <typename T>
-void writeJSONValue(llvm::raw_ostream &out, const std::vector<T> &values,
+void writeJSONValue(toolchain::raw_ostream &out, const std::vector<T> &values,
                     unsigned indentLevel) {
-  writeJSONValue(out, llvm::ArrayRef(values), indentLevel);
+  writeJSONValue(out, toolchain::ArrayRef(values), indentLevel);
 }
 
 /// Write a single JSON field.
 template <typename T>
-void writeJSONSingleField(llvm::raw_ostream &out, StringRef fieldName,
+void writeJSONSingleField(toolchain::raw_ostream &out, StringRef fieldName,
                           const T &value, unsigned indentLevel,
                           bool trailingComma) {
   out.indent(indentLevel * 2);
@@ -126,28 +132,23 @@ void writeJSONSingleField(llvm::raw_ostream &out, StringRef fieldName,
   out << "\n";
 }
 
-void writeEncodedModuleIdJSONValue(llvm::raw_ostream &out,
-                                   swiftscan_string_ref_t value,
+void writeEncodedModuleIdJSONValue(toolchain::raw_ostream &out,
+                                   languagescan_string_ref_t value,
                                    unsigned indentLevel) {
   out << "{\n";
-  static const std::string textualPrefix("swiftTextual");
-  static const std::string binaryPrefix("swiftBinary");
-  static const std::string placeholderPrefix("swiftPlaceholder");
+  static const std::string textualPrefix("languageTextual");
+  static const std::string binaryPrefix("languageBinary");
   static const std::string clangPrefix("clang");
   std::string valueStr = get_C_string(value);
   std::string moduleKind;
   std::string moduleName;
   if (!valueStr.compare(0, textualPrefix.size(), textualPrefix)) {
-    moduleKind = "swift";
+    moduleKind = "language";
     moduleName = valueStr.substr(textualPrefix.size() + 1);
   } else if (!valueStr.compare(0, binaryPrefix.size(), binaryPrefix)) {
-    // FIXME: rename to be consistent in the clients (swift-driver)
-    moduleKind = "swiftPrebuiltExternal";
+    // FIXME: rename to be consistent in the clients (language-driver)
+    moduleKind = "languagePrebuiltExternal";
     moduleName = valueStr.substr(binaryPrefix.size() + 1);
-  } else if (!valueStr.compare(0, placeholderPrefix.size(),
-                               placeholderPrefix)) {
-    moduleKind = "swiftPlaceholder";
-    moduleName = valueStr.substr(placeholderPrefix.size() + 1);
   } else {
     moduleKind = "clang";
     moduleName = valueStr.substr(clangPrefix.size() + 1);
@@ -159,8 +160,8 @@ void writeEncodedModuleIdJSONValue(llvm::raw_ostream &out,
 }
 
 
-static void writeDependencies(llvm::raw_ostream &out,
-                              const swiftscan_string_set_t *dependencies,
+static void writeDependencies(toolchain::raw_ostream &out,
+                              const languagescan_string_set_t *dependencies,
                               std::string dependenciesKind,
                               unsigned indentLevel, bool trailingComma) {
   out.indent(indentLevel * 2);
@@ -185,8 +186,8 @@ static void writeDependencies(llvm::raw_ostream &out,
   out << "\n";
 }
 
-void writeLinkLibraries(llvm::raw_ostream &out,
-                        const swiftscan_link_library_set_t *link_libraries,
+void writeLinkLibraries(toolchain::raw_ostream &out,
+                        const languagescan_link_library_set_t *link_libraries,
                         unsigned indentLevel, bool trailingComma) {
   out.indent(indentLevel * 2);
   out << "\"linkLibraries\": ";
@@ -229,9 +230,93 @@ void writeLinkLibraries(llvm::raw_ostream &out,
   out << "\n";
 }
 
+void writeImportInfos(toolchain::raw_ostream &out,
+                      const languagescan_import_info_set_t *imports,
+                      unsigned indentLevel, bool trailingComma) {
+  out.indent(indentLevel * 2);
+  out << "\"imports\": ";
+  out << "[\n";
+
+  for (size_t i = 0; i < imports->count; ++i) {
+    const auto &iInfo = *imports->imports[i];
+    out.indent((indentLevel + 1) * 2);
+    out << "{\n";
+    auto entryIndentLevel = ((indentLevel + 2) * 2);
+    out.indent(entryIndentLevel);
+    out << "\"identifier\": ";
+    writeJSONValue(out, iInfo.import_identifier, indentLevel);
+    out << ",\n";
+    out.indent(entryIndentLevel);
+    out << "\"accessLevel\": ";
+    switch (iInfo.access_level) {
+      case LANGUAGESCAN_ACCESS_LEVEL_PRIVATE:
+        writeJSONValue(out, StringRef("private"), entryIndentLevel);
+        break;
+      case LANGUAGESCAN_ACCESS_LEVEL_FILEPRIVATE:
+        writeJSONValue(out, StringRef("fileprivate"), entryIndentLevel);
+        break;
+      case LANGUAGESCAN_ACCESS_LEVEL_INTERNAL:
+        writeJSONValue(out, StringRef("internal"), entryIndentLevel);
+        break;
+      case LANGUAGESCAN_ACCESS_LEVEL_PACKAGE:
+        writeJSONValue(out, StringRef("package"), entryIndentLevel);
+        break;
+      case LANGUAGESCAN_ACCESS_LEVEL_PUBLIC:
+        writeJSONValue(out, StringRef("public"), entryIndentLevel);
+        break;
+    }
+
+    if (iInfo.source_locations->count) {
+      out << ",\n";
+      out.indent(entryIndentLevel);
+      out << "\"importLocations\": ";
+      out << "[\n";
+      auto slIndentLevel = ((entryIndentLevel + 4));
+      for (size_t i = 0; i < iInfo.source_locations->count; ++i) {
+        out.indent(entryIndentLevel + 2);
+        out << "{\n";
+        const auto &sl = *iInfo.source_locations->source_locations[i];
+        out.indent(slIndentLevel);
+        out << "\"bufferIdentifier\": ";
+        writeJSONValue(out, sl.buffer_identifier, indentLevel);
+        out << ",\n";
+        out.indent(slIndentLevel);
+        out << "\"linuNumber\": ";
+        writeJSONValue(out, sl.line_number, indentLevel);
+        out << ",\n";
+        out.indent(slIndentLevel);
+        out << "\"columnNumber\": ";
+        writeJSONValue(out, sl.column_number, indentLevel);
+        out << "\n";
+        out.indent(entryIndentLevel + 2);
+        out << "}";
+        if (i != iInfo.source_locations->count - 1)
+          out << ",";
+        out << "\n";
+      }
+      out.indent(entryIndentLevel);
+      out << "]\n";
+    } else {
+      out << "\n";
+    }
+    out.indent((indentLevel + 1) * 2);
+    out << "}";
+    if (i != imports->count - 1)
+      out << ",";
+    out << "\n";
+  }
+
+  out.indent(indentLevel * 2);
+  out << "]";
+
+  if (trailingComma)
+    out << ",";
+  out << "\n";
+}
+
 static void
-writeMacroDependencies(llvm::raw_ostream &out,
-                       const swiftscan_macro_dependency_set_t *macro_deps,
+writeMacroDependencies(toolchain::raw_ostream &out,
+                       const languagescan_macro_dependency_set_t *macro_deps,
                        unsigned indentLevel, bool trailingComma) {
   if (!macro_deps)
     return;
@@ -246,15 +331,15 @@ writeMacroDependencies(llvm::raw_ostream &out,
     auto entryIndentLevel = ((indentLevel + 2) * 2);
     out.indent(entryIndentLevel);
     out << "\"moduleName\": ";
-    writeJSONValue(out, macroInfo.moduleName, indentLevel);
+    writeJSONValue(out, macroInfo.module_name, indentLevel);
     out << ",\n";
     out.indent(entryIndentLevel);
     out << "\"libraryPath\": ";
-    writeJSONValue(out, macroInfo.libraryPath, entryIndentLevel);
+    writeJSONValue(out, macroInfo.library_path, entryIndentLevel);
     out << ",\n";
     out.indent(entryIndentLevel);
     out << "\"executablePath\": ";
-    writeJSONValue(out, macroInfo.executablePath, entryIndentLevel);
+    writeJSONValue(out, macroInfo.executable_path, entryIndentLevel);
     out << "\n";
     out.indent((indentLevel + 1) * 2);
     out << "}";
@@ -272,56 +357,49 @@ writeMacroDependencies(llvm::raw_ostream &out,
   out << "\n";
 }
 
-static const swiftscan_swift_textual_details_t *
-getAsTextualDependencyModule(swiftscan_module_details_t details) {
-  if (details->kind == SWIFTSCAN_DEPENDENCY_INFO_SWIFT_TEXTUAL)
-    return &details->swift_textual_details;
+static const languagescan_language_textual_details_t *
+getAsTextualDependencyModule(languagescan_module_details_t details) {
+  if (details->kind == LANGUAGESCAN_DEPENDENCY_INFO_LANGUAGE_TEXTUAL)
+    return &details->language_textual_details;
   return nullptr;
 }
 
-static const swiftscan_swift_placeholder_details_t *
-getAsPlaceholderDependencyModule(swiftscan_module_details_t details) {
-  if (details->kind == SWIFTSCAN_DEPENDENCY_INFO_SWIFT_PLACEHOLDER)
-    return &details->swift_placeholder_details;
+static const languagescan_language_binary_details_t *
+getAsBinaryDependencyModule(languagescan_module_details_t details) {
+  if (details->kind == LANGUAGESCAN_DEPENDENCY_INFO_LANGUAGE_BINARY)
+    return &details->language_binary_details;
   return nullptr;
 }
 
-static const swiftscan_swift_binary_details_t *
-getAsBinaryDependencyModule(swiftscan_module_details_t details) {
-  if (details->kind == SWIFTSCAN_DEPENDENCY_INFO_SWIFT_BINARY)
-    return &details->swift_binary_details;
-  return nullptr;
-}
-
-static const swiftscan_clang_details_t *
-getAsClangDependencyModule(swiftscan_module_details_t details) {
-  if (details->kind == SWIFTSCAN_DEPENDENCY_INFO_CLANG)
+static const languagescan_clang_details_t *
+getAsClangDependencyModule(languagescan_module_details_t details) {
+  if (details->kind == LANGUAGESCAN_DEPENDENCY_INFO_CLANG)
     return &details->clang_details;
   return nullptr;
 }
 
 namespace language::dependencies {
-void writePrescanJSON(llvm::raw_ostream &out,
-                      swiftscan_import_set_t importSet) {
+void writePrescanJSON(toolchain::raw_ostream &out,
+                      languagescan_import_set_t importSet) {
   // Write out a JSON containing all main module imports.
   out << "{\n";
-  SWIFT_DEFER { out << "}\n"; };
+  LANGUAGE_DEFER { out << "}\n"; };
 
   writeJSONSingleField(out, "imports", importSet->imports, 0, false);
 }
 
-void writeJSON(llvm::raw_ostream &out,
-               swiftscan_dependency_graph_t fullDependencies) {
+void writeJSON(toolchain::raw_ostream &out,
+               languagescan_dependency_graph_t fullDependencies) {
   // Write out a JSON description of all of the dependencies.
   out << "{\n";
-  SWIFT_DEFER { out << "}\n"; };
+  LANGUAGE_DEFER { out << "}\n"; };
   // Name of the main module.
   writeJSONSingleField(out, "mainModuleName",
                        fullDependencies->main_module_name,
                        /*indentLevel=*/1, /*trailingComma=*/true);
   // Write out all of the modules.
   out << "  \"modules\": [\n";
-  SWIFT_DEFER { out << "  ]\n"; };
+  LANGUAGE_DEFER { out << "  ]\n"; };
   const auto module_set = fullDependencies->dependencies;
   for (size_t mi = 0; mi < module_set->count; ++mi) {
     const auto &moduleInfo = *module_set->modules[mi];
@@ -332,10 +410,8 @@ void writeJSON(llvm::raw_ostream &out,
     out << ",\n";
     out.indent(2 * 2);
     out << "{\n";
-    auto swiftPlaceholderDeps =
-        getAsPlaceholderDependencyModule(moduleInfo.details);
-    auto swiftTextualDeps = getAsTextualDependencyModule(moduleInfo.details);
-    auto swiftBinaryDeps = getAsBinaryDependencyModule(moduleInfo.details);
+    auto languageTextualDeps = getAsTextualDependencyModule(moduleInfo.details);
+    auto languageBinaryDeps = getAsBinaryDependencyModule(moduleInfo.details);
     auto clangDeps = getAsClangDependencyModule(moduleInfo.details);
 
     // Module path.
@@ -346,11 +422,9 @@ void writeJSON(llvm::raw_ostream &out,
         std::string(get_C_string(moduleInfo.module_name));
     std::string moduleName =
         moduleKindAndName.substr(moduleKindAndName.find(":") + 1);
-    if (swiftPlaceholderDeps)
-      modulePath = get_C_string(swiftPlaceholderDeps->compiled_module_path);
-    else if (swiftBinaryDeps)
-      modulePath = get_C_string(swiftBinaryDeps->compiled_module_path);
-    else if (clangDeps || swiftTextualDeps)
+    if (languageBinaryDeps)
+      modulePath = get_C_string(languageBinaryDeps->compiled_module_path);
+    else if (clangDeps || languageTextualDeps)
       modulePath = get_C_string(moduleInfo.module_path);
     else
       modulePath = moduleName + modulePathSuffix;
@@ -359,30 +433,32 @@ void writeJSON(llvm::raw_ostream &out,
                          /*trailingComma=*/true);
 
     // Source files.
-    if (swiftTextualDeps || clangDeps) {
+    if (languageTextualDeps || clangDeps) {
       writeJSONSingleField(out, "sourceFiles", moduleInfo.source_files, 3,
                            /*trailingComma=*/true);
     }
 
     // Direct dependencies.
-    if (swiftTextualDeps || swiftBinaryDeps || clangDeps) {
+    if (languageTextualDeps || languageBinaryDeps || clangDeps) {
       writeDependencies(out, directDependencies,
                         "directDependencies", 3,
                         /*trailingComma=*/true);
       writeLinkLibraries(out, moduleInfo.link_libraries,
                          3, /*trailingComma=*/true);
+      writeImportInfos(out, moduleInfo.imports,
+                       3, /*trailingComma=*/true);
     }
-    // Swift and Clang-specific details.
+    // Codira and Clang-specific details.
     out.indent(3 * 2);
     out << "\"details\": {\n";
     out.indent(4 * 2);
-    if (swiftTextualDeps) {
-      out << "\"swift\": {\n";
-      /// Swift interface file, if there is one. The main module, for
+    if (languageTextualDeps) {
+      out << "\"language\": {\n";
+      /// Codira interface file, if there is one. The main module, for
       /// example, will not have an interface file.
       std::string moduleInterfacePath =
-          swiftTextualDeps->module_interface_path.data
-              ? get_C_string(swiftTextualDeps->module_interface_path)
+          languageTextualDeps->module_interface_path.data
+              ? get_C_string(languageTextualDeps->module_interface_path)
               : "";
       if (!moduleInterfacePath.empty()) {
         writeJSONSingleField(out, "moduleInterfacePath", moduleInterfacePath, 5,
@@ -390,10 +466,10 @@ void writeJSON(llvm::raw_ostream &out,
         out.indent(5 * 2);
         out << "\"compiledModuleCandidates\": [\n";
         for (int i = 0,
-                 count = swiftTextualDeps->compiled_module_candidates->count;
+                 count = languageTextualDeps->compiled_module_candidates->count;
              i < count; ++i) {
           const auto &candidate = get_C_string(
-              swiftTextualDeps->compiled_module_candidates->strings[i]);
+              languageTextualDeps->compiled_module_candidates->strings[i]);
           out.indent(6 * 2);
           out << "\"" << quote(candidate) << "\"";
           if (i != count - 1)
@@ -405,10 +481,10 @@ void writeJSON(llvm::raw_ostream &out,
       }
       out.indent(5 * 2);
       out << "\"commandLine\": [\n";
-      for (int i = 0, count = swiftTextualDeps->command_line->count; i < count;
+      for (int i = 0, count = languageTextualDeps->command_line->count; i < count;
            ++i) {
         const auto &arg =
-            get_C_string(swiftTextualDeps->command_line->strings[i]);
+            get_C_string(languageTextualDeps->command_line->strings[i]);
         out.indent(6 * 2);
         out << "\"" << quote(arg) << "\"";
         if (i != count - 1)
@@ -417,67 +493,75 @@ void writeJSON(llvm::raw_ostream &out,
       }
       out.indent(5 * 2);
       out << "],\n";
-      writeJSONSingleField(out, "contextHash", swiftTextualDeps->context_hash,
+      writeJSONSingleField(out, "contextHash", languageTextualDeps->context_hash,
                            5,
                            /*trailingComma=*/true);
       bool hasBridgingHeader =
-          (swiftTextualDeps->bridging_header_path.data &&
-           get_C_string(swiftTextualDeps->bridging_header_path)[0] != '\0') ||
-          swiftTextualDeps->bridging_pch_command_line->count != 0;
+          (languageTextualDeps->bridging_header_path.data &&
+           get_C_string(languageTextualDeps->bridging_header_path)[0] != '\0') ||
+          languageTextualDeps->bridging_pch_command_line->count != 0;
       bool hasOverlayDependencies =
-          swiftTextualDeps->swift_overlay_module_dependencies &&
-          swiftTextualDeps->swift_overlay_module_dependencies->count > 0;
+          languageTextualDeps->language_overlay_module_dependencies &&
+          languageTextualDeps->language_overlay_module_dependencies->count > 0;
+      bool hasSourceImportedDependencies =
+          languageTextualDeps->source_import_module_dependencies &&
+          languageTextualDeps->source_import_module_dependencies->count > 0;
       bool commaAfterBridgingHeaderPath = hasOverlayDependencies;
       bool commaAfterFramework =
           hasBridgingHeader || commaAfterBridgingHeaderPath;
 
-      if (swiftTextualDeps->cas_fs_root_id.length != 0) {
+      if (languageTextualDeps->cas_fs_root_id.length != 0) {
         writeJSONSingleField(out, "casFSRootID",
-                             swiftTextualDeps->cas_fs_root_id, 5,
+                             languageTextualDeps->cas_fs_root_id, 5,
                              /*trailingComma=*/true);
       }
-      if (swiftTextualDeps->module_cache_key.length != 0) {
+      if (languageTextualDeps->module_cache_key.length != 0) {
         writeJSONSingleField(out, "moduleCacheKey",
-                             swiftTextualDeps->module_cache_key, 5,
+                             languageTextualDeps->module_cache_key, 5,
                              /*trailingComma=*/true);
       }
-      if (swiftTextualDeps->chained_bridging_header_path.length != 0) {
+      if (languageTextualDeps->chained_bridging_header_path.length != 0) {
         writeJSONSingleField(out, "chainedBridgingHeaderPath",
-                             swiftTextualDeps->chained_bridging_header_path, 5,
+                             languageTextualDeps->chained_bridging_header_path, 5,
                              /*trailingComma=*/true);
       }
       writeJSONSingleField(out, "userModuleVersion",
-                           swiftTextualDeps->user_module_version, 5,
+                           languageTextualDeps->user_module_version, 5,
                            /*trailingComma=*/true);
-      writeMacroDependencies(out, swiftTextualDeps->macro_dependencies, 5,
+      writeMacroDependencies(out, languageTextualDeps->macro_dependencies, 5,
                              /*trailingComma=*/true);
-      writeJSONSingleField(out, "isFramework", swiftTextualDeps->is_framework,
+      if (hasSourceImportedDependencies) {
+        writeDependencies(out, languageTextualDeps->source_import_module_dependencies,
+                          "sourceImportedDependencies", 5,
+                          /*trailingComma=*/true);
+      }
+      writeJSONSingleField(out, "isFramework", languageTextualDeps->is_framework,
                            5, commaAfterFramework);
       /// Bridging header and its source file dependencies, if any.
       if (hasBridgingHeader) {
         out.indent(5 * 2);
         out << "\"bridgingHeader\": {\n";
         writeJSONSingleField(out, "path",
-                             swiftTextualDeps->bridging_header_path, 6,
+                             languageTextualDeps->bridging_header_path, 6,
                              /*trailingComma=*/true);
         writeJSONSingleField(out, "sourceFiles",
-                             swiftTextualDeps->bridging_source_files, 6,
+                             languageTextualDeps->bridging_source_files, 6,
                              /*trailingComma=*/true);
-        if (swiftTextualDeps->bridging_header_include_tree.length != 0) {
+        if (languageTextualDeps->bridging_header_include_tree.length != 0) {
           writeJSONSingleField(out, "includeTree",
-                               swiftTextualDeps->bridging_header_include_tree,
+                               languageTextualDeps->bridging_header_include_tree,
                                6, /*trailingComma=*/true);
         }
         writeJSONSingleField(out, "moduleDependencies",
-                             swiftTextualDeps->bridging_module_dependencies, 6,
+                             languageTextualDeps->bridging_module_dependencies, 6,
                              /*trailingComma=*/true);
         out.indent(6 * 2);
         out << "\"commandLine\": [\n";
         for (int i = 0,
-                 count = swiftTextualDeps->bridging_pch_command_line->count;
+                 count = languageTextualDeps->bridging_pch_command_line->count;
              i < count; ++i) {
           const auto &arg = get_C_string(
-              swiftTextualDeps->bridging_pch_command_line->strings[i]);
+              languageTextualDeps->bridging_pch_command_line->strings[i]);
           out.indent(7 * 2);
           out << "\"" << quote(arg) << "\"";
           if (i != count - 1)
@@ -490,94 +574,75 @@ void writeJSON(llvm::raw_ostream &out,
         out << (commaAfterBridgingHeaderPath ? "},\n" : "}\n");
       }
       if (hasOverlayDependencies) {
-        writeDependencies(out, swiftTextualDeps->swift_overlay_module_dependencies,
-                          "swiftOverlayDependencies", 5,
+        writeDependencies(out, languageTextualDeps->language_overlay_module_dependencies,
+                          "languageOverlayDependencies", 5,
                           /*trailingComma=*/false);
       }
-    } else if (swiftPlaceholderDeps) {
-      out << "\"swiftPlaceholder\": {\n";
-
-      // Module doc file
-      if (swiftPlaceholderDeps->module_doc_path.data &&
-          get_C_string(swiftPlaceholderDeps->module_doc_path)[0] != '\0')
-        writeJSONSingleField(out, "moduleDocPath",
-                             swiftPlaceholderDeps->module_doc_path,
-                             /*indentLevel=*/5,
-                             /*trailingComma=*/true);
-
-      // Module Source Info file
-      if (swiftPlaceholderDeps->module_source_info_path.data &&
-          get_C_string(swiftPlaceholderDeps->module_source_info_path)[0] !=
-              '\0')
-        writeJSONSingleField(out, "moduleSourceInfoPath",
-                             swiftPlaceholderDeps->module_source_info_path,
-                             /*indentLevel=*/5,
-                             /*trailingComma=*/false);
-    } else if (swiftBinaryDeps) {
+    } else if (languageBinaryDeps) {
       bool hasOverlayDependencies =
-        swiftBinaryDeps->swift_overlay_module_dependencies &&
-        swiftBinaryDeps->swift_overlay_module_dependencies->count > 0;
+        languageBinaryDeps->language_overlay_module_dependencies &&
+        languageBinaryDeps->language_overlay_module_dependencies->count > 0;
 
-      out << "\"swiftPrebuiltExternal\": {\n";
-      assert(swiftBinaryDeps->compiled_module_path.data &&
-             get_C_string(swiftBinaryDeps->compiled_module_path)[0] != '\0' &&
-             "Expected .swiftmodule for a Binary Swift Module Dependency.");
+      out << "\"languagePrebuiltExternal\": {\n";
+      assert(languageBinaryDeps->compiled_module_path.data &&
+             get_C_string(languageBinaryDeps->compiled_module_path)[0] != '\0' &&
+             "Expected .codemodule for a Binary Codira Module Dependency.");
 
       writeJSONSingleField(out, "compiledModulePath",
-                           swiftBinaryDeps->compiled_module_path,
+                           languageBinaryDeps->compiled_module_path,
                            /*indentLevel=*/5,
                            /*trailingComma=*/true);
       writeJSONSingleField(out, "userModuleVersion",
-                           swiftBinaryDeps->user_module_version,
+                           languageBinaryDeps->user_module_version,
                            /*indentLevel=*/5,
                            /*trailingComma=*/true);
       // Module doc file
-      if (swiftBinaryDeps->module_doc_path.data &&
-          get_C_string(swiftBinaryDeps->module_doc_path)[0] != '\0')
+      if (languageBinaryDeps->module_doc_path.data &&
+          get_C_string(languageBinaryDeps->module_doc_path)[0] != '\0')
         writeJSONSingleField(out, "moduleDocPath",
-                             swiftBinaryDeps->module_doc_path,
+                             languageBinaryDeps->module_doc_path,
                              /*indentLevel=*/5,
                              /*trailingComma=*/true);
       // Module Source Info file
-      if (swiftBinaryDeps->module_source_info_path.data &&
-          get_C_string(swiftBinaryDeps->module_source_info_path)[0] != '\0')
+      if (languageBinaryDeps->module_source_info_path.data &&
+          get_C_string(languageBinaryDeps->module_source_info_path)[0] != '\0')
         writeJSONSingleField(out, "moduleSourceInfoPath",
-                             swiftBinaryDeps->module_source_info_path,
+                             languageBinaryDeps->module_source_info_path,
                              /*indentLevel=*/5,
                              /*trailingComma=*/true);
-      if (swiftBinaryDeps->module_cache_key.length != 0) {
+      if (languageBinaryDeps->module_cache_key.length != 0) {
         writeJSONSingleField(out, "moduleCacheKey",
-                             swiftBinaryDeps->module_cache_key, 5,
+                             languageBinaryDeps->module_cache_key, 5,
                              /*trailingComma=*/true);
       }
 
       // Module Header Dependencies
-      if (swiftBinaryDeps->header_dependency.length != 0)
+      if (languageBinaryDeps->header_dependency.length != 0)
         writeJSONSingleField(out, "headerDependency",
-                             swiftBinaryDeps->header_dependency, 5,
+                             languageBinaryDeps->header_dependency, 5,
                              /*trailingComma=*/true);
 
       // Module Header Module Dependencies
-      if (swiftBinaryDeps->header_dependencies_module_dependnecies->count != 0)
+      if (languageBinaryDeps->header_dependencies_module_dependnecies->count != 0)
         writeJSONSingleField(out, "headerModuleDependencies",
-                             swiftBinaryDeps->header_dependencies_module_dependnecies, 5,
+                             languageBinaryDeps->header_dependencies_module_dependnecies, 5,
                              /*trailingComma=*/true);
 
       // Module Header Source Files
-      if (swiftBinaryDeps->header_dependencies_source_files->count != 0)
+      if (languageBinaryDeps->header_dependencies_source_files->count != 0)
         writeJSONSingleField(out, "headerDependenciesSourceFiles",
-                             swiftBinaryDeps->header_dependencies_source_files, 5,
+                             languageBinaryDeps->header_dependencies_source_files, 5,
                              /*trailingComma=*/true);
 
       if (hasOverlayDependencies) {
-        writeDependencies(out, swiftBinaryDeps->swift_overlay_module_dependencies,
-                          "swiftOverlayDependencies", 5,
+        writeDependencies(out, languageBinaryDeps->language_overlay_module_dependencies,
+                          "languageOverlayDependencies", 5,
                           /*trailingComma=*/true);
       }
 
-      writeMacroDependencies(out, swiftBinaryDeps->macro_dependencies, 5,
+      writeMacroDependencies(out, languageBinaryDeps->macro_dependencies, 5,
                              /*trailingComma=*/true);
-      writeJSONSingleField(out, "isFramework", swiftBinaryDeps->is_framework,
+      writeJSONSingleField(out, "isFramework", languageBinaryDeps->is_framework,
                            5, /*trailingComma=*/false);
     } else {
       out << "\"clang\": {\n";

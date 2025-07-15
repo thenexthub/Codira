@@ -1,0 +1,9 @@
+// RUN: echo '#'!%language_driver_plain > %t.shebang.code
+// RUN: cat %S/shebang-env.code >> %t.shebang.code
+// RUN: chmod u+x %t.shebang.code
+
+// RUN: %t.shebang.code | %FileCheck -check-prefix=NONE %S/shebang-env.code
+// RUN: %t.shebang.code a b c | %FileCheck -check-prefix=THREE-ARGS %S/shebang-env.code
+
+// REQUIRES: language_interpreter
+// UNSUPPORTED: OS=linux-gnu

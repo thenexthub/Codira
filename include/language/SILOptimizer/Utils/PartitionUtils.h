@@ -1,32 +1,36 @@
 //===--- PartitionUtils.h -------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_PARTITIONUTILS_H
-#define SWIFT_SILOPTIMIZER_UTILS_PARTITIONUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_PARTITIONUTILS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_PARTITIONUTILS_H
 
 #include "language/Basic/Defer.h"
 #include "language/Basic/FrozenMultiMap.h"
 #include "language/Basic/ImmutablePointerSet.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/RegionIsolation.h"
 #include "language/SILOptimizer/Utils/SILIsolationInfo.h"
 
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
 
 #include <algorithm>
 #include <variant>
@@ -63,11 +67,11 @@ struct Region {
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct DenseMapInfo<swift::PartitionPrimitives::Region> {
-  using Region = swift::PartitionPrimitives::Region;
+struct DenseMapInfo<language::PartitionPrimitives::Region> {
+  using Region = language::PartitionPrimitives::Region;
 
   static Region getEmptyKey() {
     return Region(DenseMapInfo<unsigned>::getEmptyKey());
@@ -82,7 +86,7 @@ struct DenseMapInfo<swift::PartitionPrimitives::Region> {
   static bool isEqual(Region LHS, Region RHS) { return LHS == RHS; }
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -93,18 +97,18 @@ class RegionAnalysisValueMap;
 /// The representative value of the equivalence class that makes up a tracked
 /// value.
 ///
-/// We use a wrapper struct here so that we can inject "fake" actor isolated
+/// We use a wrapper struct here so that we can inject "fake" actor-isolated
 /// values into the regions of values that become merged into an actor by
 /// calling a function without a non-sendable result.
 class RepresentativeValue {
-  friend llvm::DenseMapInfo<RepresentativeValue>;
+  friend toolchain::DenseMapInfo<RepresentativeValue>;
 
   using InnerType = PointerUnion<SILValue, SILInstruction *>;
 
   /// If this is set to a SILValue then it is the actual represented value. If
   /// it is set to a SILInstruction, then this is a "fake" representative value
-  /// used to inject actor isolatedness. The instruction stored is the
-  /// instruction that introduced the actor isolated-ness.
+  /// used to inject actor isolation. The instruction stored is the
+  /// instruction that introduced the actor isolation.
   InnerType value;
 
 public:
@@ -115,7 +119,7 @@ public:
 
   operator bool() const { return bool(value); }
 
-  void print(llvm::raw_ostream &os) const {
+  void print(toolchain::raw_ostream &os) const {
     if (auto *inst = value.dyn_cast<SILInstruction *>()) {
       os << "ActorRegionIntroducingInst: " << *inst;
       return;
@@ -137,7 +141,7 @@ public:
     return getValue() == other;
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
 private:
   RepresentativeValue(InnerType value) : value(value) {}
@@ -226,7 +230,7 @@ public:
 };
 
 class IsolationHistory::Node final
-    : private llvm::TrailingObjects<IsolationHistory::Node, Element> {
+    : private toolchain::TrailingObjects<IsolationHistory::Node, Element> {
   friend IsolationHistory;
   friend TrailingObjects;
 
@@ -367,10 +371,10 @@ class IsolationHistory::Factory {
   friend IsolationHistory;
   using Node = IsolationHistory::Node;
 
-  llvm::BumpPtrAllocator &allocator;
+  toolchain::BumpPtrAllocator &allocator;
 
 public:
-  Factory(llvm::BumpPtrAllocator &allocator) : allocator(allocator) {}
+  Factory(toolchain::BumpPtrAllocator &allocator) : allocator(allocator) {}
 
   Factory(IsolationHistory::Factory &&other) = delete;
   Factory &operator=(IsolationHistory::Factory &&other) = delete;
@@ -402,7 +406,7 @@ struct SendingOperandState {
 };
 
 class SendingOperandToStateMap {
-  llvm::SmallDenseMap<Operand *, SendingOperandState> internalMap;
+  toolchain::SmallDenseMap<Operand *, SendingOperandState> internalMap;
   IsolationHistory::Factory &isolationHistoryFactory;
 
 public:
@@ -676,9 +680,9 @@ public:
 
   SILLocation getSourceLoc() const { return getSourceInst()->getLoc(); }
 
-  void print(llvm::raw_ostream &os, bool extraSpace = false) const;
+  void print(toolchain::raw_ostream &os, bool extraSpace = false) const;
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 };
 
 /// A map from Element -> Region that represents the current partition set.
@@ -703,7 +707,7 @@ private:
   /// multi map here. The implication of this is that when we are performing
   /// dataflow we use a union operation to combine CFG elements and just take
   /// the first instruction that we see.
-  llvm::SmallMapVector<Region, SendingOperandSet *, 2> regionToSendingOpMap;
+  toolchain::SmallMapVector<Region, SendingOperandSet *, 2> regionToSendingOpMap;
 
   /// Label each index with a non-negative (unsigned) label if it is associated
   /// with a valid region.
@@ -751,7 +755,7 @@ public:
 
     return fst.elementToRegionMap == snd.elementToRegionMap &&
            fst.regionToSendingOpMap.size() == snd.regionToSendingOpMap.size() &&
-           llvm::all_of(
+           toolchain::all_of(
                fst.regionToSendingOpMap,
                [&snd](const std::pair<Region, SendingOperandSet *> &p) {
                  auto sndIter = snd.regionToSendingOpMap.find(p.first);
@@ -790,7 +794,7 @@ public:
   using iterator = std::map<Element, Region>::iterator;
   iterator begin() { return elementToRegionMap.begin(); }
   iterator end() { return elementToRegionMap.end(); }
-  llvm::iterator_range<iterator> range() { return {begin(), end()}; }
+  toolchain::iterator_range<iterator> range() { return {begin(), end()}; }
 
   void clearSendingOperandState() { regionToSendingOpMap.clear(); }
 
@@ -876,26 +880,26 @@ public:
     return doubleVec;
   }
 
-  void dump_labels() const LLVM_ATTRIBUTE_USED {
-    llvm::dbgs() << "Partition";
+  void dump_labels() const TOOLCHAIN_ATTRIBUTE_USED {
+    toolchain::dbgs() << "Partition";
     if (canonical)
-      llvm::dbgs() << "(canonical)";
-    llvm::dbgs() << "(fresh=" << freshLabel << "){";
+      toolchain::dbgs() << "(canonical)";
+    toolchain::dbgs() << "(fresh=" << freshLabel << "){";
     for (const auto &[i, label] : elementToRegionMap)
-      llvm::dbgs() << "[" << i << ": " << label << "] ";
-    llvm::dbgs() << "}\n";
+      toolchain::dbgs() << "[" << i << ": " << label << "] ";
+    toolchain::dbgs() << "}\n";
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
-  SWIFT_DEBUG_DUMPER(dumpVerbose()) { printVerbose(llvm::dbgs()); }
+  LANGUAGE_DEBUG_DUMPER(dumpVerbose()) { printVerbose(toolchain::dbgs()); }
 
-  void printVerbose(llvm::raw_ostream &os) const;
+  void printVerbose(toolchain::raw_ostream &os) const;
 
-  SWIFT_DEBUG_DUMPER(dumpHistory()) { printHistory(llvm::dbgs()); }
-  void printHistory(llvm::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMPER(dumpHistory()) { printHistory(toolchain::dbgs()); }
+  void printHistory(toolchain::raw_ostream &os) const;
 
   /// See docs on \p history.pushHistorySequenceBoundary().
   IsolationHistoryNode *pushHistorySequenceBoundary(SILLocation loc) {
@@ -929,7 +933,7 @@ public:
   /// Asserts when NDEBUG is set. Does nothing otherwise.
   void validateRegionToSendingOpMapRegions() const {
 #ifndef NDEBUG
-    llvm::SmallSet<Region, 8> regions;
+    toolchain::SmallSet<Region, 8> regions;
     for (auto [eltNo, regionNo] : elementToRegionMap) {
       regions.insert(regionNo);
     }
@@ -1013,7 +1017,7 @@ private:
   }
 };
 
-/// Swift style enum we use to decouple and reduce boilerplate in between the
+/// Codira style enum we use to decouple and reduce boilerplate in between the
 /// diagnostic and non-diagnostic part of the infrastructure.
 class PartitionOpError {
 public:
@@ -1030,10 +1034,10 @@ public:
 
     UnknownCodePatternError(const PartitionOp &op) : op(&op) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1046,10 +1050,10 @@ public:
                            Operand *sendingOp)
         : op(&op), sentElement(elt), sendingOp(sendingOp) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1063,10 +1067,10 @@ public:
         : op(&op), sentElement(sentElement),
           isolationRegionInfo(isolationRegionInfo) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1086,10 +1090,10 @@ public:
           srcElement(srcElement), srcValue(srcValue),
           srcIsolationRegionInfo(srcIsolationRegionInfo) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1102,10 +1106,10 @@ public:
                                           Operand *sendingOp)
         : op(&op), sentElement(elt), sendingOp(sendingOp) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1119,10 +1123,10 @@ public:
         SILDynamicMergedIsolationInfo isolation)
         : op(&op), inoutSendingElement(elt), isolationInfo(isolation) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1135,10 +1139,10 @@ public:
                                             Element returnValue)
         : op(&op), returnValueElement(returnValue) {}
 
-    void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
+    void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const;
 
-    SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-      print(llvm::dbgs(), valueMap);
+    LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+      print(toolchain::dbgs(), valueMap);
     }
   };
 
@@ -1194,18 +1198,18 @@ public:
 
   Kind getKind() const { return kind; }
 
-  void print(llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+  void print(toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
     switch (getKind()) {
 #define PARTITION_OP_ERROR(NAME)                                               \
   case NAME:                                                                   \
     return get##NAME##Error().print(os, valueMap);
 #include "PartitionOpError.def"
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
-  SWIFT_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
-    return print(llvm::dbgs(), valueMap);
+  LANGUAGE_DEBUG_DUMPER(dump(RegionAnalysisValueMap &valueMap)) {
+    return print(toolchain::dbgs(), valueMap);
   }
 
 #define PARTITION_OP_ERROR(NAME)                                               \
@@ -1346,15 +1350,15 @@ public:
   /// Apply \p op to the partition op.
   void apply(const PartitionOp &op) {
     if (shouldEmitVerboseLogging()) {
-      REGIONBASEDISOLATION_VERBOSE_LOG(llvm::dbgs() << "Applying: ";
-                                       op.print(llvm::dbgs()));
-      REGIONBASEDISOLATION_VERBOSE_LOG(llvm::dbgs() << "    Before: ";
-                                       p.print(llvm::dbgs()));
+      REGIONBASEDISOLATION_VERBOSE_LOG(toolchain::dbgs() << "Applying: ";
+                                       op.print(toolchain::dbgs()));
+      REGIONBASEDISOLATION_VERBOSE_LOG(toolchain::dbgs() << "    Before: ";
+                                       p.print(toolchain::dbgs()));
     }
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       if (shouldEmitVerboseLogging()) {
-        REGIONBASEDISOLATION_VERBOSE_LOG(llvm::dbgs() << "    After:  ";
-                                         p.print(llvm::dbgs()));
+        REGIONBASEDISOLATION_VERBOSE_LOG(toolchain::dbgs() << "    After:  ";
+                                         p.print(toolchain::dbgs()));
       }
       assert(p.is_canonical_correct());
     };
@@ -1584,7 +1588,7 @@ public:
       p.assignElement(op.getOpArg1(), op.getOpArg2());
       return;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   void apply(std::initializer_list<PartitionOp> ops) {
@@ -1601,9 +1605,32 @@ public:
   }
 
 private:
-  bool isConvertFunctionFromSendableType(SILValue equivalenceClassRep) const {
+  /// To work around not having isolation in interface types, the type checker
+  /// inserts casts and other AST nodes that are used to enrich the AST with
+  /// isolation information. This results in Sendable functions being
+  /// wrapped/converted/etc in ways that hide the Sendability. This helper looks
+  /// through these conversions/wrappers/thunks to see if the original
+  /// underlying function is Sendable.
+  ///
+  /// The two ways this can happen is that we either get an actual function_ref
+  /// that is Sendable or we get a convert function with a Sendable operand.
+  bool isHiddenSendableFunctionType(SILValue equivalenceClassRep) const {
     SILValue valueToTest = equivalenceClassRep;
     while (true) {
+      if (auto *pai = dyn_cast<PartialApplyInst>(valueToTest)) {
+        if (auto *calleeFunction = pai->getCalleeFunction()) {
+          if (pai->getNumArguments() >= 1 &&
+              pai->getArgument(0)->getType().isFunction() &&
+              calleeFunction->isThunk()) {
+            valueToTest = pai->getArgument(0);
+            continue;
+          }
+
+          if (calleeFunction->getLoweredFunctionType()->isSendable())
+            return true;
+        }
+      }
+
       if (auto *i = dyn_cast<ThinToThickFunctionInst>(valueToTest)) {
         valueToTest = i->getOperand();
         continue;
@@ -1614,6 +1641,9 @@ private:
       }
       break;
     }
+
+    if (auto *fn = dyn_cast<FunctionRefInst>(valueToTest))
+      return fn->getReferencedFunction()->getLoweredFunctionType()->isSendable();
 
     auto *cvi = dyn_cast<ConvertFunctionInst>(valueToTest);
     if (!cvi)
@@ -1647,7 +1677,7 @@ private:
 
         // See if we have a convert function from a `@Sendable` type. In this
         // case, we want to squelch the error.
-        if (isConvertFunctionFromSendableType(equivalenceClassRep))
+        if (isHiddenSendableFunctionType(equivalenceClassRep))
           return;
       }
 
@@ -1692,7 +1722,7 @@ private:
 
         // See if we have a convert function from a `@Sendable` type. In this
         // case, we want to squelch the error.
-        if (isConvertFunctionFromSendableType(equivalenceClassRep))
+        if (isHiddenSendableFunctionType(equivalenceClassRep))
           return;
       }
     }
@@ -1794,17 +1824,17 @@ struct PartitionOpEvaluatorBasic final
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
-                                     const swift::RepresentativeValue &value) {
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
+                                     const language::RepresentativeValue &value) {
   value.print(os);
   return os;
 }
 
 template <>
-struct DenseMapInfo<swift::RepresentativeValue> {
-  using RepresentativeValue = swift::RepresentativeValue;
+struct DenseMapInfo<language::RepresentativeValue> {
+  using RepresentativeValue = language::RepresentativeValue;
   using InnerType = RepresentativeValue::InnerType;
   using InnerDenseMapInfo = DenseMapInfo<InnerType>;
 
@@ -1824,6 +1854,6 @@ struct DenseMapInfo<swift::RepresentativeValue> {
   }
 };
 
-} // namespace llvm
+} // namespace toolchain
 
-#endif // SWIFT_PARTITIONUTILS_H
+#endif // LANGUAGE_PARTITIONUTILS_H

@@ -2,22 +2,22 @@
 
 .. _MemoryAndConcurrencyModel:
 
-Swift Memory and Concurrency Model
+Codira Memory and Concurrency Model
 ==================================
 
 .. warning:: This is a very early design document discussing the features of
-  a possible Swift concurrency model. It should not be taken as a plan of
+  a possible Codira concurrency model. It should not be taken as a plan of
   record.
 
 The goal of this writeup is to provide a safe and efficient way to model,
-design, and implement concurrent applications in Swift. It is believed that it
-will completely eliminate data races and reduce deadlocks in swift apps, and
+design, and implement concurrent applications in Codira. It is believed that it
+will completely eliminate data races and reduce deadlocks in Codira apps, and
 will allow for important performance wins as well. This happens by eliminating
 shared mutable data, locks, and the need for most atomic memory accesses. The
 model is quite different from what traditional unix folks are used to
 though. :-)
 
-As usual, Swift will eventually support unsafe constructs, so if it turns out
+As usual, Codira will eventually support unsafe constructs, so if it turns out
 that the model isn't strong enough for some particular use case, that coder can
 always fall back to the hunting for concurrency with arrows and bone knives
 instead of using the native language support. Ideally this will never be
@@ -29,7 +29,7 @@ possible extensions to improve the model.
 Language Concepts
 -----------------
 
-The **unit of concurrency** in Swift is an Actor. As an execution context, an
+The **unit of concurrency** in Codira is an Actor. As an execution context, an
 actor corresponds to a lightweight thread or dispatch queue that can respond to
 a declared list of async messages. Each actor has its own private set of mutable
 data, can communicate with other actors by sending them async messages, and can
@@ -43,7 +43,7 @@ from one actor to another, the argument is deep copied to ensure that two actors
 can never share mutable data.
 
 To achieve this, there are three important kinds of memory object in
-Swift. Given a static type, it is obvious what kind it is from its
+Codira. Given a static type, it is obvious what kind it is from its
 definition. These kinds are:
 
 1. **Immutable Data** - Immutable data (which can have a constructor, but whose
@@ -83,7 +83,7 @@ definition. These kinds are:
      b.list.data = 42 // error, can't change immutable data.
 
    As part of mutable data, it is worth pointing out that mutable "global
-   variables" in swift are not truly global, they are local to the current actor
+   variables" in Codira are not truly global, they are local to the current actor
    (somewhat similar to "thread local storage", or perhaps to "an ivar on the
    actor"). Immutable global variables (like lookup tables) are simple immutable
    data just like today. Global variables with "static constructors /
@@ -114,12 +114,12 @@ definition. These kinds are:
    multithreaded mandelbrot example, that does each pixel in "parallel", to
    illustrate some ideas::
 
-     func do_mandelbrot(_ x : float, y : float) -> int {
+     fn do_mandelbrot(_ x : float, y : float) -> int {
        // details elided
      }
 
      actor MandelbrotCalculator {
-       func compute(_ x : float, y : float, Driver D) {
+       fn compute(_ x : float, y : float, Driver D) {
          var num_iters = do_mandelbrot(x, y)
          D.collect_point(x, y, num_iters)
        }
@@ -128,7 +128,7 @@ definition. These kinds are:
      actor Driver {
        var result : image; // result and numpoints are mutable per-actor data.
        var numpoints : int;
-       func main() {
+       fn main() {
          result = new image()
          foreach i in -2.0 ... 2.0 by 0.001 {
            // Arbitrarily, create one MandelbrotCalculator for each row.
@@ -140,7 +140,7 @@ definition. These kinds are:
          }
        }
 
-       func collect_point(_ x : float, y : float, num_iters : int) {
+       fn collect_point(_ x : float, y : float, num_iters : int) {
          result.setPoint(x, y, Color(num_iters, num_iters, num_iters))
          if (--numpoints == 0)
          draw(result)
@@ -176,9 +176,9 @@ With the basic approach above, you can only perform actions on actors that are
 built into the actor. For example, if you had an actor with two methods::
 
   actor MyActor {
-    func foo() {...}
-    func bar() {...}
-    func getvalue() -> double {... }
+    fn foo() {...}
+    fn bar() {...}
+    fn getvalue() -> double {... }
   }
 
 Then there is no way to perform a composite operation that needs to "atomically"
@@ -225,7 +225,7 @@ Performing synchronous operations
 ---------------------------------
 
 Asynchronous calls are nice and define away the possibility of deadlock, but at
-some point you need to get a return value back and async programming is very
+some point, you need to get a return value back and async programming is very
 awkward. To handle this, a 'synch' block is used. For example, the following is
 valid::
 
@@ -245,7 +245,7 @@ context.
 Memory Ownership Model
 ----------------------
 
-Within an actor there is a question of how ownership is handled. It's not in the
+Within an actor, there is a question of how ownership is handled. It's not in the
 scope of this document to say what the "one true model" is, but here are a
 couple of interesting observations:
 
@@ -265,7 +265,7 @@ couple of interesting observations:
    stop the world to do a collection. 2) actors have natural local quiescent
    points: when they have finished servicing a message, if their dispatch queue
    is empty, they go to sleep. If nothing else in the CPU needs the thread, it
-   would be a natural time to collect. 3) GC would be fully precise in swift,
+   would be a natural time to collect. 3) GC would be fully precise in Codira,
    unlike in ObjC, no conservative stack scanning or other hacks are needed. 4)
    If GC is used for mutable data, it would make sense to still use reference
    counting for actors themselves and especially for immutable data, meaning

@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+enum E {
+  case a
+  case b
+
+  var z: E { .b }
+}
+
+fn getAE() -> E { return .a }
+
+fn test_without_const(_ : [E]) {}
+fn testArr(_ : _const [E]) {}
+
+testArr([])
+testArr([.a])
+testArr([.a, .b])
+
+testArr([getAE()]) // expected-error {{expect a compile-time constant literal}}
+testArr([.a, .b, .a.z]) // expected-error {{expect a compile-time constant literal}}

@@ -1,0 +1,182 @@
+// RUN: %target-language-ide-test -print-module -print-implicit-attrs -print-access -module-to-print=Functions -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK:      public struct NonTrivial {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inNonTrivial() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inNonTrivialWithArgs(_ a: Int32, _ b: Int32) -> UnsafePointer<CChar>!
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct Base {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn mutatingInBase() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn constInBase() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn rvalueThisInBase() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn takesArgsInBase(_ a: Int32, _ b: Int32, _ c: Int32) -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn takesNonTrivialInBase(_ a: NonTrivial) -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn returnsNonTrivialInBase() -> NonTrivial
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn templateInBase<T>(_ t: T) -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public static fn staticInBase() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn languageRenamed(input i: Int32) -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   @_effects(readonly) public fn pure() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodNameSameSignature() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodDifferentSignature() -> Int32
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct OtherBase {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inOtherBase() -> UnsafePointer<CChar>!
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct Derived {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inDerived() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodNameSameSignature() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodDifferentSignature(_ x: Int32) -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn mutatingInBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn constInBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn takesArgsInBase(_ a: Int32, _ b: Int32, _ c: Int32) -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn takesNonTrivialInBase(_ a: NonTrivial) -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn returnsNonTrivialInBase() -> NonTrivial
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn languageRenamed(input i: Int32) -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   @_effects(readonly) public fn pure() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodDifferentSignature() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inOtherBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct DerivedFromDerived {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn topLevel() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inDerived() -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodNameSameSignature() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodDifferentSignature(_ x: Int32) -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn mutatingInBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn constInBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn takesArgsInBase(_ a: Int32, _ b: Int32, _ c: Int32) -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn takesNonTrivialInBase(_ a: NonTrivial) -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn returnsNonTrivialInBase() -> NonTrivial
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn languageRenamed(input i: Int32) -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   @_effects(readonly) public fn pure() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn sameMethodDifferentSignature() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inOtherBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct DerivedFromNonTrivial {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inNonTrivial() -> UnsafePointer<CChar>?
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inNonTrivialWithArgs(_ a: Int32, _ b: Int32) -> UnsafePointer<CChar>?
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct PrivatelyInherited {
+// CHECK-NEXT:   public init()
+// CHECK-NOT:    public
+// CHECK:      }
+
+// CHECK-NEXT: public struct ProtectedInherited {
+// CHECK-NEXT:   public init()
+// CHECK-NOT:    public
+// CHECK:      }
+
+// CHECK-NEXT: public struct EmptyBaseClass {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inBase() -> UnsafePointer<CChar>!
+// CHECK-NEXT: }
+
+// CHECK-NEXT: public struct DerivedFromEmptyBaseClass {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   public var a: Int32
+// CHECK-NEXT:   public var b: Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn inBase() -> UnsafePointer<CChar>?
+// CHECK-NEXT: }
+
+// CHECK-NEXT: @discardableResult
+// CHECK-NEXT: public fn getCopyCounter() -> UnsafeMutablePointer<Int32>
+// CHECK-NEXT: public struct CopyTrackedBaseClass {
+// CHECK-NEXT:   public init(_ x: Int32)
+// CHECK-NEXT:   @available(*, deprecated, message: "This zero-initializes the backing memory of the struct, which is unsafe for some C++ structs. Consider adding an explicit default initializer for this C++ struct.")
+// CHECK-NEXT:   @_transparent public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn getX() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn getXMut() -> Int32
+// CHECK-NOT:    public
+// CHECK:      }
+
+// CHECK-NEXT: public struct CopyTrackedDerivedClass {
+// CHECK-NEXT:   public init(_ x: Int32)
+// CHECK-NEXT:   @available(*, deprecated, message: "This zero-initializes the backing memory of the struct, which is unsafe for some C++ structs. Consider adding an explicit default initializer for this C++ struct.")
+// CHECK-NEXT:   @_transparent public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn getDerivedX() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn getX() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn getXMut() -> Int32
+// CHECK-NOT:    public
+// CHECK:      }
+
+// CHECK-NEXT: public struct NonEmptyBase {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn getY() -> Int32
+// CHECK-NOT:    public
+// CHECK:      }
+
+// CHECK-NEXT: public struct CopyTrackedDerivedDerivedClass {
+// CHECK-NEXT:   public init(_ x: Int32)
+// CHECK-NEXT:   @available(*, deprecated, message: "This zero-initializes the backing memory of the struct, which is unsafe for some C++ structs. Consider adding an explicit default initializer for this C++ struct.")
+// CHECK-NEXT:   @_transparent public init()
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn getY() -> Int32
+// CHECK-NOT:    public
+// CHECK:        @discardableResult
+// CHECK-NEXT:   public fn getDerivedX() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public fn getX() -> Int32
+// CHECK-NEXT:   @discardableResult
+// CHECK-NEXT:   public mutating fn getXMut() -> Int32
+// CHECK-NOT:    public
+// CHECK:      }

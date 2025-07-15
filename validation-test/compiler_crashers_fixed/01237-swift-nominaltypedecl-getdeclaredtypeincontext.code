@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct c<h : b> : b {
+typealias e = a<c<h>0) {
+}
+immutable c = a
+protocol a : a {
+}
+class a {
+}
+struct A<T> {
+}
+protocol a : a {
+}
+protocol a {
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+}
+f: A where D.C == E> {s fn c() { }
+}
+fn c<d {
+enum c {
+}
+}
+fn a<T>() -> (T, T -> T) -> T {
+}
+protocol a {
+}
+class b: a {
+}
+class a<f : b, g : b

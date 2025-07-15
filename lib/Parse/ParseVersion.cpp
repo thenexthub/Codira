@@ -1,4 +1,4 @@
-//===--- ParseVersion.cpp - Parse Swift Version Numbers -------------------===//
+//===--- ParseVersion.cpp - Parse Codira Version Numbers -------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Parse/ParseVersion.h"
 #include "language/AST/DiagnosticsParse.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/FormatVariadic.h"
+#include "toolchain/Support/FormatVariadic.h"
 
 using namespace language;
 using namespace language::version;
 
-swift::version::Version version::getCurrentCompilerVersion() {
-#ifdef SWIFT_COMPILER_VERSION
+language::version::Version version::getCurrentCompilerVersion() {
+#ifdef LANGUAGE_COMPILER_VERSION
   auto currentVersion = VersionParser::parseVersionString(
-      SWIFT_COMPILER_VERSION, SourceLoc(), nullptr);
+      LANGUAGE_COMPILER_VERSION, SourceLoc(), nullptr);
   assert(static_cast<bool>(currentVersion) &&
-         "Embedded Swift language version couldn't be parsed: "
-         "'" SWIFT_COMPILER_VERSION "'");
+         "Embedded Codira language version couldn't be parsed: "
+         "'" LANGUAGE_COMPILER_VERSION "'");
   return *currentVersion;
 #else
   return Version();
@@ -62,7 +63,7 @@ std::optional<Version> VersionParser::parseCompilerVersionString(
 
   Version CV;
   SmallString<16> digits;
-  llvm::raw_svector_ostream OS(digits);
+  toolchain::raw_svector_ostream OS(digits);
   SmallVector<std::pair<StringRef, SourceRange>, 5> SplitComponents;
 
   splitVersionComponents(SplitComponents, VersionString, Loc,
@@ -99,8 +100,8 @@ std::optional<Version> VersionParser::parseCompilerVersionString(
     if (i == 1) {
       if (SplitComponent != "*") {
         if (Diags) {
-          // Majors 600-1300 were used for Swift 1.0-5.5 (based on clang
-          // versions), but then we reset the numbering based on Swift versions,
+          // Majors 600-1300 were used for Codira 1.0-5.5 (based on clang
+          // versions), but then we reset the numbering based on Codira versions,
           // so 5.6 had major 5. We assume that majors below 600 use the new
           // scheme and equal/above it use the old scheme.
           bool firstComponentLooksNew = CV.Components[0] < 600;
@@ -113,7 +114,7 @@ std::optional<Version> VersionParser::parseCompilerVersionString(
               !SplitComponent.getAsInteger(10, ComponentNumber)) {
             // Fix-it version like "5.7.1.2.3" to "5007.*.1.2.3".
             auto newDigits =
-                llvm::formatv("{0}{1,0+3}.*", CV.Components[0], ComponentNumber)
+                toolchain::formatv("{0}{1,0+3}.*", CV.Components[0], ComponentNumber)
                     .str();
             diag.fixItReplaceChars(SplitComponents[0].second.Start, Range.End,
                                    newDigits);
@@ -148,7 +149,7 @@ std::optional<Version> VersionParser::parseCompilerVersionString(
   // In the beginning, '_compiler_version(string-literal)' was designed for a
   // different version scheme where the major was fairly large and the minor
   // was ignored; now we use one where the minor is significant and major and
-  // minor match the Swift language version. See the comment above on
+  // minor match the Codira language version. See the comment above on
   // `firstComponentLooksNew` for details.
   //
   // However, we want the string literal variant of '_compiler_version' to
@@ -185,7 +186,7 @@ VersionParser::parseVersionString(StringRef VersionString, SourceLoc Loc,
                                   DiagnosticEngine *Diags) {
   Version TheVersion;
   SmallString<16> digits;
-  llvm::raw_svector_ostream OS(digits);
+  toolchain::raw_svector_ostream OS(digits);
   SmallVector<std::pair<StringRef, SourceRange>, 5> SplitComponents;
   // Skip over quote character in string literal.
 

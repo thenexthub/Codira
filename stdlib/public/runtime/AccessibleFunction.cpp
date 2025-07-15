@@ -1,4 +1,4 @@
-//===---- AccessibleFunction.cpp - Swift protocol conformance checking ----===//
+//===---- AccessibleFunction.cpp - Codira protocol conformance checking ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Checking and caching of Swift accessible functions.
+// Checking and caching of Codira accessible functions.
 //
 //===----------------------------------------------------------------------===//
 
@@ -37,9 +38,9 @@ using namespace language;
 namespace {
 
 struct AccessibleFunctionsSection {
-  const AccessibleFunctionRecord *__ptrauth_swift_accessible_function_record
+  const AccessibleFunctionRecord *__ptrauth_language_accessible_function_record
       Begin;
-  const AccessibleFunctionRecord *__ptrauth_swift_accessible_function_record
+  const AccessibleFunctionRecord *__ptrauth_language_accessible_function_record
       End;
 
   AccessibleFunctionsSection(const AccessibleFunctionRecord *begin,
@@ -61,10 +62,10 @@ private:
   const char *Name;
   size_t NameLength;
 
-  const AccessibleFunctionRecord *__ptrauth_swift_accessible_function_record R;
+  const AccessibleFunctionRecord *__ptrauth_language_accessible_function_record R;
 
 public:
-  AccessibleFunctionCacheEntry(llvm::StringRef name,
+  AccessibleFunctionCacheEntry(toolchain::StringRef name,
                                const AccessibleFunctionRecord *record)
       : R(record) {
     char *Name = reinterpret_cast<char *>(malloc(name.size()));
@@ -76,12 +77,12 @@ public:
 
   const AccessibleFunctionRecord *getRecord() const { return R; }
 
-  bool matchesKey(llvm::StringRef name) {
-    return name == llvm::StringRef{Name, NameLength};
+  bool matchesKey(toolchain::StringRef name) {
+    return name == toolchain::StringRef{Name, NameLength};
   }
 
-  friend llvm::hash_code hash_value(const AccessibleFunctionCacheEntry &value) {
-    return hash_value(llvm::StringRef{value.Name, value.NameLength});
+  friend toolchain::hash_code hash_value(const AccessibleFunctionCacheEntry &value) {
+    return hash_value(toolchain::StringRef{value.Name, value.NameLength});
   }
 
   template <class... T>
@@ -103,7 +104,7 @@ static Lazy<AccessibleFunctionsState> Functions;
 
 } // end anonymous namespace
 
-LLVM_ATTRIBUTE_UNUSED
+TOOLCHAIN_ATTRIBUTE_UNUSED
 static void _dumpAccessibleFunctionRecords(void *context) {
   auto &S = Functions.get();
 
@@ -112,9 +113,9 @@ static void _dumpAccessibleFunctionRecords(void *context) {
   for (const auto &section : S.SectionsToScan.snapshot()) {
     for (auto &record : section) {
       auto recordName =
-          swift::Demangle::makeSymbolicMangledNameStringRef(record.Name.get());
+          language::Demangle::makeSymbolicMangledNameStringRef(record.Name.get());
       auto demangledRecordName =
-          swift::Demangle::demangleSymbolAsString(recordName);
+          language::Demangle::demangleSymbolAsString(recordName);
       fprintf(stderr, "Record name: %s\n", recordName.data());
       fprintf(stderr, "    Demangled: %s\n", demangledRecordName.c_str());
       fprintf(stderr, "    Function Ptr: %p\n", record.Function.get());
@@ -131,7 +132,7 @@ static void _registerAccessibleFunctions(AccessibleFunctionsState &C,
   C.SectionsToScan.push_back(section);
 }
 
-void swift::addImageAccessibleFunctionsBlockCallbackUnsafe(
+void language::addImageAccessibleFunctionsBlockCallbackUnsafe(
   const void *baseAddress, const void *functions, uintptr_t size) {
   assert(
       size % sizeof(AccessibleFunctionRecord) == 0 &&
@@ -141,20 +142,20 @@ void swift::addImageAccessibleFunctionsBlockCallbackUnsafe(
   _registerAccessibleFunctions(C, AccessibleFunctionsSection{functions, size});
 }
 
-void swift::addImageAccessibleFunctionsBlockCallback(
+void language::addImageAccessibleFunctionsBlockCallback(
   const void *baseAddress, const void *functions, uintptr_t size) {
   Functions.get();
   addImageAccessibleFunctionsBlockCallbackUnsafe(baseAddress, functions, size);
 }
 
 static const AccessibleFunctionRecord *
-_searchForFunctionRecord(AccessibleFunctionsState &S, llvm::StringRef name) {
+_searchForFunctionRecord(AccessibleFunctionsState &S, toolchain::StringRef name) {
   auto traceState = runtime::trace::accessible_function_scan_begin(name);
 
   for (const auto &section : S.SectionsToScan.snapshot()) {
     for (auto &record : section) {
       auto recordName =
-          swift::Demangle::makeSymbolicMangledNameStringRef(record.Name.get());
+          language::Demangle::makeSymbolicMangledNameStringRef(record.Name.get());
       if (recordName == name) {
         return traceState.end(&record);
       }
@@ -163,16 +164,16 @@ _searchForFunctionRecord(AccessibleFunctionsState &S, llvm::StringRef name) {
   return nullptr;
 }
 
-SWIFT_RUNTIME_STDLIB_SPI
+LANGUAGE_RUNTIME_STDLIB_SPI
 const AccessibleFunctionRecord *
-swift::runtime::swift_findAccessibleFunction(const char *targetNameStart,
+language::runtime::language_findAccessibleFunction(const char *targetNameStart,
                                              size_t targetNameLength) {
   auto &S = Functions.get();
-  llvm::StringRef name{targetNameStart, targetNameLength};
+  toolchain::StringRef name{targetNameStart, targetNameLength};
 
-  if (swift::runtime::environment::SWIFT_DUMP_ACCESSIBLE_FUNCTIONS()) {
-    static swift::once_t dumpAccessibleFunctionsToken;
-    swift::once(dumpAccessibleFunctionsToken, _dumpAccessibleFunctionRecords, nullptr);
+  if (language::runtime::environment::LANGUAGE_DUMP_ACCESSIBLE_FUNCTIONS()) {
+    static language::once_t dumpAccessibleFunctionsToken;
+    language::once(dumpAccessibleFunctionsToken, _dumpAccessibleFunctionRecords, nullptr);
   }
 
   // Look for an existing entry.

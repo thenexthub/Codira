@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 ///
 /// This file contains SILBuiltinVisitor, a visitor for visiting all possible
-/// builtins and llvm intrinsics able to be used by BuiltinInst.
+/// builtins and toolchain intrinsics able to be used by BuiltinInst.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILBUILTINVISITOR_H
-#define SWIFT_SIL_SILBUILTINVISITOR_H
+#ifndef LANGUAGE_SIL_SILBUILTINVISITOR_H
+#define LANGUAGE_SIL_SILBUILTINVISITOR_H
 
 #include "language/SIL/SILInstruction.h"
 #include <type_traits>
@@ -46,25 +47,25 @@ public:
       // BUILTIN_TYPE_CHECKER_OPERATION does not live past the type checker.
 #define BUILTIN_TYPE_CHECKER_OPERATION(ID, NAME)                               \
   case BuiltinValueKind::ID:                                                   \
-    llvm_unreachable("Unexpected type checker operation seen in SIL!");
+    toolchain_unreachable("Unexpected type checker operation seen in SIL!");
 
 #define BUILTIN(ID, NAME, ATTRS)                                               \
   case BuiltinValueKind::ID:                                                   \
     return asImpl().visit##ID(BI, ATTRS);
 #include "language/AST/Builtins.def"
       case BuiltinValueKind::None:
-        llvm_unreachable("None case");
+        toolchain_unreachable("None case");
       }
-      llvm_unreachable("Not all cases handled?!");
+      toolchain_unreachable("Not all cases handled?!");
     }
 
     if (auto IntrinsicID = BI->getIntrinsicID()) {
       return asImpl().visitLLVMIntrinsic(BI, IntrinsicID.value());
     }
-    llvm_unreachable("Not all cases handled?!");
+    toolchain_unreachable("Not all cases handled?!");
   }
 
-  ValueRetTy visitLLVMIntrinsic(BuiltinInst *BI, llvm::Intrinsic::ID ID) {
+  ValueRetTy visitLLVMIntrinsic(BuiltinInst *BI, toolchain::Intrinsic::ID ID) {
     return ValueRetTy();
   }
 
@@ -80,6 +81,6 @@ public:
 #include "language/AST/Builtins.def"
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

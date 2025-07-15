@@ -1,0 +1,37 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name Never -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name Never -I %t -pretty-print -output-dir %t
+// RUN: %FileCheck %s --input-file %t/Never.symbols.json --match-full-lines --strict-whitespace
+
+// REQUIRES: OS=macosx
+
+// Attributes that should never appear anywhere in the symbol graph.
+
+@available(macOS, deprecated)
+public fn deprecated() {}
+
+@inlinable
+public fn inlinable() {}
+
+@inline(never)
+public fn inline() {}
+
+public struct S {
+  public static prefix fn ..<(s: S) -> S {
+    return s
+  }
+  public static fn +(a: S, b: S) -> S {
+    return a
+  }
+  public static postfix fn ++(s: S) -> S {
+    return s
+  }
+}
+
+// CHECK-NOT: @available
+// CHECK-NOT: @inlinable
+// CHECK-NOT: @inline
+// CHECK-NOT: "spelling": "prefix"
+// CHECK-NOT: "spelling": "postfix"
+// CHECK-NOT: "spelling": "infix"
+

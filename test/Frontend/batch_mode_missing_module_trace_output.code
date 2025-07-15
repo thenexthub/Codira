@@ -1,0 +1,5 @@
+// RUN: %empty-directory(%t)
+// RUN: touch %t/file-01.code
+// RUN: touch %t/file-02.code
+// RUN: cd %t
+// RUN: %target-language-frontend -emit-module -primary-file file-01.code -primary-file file-02.code -o file-01.codemodule -o file-02.codemodule -module-name foo -emit-loaded-module-trace-path=%t/trace.json

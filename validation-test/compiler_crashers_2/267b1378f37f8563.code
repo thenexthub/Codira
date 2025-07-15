@@ -1,0 +1,7 @@
+// {"signature":"language::constraints::ArgumentMismatchFailure::diagnoseAttemptedRegexBuilder() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol b {
+  c<each d >(repeat each d, e: (
+}
+fn bar(a: b) {
+  a.c(e : ""

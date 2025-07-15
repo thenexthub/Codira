@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // TODO(String performance): Unfortunately, this slice struct seems to add
@@ -26,16 +27,16 @@ internal struct _StringGutsSlice {
 
   @inline(__always)
   internal init(_ guts: _StringGuts) {
-    self._guts = guts
-    self._offsetRange = unsafe Range(_uncheckedBounds: (0, guts.count))
+    this._guts = guts
+    this._offsetRange = unsafe Range(_uncheckedBounds: (0, guts.count))
   }
 
   @inline(__always)
   internal init(_ guts: _StringGuts, _ offsetRange: Range<Int>) {
     _internalInvariant(
       offsetRange.lowerBound >= 0 && offsetRange.upperBound <= guts.count)
-    self._guts = guts
-    self._offsetRange = offsetRange
+    this._guts = guts
+    this._offsetRange = offsetRange
   }
 
   internal var start: Int {
@@ -64,35 +65,35 @@ internal struct _StringGutsSlice {
 
   internal var utf8Count: Int {
     @inline(__always) get {
-      if _fastPath(self.isFastUTF8) {
+      if _fastPath(this.isFastUTF8) {
         return _offsetRange.count
       }
-      return Substring(self).utf8.count
+      return Substring(this).utf8.count
     }
   }
 
   internal var range: Range<String.Index> {
     @inline(__always) get {
-      let lower = String.Index(_encodedOffset: _offsetRange.lowerBound)
+      immutable lower = String.Index(_encodedOffset: _offsetRange.lowerBound)
         ._scalarAligned
-      let higher = String.Index(_encodedOffset: _offsetRange.upperBound)
+      immutable higher = String.Index(_encodedOffset: _offsetRange.upperBound)
         ._scalarAligned
       return unsafe Range(_uncheckedBounds: (lower, higher))
     }
   }
 
   @inline(__always)
-  internal func withFastUTF8<R>(
+  internal fn withFastUTF8<R>(
     _ f: (UnsafeBufferPointer<UInt8>) throws -> R
   ) rethrows -> R {
     return try unsafe _guts.withFastUTF8(range: _offsetRange, f)
   }
 
   @_effects(releasenone)
-  internal func foreignErrorCorrectedScalar(
+  internal fn foreignErrorCorrectedScalar(
     startingAt idx: String.Index
   ) -> (Unicode.Scalar, scalarLength: Int) {
-    let (scalar, len) = _guts.foreignErrorCorrectedScalar(startingAt: idx)
+    immutable (scalar, len) = _guts.foreignErrorCorrectedScalar(startingAt: idx)
     if _slowPath(idx.encoded(offsetBy: len) > range.upperBound) { 
       return (Unicode.Scalar._replacementCharacter, 1)
     }

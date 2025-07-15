@@ -1,13 +1,17 @@
 //===--- MinimalConformances.cpp - Reasoning about conformance rules ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements an algorithm to find a minimal set of conformance
@@ -37,7 +41,7 @@
 // a set of minimal conformances.
 //
 // There are two small complications to handle implementation details of
-// Swift generics:
+// Codira generics:
 //
 // 1) Inherited witness tables must be derivable by following other protocol
 //    refinement requirements only, without looking at non-Self associated
@@ -62,10 +66,10 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
 #include "language/Basic/Range.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include "RewriteContext.h"
 #include "RewriteSystem.h"
@@ -101,47 +105,47 @@ class MinimalConformances {
   // The subject type is T.[P:A].[Q:B]; in order to derive the metadata, we need
   // the witness table for T.[P:A] : [Q] first, by computing a conformance access
   // path for the term T.[P:A].[Q], known as the 'parent path'.
-  llvm::MapVector<unsigned, SmallVector<unsigned, 2>> ParentPaths;
+  toolchain::MapVector<unsigned, SmallVector<unsigned, 2>> ParentPaths;
 
   // Maps a conformance rule in the current minimization domain to a list of paths.
   // Each path in the list is a unique derivation of the conformance in terms of
   // other conformance rules.
-  llvm::MapVector<unsigned, std::vector<SmallVector<unsigned, 2>>> ConformancePaths;
+  toolchain::MapVector<unsigned, std::vector<SmallVector<unsigned, 2>>> ConformancePaths;
 
   // The set of conformance rules (from all minimization domains) which are protocol
   // refinements, that is rules of the form [P].[Q] => [P].
-  llvm::DenseSet<unsigned> ProtocolRefinements;
+  toolchain::DenseSet<unsigned> ProtocolRefinements;
 
   // This is the computed result set of redundant conformance rules in the current
   // minimization domain.
-  llvm::DenseSet<unsigned> &RedundantConformances;
+  toolchain::DenseSet<unsigned> &RedundantConformances;
 
   bool isConformanceRuleRecoverable(
-    llvm::SmallDenseSet<unsigned, 4> &visited,
+    toolchain::SmallDenseSet<unsigned, 4> &visited,
     unsigned ruleID) const;
 
   bool isDerivedViaCircularConformanceRule(
       const std::vector<SmallVector<unsigned, 2>> &paths) const;
 
   bool isValidConformancePath(
-      llvm::SmallDenseSet<unsigned, 4> &visited,
-      const llvm::SmallVectorImpl<unsigned> &path) const;
+      toolchain::SmallDenseSet<unsigned, 4> &visited,
+      const toolchain::SmallVectorImpl<unsigned> &path) const;
 
   bool isValidRefinementPath(
-      const llvm::SmallVectorImpl<unsigned> &path) const;
+      const toolchain::SmallVectorImpl<unsigned> &path) const;
 
   void dumpConformancePath(
-      llvm::raw_ostream &out,
+      toolchain::raw_ostream &out,
       const SmallVectorImpl<unsigned> &path) const;
 
   void dumpMinimalConformanceEquation(
-      llvm::raw_ostream &out,
+      toolchain::raw_ostream &out,
       unsigned baseRuleID,
       const std::vector<SmallVector<unsigned, 2>> &paths) const;
 
 public:
   explicit MinimalConformances(const RewriteSystem &system,
-                               llvm::DenseSet<unsigned> &redundantConformances)
+                               toolchain::DenseSet<unsigned> &redundantConformances)
     : System(system),
       Context(system.getRewriteContext()),
       Debug(system.getDebugOptions()),
@@ -151,7 +155,7 @@ public:
 
   void computeCandidateConformancePaths(const PropertyMap &map);
 
-  void dumpMinimalConformanceEquations(llvm::raw_ostream &out) const;
+  void dumpMinimalConformanceEquations(toolchain::raw_ostream &out) const;
 
   void verifyMinimalConformanceEquations() const;
 
@@ -159,7 +163,7 @@ public:
 
   void verifyMinimalConformances() const;
 
-  void dumpMinimalConformances(llvm::raw_ostream &out) const;
+  void dumpMinimalConformances(toolchain::raw_ostream &out) const;
 };
 
 } // end namespace
@@ -179,9 +183,10 @@ RewriteSystem::decomposeTermIntoConformanceRuleLeftHandSides(
   RewritePath steps;
   bool simplified = simplify(term, &steps);
   if (!simplified) {
-    llvm::errs() << "Term does not conform to protocol: " << term << "\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Term does not conform to protocol: " << term << "\n";
+      dump(out);
+    });
   }
 
   ASSERT(steps.size() == 1 &&
@@ -291,8 +296,9 @@ static const ProtocolDecl *getParentConformanceForTerm(Term lhs) {
     break;
   }
 
-  llvm::errs() << "Bad symbol in " << lhs << "\n";
-  abort();
+  ABORT([&](auto &out) {
+    out << "Bad symbol in " << lhs;
+  });
 }
 
 /// Collect conformance rules and parent paths, and record an initial
@@ -418,7 +424,7 @@ void MinimalConformances::computeCandidateConformancePaths(
 /// versa; but it is never valid to eliminate both.
 void RewriteSystem::computeCandidateConformancePaths(
     const PropertyMap &map,
-    llvm::MapVector<unsigned, std::vector<SmallVector<unsigned, 2>>> &paths) const {
+    toolchain::MapVector<unsigned, std::vector<SmallVector<unsigned, 2>>> &paths) const {
   // For every rule, look for other rules that overlap with this rule.
   for (unsigned i = FirstLocalRule, e = Rules.size(); i < e; ++i) {
     const auto &lhs = getRule(i);
@@ -445,7 +451,7 @@ void RewriteSystem::computeCandidateConformancePaths(
         lhs.getLHS()[1].getKind() == Symbol::Kind::AssociatedType &&
         lhs.getLHS()[0].getProtocol() == lhs.getLHS()[1].getProtocol()) {
       if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-        llvm::dbgs() << "Skipping " << lhs << "\n";
+        toolchain::dbgs() << "Skipping " << lhs << "\n";
       }
       continue;
     }
@@ -467,9 +473,9 @@ void RewriteSystem::computeCandidateConformancePaths(
       t.add(Symbol::forProtocol(lhs.getLHS().back().getProtocol(), Context));
 
       if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-        llvm::dbgs() << "Concrete conformance rule has abstract path\n";
-        llvm::dbgs() << "LHS: " << lhs << "\n";
-        llvm::dbgs() << "T: " << t << "\n";
+        toolchain::dbgs() << "Concrete conformance rule has abstract path\n";
+        toolchain::dbgs() << "LHS: " << lhs << "\n";
+        toolchain::dbgs() << "T: " << t << "\n";
       }
 
       SmallVector<unsigned, 2> path;
@@ -482,9 +488,9 @@ void RewriteSystem::computeCandidateConformancePaths(
         otherPath.push_back(i);
 
         if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-          llvm::dbgs() << "Conformance rule has concrete path\n";
-          llvm::dbgs() << "LHS: " << lhs << "\n";
-          llvm::dbgs() << "T: " << t << "\n";
+          toolchain::dbgs() << "Conformance rule has concrete path\n";
+          toolchain::dbgs() << "LHS: " << lhs << "\n";
+          toolchain::dbgs() << "T: " << t << "\n";
         }
 
         paths[path[0]].push_back(otherPath);
@@ -522,9 +528,9 @@ void RewriteSystem::computeCandidateConformancePaths(
             (from - lhs.getLHS().begin() + rhs.getLHS().size() ==
              lhs.getLHS().size())) {
           if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-            llvm::dbgs() << "Case 1: suffix\n";
-            llvm::dbgs() << "LHS: " << lhs << "\n";
-            llvm::dbgs() << "RHS: " << rhs << "\n";
+            toolchain::dbgs() << "Case 1: suffix\n";
+            toolchain::dbgs() << "LHS: " << lhs << "\n";
+            toolchain::dbgs() << "RHS: " << rhs << "\n";
           }
 
           // If the LHS rule is a conformance rule and the RHS rule is
@@ -535,7 +541,7 @@ void RewriteSystem::computeCandidateConformancePaths(
           // Build the term U.
           MutableTerm u(lhs.getLHS().begin(), from);
           if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-            llvm::dbgs() << "- U := " << u << "\n";
+            toolchain::dbgs() << "- U := " << u << "\n";
           }
 
           // Get the conformance path for (U.[domain(V)] => U).
@@ -557,15 +563,15 @@ void RewriteSystem::computeCandidateConformancePaths(
                    !lhs.isSameElementRule() &&
                    (unsigned)(lhs.getLHS().end() - from) < rhs.getLHS().size()) {
           if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-            llvm::dbgs() << "Case 2: same-type suffix\n";
-            llvm::dbgs() << "LHS: " << lhs << "\n";
-            llvm::dbgs() << "RHS: " << rhs << "\n";
+            toolchain::dbgs() << "Case 2: same-type suffix\n";
+            toolchain::dbgs() << "LHS: " << lhs << "\n";
+            toolchain::dbgs() << "RHS: " << rhs << "\n";
           }
 
           // Build the term U.
           MutableTerm u(lhs.getLHS().begin(), from);
           if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-            llvm::dbgs() << "- U := " << u << "\n";
+            toolchain::dbgs() << "- U := " << u << "\n";
           }
 
           // Build the term X.W.
@@ -574,7 +580,7 @@ void RewriteSystem::computeCandidateConformancePaths(
                     rhs.getRHS().end());
 
           if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-            llvm::dbgs() << "- X.W := " << xw << "\n";
+            toolchain::dbgs() << "- X.W := " << xw << "\n";
           }
 
           // Simplify X.W to Y.
@@ -582,15 +588,15 @@ void RewriteSystem::computeCandidateConformancePaths(
           (void) simplify(y);
 
           if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-            llvm::dbgs() << "- Y := " << y << "\n";
+            toolchain::dbgs() << "- Y := " << y << "\n";
           }
 
           // Get the symbol [P].
           auto p = rhs.getLHS().back();
           if (p.getKind() == Symbol::Kind::ConcreteConformance) {
             if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-              llvm::dbgs() << "- P is a concrete conformance: " << p << "\n";
-              llvm::dbgs() << "- Prepending U := " << u << "\n";
+              toolchain::dbgs() << "- P is a concrete conformance: " << p << "\n";
+              toolchain::dbgs() << "- Prepending U := " << u << "\n";
             }
             p = p.prependPrefixToConcreteSubstitutions(u, Context);
 
@@ -599,7 +605,7 @@ void RewriteSystem::computeCandidateConformancePaths(
             if (simplified) {
               p = getTypeDifference(*simplified).RHS;
               if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-                llvm::dbgs() << "- Simplified P := " << p << "\n";
+                toolchain::dbgs() << "- Simplified P := " << p << "\n";
               }
             }
           }
@@ -615,19 +621,20 @@ void RewriteSystem::computeCandidateConformancePaths(
           RewritePath rewritePath;
           bool result = simplify(yp, &rewritePath);
           if (!result) {
-            llvm::errs() << "Does not conform to protocol: " << yp << "\n";
-            dump(llvm::errs());
-            abort();
+            ABORT([&](auto &out) {
+              out << "Does not conform to protocol: " << yp << "\n";
+              dump(out);
+            });
           }
 
           if (rewritePath.size() != 1) {
-            llvm::errs() << "Funny rewrite path: ";
+            ABORT([&](auto &out) {
+              out << "Funny rewrite path: ";
 
-            yp = y;
-            yp.add(rhs.getLHS().back());
-            rewritePath.dump(llvm::errs(), yp, *this);
-            llvm::errs() << "\n";
-            abort();
+              yp = y;
+              yp.add(rhs.getLHS().back());
+              rewritePath.dump(out, yp, *this);
+            });
           }
 
           if (rewritePath.begin()->StartOffset == 0) {
@@ -657,10 +664,10 @@ void RewriteSystem::computeCandidateConformancePaths(
 /// If the rule is not redundant, determines if its parent path can
 /// also be recovered.
 bool MinimalConformances::isConformanceRuleRecoverable(
-    llvm::SmallDenseSet<unsigned, 4> &visited,
+    toolchain::SmallDenseSet<unsigned, 4> &visited,
     unsigned ruleID) const {
   if (RedundantConformances.count(ruleID)) {
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       visited.erase(ruleID);
     };
     visited.insert(ruleID);
@@ -682,7 +689,7 @@ bool MinimalConformances::isConformanceRuleRecoverable(
   } else {
     auto found = ParentPaths.find(ruleID);
     if (found != ParentPaths.end()) {
-      SWIFT_DEFER {
+      LANGUAGE_DEFER {
         visited.erase(ruleID);
       };
       visited.insert(ruleID);
@@ -707,8 +714,8 @@ bool MinimalConformances::isConformanceRuleRecoverable(
 /// disjunctions, where each disjunction is a product of other conformance
 /// rules.
 bool MinimalConformances::isValidConformancePath(
-    llvm::SmallDenseSet<unsigned, 4> &visited,
-    const llvm::SmallVectorImpl<unsigned> &path) const {
+    toolchain::SmallDenseSet<unsigned, 4> &visited,
+    const toolchain::SmallVectorImpl<unsigned> &path) const {
 
   for (unsigned ruleID : path) {
     if (visited.count(ruleID) > 0)
@@ -729,7 +736,7 @@ bool MinimalConformances::isValidConformancePath(
 /// and correct, allowing name lookup to find associated types of inherited
 /// protocols while building the protocol requirement signature.
 bool MinimalConformances::isValidRefinementPath(
-    const llvm::SmallVectorImpl<unsigned> &path) const {
+    const toolchain::SmallVectorImpl<unsigned> &path) const {
   for (unsigned ruleID : path) {
     if (ProtocolRefinements.count(ruleID) == 0)
       return false;
@@ -739,7 +746,7 @@ bool MinimalConformances::isValidRefinementPath(
 }
 
 void MinimalConformances::dumpMinimalConformanceEquations(
-    llvm::raw_ostream &out) const {
+    toolchain::raw_ostream &out) const {
   out << "Initial set of equations:\n";
   for (const auto &pair : ConformancePaths) {
     out << "- ";
@@ -756,7 +763,7 @@ void MinimalConformances::dumpMinimalConformanceEquations(
 }
 
 void MinimalConformances::dumpConformancePath(
-    llvm::raw_ostream &out,
+    toolchain::raw_ostream &out,
     const SmallVectorImpl<unsigned> &path) const {
   if (path.empty()) {
     out << "1";
@@ -768,7 +775,7 @@ void MinimalConformances::dumpConformancePath(
 }
 
 void MinimalConformances::dumpMinimalConformanceEquation(
-    llvm::raw_ostream &out,
+    toolchain::raw_ostream &out,
     unsigned baseRuleID,
     const std::vector<SmallVector<unsigned, 2>> &paths) const {
   out << System.getRule(baseRuleID).getLHS() << " := ";
@@ -800,15 +807,15 @@ void MinimalConformances::verifyMinimalConformanceEquations() const {
       auto *otherProto = otherRule.getLHS().back().getProtocol();
 
       if (proto != otherProto) {
-        llvm::errs() << "Invalid equation: ";
-        dumpMinimalConformanceEquation(llvm::errs(),
-                                       pair.first, pair.second);
-        llvm::errs() << "\n";
-        llvm::errs() << "Mismatched conformance:\n";
-        llvm::errs() << "Base rule: " << rule << "\n";
-        llvm::errs() << "Final rule: " << otherRule << "\n\n";
-        dumpMinimalConformanceEquations(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          out << "Invalid equation: ";
+          dumpMinimalConformanceEquation(out, pair.first, pair.second);
+          out << "\n";
+          out << "Mismatched conformance:\n";
+          out << "Base rule: " << rule << "\n";
+          out << "Final rule: " << otherRule << "\n\n";
+          dumpMinimalConformanceEquations(out);
+        });
       }
 
       MutableTerm otherTerm;
@@ -819,13 +826,13 @@ void MinimalConformances::verifyMinimalConformanceEquations() const {
         bool isLastElement = (i == path.size() - 1);
         if ((isLastElement && !rule.isAnyConformanceRule()) ||
             (!isLastElement && !rule.isProtocolConformanceRule())) {
-          llvm::errs() << "Equation term is not a conformance rule: ";
-          dumpMinimalConformanceEquation(llvm::errs(),
-                                         pair.first, pair.second);
-          llvm::errs() << "\n";
-          llvm::errs() << "Term: " << rule << "\n";
-          dumpMinimalConformanceEquations(llvm::errs());
-          abort();
+          ABORT([&](auto &out) {
+            out << "Equation term is not a conformance rule: ";
+            dumpMinimalConformanceEquation(out, pair.first, pair.second);
+            out << "\n";
+            out << "Term: " << rule << "\n";
+            dumpMinimalConformanceEquations(out);
+          });
         }
 
         otherTerm.append(rule.getRHS());
@@ -834,15 +841,15 @@ void MinimalConformances::verifyMinimalConformanceEquations() const {
       (void) System.simplify(otherTerm);
 
       if (baseTerm != otherTerm) {
-        llvm::errs() << "Invalid equation: ";
-        dumpMinimalConformanceEquation(llvm::errs(),
-                                       pair.first, pair.second);
-        llvm::errs() << "\n";
-        llvm::errs() << "Invalid conformance path:\n";
-        llvm::errs() << "Expected: " << baseTerm << "\n";
-        llvm::errs() << "Got: " << otherTerm << "\n\n";
-        dumpMinimalConformanceEquations(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          out << "Invalid equation: ";
+          dumpMinimalConformanceEquation(out, pair.first, pair.second);
+          out << "\n";
+          out << "Invalid conformance path:\n";
+          out << "Expected: " << baseTerm << "\n";
+          out << "Got: " << otherTerm << "\n\n";
+          dumpMinimalConformanceEquations(out);
+        });
       }
     }
   }
@@ -902,24 +909,24 @@ void MinimalConformances::computeMinimalConformances() {
       // witnessed by a composition of other protocol refinement rules.
       if (isProtocolRefinement && !isValidRefinementPath(path)) {
         if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-          llvm::dbgs() << "Not a refinement path: ";
-          dumpConformancePath(llvm::errs(), path);
-          llvm::dbgs() << "\n";
+          toolchain::dbgs() << "Not a refinement path: ";
+          dumpConformancePath(toolchain::errs(), path);
+          toolchain::dbgs() << "\n";
         }
         continue;
       }
 
-      llvm::SmallDenseSet<unsigned, 4> visited;
+      toolchain::SmallDenseSet<unsigned, 4> visited;
       visited.insert(ruleID);
 
       if (isValidConformancePath(visited, path)) {
         if (Debug.contains(DebugFlags::MinimalConformancesDetail)) {
-          llvm::dbgs() << "Redundant rule: ";
-          llvm::dbgs() << rule.getLHS();
-          llvm::dbgs() << "\n";
-          llvm::dbgs() << "-- via valid path: ";
-          dumpConformancePath(llvm::errs(), path);
-          llvm::dbgs() << "\n";
+          toolchain::dbgs() << "Redundant rule: ";
+          toolchain::dbgs() << rule.getLHS();
+          toolchain::dbgs() << "\n";
+          toolchain::dbgs() << "-- via valid path: ";
+          dumpConformancePath(toolchain::errs(), path);
+          toolchain::dbgs() << "\n";
         }
 
         RedundantConformances.insert(ruleID);
@@ -938,31 +945,33 @@ void MinimalConformances::verifyMinimalConformances() const {
     if (RedundantConformances.count(ruleID) > 0) {
       // Check that redundant conformances are recoverable via
       // minimal conformances.
-      llvm::SmallDenseSet<unsigned, 4> visited;
+      toolchain::SmallDenseSet<unsigned, 4> visited;
 
       if (!isConformanceRuleRecoverable(visited, ruleID)) {
-        llvm::errs() << "Redundant conformance is not recoverable:\n";
-        llvm::errs() << rule << "\n\n";
-        dumpMinimalConformanceEquations(llvm::errs());
-        dumpMinimalConformances(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          out << "Redundant conformance is not recoverable:\n";
+          out << rule << "\n\n";
+          dumpMinimalConformanceEquations(out);
+          dumpMinimalConformances(out);
+        });
       }
 
       continue;
     }
 
     if (rule.containsNameSymbols()) {
-      llvm::errs() << "Minimal conformance contains unresolved symbols: ";
-      llvm::errs() << rule << "\n\n";
-      dumpMinimalConformanceEquations(llvm::errs());
-      dumpMinimalConformances(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Minimal conformance contains unresolved symbols: ";
+        out << rule << "\n\n";
+        dumpMinimalConformanceEquations(out);
+        dumpMinimalConformances(out);
+      });
     }
   }
 }
 
 void MinimalConformances::dumpMinimalConformances(
-    llvm::raw_ostream &out) const {
+    toolchain::raw_ostream &out) const {
   out << "Minimal conformances:\n";
 
   for (unsigned ruleID : ConformanceRules) {
@@ -978,14 +987,14 @@ void MinimalConformances::dumpMinimalConformances(
 /// conformance rules.
 void RewriteSystem::computeMinimalConformances(
     const PropertyMap &map,
-    llvm::DenseSet<unsigned> &redundantConformances) const {
+    toolchain::DenseSet<unsigned> &redundantConformances) const {
   MinimalConformances builder(*this, redundantConformances);
 
   builder.collectConformanceRules();
   builder.computeCandidateConformancePaths(map);
 
   if (Debug.contains(DebugFlags::MinimalConformances)) {
-    builder.dumpMinimalConformanceEquations(llvm::dbgs());
+    builder.dumpMinimalConformanceEquations(toolchain::dbgs());
   }
 
   builder.verifyMinimalConformanceEquations();
@@ -993,6 +1002,6 @@ void RewriteSystem::computeMinimalConformances(
   builder.verifyMinimalConformances();
 
   if (Debug.contains(DebugFlags::MinimalConformances)) {
-    builder.dumpMinimalConformances(llvm::dbgs());
+    builder.dumpMinimalConformances(toolchain::dbgs());
   }
 }

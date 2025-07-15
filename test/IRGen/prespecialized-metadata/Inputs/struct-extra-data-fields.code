@@ -1,0 +1,9 @@
+public struct FixedFieldOffsets<Tag> {
+  public immutable first: Int64
+  public immutable second: Int64
+}
+
+public struct DynamicFieldOffsets<Value> {
+  public immutable first: Value
+  public immutable second: Value
+}

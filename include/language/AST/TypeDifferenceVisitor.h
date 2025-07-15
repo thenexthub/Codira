@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines TypeDifferenceVisitor, a visitor which finds
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPEDIFFERENCEVISITOR_H
-#define SWIFT_AST_TYPEDIFFERENCEVISITOR_H
+#ifndef LANGUAGE_AST_TYPEDIFFERENCEVISITOR_H
+#define LANGUAGE_AST_TYPEDIFFERENCEVISITOR_H
 
 #include "language/AST/SILLayout.h"
 #include "language/AST/Types.h"
@@ -48,7 +49,7 @@ public:
   RetTy visit##CLASS##Type(Can##CLASS##Type type1,             \
                            Can##CLASS##Type type2,             \
                            Args... args) {                     \
-     llvm_unreachable("unchecked type");                       \
+     toolchain_unreachable("unchecked type");                       \
   }
 #include "language/AST/TypeNodes.def"
 };
@@ -94,7 +95,7 @@ public:
     case TypeKind::CLASS:
 #define TYPE(CLASS, PARENT)
 #include "language/AST/TypeNodes.def"
-      llvm_unreachable("non-canonical type");
+      toolchain_unreachable("non-canonical type");
 
 #define SUGARED_TYPE(CLASS, PARENT)
 #define TYPE(CLASS, PARENT)                                        \
@@ -103,7 +104,7 @@ public:
                                          cast<CLASS##Type>(type2));
 #include "language/AST/TypeNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
   // In the type-specific visitors, we know that we have
@@ -112,7 +113,7 @@ public:
   // These types are singleton and can't actually differ.
 #define SINGLETON_TYPE(SHORT_ID, ID)                               \
   bool visit##ID##Type(Can##ID##Type type1, Can##ID##Type type2) {\
-    llvm_unreachable("singleton type that wasn't identical"); \
+    toolchain_unreachable("singleton type that wasn't identical"); \
   }
 #include "language/AST/TypeNodes.def"
 

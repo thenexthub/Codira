@@ -1,0 +1,5 @@
+// {"signature":"language::TypeTransform<(anonymous namespace)::MapTypeIntoContext>::doIt(language::Type, language::TypePosition)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a < b protocol
+    c{associatedtype f : a<d> associatedtype d : a<f>} fn e < b : c {
+  b.f = b.d

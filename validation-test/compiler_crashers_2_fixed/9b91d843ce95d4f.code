@@ -1,0 +1,5 @@
+// {"signature":"language::ide::printTypeUSR(language::Type, toolchain::raw_ostream&)"}
+// RUN: not %target-language-frontend -typecheck %s
+class a {
+  class b < c class e : a<> {
+    d = b

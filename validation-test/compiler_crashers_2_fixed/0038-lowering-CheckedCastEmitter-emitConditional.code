@@ -1,0 +1,4 @@
+// RUN: %target-language-frontend %s -emit-silgen
+
+immutable a: () -> Int? = { return nil }
+a as? Int

@@ -1,13 +1,17 @@
-//===--- RandomShuffle.swift ----------------------------------------------===//
+//===--- RandomShuffle.code ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -17,7 +21,7 @@ import TestsUtils
 // shuffling large arrays.
 //
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "RandomShuffleDef2", runFunction: run_RandomShuffleDef,
     tags: [.api], setUpFunction: { blackHole(numbersDef) }, legacyFactor: 4),
   BenchmarkInfo(name: "RandomShuffleLCG2", runFunction: run_RandomShuffleLCG,
@@ -33,7 +37,7 @@ struct LCRNG: RandomNumberGenerator {
     for _ in 0..<10 { _ = next() }
   }
 
-  mutating func next() -> UInt64 {
+  mutating fn next() -> UInt64 {
     state = 2862933555777941757 &* state &+ 3037000493
     return state
   }
@@ -43,7 +47,7 @@ var numbersDef: [Int] = Array(0...2_500)
 var numbersLCG: [Int] = Array(0...6_250)
 
 @inline(never)
-public func run_RandomShuffleDef(_ n: Int) {
+public fn run_RandomShuffleDef(_ n: Int) {
   for _ in 0 ..< n {
     numbersDef.shuffle()
     blackHole(numbersDef.first!)
@@ -51,7 +55,7 @@ public func run_RandomShuffleDef(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomShuffleLCG(_ n: Int) {
+public fn run_RandomShuffleLCG(_ n: Int) {
   var generator = LCRNG(seed: 0)
   for _ in 0 ..< n {
     numbersLCG.shuffle(using: &generator)

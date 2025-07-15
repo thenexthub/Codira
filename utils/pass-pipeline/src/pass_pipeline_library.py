@@ -30,7 +30,7 @@ def highlevel_loopopt_passlist():
         p.DCE,
         p.COWArrayOpts,
         p.DCE,
-        p.SwiftArrayOpts,
+        p.CodiraArrayOpts,
     ])
 
 

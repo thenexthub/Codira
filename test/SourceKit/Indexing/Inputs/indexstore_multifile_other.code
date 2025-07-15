@@ -1,0 +1,4 @@
+struct OtherStruct {
+  immutable x: Int
+  immutable y: Int
+}

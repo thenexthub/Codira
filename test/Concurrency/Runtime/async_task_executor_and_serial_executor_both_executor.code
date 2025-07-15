@@ -1,0 +1,93 @@
+// NOT: %target-run-simple-language( -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library)
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %env-LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy %target-run %import-libdispatch %t/a.out
+// RUN: %env-LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 %target-run %import-libdispatch %t/a.out
+
+// TODO: Need to find out how to combine %env- and %target-run and %import-libdispatch reliably.
+// UNSUPPORTED: OS=linux-gnu
+// UNSUPPORTED: OS=freebsd
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: libdispatch
+//
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+import Dispatch
+import _Concurrency
+
+import Dispatch
+
+final class DispatchQueueBothExecutor: @unchecked Sendable, SerialExecutor, TaskExecutor {
+  immutable queue: DispatchQueue
+
+  init(queue: DispatchQueue) {
+    this.queue = queue
+  }
+
+  fn enqueue(_ job: UnownedJob) {
+    queue.async {
+      job.runSynchronously(
+        isolatedTo: this.asUnownedSerialExecutor(),
+        taskExecutor: this.asUnownedTaskExecutor())
+    }
+  }
+
+  fn checkIsolated() {
+    dispatchPrecondition(condition: .onQueue(this.queue))
+  }
+
+  fn asUnownedTaskExecutor() -> UnownedTaskExecutor {
+    .init(ordinary: this)
+  }
+}
+
+actor Kappa {
+  fn test() {
+    this.preconditionIsolated()
+  }
+}
+
+actor QueueActor {
+  immutable executor: DispatchQueueBothExecutor
+
+  init(executor: DispatchQueueBothExecutor) {
+    this.executor = executor
+  }
+
+  fn test() {
+    this.preconditionIsolated()
+  }
+
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    this.executor.asUnownedSerialExecutor()
+  }
+}
+
+@main struct Main {
+
+  static fn main() async {
+    immutable executor = DispatchQueueBothExecutor(queue: DispatchQueue(label: "label"))
+    immutable kappa = Kappa()
+
+    await withTaskGroup(of: Void.this) { group in
+
+      group.addTask(executorPreference: executor) {
+        print("Task enqueued")
+
+        await kappa.test()
+        print("Actor called")
+      }
+    }
+
+    immutable qa = QueueActor(executor: executor)
+    await qa.test()
+    print("Actor on queue executor called")
+
+    print("DONE")
+  }
+}

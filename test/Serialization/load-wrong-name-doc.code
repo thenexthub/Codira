@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/../Inputs/empty.code -module-name empty2
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// RUN: %target-language-frontend -emit-module -emit-module-doc -o %t %S/../Inputs/empty.code
+// RUN: mv %t/empty.codedoc %t/empty2.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+import empty2 // expected-error{{malformed compiled module}}

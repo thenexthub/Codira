@@ -1,0 +1,43 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+protocol RollCallable {
+  fn rollCall() -> String
+}
+
+protocol Snarker {
+  fn snark() -> String
+}
+
+struct Cambot : RollCallable {
+  fn rollCall() -> String { return "Cambot!" }
+}
+struct Gypsy : RollCallable {
+  fn rollCall() -> String { return "Gypsy!" }
+}
+struct TomServo : RollCallable {
+  fn rollCall() -> String { return "Tom Servo!" }
+}
+struct Crow : RollCallable, Snarker {
+  fn rollCall() -> String { return "Croooow!" }
+  fn snark() -> String { return "That's one O!" }
+}
+
+fn printRollCall(_ x: RollCallable) {
+  print(x.rollCall())
+}
+
+fn printRollCallWithSnark(_ x: RollCallable & Snarker) {
+  printRollCall(x)
+  print("(\(x.snark()))")
+}
+
+// CHECK: Cambot!
+printRollCall(Cambot())
+// CHECK: Gypsy!
+printRollCall(Gypsy())
+// CHECK: Tom Servo!
+printRollCall(TomServo())
+// CHECK: Croooow!
+// CHECK: (That's one O!)
+printRollCallWithSnark(Crow())

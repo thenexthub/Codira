@@ -1,0 +1,4566 @@
+// RUN: %target-language-emit-sil %s -O -sil-verify-all -verify -enable-experimental-feature MoveOnlyPartialReinitialization -enable-experimental-feature NoImplicitCopy -enable-experimental-feature MoveOnlyClasses
+
+// REQUIRES: language_feature_MoveOnlyClasses
+// REQUIRES: language_feature_MoveOnlyPartialReinitialization
+// REQUIRES: language_feature_NoImplicitCopy
+
+//////////////////
+// Declarations //
+//////////////////
+
+public class MyClass {}
+
+public fn borrowVal(_ x: borrowing MyClass) {}
+public fn borrowVal(_ x: borrowing Klass) {}
+public fn borrowVal(_ s: borrowing NonTrivialStruct) {}
+public fn borrowVal(_ s: borrowing NonTrivialStruct2) {}
+public fn borrowVal(_ s: borrowing NonTrivialCopyableStruct) {}
+public fn borrowVal(_ s: borrowing NonTrivialCopyableStruct2) {}
+public fn borrowVal(_ e : borrowing NonTrivialEnum) {}
+public fn borrowVal(_ x: borrowing FinalKlass) {}
+public fn borrowVal(_ x: borrowing AggStruct) {}
+public fn borrowVal(_ x: borrowing AggGenericStruct<MyClass>) {}
+public fn borrowVal<T>(_ x: borrowing AggGenericStruct<T>) {}
+public fn borrowVal(_ x: borrowing EnumTy) {}
+public fn borrowVal<T>(_ x: borrowing AddressOnlyGeneric<T>) {}
+public fn borrowVal(_ x: borrowing AddressOnlyProtocol) {}
+public fn borrowVal<T>(_ x: borrowing T) {}
+
+public fn consumeVal(_ x: __owned MyClass) {}
+public fn consumeVal(_ x: __owned Klass) {}
+public fn consumeVal(_ x: __owned FinalKlass) {}
+public fn consumeVal(_ x: __owned AggStruct) {}
+public fn consumeVal(_ x: __owned AggGenericStruct<MyClass>) {}
+public fn consumeVal<T>(_ x: __owned AggGenericStruct<T>) {}
+public fn consumeVal(_ x: __owned EnumTy) {}
+public fn consumeVal(_ x: __owned NonTrivialStruct) {}
+public fn consumeVal(_ x: __owned NonTrivialStruct2) {}
+public fn consumeVal<T>(_ x: __owned AddressOnlyGeneric<T>) {}
+public fn consumeVal(_ x: __owned AddressOnlyProtocol) {}
+public fn consumeVal<T>(_ x: __owned T) {}
+
+public final class Klass: ~Copyable {
+    var intField: Int
+    var k: Klass
+    init() {
+        k = Klass()
+        intField = 5
+    }
+}
+
+public final class FinalKlass: ~Copyable {
+    var k: Klass = Klass()
+}
+
+var boolValue: Bool { return true }
+
+public struct NonTrivialStruct: ~Copyable {
+    var k = Klass()
+    var copyableK = MyClass()
+    var nonTrivialStruct2 = NonTrivialStruct2()
+    var nonTrivialCopyableStruct = NonTrivialCopyableStruct()
+
+    var computedCopyableK: MyClass { MyClass() }
+}
+
+public struct NonTrivialStruct2: ~Copyable {
+    var copyableKlass = MyClass()
+}
+
+public struct NonTrivialCopyableStruct {
+    var copyableKlass = MyClass()
+    var nonTrivialCopyableStruct2 = NonTrivialCopyableStruct2()
+}
+
+public struct NonTrivialCopyableStruct2 {
+    var copyableKlass = MyClass()
+    var computedMyClass: MyClass { MyClass() }
+}
+
+public enum NonTrivialEnum: ~Copyable {
+    case first
+    case second(Klass)
+    case third(NonTrivialStruct)
+    case fourth(MyClass)
+}
+
+public final class MyClassWithMoveOnlyField {
+    var moveOnlyVarStruct = NonTrivialStruct()
+    immutable moveOnlyLetStruct = NonTrivialStruct()
+}
+
+public protocol P {
+    static var value: Self { get }
+    var name: MyClass { get }
+    static var value2: any P { get }
+}
+
+public struct AddressOnlyGeneric<T : P>: ~Copyable {
+    var copyable: T
+    var moveOnly = NonTrivialStruct()
+
+    init() {
+        this.copyable = T.value
+    }
+
+    init(_ input1: T) {
+        copyable = input1
+        moveOnly = NonTrivialStruct()
+    }
+}
+
+extension MyClass : P {
+    public static var value: Self { fatalError() }
+    public static var value2: any P { MyClass() }
+    public var name: MyClass { MyClass() }
+}
+
+public struct AddressOnlyProtocol: ~Copyable {
+    var copyable: any P = MyClass.value2
+    var moveOnly = NonTrivialStruct()
+}
+
+///////////
+// Tests //
+///////////
+
+/////////////////
+// Class Tests //
+/////////////////
+
+public fn classSimpleChainTest(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+               // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    immutable k3 = x2 // expected-note {{consumed again here}}
+    immutable _ = k3
+    borrowVal(k2)
+}
+
+public fn classSimpleChainArgTest(_ x2: inout Klass) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var y2 = x2 // expected-note {{consumed here}}
+    y2 = x2 // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn classSimpleNonConsumingUseTest(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn classSimpleNonConsumingUseArgTest(_ x2: inout Klass) {
+    borrowVal(x2)
+}
+
+public fn classMultipleNonConsumingUseTest(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn classMultipleNonConsumingUseArgTest(_ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn classMultipleNonConsumingUseArgTest2(_ x2: inout Klass) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+}
+
+public fn classMultipleNonConsumingUseArgTest3(_ x2: inout Klass) {  // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                   // expected-note @-1 {{consumed again here}}
+}
+
+public fn classMultipleNonConsumingUseArgTest4(_ x2: inout Klass) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x2 = Klass()
+}
+
+
+public fn classUseAfterConsume(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn classUseAfterConsumeArg(_ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                         // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                   // expected-note @-1 {{consumed again here}}
+}
+
+public fn classDoubleConsume(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    x2 = Klass()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn classDoubleConsumeArg(_ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                     // expected-note @-1 {{consumed again here}}
+}
+
+public fn classLoopConsume(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    x2 = Klass()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn classLoopConsumeArg(_ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn classLoopConsumeArg2(_ x2: inout Klass) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    x2 = Klass()
+}
+
+public fn classDiamond(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = Klass()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn classDiamondArg(_ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                 // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn classDiamondInLoop(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-error @-1 {{'x2' consumed more than once}}
+               // expected-note @-2 {{consumed here}}
+    x2 = Klass()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn classDiamondInLoopArg(_ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                       // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn classDiamondInLoopArg2(_ x2: inout Klass) { // expected-error {{'x2' consumed in a loop}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+    x2 = Klass()
+}
+
+public fn classAssignToVar1(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = Klass()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar1Arg(_ x2: inout Klass) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    x3 = Klass()
+    consumeVal(x3)
+}
+
+public fn classAssignToVar2(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = Klass()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn classAssignToVar2Arg(_ x2: inout Klass) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn classAssignToVar3(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = Klass()
+    var x3 = x2
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar3Arg(_ x: borrowing Klass, _ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                            // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar3Arg2(_ x: borrowing Klass, _ x2: inout Klass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                   // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar4(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = Klass()
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar4Arg(_ x2: inout Klass) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2)   // expected-note {{consumed here}}
+                // expected-note @-1 {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar5() {
+    var x2 = Klass() // expected-error {{'x2' used after consume}}
+    x2 = Klass()
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = Klass()
+    consumeVal(x3)
+}
+
+public fn classAssignToVar5Arg(_ x: borrowing Klass, _ x2: inout Klass) {
+    // expected-error @-1 {{'x2' used after consume}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn classAssignToVar5Arg2(_ x: borrowing Klass, _ x2: inout Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+                                                                   // expected-error @-1 {{'x2' used after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+    x2 = Klass()
+}
+
+public fn classAccessAccessField(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = Klass()
+    borrowVal(x2.k)
+    for _ in 0..<1024 {
+        borrowVal(x2.k)
+    }
+}
+
+public fn classAccessAccessFieldArg(_ x2: inout Klass) {
+    for _ in 0..<1024 {
+        borrowVal(x2.k)
+    }
+}
+
+public fn classAccessConsumeField(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = Klass()
+    // Since a class is a reference type, we do not emit an error here.
+    consumeVal(x2.k)
+    // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    for _ in 0..<1024 {
+        consumeVal(x2.k)
+        // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    }
+}
+
+public fn classAccessConsumeFieldArg(_ x2: inout Klass) {
+    // Since a class is a reference type, we do not emit an error here.
+    consumeVal(x2.k)
+    // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.k)
+        // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    }
+}
+
+extension Klass {
+    fn testNoUseSelf() { // expected-error {{'this' is borrowed and cannot be consumed}}
+        immutable x = this // expected-note {{consumed here}}
+        immutable _ = x
+    }
+}
+
+/////////////////
+// Final Class //
+/////////////////
+
+public fn finalClassSimpleChainTest() {
+    var x2 = FinalKlass()
+    x2 = FinalKlass()
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn finalClassSimpleChainTestArg(_ x2: inout FinalKlass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn finalClassSimpleChainTestArg2(_ x2: inout FinalKlass) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+    x2 = FinalKlass()
+}
+
+public fn finalClassSimpleChainTestArg3(_ x2: inout FinalKlass) {
+    for _ in 0..<1024 {}
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+    x2 = FinalKlass()
+}
+
+public fn finalClassSimpleNonConsumingUseTest(_ x: __owned FinalKlass) {
+    var x2 = x
+    x2 = FinalKlass()
+    borrowVal(x2)
+}
+
+public fn finalClassSimpleNonConsumingUseTest2(_ x: consuming FinalKlass) {
+    var x2 = x
+    x2 = FinalKlass()
+    borrowVal(x2)
+}
+
+public fn finalClassSimpleNonConsumingUseTestArg(_ x2: inout FinalKlass) {
+    borrowVal(x2)
+}
+
+public fn finalClassMultipleNonConsumingUseTest() {
+    var x2 = FinalKlass()
+    x2 = FinalKlass()
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn finalClassMultipleNonConsumingUseTestArg(_ x2: inout FinalKlass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn finalClassUseAfterConsume() {
+    var x2 = FinalKlass() // expected-error {{'x2' consumed more than once}}
+    x2 = FinalKlass()
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn finalClassUseAfterConsumeArg(_ x2: inout FinalKlass) { // expected-error {{'x2' consumed more than once}}
+                                                                   // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+              // expected-note @-1 {{consumed again here}}
+}
+
+public fn finalClassDoubleConsume() {
+    var x2 = FinalKlass()  // expected-error {{'x2' consumed more than once}}
+    x2 = FinalKlass()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn finalClassDoubleConsumeArg(_ x2: inout FinalKlass) { // expected-error {{'x2' consumed more than once}}
+                                                                 // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                          // expected-note @-1 {{consumed again here}}
+}
+
+public fn finalClassLoopConsume() {
+    var x2 = FinalKlass() // expected-error {{'x2' consumed in a loop}}
+    x2 = FinalKlass()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn finalClassLoopConsumeArg(_ x2: inout FinalKlass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn finalClassDiamond() {
+    var x2 = FinalKlass()
+    x2 = FinalKlass()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn finalClassDiamondArg(_ x2: inout FinalKlass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                           // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn finalClassDiamondInLoop() {
+    var x2 = FinalKlass() // expected-error {{'x2' consumed in a loop}}
+                          // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = FinalKlass()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                                // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn finalClassDiamondInLoopArg(_ x2: inout FinalKlass) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                 // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn finalClassDiamondInLoopArg2(_ x2: inout FinalKlass) { // expected-error {{consumed in a loop}}
+                                                                  // expected-error @-1 {{'x2' consumed more than once}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                                // expected-note @-1 {{consumed again here}}
+      }
+    }
+
+    x2 = FinalKlass()
+}
+
+public fn finalClassAssignToVar1() {
+    var x2 = FinalKlass() // expected-error {{'x2' consumed more than once}}
+    x2 = FinalKlass()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = FinalKlass()
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar1Arg(_ x2: inout FinalKlass) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    x3 = FinalKlass()
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar2() {
+    var x2 = FinalKlass() // expected-error {{'x2' consumed more than once}}
+    x2 = FinalKlass()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn finalClassAssignToVar2Arg(_ x2: inout FinalKlass) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn finalClassAssignToVar3() {
+    var x2 = Klass()
+    x2 = Klass()
+    var x3 = x2
+    x3 = Klass()
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar3Arg(_ x2: inout FinalKlass) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = FinalKlass()
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar4() {
+    var x2 = FinalKlass() // expected-error {{'x2' consumed more than once}}
+    x2 = FinalKlass()
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar4Arg(_ x2: inout FinalKlass) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+              // expected-note @-1 {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar5() {
+    var x2 = FinalKlass() // expected-error {{'x2' used after consume}}
+    x2 = FinalKlass()
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = FinalKlass()
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar5Arg(_ x2: inout FinalKlass) {
+    // expected-error @-1 {{'x2' used after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = FinalKlass()
+    consumeVal(x3)
+}
+
+public fn finalClassAssignToVar5Arg2(_ x2: inout FinalKlass) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = FinalKlass()
+    consumeVal(x3)
+}
+
+public fn finalClassAccessField() {
+    var x2 = FinalKlass()
+    x2 = FinalKlass()
+    borrowVal(x2.k)
+    for _ in 0..<1024 {
+        borrowVal(x2.k)
+    }
+}
+
+public fn finalClassAccessFieldArg(_ x2: inout FinalKlass) {
+    borrowVal(x2.k)
+    for _ in 0..<1024 {
+        borrowVal(x2.k)
+    }
+}
+
+public fn finalClassConsumeField() {
+    var x2 = FinalKlass()
+    x2 = FinalKlass()
+
+    consumeVal(x2.k)
+    // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    for _ in 0..<1024 {
+        consumeVal(x2.k)
+        // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    }
+}
+
+public fn finalClassConsumeFieldArg(_ x2: inout FinalKlass) {
+    consumeVal(x2.k)
+    // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    for _ in 0..<1024 {
+        consumeVal(x2.k)
+        // expected-error @-1 {{cannot consume noncopyable stored property 'x2.k' of a class}}
+    }
+}
+
+//////////////////////
+// Aggregate Struct //
+//////////////////////
+
+public struct KlassPair: ~Copyable {
+    var lhs: Klass = Klass()
+    var rhs: Klass = Klass()
+}
+
+public struct AggStruct: ~Copyable {
+    var lhs: Klass = Klass()
+    var center: Int = 5
+    var rhs: Klass = Klass()
+    var pair: KlassPair = KlassPair()
+
+    init() {}
+
+    // Testing that DI ignores normal init. We also get an error on our return
+    // value from the function since we do not reinitialize this.
+    //
+    // TODO: Improve error message!
+    init(myInit: Int) { // expected-error {{'this' consumed more than once}}
+        immutable x = this // expected-note {{consumed here}}
+        immutable _ = x
+    } // expected-note {{consumed again here}}
+
+    // Make sure we can reinitialize successfully.
+    init(myInit2: Int) {
+        immutable x = this
+        immutable _ = x
+        this = AggStruct(myInit: myInit2)
+    }
+
+    // Testing delegating init.
+    //
+    // TODO: Improve error to say need to reinitialize this.lhs before end of
+    // function.
+    init(myInit3: Int) { // expected-error {{'this' consumed more than once}}
+        this.init()
+        this.center = myInit3
+        immutable x = this.lhs // expected-note {{consumed here}}
+        immutable _ = x
+    } // expected-note {{consumed again here}}
+
+    init(myInit4: Int) {
+        this.init()
+        this.center = myInit4
+        immutable x = this.lhs
+        immutable _ = x
+        this = AggStruct(myInit: myInit4)
+    }
+
+    init(myInit5: Int) {
+        this.init()
+        this.center = myInit5
+        immutable x = this.lhs
+        immutable _ = x
+        this.lhs = Klass()
+    }
+}
+
+public fn aggStructSimpleChainTest() {
+    var x2 = AggStruct()
+    x2 = AggStruct()
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggStructSimpleChainTestArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var y2 = x2 // expected-note {{consumed here}}
+    y2 = x2 // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggStructSimpleNonConsumingUseTest() {
+    var x2 = AggStruct()
+    x2 = AggStruct()
+    borrowVal(x2)
+}
+
+public fn aggStructSimpleNonConsumingUseTestArg(_ x2: inout AggStruct) {
+    borrowVal(x2)
+}
+
+public fn aggStructMultipleNonConsumingUseTest() {
+    var x2 = AggStruct()
+    x2 = AggStruct()
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggStructMultipleNonConsumingUseTestArg(_ x2: inout AggStruct) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggStructUseAfterConsume() {
+    var x2 = AggStruct() // expected-error {{'x2' consumed more than once}}
+    x2 = AggStruct()
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructUseAfterConsumeArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+              // expected-note @-1 {{consumed again here}}
+}
+
+public fn aggStructDoubleConsume() {
+    var x2 = AggStruct()  // expected-error {{'x2' consumed more than once}}
+    x2 = AggStruct()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructDoubleConsumeArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+}
+
+public fn aggStructLoopConsume() {
+    var x2 = AggStruct() // expected-error {{'x2' consumed in a loop}}
+    x2 = AggStruct()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructLoopConsumeArg(_ x2: inout AggStruct) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructDiamond() {
+    var x2 = AggStruct()
+    x2 = AggStruct()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggStructDiamondArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructDiamondInLoop() {
+    var x2 = AggStruct()
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = AggStruct()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggStructDiamondInLoopArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn aggStructAccessField() {
+    var x2 = AggStruct()
+    x2 = AggStruct()
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggStructAccessFieldArg(_ x2: inout AggStruct) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggStructConsumeField() {
+    var x2 = AggStruct() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggStruct()
+    consumeVal(x2.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn aggStructConsumeFieldArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructAccessGrandField() {
+    var x2 = AggStruct()
+    x2 = AggStruct()
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructAccessGrandFieldArg(_ x2: inout AggStruct) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructConsumeGrandField() {
+    var x2 = AggStruct() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggStruct()
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn aggStructConsumeGrandFieldArg(_ x2: inout AggStruct) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    }
+}
+
+//////////////////////////////
+// Aggregate Generic Struct //
+//////////////////////////////
+
+public struct AggGenericStruct<T>: ~Copyable {
+    var lhs: Klass = Klass()
+    var rhs: UnsafeRawPointer? = nil
+    var pair: KlassPair = KlassPair()
+
+    // FIXME: this is the only use of the generic parameter and it's totally unused!
+    // What are we testing here that's not covered by the non-generic one?
+    var ptr2: UnsafePointer<T>? = nil
+
+    init() {}
+
+    // Testing that DI ignores normal init. We also get an error on our return
+    // value from the function since we do not reinitialize this.
+    //
+    // TODO: Improve error message!
+    init(myInit: UnsafeRawPointer) { // expected-error {{'this' consumed more than once}}
+        immutable x = this // expected-note {{consumed here}}
+        immutable _ = x
+    } // expected-note {{consumed again here}}
+
+    // Make sure we can reinitialize successfully.
+    init(myInit2: UnsafeRawPointer) {
+        immutable x = this
+        immutable _ = x
+        this = AggGenericStruct(myInit: myInit2)
+    }
+
+    // Testing delegating init.
+    //
+    // TODO: Improve error to say need to reinitialize this.lhs before end of
+    // function.
+    init(myInit3: UnsafeRawPointer) { // expected-error {{'this' consumed more than once}}
+        this.init()
+        this.rhs = myInit3
+        immutable x = this.lhs // expected-note {{consumed here}}
+        immutable _ = x
+    } // expected-note {{consumed again here}}
+
+    init(myInit4: UnsafeRawPointer) {
+        this.init()
+        this.rhs = myInit4
+        immutable x = this.lhs
+        immutable _ = x
+        this = AggGenericStruct(myInit: myInit4)
+    }
+
+    init(myInit5: UnsafeRawPointer) {
+        this.init()
+        this.rhs = myInit5
+        immutable x = this.lhs
+        immutable _ = x
+        this.lhs = Klass()
+    }
+}
+
+public fn aggGenericStructSimpleChainTest() {
+    var x2 = AggGenericStruct<MyClass>()
+    x2 = AggGenericStruct<MyClass>()
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestArg(_ x2: inout AggGenericStruct<MyClass>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTest() {
+    var x2 = AggGenericStruct<MyClass>()
+    x2 = AggGenericStruct<MyClass>()
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestArg(_ x2: inout AggGenericStruct<MyClass>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTest() {
+    var x2 = AggGenericStruct<MyClass>()
+    x2 = AggGenericStruct<MyClass>()
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestArg(_ x2: inout AggGenericStruct<MyClass>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructUseAfterConsume() {
+    var x2 = AggGenericStruct<MyClass>() // expected-error {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<MyClass>()
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructUseAfterConsumeArg(_ x2: inout AggGenericStruct<MyClass>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}x
+}
+
+public fn aggGenericStructDoubleConsume() {
+    var x2 = AggGenericStruct<MyClass>()  // expected-error {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<MyClass>()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsumeArg(_ x2: inout AggGenericStruct<MyClass>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+}
+
+public fn aggGenericStructLoopConsume() {
+    var x2 = AggGenericStruct<MyClass>() // expected-error {{'x2' consumed in a loop}}
+    x2 = AggGenericStruct<MyClass>()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeArg(_ x2: inout AggGenericStruct<MyClass>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamond() {
+    var x2 = AggGenericStruct<MyClass>()
+    x2 = AggGenericStruct<MyClass>()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondArg(_ x2: inout AggGenericStruct<MyClass>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamondInLoop() {
+    var x2 = AggGenericStruct<MyClass>() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<MyClass>()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopArg(_ x2: inout AggGenericStruct<MyClass>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn aggGenericStructAccessField() {
+    var x2 = AggGenericStruct<MyClass>()
+    x2 = AggGenericStruct<MyClass>()
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldArg(_ x2: inout AggGenericStruct<MyClass>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeField() {
+    var x2 = AggGenericStruct<MyClass>() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<MyClass>()
+    consumeVal(x2.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn aggGenericStructConsumeFieldArg(_ x2: inout AggGenericStruct<MyClass>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructAccessGrandField() {
+    var x2 = AggGenericStruct<MyClass>()
+    x2 = AggGenericStruct<MyClass>()
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldArg(_ x2: inout AggGenericStruct<MyClass>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandField() {
+    var x2 = AggGenericStruct<MyClass>() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<MyClass>()
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn aggGenericStructConsumeGrandField2() {
+    var x2 = AggGenericStruct<MyClass>() // expected-error {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<MyClass>()
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+    }
+    consumeVal(x2.pair.lhs) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructConsumeGrandFieldArg(_ x2: inout AggGenericStruct<MyClass>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    }
+}
+
+////////////////////////////////////////////////////////////
+// Aggregate Generic Struct + Generic But Body is Trivial //
+////////////////////////////////////////////////////////////
+
+public fn aggGenericStructSimpleChainTest<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>()
+    x2 = AggGenericStruct<T>()
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestArg<T>(_ x2: inout AggGenericStruct<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTest<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>()
+    x2 = AggGenericStruct<T>()
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestArg<T>(_ x2: inout AggGenericStruct<T>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTest<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>()
+    x2 = AggGenericStruct<T>()
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestArg<T>(_ x2: inout AggGenericStruct<T>) { //expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructUseAfterConsume<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>() // expected-error {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<T>()
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructUseAfterConsumeArg<T>(_ x2: inout AggGenericStruct<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsume<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>() // expected-error {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<T>()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsumeArg<T>(_ x2: inout AggGenericStruct<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+}
+
+public fn aggGenericStructLoopConsume<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>() // expected-error {{'x2' consumed in a loop}}
+    x2 = AggGenericStruct<T>()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeArg<T>(_ x2: inout AggGenericStruct<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamond<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>()
+    x2 = AggGenericStruct<T>()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondArg<T>(_ x2: inout AggGenericStruct<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamondInLoop<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>() // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    x2 = AggGenericStruct<T>()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopArg<T>(_ x2: inout AggGenericStruct<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn aggGenericStructAccessField<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>()
+    x2 = AggGenericStruct<T>()
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldArg<T>(_ x2: inout AggGenericStruct<T>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeField<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<T>()
+    consumeVal(x2.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn aggGenericStructConsumeFieldArg<T>(_ x2: inout AggGenericStruct<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructAccessGrandField<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>()
+    x2 = AggGenericStruct<T>()
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldArg<T>(_ x2: inout AggGenericStruct<T>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandField<T>(_ x: T.Type) {
+    var x2 = AggGenericStruct<T>() // expected-error {{'x2' consumed in a loop}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = AggGenericStruct<T>()
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldArg<T>(_ x2: inout AggGenericStruct<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs) // expected-note {{consumed here}}
+    }
+}
+
+/////////////////////
+// Enum Test Cases //
+/////////////////////
+
+public enum EnumTy: ~Copyable {
+    case klass(Klass)
+    case int(Int)
+
+    fn doSomething() -> Bool { true }
+}
+
+public fn enumSimpleChainTest() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn enumSimpleChainTestArg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn enumSimpleNonConsumingUseTest() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    borrowVal(x2)
+}
+
+public fn enumSimpleNonConsumingUseTestArg(_ x2: inout EnumTy) {
+    borrowVal(x2)
+}
+
+public fn enumMultipleNonConsumingUseTest() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn enumMultipleNonConsumingUseTestArg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn enumUseAfterConsume() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumUseAfterConsumeArg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+}
+
+public fn enumDoubleConsume() {
+    var x2 = EnumTy.klass(Klass())  // expected-error {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumDoubleConsumeArg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+}
+
+public fn enumLoopConsume() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed in a loop}}
+    x2 = EnumTy.klass(Klass())
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn enumLoopConsumeArg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn enumDiamond() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn enumDiamondArg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn enumDiamondInLoop() {
+    var x2 = EnumTy.klass(Klass())
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn enumDiamondInLoopArg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn enumAssignToVar1() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar1Arg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar2() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn enumAssignToVar2Arg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+     // expected-note @-1 {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn enumAssignToVar3() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    var x3 = x2
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar3Arg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar4() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar4Arg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' used after consume}}
+    x2 = EnumTy.klass(Klass())
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5Arg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{'x2' used after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5Arg2(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = EnumTy.klass(Klass())
+    consumeVal(x3)
+}
+
+
+public fn enumPatternMatchIfLet1() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed more than once}}
+    x2 = EnumTy.klass(Klass())
+    if case immutable EnumTy.klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x)
+    }
+    if case immutable EnumTy.klass(x) = consume x2 { // expected-note {{consumed again here}}
+        borrowVal(x)
+    }
+}
+
+public fn enumPatternMatchIfLet1Arg(_ x2: inout EnumTy) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    if case immutable EnumTy.klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x)
+    }
+    if case immutable EnumTy.klass(x) = consume x2 { // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+        borrowVal(x)
+    }
+}
+
+public fn enumPatternMatchIfLet2() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' consumed in a loop}}
+    x2 = EnumTy.klass(Klass())
+    for _ in 0..<1024 {
+        if case immutable EnumTy.klass(x) = consume x2 {  // expected-note {{consumed here}}
+            borrowVal(x)
+        }
+    }
+}
+
+public fn enumPatternMatchIfLet2Arg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        if case immutable EnumTy.klass(x) = consume x2 {  // expected-note {{consumed here}}
+            borrowVal(x)
+        }
+    }
+}
+
+public fn enumPatternMatchSwitch1() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' used after consume}}
+    x2 = EnumTy.klass(Klass())
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable EnumTy.klass(k):
+        borrowVal(k)
+        borrowVal(x2) // expected-note {{used here}}
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch1Arg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable EnumTy.klass(k):
+        borrowVal(k)
+        borrowVal(x2)
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    switch consume x2 {
+    case immutable EnumTy.klass(k):
+        borrowVal(k)
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2Arg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable EnumTy.klass(k):
+        borrowVal(k)
+    case .int:
+        break
+    }
+}
+
+// QOI: We can do better here. We should also flag x2
+public fn enumPatternMatchSwitch2WhereClause() {
+    var x2 = EnumTy.klass(Klass()) // expected-error {{'x2' used after consume}}
+    x2 = EnumTy.klass(Klass())
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable EnumTy.klass(k)
+           where x2.doSomething(): // expected-note {{used here}}
+        borrowVal(k)
+    case .int:
+        break
+    case EnumTy.klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClauseArg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable EnumTy.klass(k)
+           where x2.doSomething():
+        borrowVal(k)
+    case .int:
+        break
+    case EnumTy.klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClause2() {
+    var x2 = EnumTy.klass(Klass())
+    x2 = EnumTy.klass(Klass())
+    switch consume x2 {
+    case immutable EnumTy.klass(k)
+           where boolValue:
+        borrowVal(k)
+    case .int:
+        break
+    case EnumTy.klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClause2Arg(_ x2: inout EnumTy) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable EnumTy.klass(k)
+           where boolValue:
+        borrowVal(k)
+    case .int:
+        break
+    case EnumTy.klass:
+        break
+    }
+}
+
+////////////////////////////////
+// Address Only Generic Tests //
+////////////////////////////////
+
+public fn addressOnlyGenericSimpleChainTest<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+               // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    immutable k3 = x2 // expected-note {{consumed again here}}
+    immutable _ = k3
+    borrowVal(k2)
+}
+
+public fn addressOnlyGenericSimpleChainArgTest<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var y2 = x2 // expected-note {{consumed here}}
+    y2 = x2 // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn addressOnlyGenericSimpleChainConsumingArgTest<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    var y2 = x2 // expected-note {{consumed here}}
+    y2 = x2 // expected-note {{consumed again here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn addressOnlyGenericSimpleNonConsumingUseTest<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn addressOnlyGenericSimpleNonConsumingUseArgTest<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    borrowVal(x2)
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseTest<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseArgTest<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseArgTest2<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseArgTest3<T>(_ x2: inout AddressOnlyGeneric<T>) {  // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                   // expected-note @-1 {{consumed again here}}
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseArgTest4<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x2 = AddressOnlyGeneric<T>()
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseConsumingArgTest<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseConsumingArgTest2<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseConsumingArgTest3<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericMultipleNonConsumingUseConsumingArgTest4<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x2 = AddressOnlyGeneric<T>()
+}
+
+public fn addressOnlyGenericUseAfterConsume<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericUseAfterConsumeArg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                         // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                   // expected-note @-1 {{consumed again here}}
+}
+
+public fn addressOnlyGenericUseAfterConsumeArg2<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericDoubleConsume<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericDoubleConsumeArg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                     // expected-note @-1 {{consumed again here}}
+}
+
+public fn addressOnlyGenericDoubleConsumeArg2<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericLoopConsume<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyGenericLoopConsumeArg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyGenericLoopConsumeArg2<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    x2 = AddressOnlyGeneric<T>()
+}
+
+public fn addressOnlyGenericLoopConsumeArg3<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    x2 = AddressOnlyGeneric<T>()
+}
+
+public fn addressOnlyGenericDiamond<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn addressOnlyGenericDiamondArg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                 // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyGenericDiamondArg2<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn addressOnlyGenericDiamondInLoop<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-error @-1 {{'x2' consumed more than once}}
+               // expected-note @-2 {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn addressOnlyGenericDiamondInLoopArg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                       // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn addressOnlyGenericDiamondInLoopArg2<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed in a loop}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+    x2 = AddressOnlyGeneric<T>()
+}
+
+public fn addressOnlyGenericDiamondInLoopArg3<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn addressOnlyGenericDiamondInLoopArg4<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed in a loop}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+    x2 = AddressOnlyGeneric<T>()
+}
+
+public fn addressOnlyGenericAssignToVar1<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar1Arg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    x3 = AddressOnlyGeneric<T>()
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar1Arg2<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = AddressOnlyGeneric<T>()
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar2<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar2Arg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar2Arg2<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar3<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    var x3 = x2
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar3Arg<T>(_ x: borrowing AddressOnlyGeneric<T>, _ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                            // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar3Arg2<T>(_ x: borrowing AddressOnlyGeneric<T>, _ x2: inout AddressOnlyGeneric<T>) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                   // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar4<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar4Arg<T>(_ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2)   // expected-note {{consumed here}}
+                // expected-note @-1 {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar4Arg2<T>(_ x2: consuming AddressOnlyGeneric<T>) { // expected-error {{'x2' consumed more than once}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2)   // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar5<T : P>(_ ty: T.Type) {
+    var x2 = AddressOnlyGeneric<T>() // expected-error {{'x2' used after consume}}
+    x2 = AddressOnlyGeneric<T>()
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = AddressOnlyGeneric<T>()
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar5Arg<T>(_ x: borrowing AddressOnlyGeneric<T>, _ x2: inout AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' used after consume}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyGenericAssignToVar5Arg2<T>(_ x: borrowing AddressOnlyGeneric<T>, _ x2: inout AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+                                                                   // expected-error @-1 {{'x2' used after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+    x2 = AddressOnlyGeneric<T>()
+}
+
+// MG: We are calling these consuming uses since I have not taught the checker
+// that a use of a copy_addr that is copyable is not a consuming use. I will
+// remove them when I fix it in the next commit.
+public fn addressOnlyGenericAccessAccessField<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    borrowVal(x2.copyable)
+    for _ in 0..<1024 {
+        borrowVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyGenericAccessAccessField2<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+    borrowVal(x2.moveOnly)
+    for _ in 0..<1024 {
+        borrowVal(x2.moveOnly)
+    }
+}
+
+public fn addressOnlyGenericAccessAccessFieldArg<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    borrowVal(x2.copyable)
+    for _ in 0..<1024 {
+        borrowVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyGenericAccessAccessFieldArg2<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    borrowVal(x2.moveOnly)
+    for _ in 0..<1024 {
+        borrowVal(x2.moveOnly)
+    }
+}
+
+public fn addressOnlyGenericAccessAccessFieldArg3<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    borrowVal(x2.copyable)
+    for _ in 0..<1024 {
+        borrowVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyGenericAccessAccessFieldArg4<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    borrowVal(x2.moveOnly)
+    for _ in 0..<1024 {
+        borrowVal(x2.moveOnly)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeField<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+
+    consumeVal(x2.copyable)
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeField2<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = AddressOnlyGeneric<T>()
+
+    consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandField<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+
+    consumeVal(x2.copyable.name)
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable.name)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandField2<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{'x2' consumed in a loop}}
+    x2 = AddressOnlyGeneric<T>()
+
+    consumeVal(x2.moveOnly.k) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly.k) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandField2a<T>(_ x: borrowing AddressOnlyGeneric<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyGeneric<T>()
+
+    consumeVal(x2.moveOnly.copyableK)
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly.copyableK)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeFieldArg<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    consumeVal(x2.copyable)
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeFieldArg2<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeFieldArg3<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    consumeVal(x2.copyable)
+
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeFieldArg4<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandFieldArg<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    consumeVal(x2.copyable.name)
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable.name)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandFieldArg2<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.moveOnly.k) // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly.k) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandFieldArg2a<T>(_ x2: inout AddressOnlyGeneric<T>) {
+    consumeVal(x2.moveOnly.copyableK)
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly.copyableK)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandFieldArg3<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    consumeVal(x2.copyable.name)
+
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable.name)
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandFieldArg4<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2.moveOnly.k) // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly.k) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn addressOnlyGenericAccessConsumeGrandFieldArg4a<T>(_ x2: consuming AddressOnlyGeneric<T>) {
+    consumeVal(x2.moveOnly.copyableK)
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly.copyableK)
+    }
+}
+
+public fn addressOnlyGenericBorrowingConsume<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x // expected-note {{consumed here}}
+}
+
+public fn addressOnlyGenericBorrowingConsumeField<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x.moveOnly // expected-note {{consumed here}}
+}
+
+public fn addressOnlyGenericBorrowingConsumeField2<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    immutable _ = x.copyable
+}
+
+public fn addressOnlyGenericBorrowingConsumeGrandField<T>(_ x: borrowing AddressOnlyGeneric<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x.moveOnly.k // expected-note {{consumed here}}
+}
+
+public fn addressOnlyGenericLetAccessFieldTest<T>(_ x: consuming AddressOnlyGeneric<T>) {
+    immutable x2 = x
+
+    immutable _ = x2.moveOnly
+}
+
+public fn addressOnlyGenericLetAccessFieldTest2<T>(_ x: consuming AddressOnlyGeneric<T>) {
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+
+    immutable _ = x2.moveOnly // expected-note {{consumed here}}
+    immutable _ = x2.moveOnly // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericLetAccessFieldTest2a<T>(_ x: consuming AddressOnlyGeneric<T>) {
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+
+    immutable _ = x2.moveOnly // expected-note {{consumed here}}
+    immutable _ = x2.moveOnly.k // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericLetAccessFieldTest2b<T>(_ x: consuming AddressOnlyGeneric<T>) {
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+
+    immutable _ = x2.moveOnly // expected-note {{consumed here}}
+    immutable _ = x2.copyable
+    immutable _ = x2.moveOnly.k // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyGenericLetAccessFieldTest3<T>(_ x: consuming AddressOnlyGeneric<T>) {
+    immutable x2 = x
+
+    immutable _ = x2.moveOnly
+    immutable _ = x2.copyable
+}
+
+extension AddressOnlyGeneric {
+    fn testNoUseSelf() { // expected-error {{'this' is borrowed and cannot be consumed}}
+        immutable x = this // expected-note {{consumed here}}
+        immutable _ = x
+    }
+
+    mutating fn testNoUseSelf2() { // expected-error {{missing reinitialization of inout parameter 'this' after consume}}
+        immutable x = this // expected-note {{consumed here}}
+        immutable _ = x
+    }
+}
+
+struct AddressOnlyGenericInit<T : P>: ~Copyable {
+    var copyable: T
+    var moveOnly: NonTrivialStruct
+    var moveOnly2: AddressOnlyGeneric<T>
+
+    init(_ input1: T, _ input2: consuming NonTrivialStruct) {
+        if boolValue {
+            copyable = input1
+        } else {
+            copyable = T.value
+        }
+        moveOnly2 = AddressOnlyGeneric<T>(T.value)
+        moveOnly = input2
+    }
+
+    init(_ input1: T, _ input2: consuming NonTrivialStruct, _ input3 : consuming AddressOnlyGeneric<T>) {
+        copyable = input1
+        if boolValue {
+            moveOnly2 = input3
+        } else {
+            moveOnly2 = AddressOnlyGeneric<T>(T.value)
+        }
+        moveOnly = input2
+    }
+}
+
+///////////////////////////
+// Address Only Protocol //
+///////////////////////////
+
+public fn addressOnlyProtocolSimpleChainTest(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+               // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    immutable k3 = x2 // expected-note {{consumed again here}}
+    immutable _ = k3
+    borrowVal(k2)
+}
+
+public fn addressOnlyProtocolSimpleChainArgTest(_ x2: inout AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var y2 = x2 // expected-note {{consumed here}}
+    y2 = x2 // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn addressOnlyProtocolSimpleChainConsumingArgTest(_ x2: consuming AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    var y2 = x2 // expected-note {{consumed here}}
+    y2 = x2 // expected-note {{consumed again here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn addressOnlyProtocolSimpleNonConsumingUseTest(_ x: borrowing AddressOnlyProtocol) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn addressOnlyProtocolSimpleNonConsumingUseArgTest(_ x2: inout AddressOnlyProtocol) {
+    borrowVal(x2)
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseTest(_ x: borrowing AddressOnlyProtocol) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseArgTest(_ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseArgTest2(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseArgTest3(_ x2: inout AddressOnlyProtocol) {  // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                   // expected-note @-1 {{consumed again here}}
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseArgTest4(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x2 = AddressOnlyProtocol()
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseConsumingArgTest(_ x2: consuming AddressOnlyProtocol) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseConsumingArgTest2(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseConsumingArgTest3(_ x2: consuming AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyProtocolMultipleNonConsumingUseConsumingArgTest4(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' used after consume}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x2 = AddressOnlyProtocol()
+}
+
+public fn addressOnlyProtocolUseAfterConsume(_ x: borrowing AddressOnlyProtocol) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyProtocolUseAfterConsumeArg(_ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                         // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                   // expected-note @-1 {{consumed again here}}
+}
+
+public fn addressOnlyProtocolUseAfterConsumeArg2(_ x2: consuming AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyProtocolDoubleConsume(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyProtocolDoubleConsumeArg(_ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+                     // expected-note @-1 {{consumed again here}}
+}
+
+public fn addressOnlyProtocolDoubleConsumeArg2(_ x2: consuming AddressOnlyProtocol) {
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn addressOnlyProtocolLoopConsume(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyProtocolLoopConsumeArg(_ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyProtocolLoopConsumeArg2(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    x2 = AddressOnlyProtocol()
+}
+
+public fn addressOnlyProtocolLoopConsumeArg3(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    x2 = AddressOnlyProtocol()
+}
+
+public fn addressOnlyProtocolDiamond(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn addressOnlyProtocolDiamondArg(_ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                 // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyProtocolDiamondArg2(_ x2: consuming AddressOnlyProtocol) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn addressOnlyProtocolDiamondInLoop(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-error @-1 {{'x2' consumed more than once}}
+               // expected-note @-2 {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn addressOnlyProtocolDiamondInLoopArg(_ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                       // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn addressOnlyProtocolDiamondInLoopArg2(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' consumed in a loop}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+    x2 = AddressOnlyProtocol()
+}
+
+public fn addressOnlyProtocolDiamondInLoopArg3(_ x2: consuming AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn addressOnlyProtocolDiamondInLoopArg4(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' consumed in a loop}}
+                                                       // expected-error @-1 {{'x2' consumed more than once}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+                           // expected-note @-1 {{consumed again here}}
+      }
+    }
+    x2 = AddressOnlyProtocol()
+}
+
+public fn addressOnlyProtocolAssignToVar1(_ x: borrowing AddressOnlyProtocol) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar1Arg(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    x3 = AddressOnlyProtocol()
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar1Arg2(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = AddressOnlyProtocol()
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar2(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar2Arg(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar2Arg2(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar3(_ x: borrowing AddressOnlyProtocol) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    var x3 = x2
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar3Arg(_ x: borrowing AddressOnlyProtocol, _ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                            // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar3Arg2(_ x: borrowing AddressOnlyProtocol, _ x2: inout AddressOnlyProtocol) { // expected-error {{missing reinitialization of inout parameter 'x2' after consume}}
+                                                                   // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar4(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar4Arg(_ x2: inout AddressOnlyProtocol) { // expected-error {{'x2' consumed more than once}}
+                                                      // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2)   // expected-note {{consumed here}}
+                // expected-note @-1 {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar4Arg2(_ x2: consuming AddressOnlyProtocol) { // expected-error {{'x2' consumed more than once}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2)   // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar5<T : P>(_ ty: T.Type) {
+    var x2 = AddressOnlyProtocol() // expected-error {{'x2' used after consume}}
+    x2 = AddressOnlyProtocol()
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = AddressOnlyProtocol()
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar5Arg(_ x: borrowing AddressOnlyProtocol, _ x2: inout AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' used after consume}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn addressOnlyProtocolAssignToVar5Arg2(_ x: borrowing AddressOnlyProtocol, _ x2: inout AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+                                                                   // expected-error @-1 {{'x2' used after consume}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+    x2 = AddressOnlyProtocol()
+}
+
+// MG: We are calling these consuming uses since I have not taught the checker
+// that a use of a copy_addr that is copyable is not a consuming use. I will
+// remove them when I fix it in the next commit.
+public fn addressOnlyProtocolAccessAccessField(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    borrowVal(x2.copyable)
+    for _ in 0..<1024 {
+        borrowVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyProtocolAccessAccessField2(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyProtocol()
+    borrowVal(x2.moveOnly)
+    for _ in 0..<1024 {
+        borrowVal(x2.moveOnly)
+    }
+}
+
+public fn addressOnlyProtocolAccessAccessFieldArg(_ x2: inout AddressOnlyProtocol) {
+    borrowVal(x2.copyable)
+    for _ in 0..<1024 {
+        borrowVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyProtocolAccessAccessFieldArg2(_ x2: inout AddressOnlyProtocol) {
+    borrowVal(x2.moveOnly)
+    for _ in 0..<1024 {
+        borrowVal(x2.moveOnly)
+    }
+}
+
+public fn addressOnlyProtocolAccessAccessFieldArg3(_ x2: consuming AddressOnlyProtocol) {
+    borrowVal(x2.copyable)
+    for _ in 0..<1024 {
+        borrowVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyProtocolAccessAccessFieldArg4(_ x2: consuming AddressOnlyProtocol) {
+    borrowVal(x2.moveOnly)
+    for _ in 0..<1024 {
+        borrowVal(x2.moveOnly)
+    }
+}
+
+public fn addressOnlyProtocolAccessConsumeField(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    x2 = AddressOnlyProtocol()
+
+    consumeVal(x2.copyable)
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyProtocolAccessConsumeField2(_ x: borrowing AddressOnlyProtocol) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = AddressOnlyProtocol()
+
+    consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+public fn addressOnlyProtocolAccessConsumeFieldArg(_ x2: inout AddressOnlyProtocol) {
+    consumeVal(x2.copyable)
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyProtocolAccessConsumeFieldArg2(_ x2: inout AddressOnlyProtocol) {
+    // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+    // expected-error @-2 {{missing reinitialization of inout parameter 'x2' after consume}}
+    consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+    }
+}
+
+public fn addressOnlyProtocolAccessConsumeFieldArg3(_ x2: consuming AddressOnlyProtocol) {
+    consumeVal(x2.copyable)
+
+    for _ in 0..<1024 {
+        consumeVal(x2.copyable)
+    }
+}
+
+public fn addressOnlyProtocolAccessConsumeFieldArg4(_ x2: consuming AddressOnlyProtocol) {
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        consumeVal(x2.moveOnly) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+extension AddressOnlyProtocol {
+    fn testNoUseSelf() { // expected-error {{'this' is borrowed and cannot be consumed}}
+        immutable x = this // expected-note {{consumed here}}
+        immutable _ = x
+    }
+}
+
+/////////////////////////////
+// MARK: Closure Let Tests //
+/////////////////////////////
+
+// These are considered to be non-escaping since we are not storing them into
+// memory.
+
+public fn closureLetClassUseAfterConsume1() {
+    immutable f = {
+        var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+        x2 = Klass()
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureLetClassUseAfterConsume2() {
+    immutable f = { () in
+        var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+        x2 = Klass()
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureLetClassUseAfterConsumeArg(_ argX: inout Klass) {
+    // TODO: Fix this
+    immutable f = { (_ x2: inout Klass) in
+        // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+        // expected-error @-2 {{'x2' consumed more than once}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    f(&argX)
+}
+
+// We do not support captures of vars by closures today.
+public fn closureLetCaptureClassUseAfterConsume() {
+    var x2 = Klass() // expected-error {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    x2 = Klass()
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureLetCaptureClassUseAfterConsume2() {
+    var x2 = Klass() // expected-error {{missing reinitialization of closure capture 'x2' after consume}}
+    x2 = Klass()
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f()
+}
+
+public fn closureLetCaptureClassUseAfterConsumeError() {
+    var x2 = Klass() // expected-error {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = Klass()
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    f()
+    consumeVal(x2) // expected-note {{consumed here}}
+    immutable x3 = x2 // expected-note {{consumed again here}}
+    x2 = Klass()
+    immutable _ = x3
+}
+
+public fn closureLetCaptureClassArgUseAfterConsume(_ x2: inout Klass) {
+    // expected-note @-1 {{'x2' is declared 'inout'}}
+    immutable f = {
+        // expected-error @-1 {{escaping closure captures 'inout' parameter 'x2'}}
+        borrowVal(x2) // expected-note {{captured here}}
+        consumeVal(x2) // expected-note {{captured here}}
+        consumeVal(x2) // expected-note {{captured here}}
+    }
+    f()
+}
+
+fn closureLetStoreClosureInVariableIsEscape() {
+    immutable s = NonTrivialStruct()
+
+    struct StoreClosure {
+        var f: () -> ()
+    }
+
+    immutable f = {
+        borrowVal(s)
+        consumeVal(s) // expected-error {{noncopyable 's' cannot be consumed when captured by an escaping closure}}
+    }
+    immutable c = StoreClosure(f: f)
+    _ = c
+    consumeVal(s) // expected-error {{noncopyable 's' cannot be consumed when captured by an escaping closure}}
+}
+
+/////////////////////////////
+// MARK: Closure Var Tests //
+/////////////////////////////
+
+// These are considered to be escaping since we are storing them into a
+// var. This matches the behavior of how we emit inout diagnostics.
+
+public fn closureVarClassUseAfterConsume1() {
+    var f = {}
+    f = {
+        var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+        x2 = Klass()
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureVarClassUseAfterConsume2() {
+    var f = { () in}
+    f = { () in
+        var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+        x2 = Klass()
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureVarClassUseAfterConsumeArg(_ argX: inout Klass) {
+    // TODO: Fix this
+    var f = { (_ x2: inout Klass) in}
+    f = { (_ x2: inout Klass) in
+        // expected-error @-1 {{missing reinitialization of inout parameter 'x2' after consume}}
+        // expected-error @-2 {{'x2' consumed more than once}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    f(&argX)
+}
+
+// We do not support captures of vars by closures today.
+public fn closureVarCaptureClassUseAfterConsume() {
+    var x2 = Klass()
+    x2 = Klass()
+    var f = {}
+    f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    }
+    f()
+}
+
+public fn closureVarCaptureClassUseAfterConsume2() {
+    var x2 = Klass()
+    x2 = Klass()
+    var f = {}
+    f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    }
+    f()
+}
+
+public fn closureVarCaptureClassUseAfterConsumeError() {
+    var x2 = Klass()
+    x2 = Klass()
+    var f = {}
+    f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable x3 = x2 // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    x2 = Klass()
+    immutable _ = x3
+}
+
+public fn closureVarCaptureClassArgUseAfterConsume(_ x2: inout Klass) {
+    // expected-note @-1 {{'x2' is declared 'inout'}}
+    var f = {}
+    f = {
+        // expected-error @-1 {{escaping closure captures 'inout' parameter 'x2'}}
+        borrowVal(x2) // expected-note {{captured here}}
+        consumeVal(x2) // expected-note {{captured here}}
+        consumeVal(x2) // expected-note {{captured here}}
+    }
+    f()
+}
+
+///////////////////////
+// MARK: Defer Tests //
+///////////////////////
+
+public fn deferCaptureClassUseAfterConsume() {
+    var x2 = Klass()
+    // expected-error @-1 {{'x2' used after consume}}
+    // expected-error @-2 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-3 {{'x2' consumed more than once}}
+    x2 = Klass()
+    defer { // expected-note {{used here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2)
+        // expected-note @-1 {{consumed here}}
+        // expected-note @-2 {{consumed again here}}
+    }
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn deferCaptureClassUseAfterConsume2() {
+    var x2 = Klass()
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    // expected-error @-3 {{'x2' used after consume}}
+    x2 = Klass()
+    defer { // expected-note {{used here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    immutable x3 = x2 // expected-note {{consumed here}}
+    immutable _ = x3
+}
+
+public fn deferCaptureClassArgUseAfterConsume(_ x2: inout Klass) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    borrowVal(x2)
+    defer {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    print("foo")
+}
+
+public fn closureLetAndDeferCaptureClassUseAfterConsume() {
+    var x2 = Klass()
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = Klass()
+    immutable f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2)
+            // expected-note @-1 {{consumed here}}
+            // expected-note @-2 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+public fn closureLetAndDeferCaptureClassUseAfterConsume2() {
+    var x2 = Klass() // expected-error {{'x2' used after consume}}
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = Klass()
+    immutable f = {
+        consumeVal(x2) // expected-note {{consumed here}}
+        defer { // expected-note {{used here}}
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2)
+            // expected-note @-1 {{consumed here}}
+            // expected-note @-2 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+public fn closureLetAndDeferCaptureClassUseAfterConsume3() {
+    var x2 = Klass() // expected-error {{'x2' used after consume}}
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = Klass()
+    immutable f = {
+        consumeVal(x2) // expected-note {{consumed here}}
+        defer { // expected-note {{used here}}
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2)
+            // expected-note @-1 {{consumed here}}
+            // expected-note @-2 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+    consumeVal(x2)
+}
+
+public fn closureLetAndDeferCaptureClassArgUseAfterConsume(_ x2: inout Klass) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    // expected-note @-3 {{'x2' is declared 'inout'}}
+    immutable f = { // expected-error {{escaping closure captures 'inout' parameter 'x2'}}
+        defer { // expected-note {{captured indirectly by this call}}
+            borrowVal(x2) // expected-note {{captured here}}
+            consumeVal(x2) // expected-note {{captured here}}
+            // expected-note @-1 {{consumed here}}
+            consumeVal(x2) // expected-note {{captured here}}
+            // expected-note @-1 {{consumed here}}
+            // expected-note @-2 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+///////////////////////////////////////////
+// MARK: Multiple Levels of Let Closures //
+///////////////////////////////////////////
+
+public fn closureLetAndClosureCaptureClassUseAfterConsume() {
+    var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    x2 = Klass()
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureLetAndClosureCaptureClassUseAfterConsume2() {
+    var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    x2 = Klass()
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2)
+}
+
+
+public fn closureLetAndClosureCaptureClassArgUseAfterConsume(_ x2: inout Klass) {
+    // expected-note @-1 {{'x2' is declared 'inout'}}
+    // expected-note @-2 {{'x2' is declared 'inout'}}
+    immutable f = { // expected-error {{escaping closure captures 'inout' parameter 'x2'}}
+        immutable g = { // expected-error {{escaping closure captures 'inout' parameter 'x2'}}
+            // expected-note @-1 {{captured indirectly by this call}}
+            borrowVal(x2)
+            // expected-note @-1 {{captured here}}
+            // expected-note @-2 {{captured here}}
+            consumeVal(x2)
+            // expected-note @-1 {{captured here}}
+            // expected-note @-2 {{captured here}}
+            consumeVal(x2)
+            // expected-note @-1 {{captured here}}
+            // expected-note @-2 {{captured here}}
+        }
+        g()
+    }
+    f()
+}
+
+/////////////////////////////////
+// MARK: Defer and Var Closure //
+/////////////////////////////////
+
+public fn closureVarAndDeferCaptureClassUseAfterConsume(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = Klass() // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    x2 = x // expected-note {{consumed here}}
+    var f = {}
+    f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+public fn closureVarAndDeferCaptureClassUseAfterConsume2(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = Klass()
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    x2 = x // expected-note {{consumed here}}
+    var f = {}
+    f = {
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+// TODO: MG
+public fn closureVarAndDeferCaptureClassUseAfterConsume3(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = Klass()
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of closure capture 'x2' after consume}}
+    x2 = x
+    // expected-note @-1 {{consumed here}}
+    var f = {}
+    f = {
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+}
+
+public fn closureVarAndDeferCaptureClassArgUseAfterConsume(_ x2: borrowing Klass) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    var f = {}
+    f = {// expected-note {{closure capturing 'x2' here}}
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+public fn closureVarAndDeferCaptureClassOwnedArgUseAfterConsume(_ x2: __owned Klass) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    var f = {}
+    f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+public fn closureVarAndDeferCaptureClassOwnedArgUseAfterConsume2(_ x2: consuming Klass) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    var f = {}
+    f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+}
+
+// TODO: MG
+public fn closureVarAndDeferCaptureClassOwnedArgUseAfterConsume3(_ x2: __owned Klass) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    var f = {}
+    f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        print("foo")
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+}
+
+public fn closureVarAndDeferCaptureClassOwnedArgUseAfterConsume4(_ x2: consuming Klass) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of closure capture 'x2' after consume}}
+    var f = {}
+    f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        print("foo")
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+}
+
+///////////////////////////////////////////
+// MARK: Multiple Levels of Var Closures //
+///////////////////////////////////////////
+
+public fn closureVarAndClosureCaptureClassUseAfterConsume(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = Klass()
+    x2 = x // expected-note {{consumed here}}
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+        consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    }
+    f()
+}
+
+public fn closureVarAndClosureCaptureClassUseAfterConsume2(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = Klass()
+    x2 = x
+    // expected-note @-1 {{consumed here}}
+
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable x3 = x2 // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    _ = x3
+}
+
+public fn closureVarAndClosureCaptureClassUseAfterConsume3(_ x: borrowing Klass) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x2 = x
+    // expected-note @-1 {{consumed here}}
+    x2 = x
+    // expected-note @-1 {{consumed here}}
+
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable x3 = x2 // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    _ = x3
+}
+
+public fn closureVarAndClosureCaptureClassArgUseAfterConsume(_ x2: borrowing Klass) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    // expected-error @-3 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    var f = {}
+    f = {// expected-note {{closure capturing 'x2' here}}
+        var g = {}
+        g = {// expected-note {{closure capturing 'x2' here}}
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureVarAndClosureCaptureClassOwnedArgUseAfterConsume(_ x2: __owned Klass) {
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureVarAndClosureCaptureClassOwnedArgUseAfterConsume2(_ x2: consuming Klass) {
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureVarAndClosureCaptureClassOwnedArgUseAfterConsume3(_ x2: __owned Klass) {
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+}
+
+public fn closureVarAndClosureCaptureClassOwnedArgUseAfterConsume4(_ x2: consuming Klass) {
+    var f = {}
+    f = {
+        var g = {}
+        g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+            consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2) // expected-error {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+}
+
+/////////////////////////////
+// Tests For Move Operator //
+/////////////////////////////
+
+fn moveOperatorTest(_ k: __owned Klass) {
+    var k2 = k
+    // expected-error @-1 {{'k2' consumed more than once}}
+    // expected-error @-2 {{'k2' consumed more than once}}
+    // expected-error @-3 {{'k2' consumed more than once}}
+    k2 = Klass()
+    immutable k3 = consume k2 // expected-note {{consumed here}}
+    immutable _ = consume k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+    _ = k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+    immutable _ = k2
+    // expected-note @-1 {{consumed again here}}
+    immutable _ = k3
+}
+
+fn moveOperatorTest2(_ k: consuming Klass) {
+    var k2 = k
+    // expected-error @-1 {{'k2' consumed more than once}}
+    // expected-error @-2 {{'k2' consumed more than once}}
+    // expected-error @-3 {{'k2' consumed more than once}}
+    k2 = Klass()
+    immutable k3 = consume k2 // expected-note {{consumed here}}
+    immutable _ = consume k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+    _ = k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+    immutable _ = k2
+    // expected-note @-1 {{consumed again here}}
+    immutable _ = k3
+}
+
+// No diagnostics here.
+fn moveOperatorTestSuccess() {
+  var k = Klass()
+  k = Klass()
+  immutable _ = consume k
+}
+
+/////////////////////////////////////////
+// Black hole initialization test case//
+/////////////////////////////////////////
+
+fn blackHoleKlassTestCase(_ k: __owned Klass) {
+    var k2 = k
+    // expected-error @-1 {{'k2' consumed more than once}}
+    // expected-error @-2 {{'k2' consumed more than once}}
+    // expected-error @-3 {{'k2' consumed more than once}}
+    // expected-error @-4 {{'k2' consumed more than once}}
+    immutable _ = k2 // expected-note {{consumed here}}
+    immutable _ = k2 // expected-note {{consumed again here}}
+
+    k2 = Klass()
+    var _ = k2 // expected-note {{consumed here}}
+    var _ = k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+
+    _ = k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+
+    // TODO: Why do we not also get 2 errors here?
+    _ = k2
+    // expected-note @-1 {{consumed again here}}
+}
+
+fn blackHoleKlassTestCase2(_ k: consuming Klass) {
+    var k2 = k
+    // expected-error @-1 {{'k2' consumed more than once}}
+    // expected-error @-2 {{'k2' consumed more than once}}
+    // expected-error @-3 {{'k2' consumed more than once}}
+    // expected-error @-4 {{'k2' consumed more than once}}
+    immutable _ = k2 // expected-note {{consumed here}}
+    immutable _ = k2 // expected-note {{consumed again here}}
+
+    k2 = Klass()
+    var _ = k2 // expected-note {{consumed here}}
+    var _ = k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+
+    _ = k2
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+
+    // TODO: Why do we not also get 2 errors here?
+    _ = k2
+    // expected-note @-1 {{consumed again here}}
+}
+
+// rdar://109908383
+struct NonCopyableStruct: ~Copyable {}
+var globFn: () -> () = {}
+fn forceEscaping(_ esc: @escaping () -> ()) {
+    globFn = esc
+}
+fn closureDiagnosticsSimple() {
+    var s = NonCopyableStruct()
+    immutable f = {
+        _ = consume s  // expected-error {{missing reinitialization of closure capture 's' after consume}} // expected-note {{consumed here}}
+        s = NonCopyableStruct()
+    }
+    forceEscaping(f)
+    f()
+}
+
+///////////////////////////////////////
+// Copyable Type in a Move Only Type //
+///////////////////////////////////////
+
+fn copyableKlassInAMoveOnlyStruct() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.copyableK)
+    consumeVal(a.copyableK)
+}
+
+// This shouldn't error since we are consuming a copyable type.
+fn copyableKlassInAMoveOnlyStruct2() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.copyableK)
+    consumeVal(a.copyableK)
+    consumeVal(a.copyableK)
+}
+
+// This shouldn't error since we are working with a copyable type.
+fn copyableKlassInAMoveOnlyStruct3() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.copyableK)
+    consumeVal(a.copyableK)
+    borrowVal(a.copyableK)
+}
+
+// This used to error, but no longer errors since we are using a true field
+// sensitive model.
+fn copyableKlassInAMoveOnlyStruct4() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.copyableK)
+    consumeVal(a.copyableK)
+    borrowVal(a.nonTrivialStruct2)
+}
+
+fn copyableStructsInMoveOnlyStructNonConsuming() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a)
+    borrowVal(a.nonTrivialStruct2)
+    borrowVal(a.nonTrivialCopyableStruct)
+    borrowVal(a.nonTrivialCopyableStruct.nonTrivialCopyableStruct2)
+    borrowVal(a.nonTrivialCopyableStruct.nonTrivialCopyableStruct2.copyableKlass)
+}
+
+fn computedMyClassInAMoveOnlyStruct() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.computedCopyableK)
+    consumeVal(a.computedCopyableK)
+}
+
+// This shouldn't error since we are consuming a copyable type.
+fn computedMyClassInAMoveOnlyStruct2() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.computedCopyableK)
+    consumeVal(a.computedCopyableK)
+    consumeVal(a.computedCopyableK)
+}
+
+// This shouldn't error since we are working with a copyable type.
+fn computedMyClassInAMoveOnlyStruct3() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.computedCopyableK)
+    consumeVal(a.computedCopyableK)
+    borrowVal(a.computedCopyableK)
+}
+
+// This used to error, but no longer errors since we are using a true field
+// sensitive model.
+fn computedMyClassInAMoveOnlyStruct4() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a.computedCopyableK)
+    consumeVal(a.computedCopyableK)
+    borrowVal(a.nonTrivialStruct2)
+}
+
+fn computedCopyableStructsInMoveOnlyStructNonConsuming() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    borrowVal(a)
+    borrowVal(a.computedCopyableK)
+    borrowVal(a.nonTrivialCopyableStruct.nonTrivialCopyableStruct2.computedMyClass)
+}
+
+///////////////////////////
+// Field Sensitive Tests //
+///////////////////////////
+
+fn fieldSensitiveTestReinitField() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    consumeVal(a.k)
+    a.k = Klass()
+    borrowVal(a.k)
+}
+
+fn fieldSensitiveTestReinitFieldMultiBlock1() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    consumeVal(a.k)
+
+    if boolValue {
+        a.k = Klass()
+        borrowVal(a.k)
+    }
+}
+
+fn fieldSensitiveTestReinitFieldMultiBlock2() {
+    var a = NonTrivialStruct() // expected-error {{'a' used after consume}}
+    a = NonTrivialStruct()
+    consumeVal(a.k) // expected-note {{consumed here}}
+
+    if boolValue {
+        a.k = Klass()
+    }
+
+    borrowVal(a.k) // expected-note {{used here}}
+}
+
+fn fieldSensitiveTestReinitFieldMultiBlock3() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    consumeVal(a.k)
+
+    if boolValue {
+        a.k = Klass()
+    } else {
+        a.k = Klass()
+    }
+
+    borrowVal(a.k)
+}
+
+// This test sees what happens if we partially reinit along one path and do a
+// full reinit along another path.
+fn fieldSensitiveTestReinitFieldMultiBlock4() {
+    var a = NonTrivialStruct()
+    a = NonTrivialStruct()
+    consumeVal(a.k)
+
+    if boolValue {
+        a.k = Klass()
+    } else {
+        a = NonTrivialStruct()
+    }
+
+    borrowVal(a.k)
+}
+
+fn fieldSensitiveTestReinitEnumMultiBlock() {
+    var e = NonTrivialEnum.first // expected-error {{'e' used after consume}}
+    e = NonTrivialEnum.second(Klass())
+    switch consume e { // expected-note {{consumed here}}
+    case .second:
+        e = NonTrivialEnum.third(NonTrivialStruct())
+    default:
+        break
+    }
+    borrowVal(e) // expected-note {{used here}}
+}
+
+fn fieldSensitiveTestReinitEnumMultiBlock1() {
+    var e = NonTrivialEnum.first
+    e = NonTrivialEnum.second(Klass())
+    switch consume e {
+    case .second:
+        e = NonTrivialEnum.third(NonTrivialStruct())
+    default:
+        e = NonTrivialEnum.fourth(MyClass())
+    }
+    borrowVal(e)
+}
+
+fn fieldSensitiveTestReinitEnumMultiBlock2() {
+    var e = NonTrivialEnum.first
+    e = NonTrivialEnum.second(Klass())
+    if boolValue {
+        switch consume e {
+        case .second:
+            e = NonTrivialEnum.third(NonTrivialStruct())
+        default:
+            e = NonTrivialEnum.fourth(MyClass())
+        }
+    } else {
+        e = NonTrivialEnum.third(NonTrivialStruct())
+    }
+    borrowVal(e)
+}
+
+////////////////////////////////////////////
+// Multiple Use by Same CallSite TestCase //
+////////////////////////////////////////////
+
+fn sameCallSiteTestConsumeTwice(_ k: inout Klass) { // expected-error {{'k' consumed more than once}}
+    fn consumeKlassTwice(_ k: __owned Klass, _ k2: __owned Klass) {}
+    consumeKlassTwice(k, k) // expected-error {{overlapping accesses to 'k', but deinitialization requires exclusive access}}
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{consumed again here}}
+    // expected-note @-3 {{conflicting access is here}}
+    k = Klass()
+}
+
+fn sameCallSiteConsumeAndUse(_ k: inout Klass) { // expected-error {{'k' used after consume}}
+    fn consumeKlassAndUseKlass(_ k: __owned Klass, _ k2: borrowing Klass) {}
+    consumeKlassAndUseKlass(k, k) // expected-error {{overlapping accesses to 'k', but deinitialization requires exclusive access}}
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{used here}}
+    // expected-note @-3 {{conflicting access is here}}
+    k = Klass()
+}
+
+fn inoutAndConsumingUse(_ k: inout Klass) { // expected-error {{'k' used after consume}}
+    fn consumeKlassAndInoutUseKlass(_ k: __owned Klass, _ k2: inout Klass) {}
+    consumeKlassAndInoutUseKlass(k, &k) // expected-error {{overlapping accesses to 'k', but deinitialization requires exclusive access}}
+    // expected-note @-1 {{used here}}
+    // expected-note @-2 {{consumed here}}
+    // expected-note @-3 {{conflicting access is here}}
+}
+
+////////////////////////////
+// Ref Element Addr Tests //
+////////////////////////////
+
+fn copyableKlassWithMoveOnlyFieldBorrowValue(_ x: MyClassWithMoveOnlyField) {
+    borrowVal(x.moveOnlyVarStruct)
+    borrowVal(x.moveOnlyVarStruct)
+    borrowVal(x.moveOnlyVarStruct.nonTrivialStruct2)
+    borrowVal(x.moveOnlyLetStruct)
+    borrowVal(x.moveOnlyLetStruct)
+    borrowVal(x.moveOnlyLetStruct.nonTrivialStruct2)
+}
+
+fn copyableKlassWithMoveOnlyFieldConsumeValue(_ x: MyClassWithMoveOnlyField) {
+    consumeVal(x.moveOnlyVarStruct)
+    // expected-error @-1 {{cannot consume noncopyable stored property 'x.moveOnlyVarStruct' of a class}}
+    consumeVal(x.moveOnlyVarStruct.nonTrivialStruct2) // expected-error {{cannot consume noncopyable stored property 'x.moveOnlyVarStruct' of a class}}
+    // TODO: We should place a note on x. We need to make the diagnostic part of
+    // this a little smarter.
+    consumeVal(x.moveOnlyLetStruct) // expected-error {{cannot consume noncopyable stored property 'x.moveOnlyLetStruct' of a class}}
+    consumeVal(x.moveOnlyLetStruct.nonTrivialStruct2) // expected-error {{cannot consume noncopyable stored property 'x.moveOnlyLetStruct' of a class}}
+}
+
+fn copyableKlassWithMoveOnlyFieldAssignValue(_ x: MyClassWithMoveOnlyField) {
+    x.moveOnlyVarStruct = NonTrivialStruct()
+    x.moveOnlyVarStruct = NonTrivialStruct()
+}
+
+///////////////////////
+// Global Addr Tests //
+///////////////////////
+
+var varGlobal = NonTrivialStruct()
+immutable letGlobal = NonTrivialStruct()
+
+fn moveOnlyGlobalBorrowValue() {
+    borrowVal(varGlobal)
+    borrowVal(varGlobal.nonTrivialStruct2)
+    borrowVal(letGlobal)
+    borrowVal(letGlobal.nonTrivialStruct2)
+}
+
+fn moveOnlyGlobalConsumeValue() {
+    consumeVal(varGlobal) // expected-error {{cannot consume noncopyable stored property 'varGlobal' that is global}}
+    // TODO: Fix error to say that it is from nonTrivialStruct2
+    consumeVal(varGlobal.nonTrivialStruct2) // expected-error {{cannot consume noncopyable stored property 'varGlobal' that is global}}
+    consumeVal(letGlobal) // expected-error {{cannot consume noncopyable stored property 'letGlobal' that is global}}
+    // TODO: Fix error to say that it is from nonTrivialStruct2
+    consumeVal(letGlobal.nonTrivialStruct2) // expected-error {{cannot consume noncopyable stored property 'letGlobal' that is global}}
+}
+
+fn moveOnlyGlobalAssignValue() {
+    varGlobal = NonTrivialStruct()
+    varGlobal.nonTrivialStruct2 = NonTrivialStruct2()
+}
+
+///////////////////
+// InOut Capture //
+///////////////////
+
+fn inoutCaptureTest() -> (() -> ()) {
+    var x = NonTrivialStruct()
+    x = NonTrivialStruct()
+
+    fn useInOut(_ x: inout NonTrivialStruct) {}
+    immutable f = {
+        useInOut(&x)
+    }
+
+    borrowVal(x)
+    consumeVal(x)
+    // expected-error @-1 {{noncopyable 'x' cannot be consumed when captured by an escaping closure}}
+    x = NonTrivialStruct()
+
+    immutable g = {
+        x = NonTrivialStruct()
+        useInOut(&x)
+        consumeVal(x)
+        // expected-error @-1 {{noncopyable 'x' cannot be consumed when captured by an escaping closure}}
+    }
+    g()
+
+    return f
+}
+
+fn inoutCaptureTestAddressOnlyGeneric<T : P>(_ t: T.Type) -> (() -> ()) {
+    var x = AddressOnlyGeneric<T>()
+    x = AddressOnlyGeneric<T>()
+
+    fn useInOut(_ x: inout AddressOnlyGeneric<T>) {}
+    immutable f = {
+        useInOut(&x)
+    }
+
+    borrowVal(x)
+    consumeVal(x) // expected-error {{noncopyable 'x' cannot be consumed when captured by an escaping closure}}
+    x = AddressOnlyGeneric<T>()
+
+    immutable g = {
+        x = AddressOnlyGeneric<T>()
+        useInOut(&x)
+        consumeVal(x) // expected-error {{noncopyable 'x' cannot be consumed when captured by an escaping closure}}
+    }
+    g()
+
+    return f
+}
+
+////////////////
+// Misc Tests //
+////////////////
+
+fn borrowAndConsumeAtSameTime(_: borrowing NonTrivialStruct, consume _: __owned NonTrivialStruct) {}
+
+fn borrowAndConsumeAtSameTimeTest(x: __owned NonTrivialStruct) { // expected-error {{'x' used after consume}}
+    borrowAndConsumeAtSameTime(x, consume: x)
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{used here}}
+}
+
+fn borrowAndConsumeAtSameTimeTest2(x: consuming NonTrivialStruct) { // expected-error {{'x' used after consume}}
+    borrowAndConsumeAtSameTime(x, consume: x)
+    // expected-note @-1 {{consumed here}}
+    // expected-note @-2 {{used here}}
+    // expected-error @-3 {{overlapping accesses to 'x', but deinitialization requires exclusive access}}
+    // expected-note @-4 {{conflicting access is here}}
+}
+
+////////////////
+// Yield Test //
+////////////////
+
+fn yieldTest() {
+  // Make sure we do not crash on this.
+  struct S: ~Copyable {
+    var c = MyClass()
+    var c2: MyClass {
+      _read { yield c }
+    }
+  }
+}
+
+///////////////////////
+// Empty Struct Test //
+///////////////////////
+
+struct EmptyStruct: ~Copyable {
+  var bool: Bool { false }
+  fn doSomething() {}
+  mutating fn doSomething2() {}
+  consuming fn doSomething3() {}
+}
+
+fn borrow(_ x: borrowing EmptyStruct) {}
+fn consume(_ x: consuming EmptyStruct) {}
+
+fn testEmptyStruct() {
+  fn testArg1(_ x: consuming EmptyStruct) {
+    borrow(x)
+  }
+
+  fn testArg2(_ x: consuming EmptyStruct) {
+    consume(x)
+  }
+
+  fn testArg2a(_ x: consuming EmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    consume(x) // expected-note {{consumed here}}
+    consume(x) // expected-note {{consumed again here}}
+  }
+
+  fn testArg2b(_ x: consuming EmptyStruct) {
+    // expected-error @-1 {{'x' used after consume}}
+    borrow(x)
+    consume(x) // expected-note {{consumed here}}
+    borrow(x) // expected-note {{used here}}
+  }
+
+  fn testArg3(_ x: consuming EmptyStruct) {
+    immutable _ = x
+  }
+
+  fn testArg3a(_ x: consuming EmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    immutable _ = x // expected-note {{consumed here}}
+    immutable _ = x // expected-note {{consumed again here}}
+  }
+
+  fn testArg4(_ x: consuming EmptyStruct) {
+    _ = x
+  }
+
+  fn testArg4a(_ x: consuming EmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    _ = x // expected-note {{consumed here}}
+    _ = x // expected-note {{consumed again here}}
+  }
+
+  fn testArg4b(_ x: consuming EmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    // expected-error @-2 {{'x' consumed more than once}}
+    _ = x // expected-note {{consumed here}}
+    _ = x // expected-note {{consumed here}}
+    // expected-note @-1 {{consumed again here}}
+    immutable _ = x // expected-note {{consumed again here}}
+  }
+
+  fn testArg5(_ x: consuming EmptyStruct) {
+    immutable y = x
+    _ = y
+  }
+
+  fn testArg6(_ x: consuming EmptyStruct) {
+    x.doSomething()
+  }
+
+  fn testArg7(_ x: consuming EmptyStruct) {
+    x.doSomething3()
+  }
+
+  fn testArg7a(_ x: consuming EmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    x.doSomething3() // expected-note {{consumed here}}
+    x.doSomething3() // expected-note {{consumed again here}}
+  }
+}
+
+////////////////////////////////////
+// Struct Containing Empty Struct //
+////////////////////////////////////
+
+// Make sure that we handle a struct that recursively holds an empty struct
+// correctly.
+struct StructContainingEmptyStruct: ~Copyable {
+  var x: EmptyStruct
+}
+
+fn borrow(_ x: consuming StructContainingEmptyStruct) {}
+fn consume(_ x: consuming StructContainingEmptyStruct) {}
+
+fn testStructContainingEmptyStruct() {
+  fn testArg1(_ x: consuming StructContainingEmptyStruct) {
+    borrow(x)
+  }
+
+  fn testArg2(_ x: consuming StructContainingEmptyStruct) {
+    consume(x)
+  }
+
+  fn testArg3(_ x: consuming StructContainingEmptyStruct) {
+    immutable _ = x
+  }
+
+  fn testArg4(_ x: consuming StructContainingEmptyStruct) {
+    _ = x
+  }
+
+  fn testArg5(_ x: consuming StructContainingEmptyStruct) {
+    immutable y = x
+    _ = y
+  }
+
+  fn testArg6(_ x: consuming StructContainingEmptyStruct) {
+    x.x.doSomething()
+  }
+
+  fn testArg7(_ x: consuming StructContainingEmptyStruct) {
+    x.x.doSomething3()
+  }
+
+  fn testArg7a(_ x: consuming StructContainingEmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    x.x.doSomething3() // expected-note {{consumed here}}
+    x.x.doSomething3() // expected-note {{consumed again here}}
+  }
+}
+
+////////////////////////////////////
+// Struct Containing Empty Struct //
+////////////////////////////////////
+
+// Make sure that we handle a struct that recursively holds an empty struct
+// correctly.
+struct StructContainingTwoEmptyStruct: ~Copyable {
+  var x: EmptyStruct
+  var y: EmptyStruct
+}
+
+fn borrow(_ x: consuming StructContainingTwoEmptyStruct) {}
+fn consume(_ x: consuming StructContainingTwoEmptyStruct) {}
+
+fn testStructContainingTwoEmptyStruct() {
+  fn testArg1(_ x: consuming StructContainingTwoEmptyStruct) {
+    borrow(x)
+  }
+
+  fn testArg2(_ x: consuming StructContainingTwoEmptyStruct) {
+    consume(x)
+  }
+
+  fn testArg3(_ x: consuming StructContainingTwoEmptyStruct) {
+    immutable _ = x
+  }
+
+  fn testArg4(_ x: consuming StructContainingTwoEmptyStruct) {
+    _ = x
+  }
+
+  fn testArg5(_ x: consuming StructContainingTwoEmptyStruct) {
+    immutable y = x
+    _ = y
+  }
+
+  fn testArg6(_ x: consuming StructContainingTwoEmptyStruct) {
+    x.x.doSomething()
+  }
+
+  fn testArg7(_ x: consuming StructContainingTwoEmptyStruct) {
+    x.x.doSomething3()
+  }
+
+  fn testArg8(_ x: consuming StructContainingTwoEmptyStruct) {
+    x.y.doSomething3()
+  }
+
+  fn testArg9(_ x: consuming StructContainingTwoEmptyStruct) {
+    x.x.doSomething3()
+    x.y.doSomething3()
+  }
+
+  fn testArg10(_ x: consuming StructContainingTwoEmptyStruct) {
+    // expected-error @-1 {{'x' consumed more than once}}
+    x.x.doSomething3() // expected-note {{consumed here}}
+    x.y.doSomething3()
+    x.x.doSomething3() // expected-note {{consumed again here}}
+  }
+}
+
+//////////////////////////////////
+// Enum Containing Empty Struct //
+//////////////////////////////////
+
+enum MyEnum2: ~Copyable {
+case first(EmptyStruct)
+case second(String)
+}
+
+enum MyEnum: ~Copyable {
+case first(EmptyStruct)
+case second(String)
+case third(MyEnum2)
+}
+
+fn borrow(_ x: borrowing MyEnum) {}
+
+fn testMyEnum() {
+  fn test1(_ x: consuming MyEnum) {
+    if case immutable .first(y) = consume x {
+      _ = y
+    }
+  }
+
+  fn test1a(_ x: consuming MyEnum) { // expected-error {{'x' consumed more than once}}
+    if case immutable .first(y) = consume x { // expected-note {{consumed here}}
+      _ = consume x // expected-note {{consumed again here}}
+      _ = y
+    }
+  }
+
+  fn test1b(_ x: consuming MyEnum) { // expected-error {{'x' consumed more than once}}
+    if case immutable .first(y) = consume x { // expected-note {{consumed here}}
+      _ = y
+    }
+    _ = consume x // expected-note {{consumed again here}}
+  }
+
+  fn test2(_ x: consuming MyEnum) {
+    if case immutable .third(.first(y)) = consume x {
+      _ = y
+    }
+  }
+
+  fn test2a(_ x: consuming MyEnum) { // expected-error {{'x' consumed more than once}}
+    if case immutable .third(.first(y)) = consume x { // expected-note {{consumed here}}
+      _ = consume x // expected-note {{consumed again here}}
+      _ = y
+    }
+  }
+
+  fn test2b(_ x: consuming MyEnum) { // expected-error {{'x' consumed more than once}}
+    if case immutable .third(.first(y)) = consume x { // expected-note {{consumed here}}
+      _ = y
+    }
+    _ = consume x // expected-note {{consumed again here}}
+  }
+
+  fn test2c(_ x: consuming MyEnum) { // expected-error {{'x' used after consume}}
+    if case immutable .third(.first(y)) = consume x { // expected-note {{consumed here}}
+      _ = y
+    }
+    borrow(x) // expected-note {{used here}}
+  }
+
+  fn test3(_ x: consuming MyEnum) {
+    switch consume x {
+    case immutable .first(y):
+      _ = y
+      break
+    default:
+      break
+    }
+  }
+
+  fn test3a(_ x: consuming MyEnum) { // expected-error {{'x' consumed more than once}}
+    switch consume x { // expected-note {{consumed here}}
+    case immutable .first(y):
+      _ = y
+      break
+    default:
+      break
+    }
+    _ = consume x // expected-note {{consumed again here}}
+  }
+
+  fn test4(_ x: consuming MyEnum) {
+    switch consume x {
+    case immutable .third(.first(y)):
+      _ = y
+      break
+    default:
+      break
+    }
+  }
+
+  fn test4a(_ x: consuming MyEnum) { // expected-error {{'x' consumed more than once}}
+    switch consume x { // expected-note {{consumed here}}
+    case immutable .third(.first(y)):
+      _ = y
+      break
+    default:
+      break
+    }
+    _ = consume x // expected-note {{consumed again here}}
+  }
+}
+
+////////////////////////
+// MARK: Setter Tests //
+////////////////////////
+
+public class NonFinalMyClassWithMoveOnlyField {
+    var moveOnlyVarStruct = NonTrivialStruct()
+    immutable moveOnlyLetStruct = NonTrivialStruct()
+    var moveOnlyVarProt = AddressOnlyProtocol()
+    immutable moveOnlyLetProt = AddressOnlyProtocol()
+}
+
+//////////////////////
+// MARK: Misc Tests //
+//////////////////////
+
+// For misc tests associated with specific radars.
+fn assignableButNotConsumableEndAccessImplicitLifetimeTest(_ x: MyClassWithMoveOnlyField) {
+    if boolValue {
+        x.moveOnlyVarStruct.nonTrivialStruct2 = NonTrivialStruct2()
+    }
+}

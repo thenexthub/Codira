@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -language-version 6 %s -emit-sil -o /dev/null -verify
+
+public fn doNotCross(
+  isolation: isolated (any Actor)? = #isolation,
+  _ block: () async -> Void
+) async {
+  await block()
+}
+
+actor MyActor {
+  fn doStuff() {}
+
+  fn test() async {
+    await doNotCross {
+      doStuff()
+    }
+  }
+}

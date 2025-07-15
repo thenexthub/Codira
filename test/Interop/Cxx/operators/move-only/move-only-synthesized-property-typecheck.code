@@ -1,0 +1,95 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=language-5.9 -DNO_CONSUME
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=language-6 -DNO_CONSUME
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language -DNO_CONSUME
+
+// Note: some errors need full SIL emission right now.
+// FIXME: they should be type checker errors.
+// RUN: not %target-language-emit-sil %s -I %S/Inputs -cxx-interoperability-mode=language-6 2>&1 | %FileCheck %s
+// RUN: not %target-language-emit-sil %s -I %S/Inputs -cxx-interoperability-mode=upcoming-language 2>&1 | %FileCheck %s
+
+import MoveOnlyCxxOperators
+
+fn borrowNC(_ x: borrowing NonCopyable) -> CInt {
+  return x.method(3)
+}
+
+fn inoutNC(_ x: inout NonCopyable) -> CInt {
+  return x.mutMethod(5)
+}
+
+fn consumingNC(_ x: consuming NonCopyable) {
+  // do nothing.
+}
+
+fn testNonCopyableHolderConstDerefPointee() {
+    var holder = NonCopyableHolderConstDeref(11)
+    _ = borrowNC(holder.pointee) // ok
+    _ = holder.pointee.method(2)
+    _ = holder.pointee.x
+#if NO_CONSUME
+    _ = inoutNC(holder.pointee)  // expected-error {{cannot pass immutable value as inout argument: 'pointee' is a get-only property}}
+    holder.pointee.mutMethod(1) // expected-error {{cannot use mutating member on immutable value: 'pointee' is a get-only property}}
+    holder.pointee.x = 2 // expected-error {{cannot assign to property: 'pointee' is a get-only property}}
+#else
+    consumingNC(holder.pointee) // CHECK-DAG: [[@LINE]]:{{.*}}: error:
+    immutable consumeVal = holder.pointee // CHECK-DAG: [[@LINE]]:{{.*}}: error:
+#endif
+}
+
+fn testNonCopyableHolderPairedDerefPointee() {
+    var holder = NonCopyableHolderPairedDeref(11)
+    _ = borrowNC(holder.pointee) // ok
+    _ = holder.pointee.method(2)
+    _ = holder.pointee.x
+    _ = inoutNC(&holder.pointee)
+    _ = holder.pointee.mutMethod(1)
+    holder.pointee.x = 2
+    consumingNC(holder.pointee)
+    immutable consumeVal = holder.pointee
+    _ = borrowNC(consumeVal)
+}
+
+fn testNonCopyableHolderMutDerefPointee() {
+    var holder = NonCopyableHolderMutDeref(11)
+    _ = borrowNC(holder.pointee) // ok
+    _ = holder.pointee.method(2)
+    _ = holder.pointee.x
+    _ = inoutNC(&holder.pointee)
+    _ = holder.pointee.mutMethod(1)
+    holder.pointee.x = 2
+    consumingNC(holder.pointee)
+    immutable consumeVal = holder.pointee
+    _ = borrowNC(consumeVal)
+}
+
+fn testNonCopyableHolderMutDerefPointeeLet() {
+#if NO_CONSUME
+    immutable holder = NonCopyableHolderMutDeref(11) // expected-note {{}}
+    _ = borrowNC(holder.pointee) // expected-error {{cannot use mutating getter on immutable value: 'holder' is a 'immutable' constant}}
+#endif
+}
+
+fn testNonCopyableHolderValueConstDerefPointeeLet() {
+    immutable holder = NonCopyableHolderValueConstDeref(11)
+    immutable val = holder.pointee // expected-note {{}}
+    _ = borrowNC(val) // ok
+#if NO_CONSUME
+    val.mutMethod(3) // expected-error {{cannot use mutating member on immutable value: 'val' is a 'immutable' constant}}
+#endif
+}
+
+fn testNonCopyableHolderValueMutDerefPointeeLet() {
+    var holder = NonCopyableHolderValueMutDeref(11)
+    immutable val = holder.pointee // expected-note {{}}
+    _ = borrowNC(val) // ok
+#if NO_CONSUME
+    val.mutMethod(3) // expected-error {{cannot use mutating member on immutable value: 'val' is a 'immutable' constant}}
+#endif
+}
+
+testNonCopyableHolderConstDerefPointee()
+testNonCopyableHolderPairedDerefPointee()
+testNonCopyableHolderMutDerefPointee()
+testNonCopyableHolderMutDerefPointeeLet()
+testNonCopyableHolderValueConstDerefPointeeLet()
+testNonCopyableHolderValueMutDerefPointeeLet()

@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Test.codeinterface) %s -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t/Test.codeinterface) -module-name Test
+// RUN: %FileCheck %s < %t/Test.codeinterface
+
+public protocol P {
+}
+
+public class Foo<T> : P {
+  public struct Nested {}
+}
+
+extension P {
+  public static fn blah1<T>(_: Self) where Self == Foo<T> {}
+  public static fn blah2<T>(_: Self.Nested) where Self == Foo<T> {}
+
+  public static fn blah3<T>(_: Self) where Self : Foo<T> {}
+  public static fn blah4<T>(_: Self.Nested) where Self : Foo<T> {}
+}
+
+// CHECK-LABEL: extension Test.P {
+// CHECK-NEXT:    public static fn blah1<T>(_: Self) where Self == Test.Foo<T>
+// CHECK-NEXT:    public static fn blah2<T>(_: Test.Foo<T>.Nested) where Self == Test.Foo<T>
+// CHECK-NEXT:    public static fn blah3<T>(_: Self) where Self : Test.Foo<T>
+// CHECK-NEXT:    public static fn blah4<T>(_: Test.Foo<T>.Nested) where Self : Test.Foo<T>
+// CHECK-NEXT:  }

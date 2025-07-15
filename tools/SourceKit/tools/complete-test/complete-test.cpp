@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/sourcekitd.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <fstream>
 #include <optional>
 #include <regex>
@@ -36,7 +37,7 @@
 // FIXME: Platform compatibility.
 #include <dispatch/dispatch.h>
 
-using namespace llvm;
+using namespace toolchain;
 
 #if defined(_WIN32)
 namespace {
@@ -297,7 +298,7 @@ static void notification_receiver(sourcekitd_response_t resp) {
 }
 
 static int skt_main(int argc, const char **argv) {
-  llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
+  toolchain::sys::PrintStackTraceOnErrorSignal(argv[0]);
 
   sourcekitd_initialize();
 
@@ -361,11 +362,11 @@ static int skt_main(int argc, const char **argv) {
   KeyUnpopular = sourcekitd_uid_get_from_cstr("key.unpopular");
   KeySubStructure = sourcekitd_uid_get_from_cstr("key.substructure");
 
-  auto Args = llvm::ArrayRef(argv + 1, argc - 1);
+  auto Args = toolchain::ArrayRef(argv + 1, argc - 1);
   TestOptions options;
   std::string error;
   if (!parseOptions(Args, options, error)) {
-    llvm::errs() << "usage: complete-test -tok=A file\n" << error << "\n";
+    toolchain::errs() << "usage: complete-test -tok=A file\n" << error << "\n";
     return 1;
   }
 
@@ -422,13 +423,13 @@ removeCodeCompletionTokens(StringRef Input, StringRef TokenName,
 
 namespace {
 class ResponsePrinter {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
   unsigned indentWidth;
   unsigned currentIndentation;
   bool structuredOutput = false;
 
 public:
-  ResponsePrinter(llvm::raw_ostream &OS, unsigned indentWidth,
+  ResponsePrinter(toolchain::raw_ostream &OS, unsigned indentWidth,
                   unsigned startingIndent, bool structure)
       : OS(OS), indentWidth(indentWidth), currentIndentation(startingIndent),
         structuredOutput(structure) {}
@@ -445,7 +446,7 @@ public:
   }
   void printGroupOrCompletion(sourcekitd_variant_t value) {
     static sourcekitd_uid_t GroupUID =
-        sourcekitd_uid_get_from_cstr("source.lang.swift.codecomplete.group");
+        sourcekitd_uid_get_from_cstr("source.lang.code.codecomplete.group");
     if (GroupUID == sourcekitd_variant_dictionary_get_uid(value, KeyKind)) {
       printGroup(value);
     } else {
@@ -472,7 +473,7 @@ public:
 
     unsigned index = 0;
     auto printUntil =
-        [desc, &index, this](unsigned end) -> llvm::raw_ostream & {
+        [desc, &index, this](unsigned end) -> toolchain::raw_ostream & {
           for (; index != end; ++index)
             OS.write(desc[index]);
           return OS;
@@ -563,7 +564,7 @@ public:
                   sourcekitd_variant_string_get_length(val));
     return str;
   }
-  llvm::raw_ostream &indent() {
+  toolchain::raw_ostream &indent() {
     for (unsigned i = 0; i < currentIndentation; ++i)
       OS.write(' ');
     return OS;
@@ -574,23 +575,23 @@ public:
 static void printResponse(sourcekitd_response_t resp, bool raw, bool structure,
                           unsigned indentation) {
   if (raw) {
-    llvm::outs().flush();
+    toolchain::outs().flush();
     sourcekitd_response_description_dump_filedesc(resp, STDOUT_FILENO);
     return;
   }
-  ResponsePrinter p(llvm::outs(), 4, indentation, structure);
+  ResponsePrinter p(toolchain::outs(), 4, indentation, structure);
   p.printResponse(resp);
-  llvm::outs().flush();
+  toolchain::outs().flush();
 }
 
-static std::unique_ptr<llvm::MemoryBuffer>
+static std::unique_ptr<toolchain::MemoryBuffer>
 getBufferForFilename(StringRef name) {
 
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> buffer =
-      llvm::MemoryBuffer::getFile(name);
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> buffer =
+      toolchain::MemoryBuffer::getFile(name);
 
   if (!buffer) {
-    llvm::errs() << "error reading '" << name
+    toolchain::errs() << "error reading '" << name
                  << "': " << buffer.getError().message() << "\n";
     return nullptr;
   }
@@ -610,9 +611,9 @@ static sourcekitd_object_t createBaseRequest(sourcekitd_uid_t requestUID,
 
 using HandlerFunc = std::function<bool(sourcekitd_response_t)>;
 
-static bool sendRequestSync(sourcekitd_object_t request, HandlerFunc func) {
+static bool sendRequestSync(sourcekitd_object_t request, HandlerFunc fn) {
   auto response = sourcekitd_send_request_sync(request);
-  bool result = func(response);
+  bool result = fn(response);
   sourcekitd_response_dispose(response);
   return result;
 }
@@ -620,7 +621,7 @@ static bool sendRequestSync(sourcekitd_object_t request, HandlerFunc func) {
 static bool codeCompleteRequest(sourcekitd_uid_t requestUID, const char *name,
                                 unsigned offset, const char *sourceText,
                                 const char *filterText, TestOptions &options,
-                                HandlerFunc func) {
+                                HandlerFunc fn) {
 
   auto request = createBaseRequest(requestUID, name, offset);
   sourcekitd_request_dictionary_set_string(request, KeySourceFile, name);
@@ -669,7 +670,7 @@ static bool codeCompleteRequest(sourcekitd_uid_t requestUID, const char *name,
           sourcekitd_request_create_from_yaml(buffer->getBuffer().data(), &err);
       if (!dict) {
         assert(err);
-        llvm::errs() << err;
+        toolchain::errs() << err;
         free(err);
         return 1;
       }
@@ -711,7 +712,7 @@ static bool codeCompleteRequest(sourcekitd_uid_t requestUID, const char *name,
   sourcekitd_request_release(args);
 
   // Send the request!
-  bool result = sendRequestSync(request, func);
+  bool result = sendRequestSync(request, fn);
   sourcekitd_request_release(request);
   return result;
 }
@@ -720,7 +721,7 @@ static bool readPopularAPIList(StringRef filename,
                                std::vector<std::string> &result) {
   std::ifstream in(filename.str());
   if (!in.is_open()) {
-    llvm::errs() << "error opening '" << filename << "'\n";
+    toolchain::errs() << "error opening '" << filename << "'\n";
     return true;
   }
 
@@ -789,7 +790,7 @@ static int handleTestInvocation(TestOptions &options) {
       &CodeCompletionOffset);
 
   if (CodeCompletionOffset == ~0U) {
-    llvm::errs() << "cannot find code completion token in source file\n";
+    toolchain::errs() << "cannot find code completion token in source file\n";
     return 1;
   }
 
@@ -832,12 +833,12 @@ static int handleTestInvocation(TestOptions &options) {
             sourcekitd_response_description_dump(response);
             return true;
           }
-          llvm::outs() << "Results for filterText: " << prefix << " [\n";
-          llvm::outs().flush();
+          toolchain::outs() << "Results for filterText: " << prefix << " [\n";
+          toolchain::outs().flush();
           printResponse(response, options.rawOutput, options.structureOutput,
                         /*indentation*/ 4);
-          llvm::outs() << "]\n";
-          llvm::outs().flush();
+          toolchain::outs() << "]\n";
+          toolchain::outs().flush();
           return false;
         });
     if (isError)

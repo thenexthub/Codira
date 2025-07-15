@@ -1,0 +1,27 @@
+// REQUIRES: language_language_parser, executable_test
+
+// RUN: %empty-directory(%t)
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroDefinition) -module-name=MacroDefinition %S/Inputs/syntax_macro_definitions.code -g -no-toolchain-stdlib-rpath
+
+// Check for errors
+// RUN: %target-language-frontend -language-version 5 -typecheck -load-plugin-library %t/%target-library-name(MacroDefinition) %s -I %t -disable-availability-checking -language-version 6 -default-isolation MainActor -enable-experimental-feature SendableProhibitsMainActorInference
+
+// REQUIRES: language_feature_SendableProhibitsMainActorInference
+
+@attached(extension, conformances: Sendable)
+macro AddSendable() = #externalMacro(module: "MacroDefinition", type: "SendableMacro")
+
+@AddSendable
+final class SendableClass {
+  var property: Int { 0 }
+
+  fn f() { }
+}
+
+nonisolated fn acceptSendable<T: Sendable>(_: T) { }
+
+@concurrent fn test(sc: SendableClass) async {
+  acceptSendable(sc) // SendableClass is Sendable
+  acceptSendable(\SendableClass.property) // so is its property
+  sc.f() // not on the main actor, so this is okay
+}

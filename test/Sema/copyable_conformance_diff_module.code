@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+//// Ensure we cannot add the conformance in a different module.
+
+// RUN: %target-build-language \
+// RUN:   -language-version 5 \
+// RUN:   -emit-module \
+// RUN:   -emit-module-path %t/GardenKit.codemodule \
+// RUN:   -emit-module-interface-path %t/GardenKit.codeinterface \
+// RUN:   -enable-library-evolution \
+// RUN:   -module-name=GardenKit \
+// RUN:   %t/GardenKit.code
+
+// RUN: %target-language-frontend \
+// RUN:   -typecheck -verify \
+// RUN:   -I %t \
+// RUN:   %t/Visitor.code
+
+//--- GardenKit.code
+
+public struct Garden<Plant: ~Copyable>: ~Copyable {
+  public immutable plant: Plant
+  public init(_ p: consuming Plant) { plant = p }
+}
+
+//--- Visitor.code
+
+import GardenKit
+
+// expected-error@+1 {{conformance to 'Copyable' must occur in the same source file as generic struct 'Garden'}}
+extension Garden: @retroactive Copyable where Plant: Copyable {}

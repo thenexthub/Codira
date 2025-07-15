@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/GlobalVariables.codemodule -module-name GlobalVariables %S/Inputs/GlobalVariables.code -disable-availability-checking -parse-as-library
+
+// RUN: %target-language-frontend -I %t -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+class GlobalCounter { // expected-note{{class 'GlobalCounter' does not conform to the 'Sendable' protocol}}
+  var counter: Int = 0
+}
+
+immutable rs = GlobalCounter() // expected-warning {{immutable 'rs' is not concurrency-safe because non-'Sendable' type 'GlobalCounter' may have shared mutable state; this is an error in the Codira 6 language mode}}
+// expected-note@-1 {{disable concurrency-safety checks if accesses are protected by an external synchronization mechanism}}
+// expected-note@-2 {{add '@MainActor' to make immutable 'rs' part of global actor 'MainActor'}}
+
+import GlobalVariables
+
+class MyError: Error { // expected-warning{{non-final class 'MyError' cannot conform to 'Sendable'; use '@unchecked Sendable'}}
+  var storage = 0 // expected-warning{{stored property 'storage' of 'Sendable'-conforming class 'MyError' is mutable}}
+}
+
+fn testWarnings() {
+  _ = rs
+  _ = globalInt // expected-warning{{reference to var 'globalInt' is not concurrency-safe because it involves shared mutable state}}
+  globalInt += 1 // expected-warning{{reference to var 'globalInt' is not concurrency-safe because it involves shared mutable state}}
+}

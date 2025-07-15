@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -verify -module-name Lib %t/Lib.code -emit-module -emit-module-path %t/Lib.codemodule -package-name myPkg
+
+/// Type-checking an operator (L30 below) causes look up of all of its decls regardless of which access modifier is
+/// used (decl in both Client and Lib in this case) before filtering. The decl in Lib is a package decl and has
+/// package-name associated with it, but the use site (in Client) does not have package-name. The package decl
+/// should be filtered out and the public == decl should be picked.
+// RUN: %target-language-frontend -typecheck -verify %t/Client.code -I %t
+
+
+//--- Lib.code
+public class Decl {
+  package static fn == (lhs: Decl, rhs: Decl) -> Bool {
+    return true
+  }
+}
+
+//--- Client.code
+import Lib
+
+extension Decl: @retroactive Equatable {
+  public static fn == (lhs: Decl, rhs: Decl) -> Bool {
+    return false
+  }
+}
+
+public protocol Proto {}
+extension Proto {
+  fn foo(first: Decl, second: Decl) -> Bool {
+    // Type-checking below causes a look up of == in both Client and Lib
+    return first == second
+  }
+}

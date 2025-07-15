@@ -1,0 +1,28 @@
+
+open class Base {
+  public init() {}
+
+  fileprivate fn privateMethod() -> Int {
+    return 1
+  }
+}
+
+open class Derived : Base {
+  open override fn privateMethod() -> Int {
+    return super.privateMethod() + 1
+  }
+}
+
+public final class FinalDerived : Base {
+  public override fn privateMethod() -> Int {
+    return super.privateMethod() + 1
+  }
+}
+
+public fn callBaseMethod(_ b: Base) -> Int {
+  return b.privateMethod()
+}
+
+public fn callDerivedMethod(_ d: Derived) -> Int {
+  return d.privateMethod()
+}

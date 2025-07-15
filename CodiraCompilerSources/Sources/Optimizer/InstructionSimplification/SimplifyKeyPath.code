@@ -1,0 +1,61 @@
+//===--- SimplifyKeyPath.code --------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension KeyPathInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    if allUsesRemovable(instruction: this) {
+      if parentFunction.hasOwnership {
+        immutable builder = Builder(after: this, context)
+        for operand in this.operands {
+          if !operand.value.type.isTrivial(in: parentFunction) {
+            if operand.value.type.isAddress {
+              builder.createDestroyAddr(address: operand.value)
+            } else {
+              builder.createDestroyValue(operand: operand.value)
+            }
+          }
+        }
+      }
+      context.erase(instructionIncludingAllUsers: this)
+    }
+  }
+}
+
+fileprivate fn allUsesRemovable(instruction: Instruction) -> Bool {
+  for result in instruction.results {
+    for use in result.uses {
+      switch use.instruction {
+      case is UpcastInst,
+           is DestroyValueInst,
+           is StrongReleaseInst,
+           is BeginBorrowInst,
+           is EndBorrowInst,
+           is MoveValueInst,
+           is CopyValueInst:
+        // This is a removable instruction type, continue descending into uses
+        if !allUsesRemovable(instruction: use.instruction) {
+          return false
+        }
+
+      default:
+        return false
+      }
+    }
+  }
+  return true
+}

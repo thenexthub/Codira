@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // This analysis collects a set of nominal types (classes, structs, and enums)
 // that conform to a protocol during whole module compilation. We only track
 // protocols that are non-public.
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_PROTOCOLCONFORMANCE_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_PROTOCOLCONFORMANCE_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_PROTOCOLCONFORMANCE_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_PROTOCOLCONFORMANCE_H
 
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SILOptimizer/Analysis/ClassHierarchyAnalysis.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -36,9 +37,9 @@ class ProtocolDecl;
 class ProtocolConformanceAnalysis : public SILAnalysis {
 public:
   typedef SmallVector<NominalTypeDecl *, 8> NominalTypeList;
-  typedef llvm::DenseMap<ProtocolDecl *, NominalTypeList>
+  typedef toolchain::DenseMap<ProtocolDecl *, NominalTypeList>
       ProtocolConformanceMap;
-  typedef llvm::DenseMap<ProtocolDecl *, NominalTypeDecl *>
+  typedef toolchain::DenseMap<ProtocolDecl *, NominalTypeDecl *>
       SoleConformingTypeMap;
 
   ProtocolConformanceAnalysis(SILModule *Mod)

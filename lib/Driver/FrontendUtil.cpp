@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Driver/FrontendUtil.h"
@@ -21,37 +22,37 @@
 #include "language/Driver/Driver.h"
 #include "language/Driver/Job.h"
 #include "language/Driver/ToolChain.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/StringSaver.h"
-#include "llvm/TargetParser/Host.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/StringSaver.h"
+#include "toolchain/TargetParser/Host.h"
 
 using namespace language;
 using namespace language::driver;
 
-void swift::driver::ExpandResponseFilesWithRetry(llvm::StringSaver &Saver,
-                                llvm::SmallVectorImpl<const char *> &Args) {
+void language::driver::ExpandResponseFilesWithRetry(toolchain::StringSaver &Saver,
+                                toolchain::SmallVectorImpl<const char *> &Args) {
   const unsigned MAX_COUNT = 30;
   for (unsigned I = 0; I != MAX_COUNT; ++I) {
-    if (llvm::cl::ExpandResponseFiles(Saver,
-        llvm::Triple(llvm::sys::getProcessTriple()).isOSWindows()
-          ? llvm::cl::TokenizeWindowsCommandLine
-          : llvm::cl::TokenizeGNUCommandLine,
+    if (toolchain::cl::ExpandResponseFiles(Saver,
+        toolchain::Triple(toolchain::sys::getProcessTriple()).isOSWindows()
+          ? toolchain::cl::TokenizeWindowsCommandLine
+          : toolchain::cl::TokenizeGNUCommandLine,
         Args)) {
       return;
     }
   }
 }
 
-static void removeSupplementaryOutputs(llvm::opt::ArgList &ArgList) {
-  llvm::DenseSet<unsigned> OptSpecifiersToRemove;
+static void removeSupplementaryOutputs(toolchain::opt::ArgList &ArgList) {
+  toolchain::DenseSet<unsigned> OptSpecifiersToRemove;
 
-  for (llvm::opt::Arg *Arg : ArgList.getArgs()) {
+  for (toolchain::opt::Arg *Arg : ArgList.getArgs()) {
     if (!Arg)
       continue;
 
-    const llvm::opt::Option &Opt = Arg->getOption();
+    const toolchain::opt::Option &Opt = Arg->getOption();
     if (Opt.hasFlag(options::SupplementaryOutput))
       OptSpecifiersToRemove.insert(Opt.getID());
   }
@@ -61,12 +62,12 @@ static void removeSupplementaryOutputs(llvm::opt::ArgList &ArgList) {
   }
 }
 
-bool swift::driver::getSingleFrontendInvocationFromDriverArguments(
+bool language::driver::getSingleFrontendInvocationFromDriverArguments(
     StringRef DriverPath, ArrayRef<const char *> Argv, DiagnosticEngine &Diags,
-    llvm::function_ref<bool(ArrayRef<const char *> FrontendArgs)> Action,
+    toolchain::function_ref<bool(ArrayRef<const char *> FrontendArgs)> Action,
     bool ForceNoOutputs) {
   SmallVector<const char *, 16> Args;
-  Args.push_back("<swiftc>"); // FIXME: Remove dummy argument.
+  Args.push_back("<languagec>"); // FIXME: Remove dummy argument.
   Args.insert(Args.end(), Argv.begin(), Argv.end());
 
   // When creating a CompilerInvocation, ensure that the driver creates a single
@@ -85,12 +86,12 @@ bool swift::driver::getSingleFrontendInvocationFromDriverArguments(
   Args.push_back(neverThreshold.c_str());
 
   // Expand any file list args.
-  llvm::BumpPtrAllocator Allocator;
-  llvm::StringSaver Saver(Allocator);
+  toolchain::BumpPtrAllocator Allocator;
+  toolchain::StringSaver Saver(Allocator);
   ExpandResponseFilesWithRetry(Saver, Args);
 
-  // Force the driver into batch mode by specifying "swiftc" as the name.
-  Driver TheDriver(DriverPath, "swiftc", Args, Diags);
+  // Force the driver into batch mode by specifying "languagec" as the name.
+  Driver TheDriver(DriverPath, "languagec", Args, Diags);
 
   // Don't check for the existence of input files, since the user of the
   // CompilerInvocation may wish to remap inputs to source buffers.
@@ -98,7 +99,7 @@ bool swift::driver::getSingleFrontendInvocationFromDriverArguments(
 
   TheDriver.setIsDummyDriverForFrontendInvocation(true);
 
-  std::unique_ptr<llvm::opt::InputArgList> ArgList =
+  std::unique_ptr<toolchain::opt::InputArgList> ArgList =
     TheDriver.parseArgStrings(ArrayRef<const char *>(Args).slice(1));
   if (Diags.hadAnyError())
     return true;
@@ -110,7 +111,7 @@ bool swift::driver::getSingleFrontendInvocationFromDriverArguments(
 
     unsigned index = ArgList->MakeIndex("-typecheck");
     // Takes ownership of the Arg.
-    ArgList->append(new llvm::opt::Arg(
+    ArgList->append(new toolchain::opt::Arg(
         TheDriver.getOpts().getOption(options::OPT_typecheck),
         ArgList->getArgString(index), index));
   }
@@ -143,6 +144,6 @@ bool swift::driver::getSingleFrontendInvocationFromDriverArguments(
     return true;
   }
 
-  const llvm::opt::ArgStringList &BaseFrontendArgs = Cmd->getArguments();
-  return Action(llvm::ArrayRef(BaseFrontendArgs).drop_front());
+  const toolchain::opt::ArgStringList &BaseFrontendArgs = Cmd->getArguments();
+  return Action(toolchain::ArrayRef(BaseFrontendArgs).drop_front());
 }

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "language/Basic/QuotedString.h"
 
 using namespace language;
 
-void swift::printAsQuotedString(llvm::raw_ostream &out, llvm::StringRef text) {
+void language::printAsQuotedString(toolchain::raw_ostream &out, toolchain::StringRef text) {
   out << '"';
   for (auto C : text) {
     switch (C) {

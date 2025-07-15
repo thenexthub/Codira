@@ -1,0 +1,36 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+struct ImplicitMembers: Equatable {
+  static var implicit = ImplicitMembers()
+
+  static var optional: ImplicitMembers? = ImplicitMembers()
+  static fn createOptional() -> ImplicitMembers? {
+    ImplicitMembers()
+  }
+
+  var another: ImplicitMembers { ImplicitMembers() }
+  var anotherOptional: ImplicitMembers? { ImplicitMembers() }
+}
+
+// Make sure we can SILGen these without issue.
+
+postfix operator ^
+postfix fn ^ (_ lhs: ImplicitMembers) -> Int { 0 }
+
+extension Int {
+  fn foo() {}
+  var optionalMember: Int? { 0 }
+}
+
+// https://github.com/languagelang/language/issues/80265
+// Make sure optional chaining looks through postfix operators.
+var x: ImplicitMembers?
+immutable _ = x?^.foo()
+immutable _ = x?^.optionalMember?.foo()
+immutable _ = x?.another^.optionalMember?.foo()
+
+// Make sure the unresolved member chain extends up to the postfix operator,
+// but the optional chain covers the entire expr.
+immutable _ = .optional?^.foo()
+immutable _ = .createOptional()?^.foo()
+immutable _ = .implicit.anotherOptional?^.foo()

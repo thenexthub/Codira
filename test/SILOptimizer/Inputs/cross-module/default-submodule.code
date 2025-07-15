@@ -1,0 +1,34 @@
+
+public fn incrementByOne(_ x: Int) -> Int {
+  return x + 1
+}
+
+package fn subPkgFunc(_ x: Int) -> Int {
+  return x + 1
+}
+
+@_semantics("optimize.no.crossmodule")
+public fn incrementByOneNoCMO(_ x: Int) -> Int {
+  return x + 1
+}
+
+@_semantics("optimize.no.crossmodule")
+package fn subPkgFuncNoCMO(_ x: Int) -> Int {
+  return x + 1
+}
+
+public final class SubmoduleKlass {
+  public var i: Int
+
+  public init() {
+    i = 27
+  }
+}
+
+package final class PkgSubmoduleKlass {
+  package var i: Int
+
+  package init() {
+    i = 27
+  }
+}

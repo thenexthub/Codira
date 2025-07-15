@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -27,13 +28,13 @@
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -51,41 +52,41 @@ ARCMatchingSetBuilder::matchIncrementsToDecrements() {
   //
   // FIXME: Refactor this into its own function.
   for (SILInstruction *Increment : NewIncrements) {
-    LLVM_DEBUG(llvm::dbgs() << "    Looking up state for increment: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Looking up state for increment: "
                             << *Increment);
 
     auto BURefCountState = BUMap.find(Increment);
     assert(BURefCountState != BUMap.end() && "Catch this on debug builds.");
     if (BURefCountState == BUMap.end()) {
-      LLVM_DEBUG(llvm::dbgs() << "        FAILURE! Could not find state for "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAILURE! Could not find state for "
                                  "increment!\n");
       return std::nullopt;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "        SUCCESS! Found state for increment.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        SUCCESS! Found state for increment.\n");
 
     // If we are not tracking a ref count inst for this increment, there is
     // nothing we can pair it with implying we should skip it.
     if (!(*BURefCountState)->second.isTrackingRefCountInst()) {
-      LLVM_DEBUG(llvm::dbgs() << "    SKIPPING INCREMENT! State not tracking "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    SKIPPING INCREMENT! State not tracking "
                                  "any instruction.\n");
       continue;
     }
 
     bool BUIsKnownSafe = (*BURefCountState)->second.isKnownSafe();
-    LLVM_DEBUG(llvm::dbgs() << "        BOTTOM UP KNOWNSAFE: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        BOTTOM UP KNOWNSAFE: "
                             << (BUIsKnownSafe ? "true" : "false") << "\n");
     Flags.KnownSafe &= BUIsKnownSafe;
 
     bool BUCodeMotionSafe = (*BURefCountState)->second.isCodeMotionSafe();
-    LLVM_DEBUG(llvm::dbgs() << "        BOTTOM UP CODEMOTIONSAFE: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        BOTTOM UP CODEMOTIONSAFE: "
                             << (BUCodeMotionSafe ? "true" : "false") << "\n");
     Flags.CodeMotionSafe &= BUCodeMotionSafe;
 
     // Now that we know we have an inst, grab the decrement.
     for (auto DecIter : (*BURefCountState)->second.getInstructions()) {
       SILInstruction *Decrement = DecIter;
-      LLVM_DEBUG(llvm::dbgs() << "        Decrement: " << *Decrement);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Decrement: " << *Decrement);
 
       // Now grab the increment matched up with the decrement from the bottom up
       // map.
@@ -93,19 +94,19 @@ ARCMatchingSetBuilder::matchIncrementsToDecrements() {
       // anything.
       auto TDRefCountState = TDMap.find(Decrement);
       if (TDRefCountState == TDMap.end()) {
-        LLVM_DEBUG(llvm::dbgs() << "            FAILURE! Could not find state "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            FAILURE! Could not find state "
                                    "for decrement.\n");
         return std::nullopt;
       }
-      LLVM_DEBUG(llvm::dbgs() << "            SUCCESS! Found state for "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            SUCCESS! Found state for "
                                  "decrement.\n");
 
       // Make sure the increment we are looking at is also matched to our
       // decrement. Otherwise bail.
       if (!(*TDRefCountState)->second.isTrackingRefCountInst() ||
           !(*TDRefCountState)->second.containsInstruction(Increment)) {
-        LLVM_DEBUG(
-            llvm::dbgs() << "            FAILURE! Not tracking instruction or "
+        TOOLCHAIN_DEBUG(
+            toolchain::dbgs() << "            FAILURE! Not tracking instruction or "
                             "found increment that did not match.\n");
         return std::nullopt;
       }
@@ -113,7 +114,7 @@ ARCMatchingSetBuilder::matchIncrementsToDecrements() {
       // Add the decrement to the decrement to move set. If we don't insert
       // anything, just continue.
       if (!MatchSet.Decrements.insert(Decrement)) {
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "        SKIPPING! Already processed this decrement\n");
         continue;
       }
@@ -133,41 +134,41 @@ ARCMatchingSetBuilder::matchDecrementsToIncrements() {
   //
   // FIXME: Refactor this into its own function.
   for (SILInstruction *Decrement : NewDecrements) {
-    LLVM_DEBUG(llvm::dbgs() << "    Looking up state for decrement: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Looking up state for decrement: "
                             << *Decrement);
 
     auto TDRefCountState = TDMap.find(Decrement);
     assert(TDRefCountState != TDMap.end() && "Catch this on debug builds.");
     if (TDRefCountState == TDMap.end()) {
-      LLVM_DEBUG(llvm::dbgs() << "        FAILURE! Could not find state for "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAILURE! Could not find state for "
                                  "increment!\n");
       return std::nullopt;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "        SUCCESS! Found state for decrement.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        SUCCESS! Found state for decrement.\n");
 
     // If we are not tracking a ref count inst for this increment, there is
     // nothing we can pair it with implying we should skip it.
     if (!(*TDRefCountState)->second.isTrackingRefCountInst()) {
-      LLVM_DEBUG(llvm::dbgs() << "    SKIPPING DECREMENT! State not tracking "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    SKIPPING DECREMENT! State not tracking "
                                  "any instruction.\n");
       continue;
     }
 
     bool TDIsKnownSafe = (*TDRefCountState)->second.isKnownSafe();
-    LLVM_DEBUG(llvm::dbgs() << "        TOP DOWN KNOWNSAFE: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        TOP DOWN KNOWNSAFE: "
                             << (TDIsKnownSafe ? "true" : "false") << "\n");
     Flags.KnownSafe &= TDIsKnownSafe;
 
     bool TDCodeMotionSafe = (*TDRefCountState)->second.isCodeMotionSafe();
-    LLVM_DEBUG(llvm::dbgs() << "        TOP DOWN CODEMOTIONSAFE: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        TOP DOWN CODEMOTIONSAFE: "
                             << (TDCodeMotionSafe ? "true" : "false") << "\n");
     Flags.CodeMotionSafe &= TDCodeMotionSafe;
 
     // Now that we know we have an inst, grab the decrement.
     for (auto IncIter : (*TDRefCountState)->second.getInstructions()) {
       SILInstruction *Increment = IncIter;
-      LLVM_DEBUG(llvm::dbgs() << "        Increment: " << *Increment);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Increment: " << *Increment);
 
       // Now grab the increment matched up with the decrement from the bottom up
       // map.
@@ -175,21 +176,21 @@ ARCMatchingSetBuilder::matchDecrementsToIncrements() {
       // anything.
       auto BURefCountState = BUMap.find(Increment);
       if (BURefCountState == BUMap.end()) {
-        LLVM_DEBUG(llvm::dbgs() << "            FAILURE! Could not find state "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            FAILURE! Could not find state "
                                    "for increment.\n");
         return std::nullopt;
       }
 
-      LLVM_DEBUG(
-          llvm::dbgs() << "            SUCCESS! Found state for increment.\n");
+      TOOLCHAIN_DEBUG(
+          toolchain::dbgs() << "            SUCCESS! Found state for increment.\n");
 
       // Make sure the increment we are looking at is also matched to our
       // decrement.
       // Otherwise bail.
       if (!(*BURefCountState)->second.isTrackingRefCountInst() ||
           !(*BURefCountState)->second.containsInstruction(Decrement)) {
-        LLVM_DEBUG(
-            llvm::dbgs() << "            FAILURE! Not tracking instruction or "
+        TOOLCHAIN_DEBUG(
+            toolchain::dbgs() << "            FAILURE! Not tracking instruction or "
                             "found increment that did not match.\n");
         return std::nullopt;
       }
@@ -197,7 +198,7 @@ ARCMatchingSetBuilder::matchDecrementsToIncrements() {
       // Add the decrement to the decrement to move set. If we don't insert
       // anything, just continue.
       if (!MatchSet.Increments.insert(Increment)) {
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "    SKIPPING! Already processed this increment.\n");
         continue;
       }
@@ -220,22 +221,22 @@ bool ARCMatchingSetBuilder::matchUpIncDecSetsForPtr() {
   bool CodeMotionSafeBU = true;
 
   while (true) {
-    LLVM_DEBUG(llvm::dbgs() << "Attempting to match up increments -> "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Attempting to match up increments -> "
                "decrements:\n");
     // For each increment in our list of new increments, attempt to match them
     // up with decrements.
     auto Result = matchIncrementsToDecrements();
     if (!Result) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAILED TO MATCH INCREMENTS -> "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAILED TO MATCH INCREMENTS -> "
                  "DECREMENTS!\n");
       return false;
     }
     if (!Result->KnownSafe) {
-      LLVM_DEBUG(llvm::dbgs() << "    NOT KNOWN SAFE!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    NOT KNOWN SAFE!\n");
       KnownSafeTD = false;
     }
     if (!Result->CodeMotionSafe) {
-      LLVM_DEBUG(llvm::dbgs() << "    NOT CODE MOTION SAFE!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    NOT CODE MOTION SAFE!\n");
       CodeMotionSafeTD = false;
     }
       
@@ -245,20 +246,20 @@ bool ARCMatchingSetBuilder::matchUpIncDecSetsForPtr() {
     if (NewDecrements.empty())
       break;
 
-    LLVM_DEBUG(llvm::dbgs() << "Attempting to match up decrements -> "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Attempting to match up decrements -> "
                "increments:\n");
     Result = matchDecrementsToIncrements();
     if (!Result) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAILED TO MATCH DECREMENTS -> "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAILED TO MATCH DECREMENTS -> "
                  "INCREMENTS!\n");
       return false;
     }
     if (!Result->KnownSafe) {
-      LLVM_DEBUG(llvm::dbgs() << "    NOT KNOWN SAFE!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    NOT KNOWN SAFE!\n");
       KnownSafeBU = false;
     }
     if (!Result->CodeMotionSafe) {
-      LLVM_DEBUG(llvm::dbgs() << "    NOT CODE MOTION SAFE!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    NOT CODE MOTION SAFE!\n");
       CodeMotionSafeBU = false;
     }
     NewDecrements.clear();
@@ -275,10 +276,10 @@ bool ARCMatchingSetBuilder::matchUpIncDecSetsForPtr() {
   bool UnconditionallySafe = (KnownSafeTD && KnownSafeBU);
   bool CodeMotionSafe = (CodeMotionSafeTD && CodeMotionSafeBU);
   if (UnconditionallySafe || CodeMotionSafe) {
-    LLVM_DEBUG(llvm::dbgs() << "UNCONDITIONALLY OR CODE MOTION SAFE! "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "UNCONDITIONALLY OR CODE MOTION SAFE! "
                "DELETING INSTS.\n");
   } else {
-    LLVM_DEBUG(llvm::dbgs() << "NOT UNCONDITIONALLY SAFE AND CODE MOTION "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "NOT UNCONDITIONALLY SAFE AND CODE MOTION "
                "BLOCKED!\n");
     return false;
   }
@@ -291,6 +292,6 @@ bool ARCMatchingSetBuilder::matchUpIncDecSetsForPtr() {
     MatchedPair = true;
 
   // Success!
-  LLVM_DEBUG(llvm::dbgs() << "SUCCESS! We can remove things.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "SUCCESS! We can remove things.\n");
   return true;
 }

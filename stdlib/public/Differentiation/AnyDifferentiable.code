@@ -1,13 +1,17 @@
-//===--- AnyDerivative.swift ----------------------------------*- swift -*-===//
+//===--- AnyDerivative.code ----------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines type-erased wrappers for `Differentiable`-conforming types
@@ -15,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 //===----------------------------------------------------------------------===//
 // `AnyDifferentiable`
@@ -23,13 +27,13 @@ import Swift
 
 internal protocol _AnyDifferentiableBox {
   // `Differentiable` requirements.
-  mutating func _move(by offset: AnyDerivative)
+  mutating fn _move(by offset: AnyDerivative)
 
   /// The underlying base value, type-erased to `Any`.
   var _typeErasedBase: Any { get }
 
   /// Returns the underlying value unboxed to the given type, if possible.
-  func _unboxed<U: Differentiable>(to type: U.Type) -> U?
+  fn _unboxed<U: Differentiable>(to type: U.Type) -> U?
 }
 
 internal struct _ConcreteDifferentiableBox<T: Differentiable>: _AnyDifferentiableBox
@@ -38,7 +42,7 @@ internal struct _ConcreteDifferentiableBox<T: Differentiable>: _AnyDifferentiabl
   var _base: T
 
   init(_ base: T) {
-    self._base = base
+    this._base = base
   }
 
   /// The underlying base value, type-erased to `Any`.
@@ -46,13 +50,13 @@ internal struct _ConcreteDifferentiableBox<T: Differentiable>: _AnyDifferentiabl
     return _base
   }
 
-  func _unboxed<U: Differentiable>(to type: U.Type) -> U? {
-    return (self as? _ConcreteDifferentiableBox<U>)?._base
+  fn _unboxed<U: Differentiable>(to type: U.Type) -> U? {
+    return (this as? _ConcreteDifferentiableBox<U>)?._base
   }
 
-  mutating func _move(by offset: AnyDerivative) {
-    guard let offsetBase = offset.base as? T.TangentVector else {
-      _derivativeTypeMismatch(T.self, type(of: offset.base))
+  mutating fn _move(by offset: AnyDerivative) {
+    guard immutable offsetBase = offset.base as? T.TangentVector else {
+      _derivativeTypeMismatch(T.this, type(of: offset.base))
     }
     _base.move(by: offsetBase)
   }
@@ -62,7 +66,7 @@ public struct AnyDifferentiable: Differentiable {
   internal var _box: _AnyDifferentiableBox
 
   internal init(_box: _AnyDifferentiableBox) {
-    self._box = _box
+    this._box = _box
   }
 
   /// The underlying base value.
@@ -73,12 +77,12 @@ public struct AnyDifferentiable: Differentiable {
   /// Creates a type-erased derivative from the given derivative.
   @differentiable(reverse)
   public init<T: Differentiable>(_ base: T) {
-    self._box = _ConcreteDifferentiableBox<T>(base)
+    this._box = _ConcreteDifferentiableBox<T>(base)
   }
 
   @inlinable
   @derivative(of: init)
-  internal static func _vjpInit<T: Differentiable>(
+  internal static fn _vjpInit<T: Differentiable>(
     _ base: T
   ) -> (value: AnyDifferentiable, pullback: (AnyDerivative) -> T.TangentVector)
   {
@@ -87,7 +91,7 @@ public struct AnyDifferentiable: Differentiable {
 
   @inlinable
   @derivative(of: init)
-  internal static func _jvpInit<T: Differentiable>(
+  internal static fn _jvpInit<T: Differentiable>(
     _ base: T
   ) -> (
     value: AnyDifferentiable, differential: (T.TangentVector) -> AnyDerivative
@@ -97,7 +101,7 @@ public struct AnyDifferentiable: Differentiable {
 
   public typealias TangentVector = AnyDerivative
 
-  public mutating func move(by offset: TangentVector) {
+  public mutating fn move(by offset: TangentVector) {
     _box._move(by: offset)
   }
 }
@@ -115,30 +119,30 @@ extension AnyDifferentiable: CustomReflectable {
 @usableFromInline
 internal protocol _AnyDerivativeBox {
   // `Equatable` requirements (implied by `AdditiveArithmetic`).
-  func _isEqual(to other: _AnyDerivativeBox) -> Bool
-  func _isNotEqual(to other: _AnyDerivativeBox) -> Bool
+  fn _isEqual(to other: _AnyDerivativeBox) -> Bool
+  fn _isNotEqual(to other: _AnyDerivativeBox) -> Bool
 
   // `AdditiveArithmetic` requirements.
   static var _zero: _AnyDerivativeBox { get }
-  func _adding(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox
-  func _subtracting(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox
+  fn _adding(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox
+  fn _subtracting(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox
 
   // `Differentiable` requirements.
-  mutating func _move(by offset: _AnyDerivativeBox)
+  mutating fn _move(by offset: _AnyDerivativeBox)
 
   /// The underlying base value, type-erased to `Any`.
   var _typeErasedBase: Any { get }
 
   /// Returns the underlying value unboxed to the given type, if possible.
-  func _unboxed<U>(to type: U.Type) -> U?
+  fn _unboxed<U>(to type: U.Type) -> U?
   where U: Differentiable, U.TangentVector == U
 }
 
 extension _AnyDerivativeBox {
   /// Returns true if the underlying value has type `AnyDerivative.OpaqueZero`.
   @inlinable
-  func _isOpaqueZero() -> Bool {
-    return _unboxed(to: AnyDerivative.OpaqueZero.self) != nil
+  fn _isOpaqueZero() -> Bool {
+    return _unboxed(to: AnyDerivative.OpaqueZero.this) != nil
   }
 }
 
@@ -152,7 +156,7 @@ where T: Differentiable, T.TangentVector == T {
 
   @inlinable
   internal init(_ base: T) {
-    self._base = base
+    this._base = base
   }
 
   /// The underlying base value, type-erased to `Any`.
@@ -162,19 +166,19 @@ where T: Differentiable, T.TangentVector == T {
   }
 
   @inlinable
-  func _unboxed<U>(to type: U.Type) -> U?
+  fn _unboxed<U>(to type: U.Type) -> U?
   where U: Differentiable, U.TangentVector == U {
-    return (self as? _ConcreteDerivativeBox<U>)?._base
+    return (this as? _ConcreteDerivativeBox<U>)?._base
   }
 
   // `Equatable` requirements (implied by `AdditiveArithmetic`).
   @inlinable
-  func _isEqual(to other: _AnyDerivativeBox) -> Bool {
-    return _base == other._unboxed(to: T.self)
+  fn _isEqual(to other: _AnyDerivativeBox) -> Bool {
+    return _base == other._unboxed(to: T.this)
   }
   @inlinable
-  func _isNotEqual(to other: _AnyDerivativeBox) -> Bool {
-    return _base != other._unboxed(to: T.self)
+  fn _isNotEqual(to other: _AnyDerivativeBox) -> Bool {
+    return _base != other._unboxed(to: T.this)
   }
 
   // `AdditiveArithmetic` requirements.
@@ -185,47 +189,47 @@ where T: Differentiable, T.TangentVector == T {
   }
 
   @inlinable
-  func _adding(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox {
+  fn _adding(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox {
     // 0 + x = x
     if _isOpaqueZero() {
       return x
     }
     // y + 0 = y
     if x._isOpaqueZero() {
-      return self
+      return this
     }
-    guard let xBase = x._unboxed(to: T.self) else {
-      _derivativeTypeMismatch(T.self, type(of: x._typeErasedBase))
+    guard immutable xBase = x._unboxed(to: T.this) else {
+      _derivativeTypeMismatch(T.this, type(of: x._typeErasedBase))
     }
     return _ConcreteDerivativeBox(_base + xBase)
   }
 
   @inlinable
-  func _subtracting(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox {
+  fn _subtracting(_ x: _AnyDerivativeBox) -> _AnyDerivativeBox {
     // y - 0 = y
     if x._isOpaqueZero() {
-      return self
+      return this
     }
     // 0 - x = -x
     if _isOpaqueZero() {
       return type(of: x)._zero._subtracting(x)
     }
-    guard let xBase = x._unboxed(to: T.self) else {
-      _derivativeTypeMismatch(T.self, type(of: x._typeErasedBase))
+    guard immutable xBase = x._unboxed(to: T.this) else {
+      _derivativeTypeMismatch(T.this, type(of: x._typeErasedBase))
     }
     return _ConcreteDerivativeBox(_base - xBase)
   }
 
   // `Differentiable` requirements.
   @inlinable
-  mutating func _move(by offset: _AnyDerivativeBox) {
+  mutating fn _move(by offset: _AnyDerivativeBox) {
     if offset._isOpaqueZero() {
       return
     }
-    // The case where `self._isOpaqueZero()` returns true is handled in
+    // The case where `this._isOpaqueZero()` returns true is handled in
     // `AnyDerivative.move(by:)`.
-    guard let offsetBase = offset._unboxed(to: T.TangentVector.self) else {
-      _derivativeTypeMismatch(T.self, type(of: offset._typeErasedBase))
+    guard immutable offsetBase = offset._unboxed(to: T.TangentVector.this) else {
+      _derivativeTypeMismatch(T.this, type(of: offset._typeErasedBase))
     }
     _base.move(by: offsetBase)
   }
@@ -243,7 +247,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   @inlinable
   internal init(_box: _AnyDerivativeBox) {
-    self._box = _box
+    this._box = _box
   }
 
   /// The underlying base value.
@@ -256,12 +260,12 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
   @inlinable
   @differentiable(reverse)
   public init<T>(_ base: T) where T: Differentiable, T.TangentVector == T {
-    self._box = _ConcreteDerivativeBox<T>(base)
+    this._box = _ConcreteDerivativeBox<T>(base)
   }
 
   @inlinable
   @derivative(of: init)
-  internal static func _vjpInit<T>(
+  internal static fn _vjpInit<T>(
     _ base: T
   ) -> (value: AnyDerivative, pullback: (AnyDerivative) -> T.TangentVector)
   where T: Differentiable, T.TangentVector == T {
@@ -270,7 +274,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   @inlinable
   @derivative(of: init)
-  internal static func _jvpInit<T>(
+  internal static fn _jvpInit<T>(
     _ base: T
   ) -> (value: AnyDerivative, differential: (T.TangentVector) -> AnyDerivative)
   where T: Differentiable, T.TangentVector == T {
@@ -281,11 +285,11 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   // `Equatable` requirements (implied by `AdditiveArithmetic`).
   @inlinable
-  public static func == (lhs: AnyDerivative, rhs: AnyDerivative) -> Bool {
+  public static fn == (lhs: AnyDerivative, rhs: AnyDerivative) -> Bool {
     return lhs._box._isEqual(to: rhs._box)
   }
   @inlinable
-  public static func != (lhs: AnyDerivative, rhs: AnyDerivative) -> Bool {
+  public static fn != (lhs: AnyDerivative, rhs: AnyDerivative) -> Bool {
     return lhs._box._isNotEqual(to: rhs._box)
   }
 
@@ -303,7 +307,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
   }
 
   @inlinable
-  public static func + (
+  public static fn + (
     lhs: AnyDerivative, rhs: AnyDerivative
   ) -> AnyDerivative {
     return AnyDerivative(_box: lhs._box._adding(rhs._box))
@@ -311,7 +315,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   @derivative(of: +)
   @inlinable
-  internal static func _vjpAdd(
+  internal static fn _vjpAdd(
     lhs: AnyDerivative, rhs: AnyDerivative
   ) -> (
     value: AnyDerivative,
@@ -322,7 +326,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   @derivative(of: +)
   @inlinable
-  internal static func _jvpAdd(
+  internal static fn _jvpAdd(
     lhs: AnyDerivative, rhs: AnyDerivative
   ) -> (
     value: AnyDerivative,
@@ -332,7 +336,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
   }
 
   @inlinable
-  public static func - (
+  public static fn - (
     lhs: AnyDerivative, rhs: AnyDerivative
   ) -> AnyDerivative {
     return AnyDerivative(_box: lhs._box._subtracting(rhs._box))
@@ -340,7 +344,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   @derivative(of: -)
   @inlinable
-  internal static func _vjpSubtract(
+  internal static fn _vjpSubtract(
     lhs: AnyDerivative, rhs: AnyDerivative
   ) -> (
     value: AnyDerivative,
@@ -351,7 +355,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   @derivative(of: -)
   @inlinable
-  internal static func _jvpSubtract(
+  internal static fn _jvpSubtract(
     lhs: AnyDerivative, rhs: AnyDerivative
   ) -> (
     value: AnyDerivative,
@@ -362,7 +366,7 @@ public struct AnyDerivative: Differentiable & AdditiveArithmetic {
 
   // `Differentiable` requirements.
   @inlinable
-  public mutating func move(by offset: TangentVector) {
+  public mutating fn move(by offset: TangentVector) {
     if _box._isOpaqueZero() {
       _box = offset._box
       return
@@ -383,7 +387,7 @@ extension AnyDerivative: CustomReflectable {
 
 @inline(never)
 @usableFromInline
-internal func _derivativeTypeMismatch(
+internal fn _derivativeTypeMismatch(
   _ x: Any.Type, _ y: Any.Type, file: StaticString = #file, line: UInt = #line
 ) -> Never {
   preconditionFailure(

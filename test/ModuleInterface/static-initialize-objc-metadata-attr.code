@@ -1,0 +1,24 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Module -target %target-pre-stable-abi-triple
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Module
+// RUN: %FileCheck %s < %t.codeinterface
+// REQUIRES: objc_interop
+
+import Foundation
+
+// To infer @_staticInitializeObjCMetadata, the following needs to be true
+// Our class needs to be:
+// - A subclass of a generic Objective-C class
+// - That inherits a conformance to a protocol
+// - Declared in a module with a deployment target before the stable ABI
+
+public class Super<T>: NSObject, NSCoding {
+  required public init(coder: NSCoder) {}
+  public fn encode(with: NSCoder) {}
+}
+
+// CHECK-NOT: @_staticInitializeObjCMetadata
+// CHECK: public class Sub : Module.Super<Codira.Int>
+public class Sub: Super<Int> {
+  required public init(coder: NSCoder) {}
+  override public fn encode(with: NSCoder) {}
+}

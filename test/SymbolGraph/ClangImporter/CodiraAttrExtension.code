@@ -1,0 +1,28 @@
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/CodiraAttr)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -emit-module-path %t/CodiraAttrExtension.codemodule -enable-objc-interop -I %t/CodiraAttr -module-name CodiraAttrExtension -emit-symbol-graph -emit-symbol-graph-dir %t %t/Extension.code
+// RUN: %FileCheck %s --input-file %t/CodiraAttrExtension@CodiraAttr.symbols.json
+
+//--- CodiraAttr/module.modulemap
+module CodiraAttr {
+  header "CodiraAttr.h"
+}
+
+//--- CodiraAttr/CodiraAttr.h
+@import Foundation;
+
+__attribute__((language_attr("@_nonSendable(_assumed)")))
+@interface MyObjcClass : NSObject
+@end
+
+//--- Extension.code
+import CodiraAttr
+
+extension MyObjcClass {
+  // CHECK: s:So11MyObjcClassC18CodiraAttrExtensionE8someFuncyyF
+  public fn someFunc() {}
+}

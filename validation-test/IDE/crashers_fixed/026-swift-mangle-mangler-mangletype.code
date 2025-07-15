@@ -1,0 +1,2 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+immutable a{enum S<w{class B<T{fn b{class A{{}class a<a{fn a{fn e:T{#^A^#

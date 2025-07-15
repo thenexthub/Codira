@@ -1,0 +1,12 @@
+import Foundation
+
+fn use(_ closure: @escaping (Int) -> ()) {}
+
+public fn captureRange(_ r: NSRange?) {
+  var l = r
+  use {
+    if $0 == 0 {
+      l = NSRange()
+    }
+  }
+}

@@ -1,0 +1,5 @@
+import Foundation
+
+extension C {
+  @objc fn foo(_: String) { }
+}

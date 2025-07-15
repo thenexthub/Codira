@@ -1,0 +1,178 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}}}}struct S<T where I.d
+}}}
+(A.c}}}struct Q{
+protocol A{
+struct B<T where T:A}
+{enum S<T where h:b
+fn f
+}protocol a{
+return[T:d
+{
+fn a{
+}
+struct B<T where I.c
+}}}
+var d>:A<g:a{
+}}
+{{
+{
+{
+fn j}
+var d:d{{{struct E{class A{{}immutable a=[[protocol
+fn b
+}{{{enum k{{
+fn f
+""1
+{
+struct S
+class a{{{fn e=e{class b
+if true{}}
+if true{class D{}}
+}protocol a}protocol A.d
+struct B:c
+{}
+immutable a
+}}
+struct E{{
+(A}
+struct S<T where B:Boolean w
+fn j}}{
+}}
+1
+}}}
+if true{class a{
+}protocol a{
+{{{
+struct B:a{{{
+class
+class b{{enum k{
+{var d{fn e
+struct S<T where g:a{class i
+}}}
+}
+class a{enum S
+""
+return[T->{
+{
+class A{fn e
+}}class a{
+struct B:A.c
+class b<T where I.c:d
+"1
+immutable a{{}protocol a{{
+{{class a<T where T:c}}
+class a
+{typealias d{
+}}
+class i
+struct E{
+class a{fn f
+}}}
+{
+struct E{a{}struct S
+}}}
+class b
+{}
+class b{
+{class a{
+}}}struct B:a{var d{
+{}
+{class i
+{
+}
+}
+}}}protocol A.c
+{{class D{fn f
+class
+return[T:A{a{class d>{
+protocol a
+{enum S<T where T:a
+fn a{{
+{}{enum S<T where h:A{fn f
+struct B:d{{var d
+(((((((A<T where T:A<T:Boolean w
+{}class D{
+{{{
+struct B<g:A.c
+struct B:d{class A {}}{fn e
+}}{fn e{
+{{
+{{
+(A<T where g:d:b
+}protocol a
+fn a{
+var d{fn b{{{{
+struct B<T where I.c:a<T where B:a
+struct E{class D{{}
+return[T:a<T where B<T where h}protocol A.d.c
+{
+{class a
+fn e{
+class a{
+class
+}
+{}struct E{
+{{{fn e
+}print
+class b {typealias e
+}}{}print
+}}protocol A.d<T:a{
+{
+{{class a{{typealias d.c}}}protocol a{class b{
+{{
+{struct E{class A{{}immutable a=[[protocol
+{
+{typealias e
+}
+return[T:a
+class
+var d>:a{fn e
+(A{fn j}
+{{var d{
+""
+fn b{
+{
+}}
+{class A {
+(A{{struct E{class A{{}immutable a=[[protocol
+fn e{
+{{
+}}}print
+immutable a}struct E{
+}}protocol d
+if true{
+if true{{}struct E{{
+(((A{{class b typealias e
+struct E{
+{{
+{{
+(A}typealias e
+struct E{class a{
+{class D{class D{
+{{{class i
+return[T:b{{class d>:A.c:a
+((A<T where T:a
+}extension h}print
+{{{var d<T where g:A}
+class A.c
+}typealias e
+class d{
+class d.c:a
+class a
+}}
+}}
+struct B<T where B<T where k{{{class A {{{
+struct E{{}
+{enum S<T where h

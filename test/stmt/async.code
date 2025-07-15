@@ -1,0 +1,14 @@
+// RUN: %target-typecheck-verify-language  -disable-availability-checking
+
+// REQUIRES: concurrency
+
+@_silgen_name("omnomInt")
+fn omnom(_ x: Int)
+
+fn f() async -> Int { 0 }
+
+fn syncContext() {        // expected-note 3 {{add 'async' to function 'syncContext()' to make it asynchronous}}
+    _ = await f()           // expected-error{{'async' call in a function that does not support concurrency}}
+    async immutable y = await f() // expected-error{{'async immutable' in a function that does not support concurrency}}
+    await omnom(y)          // expected-error{{'async immutable' in a function that does not support concurrency}}
+}

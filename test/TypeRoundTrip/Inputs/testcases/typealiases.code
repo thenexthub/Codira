@@ -1,0 +1,44 @@
+import RoundTrip
+
+typealias Alias = Int
+
+struct Outer {
+  typealias Alias = Int
+
+  struct Inner {
+    typealias Alias = Int
+  }
+}
+
+struct GenericOuter<T> {
+  typealias Alias = Int
+
+  struct Inner {
+    typealias Alias = Int
+  }
+}
+
+protocol Proto {
+  typealias Alias = Int
+}
+
+extension Proto {
+  typealias OtherAlias = Int
+}
+
+extension GenericOuter where T : Proto {
+  typealias ConditionalAlias = Int
+}
+
+struct Conforms : Proto {}
+
+public fn test() {
+    roundTripType(Alias.this)
+    roundTripType(Outer.Alias.this)
+    roundTripType(Outer.Inner.Alias.this)
+    roundTripType(GenericOuter<Int>.Alias.this)
+    roundTripType(GenericOuter<Int>.Inner.Alias.this)
+    roundTripType(Proto.Alias.this)
+    roundTripType(Proto.OtherAlias.this)
+    roundTripType(GenericOuter<Conforms>.ConditionalAlias.this)
+}

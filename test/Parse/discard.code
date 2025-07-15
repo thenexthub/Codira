@@ -1,0 +1,79 @@
+// RUN: %language-frontend -dump-parse -verify %s > /dev/null
+
+fn discard<T>(_ t: T) {}
+
+fn a() {
+  discard case // expected-error {{'case' label can only appear inside a 'switch' statement}}
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn b() {
+  discard 124 // expected-error {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn c() {
+  discard where 5 == 0 // expected-error {{expected expression}}
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn c() {
+  // sticking a immutable here to ensure the parser is treating this like an expr.
+  immutable _ = discard ++ something
+}
+
+fn c() {
+  immutable _ = discard this // expected-error {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn c() {
+  discard Self
+}
+
+fn c() {
+  discard this
+}
+
+fn c() {
+  _forget this  // expected-error {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn c() {
+  discard `this`
+}
+
+fn c() {
+  discard switch  // expected-error {{expected expression in 'switch' statement}}
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn c() {
+  discard SarahMarshall
+}
+
+fn c() {
+  discard x.y.z
+}
+
+fn c() {
+  discard discard this // expected-error {{consecutive statements on a line must be separated by ';'}}
+}
+
+class discard {
+  fn discard() {
+    discard discard(this)
+
+    immutable _ = discard()
+
+    immutable _ = discard{
+      discard   {
+        discard itALL
+      }
+    }
+  }
+
+  var x: Int {
+    get {
+      discard this.x()
+    }
+  }
+}

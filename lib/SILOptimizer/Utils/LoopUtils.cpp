@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-loop-utils"
@@ -26,7 +27,7 @@
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -35,7 +36,7 @@ static SILBasicBlock *createInitialPreheader(SILBasicBlock *Header) {
       Header->getParent()->createBasicBlockBefore(Header);
 
   // Clone the arguments from header into the pre-header.
-  llvm::SmallVector<SILValue, 8> Args;
+  toolchain::SmallVector<SILValue, 8> Args;
   for (auto *HeaderArg : Header->getArguments()) {
     Args.push_back(Preheader->createPhiArgument(HeaderArg->getType(),
                                                 HeaderArg->getOwnershipKind()));
@@ -55,7 +56,7 @@ static SILBasicBlock *insertPreheader(SILLoop *L, DominanceInfo *DT,
   SILBasicBlock *Header = L->getHeader();
 
   // Before we create the preheader, gather all of the original preds of header.
-  llvm::SmallVector<SILBasicBlock *, 8> Preds;
+  toolchain::SmallVector<SILBasicBlock *, 8> Preds;
   for (auto *Pred : Header->getPredecessorBlocks()) {
     if (!L->contains(Pred)) {
       Preds.push_back(Pred);
@@ -125,7 +126,7 @@ static SILBasicBlock *insertBackedgeBlock(SILLoop *L, DominanceInfo *DT,
   // Create and insert the new backedge block...
   SILBasicBlock *BEBlock = F->createBasicBlockAfter(BackedgeBlocks.back());
 
-  LLVM_DEBUG(llvm::dbgs() << "  Inserting unique backedge block " << *BEBlock
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Inserting unique backedge block " << *BEBlock
                           << "\n");
 
   // Now that the block has been inserted into the function, create PHI nodes in
@@ -155,7 +156,7 @@ static SILBasicBlock *insertBackedgeBlock(SILLoop *L, DominanceInfo *DT,
       changeBranchTarget(CondBranch, EdgeIdx, BEBlock, /*PreserveArgs=*/true);
     }
     else {
-      llvm_unreachable("Expected a branch terminator.");
+      toolchain_unreachable("Expected a branch terminator.");
     }
   }
 
@@ -181,7 +182,7 @@ static SILBasicBlock *insertBackedgeBlock(SILLoop *L, DominanceInfo *DT,
 ///
 /// FIXME: We should identify nested loops with a common header and separate
 /// them before merging the latch. See LLVM's separateNestedLoop.
-bool swift::canonicalizeLoop(SILLoop *L, DominanceInfo *DT, SILLoopInfo *LI) {
+bool language::canonicalizeLoop(SILLoop *L, DominanceInfo *DT, SILLoopInfo *LI) {
   bool ChangedCFG = false;
 
   if (!L->getLoopPreheader()) {
@@ -195,10 +196,10 @@ bool swift::canonicalizeLoop(SILLoop *L, DominanceInfo *DT, SILLoopInfo *LI) {
   return ChangedCFG;
 }
 
-bool swift::canonicalizeAllLoops(DominanceInfo *DT, SILLoopInfo *LI) {
+bool language::canonicalizeAllLoops(DominanceInfo *DT, SILLoopInfo *LI) {
   // Visit the loop nest hierarchy bottom up.
   bool MadeChange = false;
-  llvm::SmallVector<std::pair<SILLoop *, bool>, 16> Worklist;
+  toolchain::SmallVector<std::pair<SILLoop *, bool>, 16> Worklist;
   for (auto *L : LI->getTopLevelLoops())
     Worklist.push_back({L, L->isInnermost()});
 
@@ -221,7 +222,7 @@ bool swift::canonicalizeAllLoops(DominanceInfo *DT, SILLoopInfo *LI) {
   return MadeChange;
 }
 
-bool swift::canDuplicateLoopInstruction(SILLoop *L, SILInstruction *I) {
+bool language::canDuplicateLoopInstruction(SILLoop *L, SILInstruction *I) {
   SinkAddressProjections sinkProj;
   for (auto res : I->getResults()) {
     if (!res->getType().isAddress()) {
@@ -362,7 +363,7 @@ void SILLoopVisitor::run() {
   // We visit the loop nest inside out via a depth first, post order using
   // this
   // worklist.
-  llvm::SmallVector<std::pair<SILLoop *, bool>, 32> Worklist;
+  toolchain::SmallVector<std::pair<SILLoop *, bool>, 32> Worklist;
   for (auto *L : LI->getTopLevelLoops()) {
     Worklist.push_back({L, L->isInnermost()});
   }

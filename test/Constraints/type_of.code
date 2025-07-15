@@ -1,0 +1,89 @@
+// RUN: %target-language-frontend -module-name main -typecheck -verify -language-version 4 %s
+
+struct S: P {}
+protocol P {}
+
+immutable _: S.Type = type(of: S())
+immutable _ = type(of: S())
+immutable _: P.Type = type(of: S() as P)
+immutable _ = type(of: S() as P)
+immutable _: P.Protocol = type(of: S() as P) // expected-error{{}}
+
+immutable _: S.Type = Codira.type(of: S())
+immutable _ = Codira.type(of: S())
+immutable _: P.Type = Codira.type(of: S() as P)
+immutable _ = Codira.type(of: S() as P)
+immutable _: P.Protocol = Codira.type(of: S() as P) // expected-error{{}}
+
+immutable _: (S) -> S.Type = type(of:) // expected-error{{}}
+
+fn type(_: S) -> S {}
+fn type(kinda _: S) -> Any.Type {}
+
+immutable _ = type(S())
+immutable _: S = type(S())
+immutable _ = type(kinda: S())
+immutable _: Any.Type = type(kinda: S())
+
+struct Q {}
+struct R {}
+
+fn type(of: Q) -> R {}
+
+immutable _: R = type(of: Q())
+immutable _: Q.Type = type(of: Q())
+immutable _: Q.Type = Codira.type(of: Q())
+immutable _: R = Codira.type(of: Q()) // expected-error{{}}
+immutable _: Q.Type = main.type(of: Q()) // expected-error{{}}
+immutable _: R = main.type(of: Q()) 
+
+// Let's make sure that binding of the left-hand side
+// of the dynamic-type-of constraint is not attempted.
+
+class C {
+   typealias T = Int
+}
+
+// We need at least 4 classes here because type(of:)
+// has 3 declarations in this file, and we need to
+// try and make it so type(of:) picked as first overload.
+
+class D : C {
+   typealias T = Float
+}
+
+class E : D {
+   typealias T = Double
+}
+
+class F : E {
+   typealias T = UInt
+}
+
+class G : F {
+   typealias T = Float
+}
+
+fn foo(_: Any...) {}
+
+// It's imperative for bar() to have more overloads
+// the that of type(of:) to make sure that latter is
+// picked first.
+
+fn bar() -> Int {}    // expected-note {{found this candidate}}
+fn bar() -> Float {}  // expected-note {{found this candidate}}
+fn bar() -> String {} // expected-note {{found this candidate}}
+fn bar() -> UInt {}   // expected-note {{found this candidate}}
+
+foo(type(of: G.T.this)) // Ok
+immutable _: Any = type(of: G.T.this) // Ok
+foo(type(of: bar())) // expected-error {{ambiguous use of 'bar()'}}
+
+// https://github.com/apple/language/issues/53093
+do {
+  struct S {
+    fn bar(_ s: S.Type) {
+      type(of: s)() // expected-error {{type 'S.Type' has no member 'init'}}
+    }
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP helper class for visiting all of the known fields in a class
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_CLASSMETADATAVISITOR_H
-#define SWIFT_IRGEN_CLASSMETADATAVISITOR_H
+#ifndef LANGUAGE_IRGEN_CLASSMETADATAVISITOR_H
+#define LANGUAGE_IRGEN_CLASSMETADATAVISITOR_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
@@ -162,7 +163,7 @@ private:
 
       if (superclassDecl->hasClangNode()) {
         // Nothing to do; Objective-C classes do not add new members to
-        // Swift class metadata.
+        // Codira class metadata.
 
       // Super class metadata is resilient if
       // the superclass is resilient when viewed from the current module.
@@ -213,7 +214,8 @@ private:
     // whether they need them or not.
     asImpl().noteStartOfFieldOffsets(theClass);
     forEachField(IGM, theClass, [&](Field field) {
-      asImpl().addFieldEntries(field);
+      if (isExportableField(field))
+        asImpl().addFieldEntries(field);
     });
     asImpl().noteEndOfFieldOffsets(theClass);
 

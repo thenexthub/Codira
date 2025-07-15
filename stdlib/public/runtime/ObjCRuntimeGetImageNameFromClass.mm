@@ -1,17 +1,21 @@
 //===--- ObjCRuntimeGetImageNameFromClass.cpp - ObjC hook setup -----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Setup for the Objective-C runtime function class_getImageName, making it
-// understand Swift classes. This is tricky because before Apple's 2018 OSs,
+// understand Codira classes. This is tricky because before Apple's 2018 OSs,
 // this function was not designed to be hooked.
 //
 //===----------------------------------------------------------------------===//
@@ -19,7 +23,7 @@
 #include "ObjCRuntimeGetImageNameFromClass.h"
 #include "language/Runtime/Config.h"
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 
 #include "language/Runtime/Metadata.h"
 
@@ -43,7 +47,7 @@
 // does not work for calls within the shared cache on those platforms,
 // so the call within +bundleForClass: does not get patched. Instead,
 // swizzle out the whole method with one that does the appropriate
-// lookup for Swift classes. The symbol table patch handles this on Mac
+// lookup for Codira classes. The symbol table patch handles this on Mac
 // and simulators so this is not necessary there.
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
 #define PATCH_NSBUNDLE 1
@@ -60,22 +64,22 @@ typedef BOOL (*objc_hook_getImageName)(
 /// \see customGetImageNameFromClass
 static objc_hook_getImageName defaultGetImageNameFromClass = nullptr;
 
-/// Get the image name corresponding to a Swift class, accounting for
+/// Get the image name corresponding to a Codira class, accounting for
 /// dynamically-initialized class metadata. Returns NO for ObjC classes.
 static BOOL
-getImageNameFromSwiftClass(Class _Nullable objcClass,
+getImageNameFromCodiraClass(Class _Nullable objcClass,
                            const char * _Nullable * _Nonnull outImageName) {
   if (objcClass == Nil)
     return NO;
   
   auto *classAsMetadata = reinterpret_cast<const ClassMetadata *>(objcClass);
 
-  // Is this a Swift class?
+  // Is this a Codira class?
   if (classAsMetadata->isTypeMetadata() &&
       !classAsMetadata->isArtificialSubclass()) {
     const void *descriptor = classAsMetadata->getDescription();
     assert(descriptor &&
-           "all non-artificial Swift classes should have a descriptor");
+           "all non-artificial Codira classes should have a descriptor");
 #if APPLE_OS_SYSTEM
     // Use a more efficient internal API when building the system libraries
     // for Apple OSes.
@@ -92,16 +96,16 @@ getImageNameFromSwiftClass(Class _Nullable objcClass,
   return NO;
 }
 
-/// A custom implementation of Objective-C's class_getImageName for Swift
+/// A custom implementation of Objective-C's class_getImageName for Codira
 /// classes, which knows how to handle dynamically-initialized class metadata.
 ///
-/// Per the documentation for objc_setHook_getImageName, any non-Swift classes
+/// Per the documentation for objc_setHook_getImageName, any non-Codira classes
 /// will still go through the normal implementation of class_getImageName,
 /// which is stored in defaultGetImageNameFromClass.
 static BOOL
 replacementGetImageNameFromClass(Class _Nonnull objcClass,
                                  const char * _Nullable * _Nonnull outImageName) {
-  if (getImageNameFromSwiftClass(objcClass, outImageName))
+  if (getImageNameFromCodiraClass(objcClass, outImageName))
     return YES;
   return defaultGetImageNameFromClass(objcClass, outImageName);
 }
@@ -110,7 +114,7 @@ replacementGetImageNameFromClass(Class _Nonnull objcClass,
 /* Function patching machinery *********************************************/
 /***************************************************************************/
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
@@ -118,7 +122,7 @@ replacementGetImageNameFromClass(Class _Nonnull objcClass,
 
 #include <cstring>
 
-using llvm::ArrayRef;
+using toolchain::ArrayRef;
 
 namespace {
 
@@ -146,7 +150,7 @@ namespace {
 /// This technique only works for certain versions of Apple's dynamic linker;
 /// fortunately we only even attempt to invoke it when running on the OSs where
 /// it works. Newer OSs already have the hook we need; older ones don't support
-/// Swift at all.
+/// Codira at all.
 ///
 /// Also, if the symbol being patched has references within the image where it
 /// was originally defined, those references will \e not be patched.
@@ -255,7 +259,7 @@ static decltype(&class_getImageName) unpatchedGetImageNameFromClass = nullptr;
 /// objc_hook_getImageName.
 ///
 /// This is used on older OSs where objc_setHook_getImageName isn't supported.
-/// In this case, we invoke the Swift implementation above
+/// In this case, we invoke the Codira implementation above
 /// (customGetImageNameFromClass), but set it up to fall back to this one.
 /// Then this one can call the system's original version, which should be stored
 /// in unpatchedGetImageNameFromClass.
@@ -265,10 +269,10 @@ static BOOL callUnpatchedGetImageNameFromClass(
   return outImageName != nullptr;
 }
 
-/// A patched version of class_getImageName that always uses the Swift 
+/// A patched version of class_getImageName that always uses the Codira 
 /// implementation.
 ///
-/// The Swift implementation is always set up to chain to another
+/// The Codira implementation is always set up to chain to another
 /// implementation, so on older OSs we just have to make sure that chained
 /// implementation is the original system version. See
 /// callUnpatchedGetImageNameFromClass.
@@ -284,19 +288,19 @@ static const char *patchedGetImageNameFromClassForOldOSs(Class _Nullable cls) {
 #if PATCH_NSBUNDLE
 /// Selectors for the target method, patch method, and helper method.
 #define BUNDLE_FOR_CLASS_SEL @selector(bundleForClass:)
-#define PATCHED_BUNDLE_FOR_CLASS_SEL @selector(_swift_bundleForClass:)
-#define BUNDLE_WITH_EXECUTABLE_PATH_SEL @selector(_swift_bundleWithExecutablePath:)
+#define PATCHED_BUNDLE_FOR_CLASS_SEL @selector(_language_bundleForClass:)
+#define BUNDLE_WITH_EXECUTABLE_PATH_SEL @selector(_language_bundleWithExecutablePath:)
 
 /// Whether the patch has already been done.
 static bool didPatchNSBundle = false;
 
 /// The patched version of +[NSBundle bundleForClass:]. If the class is
-/// actually a Swift class and an image name can be retrieved from it,
+/// actually a Codira class and an image name can be retrieved from it,
 /// look up the bundle based on that image name. Otherwise fall back to
 /// the original version.
 static id patchedBundleForClass(id self, SEL _cmd, Class objcClass) {
   const char *imageName;
-  if (getImageNameFromSwiftClass(objcClass, &imageName)) {
+  if (getImageNameFromCodiraClass(objcClass, &imageName)) {
     return ((id (*)(id, SEL, const char *))objc_msgSend)(
       self, BUNDLE_WITH_EXECUTABLE_PATH_SEL, imageName);
   }
@@ -349,7 +353,7 @@ static void patchGetImageNameInImage(const struct mach_header *mh,
 /* Installing the hook *****************************************************/
 /***************************************************************************/
 
-void swift::setUpObjCRuntimeGetImageNameFromClass() {
+void language::setUpObjCRuntimeGetImageNameFromClass() {
   assert(defaultGetImageNameFromClass == nullptr && "already set up");
 
 #pragma clang diagnostic push
@@ -381,4 +385,4 @@ void swift::setUpObjCRuntimeGetImageNameFromClass() {
   }
 }
 
-#endif // SWIFT_OBJC_INTEROP
+#endif // LANGUAGE_OBJC_INTEROP

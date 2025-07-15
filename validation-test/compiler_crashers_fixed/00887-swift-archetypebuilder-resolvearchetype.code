@@ -1,0 +1,44 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn m<u>() -> (u, u -> u) -> u {
+p o p.s = {
+}
+{
+u) {
+o  }
+}
+s m {
+}
+s p {
+}
+class n {
+class e: n, p {
+v fn> String {
+}
+{
+}
+fn s<o : m, o : p o o.m == o> (m: o) {
+}
+class d<c>: NSObject {
+var b:     init(b: c) {
+class A {
+class fn a() -eturn ""     static immutable d:{a()
+class A {
+class fn a() -> Self {
+}
+}
+fn b<T>(t: AnyObject.Type) }
+protocol e {
+}
+enum S<T> : P {
+fn f<T>() -> T -> T {

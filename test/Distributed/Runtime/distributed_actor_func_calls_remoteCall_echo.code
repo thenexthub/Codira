@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// FIXME(distributed): Distributed actors currently have some issues on windows, isRemote always returns false. rdar://82593574
+// UNSUPPORTED: OS=windows-msvc
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeRoundtripActorSystem
+
+distributed actor Greeter {
+  distributed fn echo(name: String) -> String {
+    return "Echo: \(name)"
+  }
+}
+
+fn test() async throws {
+  immutable system = DefaultDistributedActorSystem()
+
+  immutable local = Greeter(actorSystem: system)
+  immutable ref = try Greeter.resolve(id: local.id, using: system)
+
+  immutable reply = try await ref.echo(name: "Caplin")
+  // CHECK: >> remoteCall: on:main.Greeter, target:main.Greeter.echo(name:), invocation:FakeInvocationEncoder(genericSubs: [], arguments: ["Caplin"], returnType: Optional(Codira.String), errorType: nil), throwing:Codira.Never, returning:Codira.String
+
+  // CHECK: << remoteCall return: Echo: Caplin
+  print("reply: \(reply)")
+  // CHECK: reply: Echo: Caplin
+}
+
+@main struct Main {
+  static fn main() async {
+    try! await test()
+  }
+}

@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftRemoteMirror
+import CodiraRemoteMirror
 
 internal protocol RemoteProcess: AnyObject {
   associatedtype ProcessIdentifier
   associatedtype ProcessHandle
 
   var process: ProcessHandle { get }
-  var context: SwiftReflectionContextRef! { get }
+  var context: CodiraReflectionContextRef! { get }
   var processIdentifier: ProcessIdentifier { get }
   var processName: String { get }
 
@@ -31,12 +32,12 @@ internal protocol RemoteProcess: AnyObject {
       @convention(c) (UnsafeMutableRawPointer?, UnsafeRawPointer?,
                       UnsafeMutableRawPointer?) -> Void
   typealias ReadBytesFunction =
-      @convention(c) (UnsafeMutableRawPointer?, swift_addr_t, UInt64,
+      @convention(c) (UnsafeMutableRawPointer?, language_addr_t, UInt64,
                       UnsafeMutablePointer<UnsafeMutableRawPointer?>?) -> UnsafeRawPointer?
   typealias GetStringLengthFunction =
-      @convention(c) (UnsafeMutableRawPointer?, swift_addr_t) -> UInt64
+      @convention(c) (UnsafeMutableRawPointer?, language_addr_t) -> UInt64
   typealias GetSymbolAddressFunction =
-      @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UInt64) -> swift_addr_t
+      @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UInt64) -> language_addr_t
 
   static var QueryDataLayout: QueryDataLayoutFunction { get }
   static var Free: FreeFunction? { get }
@@ -44,20 +45,20 @@ internal protocol RemoteProcess: AnyObject {
   static var GetStringLength: GetStringLengthFunction { get }
   static var GetSymbolAddress: GetSymbolAddressFunction { get }
 
-  func symbolicate(_ address: swift_addr_t) -> (module: String?, symbol: String?)
-  func iterateHeap(_ body: (swift_addr_t, UInt64) -> Void)
+  fn symbolicate(_ address: language_addr_t) -> (module: String?, symbol: String?)
+  fn iterateHeap(_ body: (language_addr_t, UInt64) -> Void)
 }
 
 extension RemoteProcess {
-  internal func toOpaqueRef() -> UnsafeMutableRawPointer {
-    return Unmanaged.passRetained(self).toOpaque()
+  internal fn toOpaqueRef() -> UnsafeMutableRawPointer {
+    return Unmanaged.passRetained(this).toOpaque()
   }
 
-  internal static func fromOpaque(_ ptr: UnsafeRawPointer) -> Self {
+  internal static fn fromOpaque(_ ptr: UnsafeRawPointer) -> Self {
     return Unmanaged.fromOpaque(ptr).takeUnretainedValue()
   }
 
-  internal func release() {
-    Unmanaged.passUnretained(self).release()
+  internal fn release() {
+    Unmanaged.passUnretained(this).release()
   }
 }

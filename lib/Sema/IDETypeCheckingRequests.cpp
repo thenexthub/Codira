@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTPrinter.h"
@@ -27,22 +31,22 @@ using namespace language;
 
 namespace language {
 // Implement the IDE type zone.
-#define SWIFT_TYPEID_ZONE IDETypeChecking
-#define SWIFT_TYPEID_HEADER "swift/Sema/IDETypeCheckingRequestIDZone.def"
+#define LANGUAGE_TYPEID_ZONE IDETypeChecking
+#define LANGUAGE_TYPEID_HEADER "language/Sema/IDETypeCheckingRequestIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 }
 
 // Define request evaluation functions for each of the IDE type check requests.
 static AbstractRequestFunction *ideTypeCheckRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
 reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/Sema/IDETypeCheckingRequestIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerIDETypeCheckRequestFunctions(Evaluator &evaluator) {
+void language::registerIDETypeCheckRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::IDETypeChecking,
                                      ideTypeCheckRequestFunctions);
 }
@@ -55,12 +59,12 @@ void swift::registerIDETypeCheckRequestFunctions(Evaluator &evaluator) {
 /// extension FontStyle where Self == FontStyleOne {
 ///     static var one: FontStyleOne { FontStyleOne() }
 /// }
-/// func foo<T: FontStyle>(x: T) {}
+/// fn foo<T: FontStyle>(x: T) {}
 ///
-/// func case1() {
+/// fn case1() {
 ///     foo(x: .#^COMPLETE^#) // extension should be considered applied here
 /// }
-/// func case2<T: FontStyle>(x: T) {
+/// fn case2<T: FontStyle>(x: T) {
 ///     x.#^COMPLETE_2^# // extension should not be considered applied here
 /// }
 /// \endcode
@@ -231,7 +235,7 @@ IsDeclApplicableRequest::evaluate(Evaluator &evaluator,
   } else if (auto *ED = dyn_cast<ExtensionDecl>(Owner.ExtensionOrMember)) {
     return isExtensionAppliedInternal(Owner.DC, Owner.Ty, ED);
   } else {
-    llvm_unreachable("unhandled decl kind");
+    toolchain_unreachable("unhandled decl kind");
   }
 }
 

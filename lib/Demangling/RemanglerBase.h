@@ -1,4 +1,4 @@
-//===--- Demangler.h - String to Node-Tree Demangling -----------*- C++ -*-===//
+//===--- RemanglerBase.h - String to Node-Tree Demangling -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,25 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains shared code between the old and new remanglers.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_BASEREMANGLER_H
-#define SWIFT_DEMANGLING_BASEREMANGLER_H
+#ifndef LANGUAGE_DEMANGLING_BASEREMANGLER_H
+#define LANGUAGE_DEMANGLING_BASEREMANGLER_H
 
 #include "language/Demangling/Demangler.h"
 #include "language/Demangling/NamespaceMacros.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include <unordered_map>
 
 using namespace language::Demangle;
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace language {
 namespace Demangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 #define RETURN_IF_ERROR(x)                                                     \
   do {                                                                         \
@@ -40,14 +42,19 @@ SWIFT_BEGIN_INLINE_NAMESPACE
 
 // An entry in the remangler's substitution map.
 class SubstitutionEntry {
-  Node *TheNode = nullptr;
+  toolchain::PointerIntPair<Node *, 1, bool> NodeAndTreatAsIdentifier;
   size_t StoredHash = 0;
-  bool treatAsIdentifier = false;
+
+  Node *getNode() const { return NodeAndTreatAsIdentifier.getPointer(); }
+
+  bool getTreatAsIdentifier() const {
+    return NodeAndTreatAsIdentifier.getInt();
+  }
 
 public:
   void setNode(Node *node, bool treatAsIdentifier, size_t hash) {
-    this->treatAsIdentifier = treatAsIdentifier;
-    TheNode = node;
+    NodeAndTreatAsIdentifier.setPointer(node);
+    NodeAndTreatAsIdentifier.setInt(treatAsIdentifier);
     StoredHash = hash;
   }
 
@@ -57,10 +64,10 @@ public:
     }
   };
 
-  bool isEmpty() const { return !TheNode; }
+  bool isEmpty() const { return !getNode(); }
 
   bool matches(Node *node, bool treatAsIdentifier) const {
-    return node == TheNode && treatAsIdentifier == this->treatAsIdentifier;
+    return node == getNode() && treatAsIdentifier == getTreatAsIdentifier();
   }
 
   size_t hash() const { return StoredHash; }
@@ -70,12 +77,12 @@ private:
                          const SubstitutionEntry &rhs) {
     if (lhs.StoredHash != rhs.StoredHash)
       return false;
-    if (lhs.treatAsIdentifier != rhs.treatAsIdentifier)
+    if (lhs.getTreatAsIdentifier() != rhs.getTreatAsIdentifier())
       return false;
-    if (lhs.treatAsIdentifier) {
-      return identifierEquals(lhs.TheNode, rhs.TheNode);
+    if (lhs.getTreatAsIdentifier()) {
+      return identifierEquals(lhs.getNode(), rhs.getNode());
     }
-    return lhs.deepEquals(lhs.TheNode, rhs.TheNode);
+    return lhs.deepEquals(lhs.getNode(), rhs.getNode());
   }
 
   static bool identifierEquals(Node *lhs, Node *rhs);
@@ -104,7 +111,7 @@ public:
     return *this;
   }
 
-  RemanglerBuffer &operator<<(llvm::StringRef Value) & {
+  RemanglerBuffer &operator<<(toolchain::StringRef Value) & {
     Stream.append(Value, Factory);
     return *this;
   }
@@ -143,7 +150,7 @@ protected:
   static const size_t HashHashMaxProbes = 8;
   SubstitutionEntry HashHash[HashHashCapacity] = {};
 
-  // An efficient hash-map implementation in the spirit of llvm's SmallPtrSet:
+  // An efficient hash-map implementation in the spirit of toolchain's SmallPtrSet:
   // The first 16 substitutions are stored in an inline-allocated array to avoid
   // malloc calls in the common case.
   // Lookup is still reasonable fast because there are max 16 elements in the
@@ -193,8 +200,8 @@ public:
   }
 };
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Demangle
 } // end namespace language
 
-#endif // SWIFT_DEMANGLING_BASEREMANGLER_H
+#endif // LANGUAGE_DEMANGLING_BASEREMANGLER_H

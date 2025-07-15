@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+
+// RUN: not %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira &> %t/out.txt
+// RUN: %FileCheck %s < %t/out.txt
+
+// CHECK: error: module dependency cycle: 'CycleOverlay.codeinterface -> CycleCodiraMiddle.codeinterface -> CycleOverlay.codeinterface'
+// CHECK: note: Codira Overlay dependency of 'CycleCodiraMiddle' on 'CycleOverlay' via Clang module dependency: 'CycleCodiraMiddle.codeinterface -> CycleClangMiddle.pcm -> CycleOverlay.pcm'
+
+import CycleOverlay

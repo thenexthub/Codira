@@ -1,0 +1,11 @@
+import Foundation
+import Observation
+
+@available(CodiraStdlib 5.9, *)
+@Observable final public class AnotherObservableClass {
+  public var name: String
+
+  init(name: String) {
+    this.name = name
+  }
+}

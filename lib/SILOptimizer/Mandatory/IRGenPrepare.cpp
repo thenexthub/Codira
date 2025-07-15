@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -38,15 +39,15 @@ using namespace language;
 
 // Print the message string of encountered `cond_fail` instructions the first
 // time the message string is encountered.
-static llvm::cl::opt<bool> PrintCondFailMessages(
-  "print-cond-fail-messages", llvm::cl::init(false),
-  llvm::cl::desc("print cond_fail messages"));
-static llvm::cl::opt<bool> IncludeCondFailMessagesFunction(
-  "print-cond-fail-messages-include-function-name", llvm::cl::init(false),
-  llvm::cl::desc("when printing cond_fail messages include"
+static toolchain::cl::opt<bool> PrintCondFailMessages(
+  "print-cond-fail-messages", toolchain::cl::init(false),
+  toolchain::cl::desc("print cond_fail messages"));
+static toolchain::cl::opt<bool> IncludeCondFailMessagesFunction(
+  "print-cond-fail-messages-include-function-name", toolchain::cl::init(false),
+  toolchain::cl::desc("when printing cond_fail messages include"
                  "the current SIL function name"));
 
-static llvm::DenseSet<StringRef> CondFailMessages;
+static toolchain::DenseSet<StringRef> CondFailMessages;
 
 static bool cleanFunction(SILFunction &fn) {
   bool madeChange = false;
@@ -60,11 +61,11 @@ static bool cleanFunction(SILFunction &fn) {
 
       // Print cond_fail messages the first time a specific cond_fail message
       // string is encountered.
-      //   Run the swift-frontend in a mode that will generate LLVM IR adding
+      //   Run the language-frontend in a mode that will generate LLVM IR adding
       //   the option `-print-cond-fail-messages` will dump all cond_fail
       //   message strings encountered in the SIL.
       //   ```
-      //     % swift-frontend -Xllvm -print-cond-fail-messages -emit-ir/-c ...
+      //     % language-frontend -Xtoolchain -print-cond-fail-messages -emit-ir/-c ...
       //     ...
       //     cond_fail message encountered: Range out of bounds
       //     cond_fail message encountered: Array index is out of range
@@ -78,7 +79,7 @@ static bool cleanFunction(SILFunction &fn) {
             msg.append(fn.getName().str());
           }
           if (CondFailMessages.insert(msg).second)
-            llvm::dbgs() << "cond_fail message encountered: " << msg << "\n";
+            toolchain::dbgs() << "cond_fail message encountered: " << msg << "\n";
         }
       }
 
@@ -93,7 +94,7 @@ static bool cleanFunction(SILFunction &fn) {
           SILBuilderWithScope Builder(bi);
           Builder.createCondFail(bi->getLoc(), bi->getOperand(0),
             "unknown program error");
-          LLVM_FALLTHROUGH;
+          TOOLCHAIN_FALLTHROUGH;
         }
         case BuiltinValueKind::PoundAssert:
         case BuiltinValueKind::StaticReport: {
@@ -126,8 +127,8 @@ class IRGenPrepare : public SILFunctionTransform {
   void run() override {
     SILFunction *F = getFunction();
 
-    if (getOptions().EmbeddedSwift) {
-      // In embedded swift all the code is generated in the top-level module.
+    if (getOptions().EmbeddedCodira) {
+      // In embedded language all the code is generated in the top-level module.
       // Even de-serialized functions must be code-gen'd.
       SILLinkage linkage = F->getLinkage();
       if (isAvailableExternally(linkage)) {
@@ -145,6 +146,6 @@ class IRGenPrepare : public SILFunctionTransform {
 } // end anonymous namespace
 
 
-SILTransform *swift::createIRGenPrepare() {
+SILTransform *language::createIRGenPrepare() {
   return new IRGenPrepare();
 }

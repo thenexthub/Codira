@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the TypeVisitor class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPEVISITOR_H
-#define SWIFT_AST_TYPEVISITOR_H
+#ifndef LANGUAGE_AST_TYPEVISITOR_H
+#define LANGUAGE_AST_TYPEVISITOR_H
 
 #include "language/AST/Types.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
   
-/// TypeVisitor - This is a simple visitor class for Swift types.
+/// TypeVisitor - This is a simple visitor class for Codira types.
 template<typename ImplClass, typename RetTy = void, typename... Args> 
 class TypeVisitor {
 public:
@@ -39,7 +40,7 @@ public:
                              ::std::forward<Args>(args)...);
 #include "language/AST/TypeNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
   
   // Provide default implementations of abstract "visit" implementations that

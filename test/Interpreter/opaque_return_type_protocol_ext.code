@@ -1,0 +1,110 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -language-version 5 %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+protocol P {
+  associatedtype AT
+  fn foo() -> AT
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+struct Adapter<T: P>: P {
+  var inner: T
+
+  @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+  fn foo() -> some P {
+    return inner
+  }
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+extension P {
+  @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+  fn foo() -> some P {
+    return Adapter(inner: this)
+  }
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+fn getPAT<T: P>(_: T.Type) -> Any.Type {
+  return T.AT.this
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+extension Int: P { }
+
+// CHECK: {{Adapter<Int>|too old}}
+if #available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *) {
+  print(getPAT(Int.this))
+} else {
+  print("i'm getting too old for this sh")
+}
+
+// rdar://problem/54084733
+
+protocol Q {
+  associatedtype A
+  fn f() -> A
+}
+struct X: Q {
+  typealias A = Array<Int>
+  fn f() -> A {
+    return [1, 2, 3]
+  }
+}
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+dynamic fn g() -> some Q {
+  return X()
+}
+
+fn h<T: Q>(x: T) -> (T.A?, T.A?) {
+  return (.some(x.f()), .some(x.f()))
+}
+
+if #available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *) {
+  immutable x = g()
+  // CHECK: {{X()|no really}}
+  print(x)
+  // CHECK: {{[1, 2, 3]|too old}}
+  immutable y = x.f()
+  print(y)
+  // CHECK: {{[1, 2, 3]|too old}}
+  immutable z = h(x: x)
+  print(z)
+} else {
+  print("no really")
+  print("i'm getting way too old for this sh")
+  print("way too old")
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+dynamic fn opaqueAssocTypeUnderlyingType() -> some Any {
+  return g().f()
+}
+
+extension Optional: Q where Wrapped: Q {
+  fn f() -> Wrapped.A? {
+    return map { $0.f() }
+  }
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+dynamic fn structuralOpaqueAssocTypeUnderlyingType() -> some Any {
+  return Optional(g()).f()
+}
+
+if #available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *) {
+  // CHECK: {{[\1, 2, 3\]|too old}}
+  immutable x = opaqueAssocTypeUnderlyingType()
+  print(x)
+  // CHECK: {{Optional\(\[1, 2, 3\]\)|too damn old}}
+  immutable y = structuralOpaqueAssocTypeUnderlyingType()
+  print(y)
+} else {
+  print("nope, still too old")
+  print("too damn old")
+}

@@ -1,0 +1,77 @@
+// UNSUPPORTED: OS=windows-msvc
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/inputs
+// RUN: split-file %s %t
+// RUN: sed -e "s|INPUTDIR|%t|g" -e "s|LANGUAGELIBDIR|%language-lib-dir|g" %t/inputs/valid_map.json.template > %t/inputs/valid_map.json
+// RUN: sed -e "s|INPUTDIR|%t|g" -e "s|LANGUAGELIBDIR|%language-lib-dir|g" %t/inputs/map_with_duped_language_module.json.template > %t/inputs/map_with_duped_language_module.json
+// RUN: sed -e "s|INPUTDIR|%t|g" -e "s|LANGUAGELIBDIR|%language-lib-dir|g" %t/inputs/map_with_duped_clang_module.json.template > %t/inputs/map_with_duped_clang_module.json
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/inputs/Foo.codemodule -emit-module-doc-path %t/inputs/Foo.codedoc -emit-module-source-info -emit-module-source-info-path %t/inputs/Foo.codesourceinfo -module-cache-path %t.module-cache %t/foo.code -module-name Foo
+// RUN: %target-language-emit-pcm -module-name CodiraShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/CodiraShims.pcm
+// RUN: %target-language-emit-pcm -module-name _CodiraConcurrencyShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/_CodiraConcurrencyShims.pcm
+
+// RUN: %target-language-frontend -typecheck %t/foo.code -explicit-language-module-map-file %t/inputs/valid_map.json
+// RUN: not %target-language-frontend -typecheck %t/foo.code -explicit-language-module-map-file %t/inputs/map_with_duped_language_module.json
+// RUN: not %target-language-frontend -typecheck %t/foo.code -explicit-language-module-map-file %t/inputs/map_with_duped_clang_module.json
+
+//--- foo.code
+public fn foo() {}
+
+//--- inputs/valid_map.json.template
+[{
+	"moduleName": "Foo",
+	"modulePath": "INPUTDIR/inputs/Foo.codemodule",
+	"docPath": "INPUTDIR/inputs/Foo.codedoc",
+	"sourceInfoPath": "INPUTDIR/inputs/Foo.codesourceinfo",
+	"isFramework": false
+},
+{
+	"moduleName": "CodiraShims",
+	"isFramework": false,
+	"clangModuleMapPath": "LANGUAGELIBDIR/language/shims/module.modulemap",
+	"clangModulePath": "INPUTDIR/inputs/CodiraShims.pcm"
+}]
+
+//--- inputs/map_with_duped_language_module.json.template
+[{
+	"moduleName": "Foo",
+	"modulePath": "INPUTDIR/inputs/Foo.codemodule",
+	"docPath": "INPUTDIR/inputs/Foo.codedoc",
+	"sourceInfoPath": "INPUTDIR/inputs/Foo.codesourceinfo",
+	"isFramework": false
+},
+{
+
+	"moduleName": "Foo",
+	"modulePath": "INPUTDIR/inputs/Foo.codemodule",
+	"docPath": "INPUTDIR/inputs/Foo.codedoc",
+	"sourceInfoPath": "INPUTDIR/inputs/Foo.codesourceinfo",
+	"isFramework": false
+},
+{
+	"moduleName": "CodiraShims",
+	"isFramework": false,
+	"clangModuleMapPath": "LANGUAGELIBDIR/language/shims/module.modulemap",
+	"clangModulePath": "INPUTDIR/inputs/CodiraShims.pcm"
+}]
+
+//--- inputs/map_with_duped_clang_module.json.template
+[{
+	"moduleName": "Foo",
+	"modulePath": "INPUTDIR/inputs/Foo.codemodule",
+	"docPath": "INPUTDIR/inputs/Foo.codedoc",
+	"sourceInfoPath": "INPUTDIR/inputs/Foo.codesourceinfo",
+	"isFramework": false
+},
+{
+	"moduleName": "CodiraShims",
+	"isFramework": false,
+	"clangModuleMapPath": "LANGUAGELIBDIR/language/shims/module.modulemap",
+	"clangModulePath": "INPUTDIR/inputs/CodiraShims.pcm"
+},
+{
+	"moduleName": "CodiraShims",
+	"isFramework": false,
+	"clangModuleMapPath": "LANGUAGELIBDIR/language/shims/module.modulemap",
+	"clangModulePath": "INPUTDIR/inputs/CodiraShims.pcm"
+}]

@@ -1,0 +1,7 @@
+// {"signature":"language::ClosureHasResultExprRequest::evaluate(language::Evaluator&, language::ClosureExpr*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a (Int -> Int , Int =
+#sourceLocation5
+ fn b {
+  a {
+    $0

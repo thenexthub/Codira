@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if !defined(__ELF__) && !defined(__MACH__)
@@ -38,11 +39,11 @@ static LazyMutex mutex;
 static HANDLE dbgHelpHandle = nullptr;
 static bool isDbgHelpInitialized = false;
 
-void _swift_win32_withDbgHelpLibrary(
+void _language_win32_withDbgHelpLibrary(
   void (* body)(HANDLE hProcess, void *context), void *context) {
   mutex.withLock([=] () {
     // If we have not previously created a handle to use with the library, do so
-    // now. This handle belongs to the Swift runtime and should not be closed by
+    // now. This handle belongs to the Codira runtime and should not be closed by
     // `body` (or anybody else.)
     if (!dbgHelpHandle) {
       // Per the documentation for the Debug Help library, we should not use the
@@ -65,7 +66,7 @@ void _swift_win32_withDbgHelpLibrary(
     }
 
     if (isDbgHelpInitialized) {
-      // Set the library's options to what the Swift runtime generally expects.
+      // Set the library's options to what the Codira runtime generally expects.
       // If the options aren't going to change, we can skip the call and save a
       // few CPU cycles on the library call.
       constexpr const DWORD options = SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS;

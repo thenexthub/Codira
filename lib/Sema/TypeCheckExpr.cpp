@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for expressions, analyzing an
@@ -222,7 +223,7 @@ static Expr *makeBinOp(ASTContext &Ctx, Expr *Op, Expr *LHS, Expr *RHS,
       unsafe->setSubExpr(sub);
       return unsafe;
     }
-    llvm_unreachable("Unhandled left-folded case!");
+    toolchain_unreachable("Unhandled left-folded case!");
   }
 
   // If the right operand is a try, await, or unsafe, it's an error unless
@@ -268,7 +269,7 @@ static Expr *makeBinOp(ASTContext &Ctx, Expr *Op, Expr *LHS, Expr *RHS,
       tryKind = TryKindForDiagnostics::Unsafe;
       break;
     default:
-      llvm_unreachable("unknown try-like expression");
+      toolchain_unreachable("unknown try-like expression");
     }
 
     if (isa<TernaryExpr>(Op) ||
@@ -347,7 +348,7 @@ static Expr *makeBinOp(ASTContext &Ctx, Expr *Op, Expr *LHS, Expr *RHS,
 
 namespace {
   class PrecedenceBound {
-    llvm::PointerIntPair<PrecedenceGroupDecl*,1,bool> GroupAndIsStrict;
+    toolchain::PointerIntPair<PrecedenceGroupDecl*,1,bool> GroupAndIsStrict;
   public:
     PrecedenceBound() {}
     PrecedenceBound(PrecedenceGroupDecl *decl, bool isStrict)
@@ -532,7 +533,7 @@ Expr *TypeChecker::buildRefExpr(ArrayRef<ValueDecl *> Decls,
                                 DeclContext *UseDC, DeclNameLoc NameLoc,
                                 bool Implicit, FunctionRefInfo functionRefInfo) {
   assert(!Decls.empty() && "Must have at least one declaration");
-  ASSERT(llvm::any_of(Decls, [](ValueDecl *VD) {
+  ASSERT(toolchain::any_of(Decls, [](ValueDecl *VD) {
             return ABIRoleInfo(VD).providesAPI();
           }) && "DeclRefExpr can't refer to ABI-only decl");
 
@@ -609,7 +610,7 @@ static std::pair<const char *, bool> lookupDefaultTypeInfoForKnownProtocol(
 }
 
 Type
-swift::DefaultTypeRequest::evaluate(Evaluator &evaluator,
+language::DefaultTypeRequest::evaluate(Evaluator &evaluator,
                                     KnownProtocolKind knownProtocolKind,
                                     const DeclContext *dc) const {
   const char *name;
@@ -666,7 +667,7 @@ static SourceFile *createDefaultArgumentSourceFile(StringRef macroExpression,
   ASTContext &ctx = dc->getASTContext();
   SourceManager &sourceMgr = ctx.SourceMgr;
 
-  llvm::SmallString<256> builder;
+  toolchain::SmallString<256> builder;
   unsigned line, column;
   std::tie(line, column) = sourceMgr.getLineAndColumnInBuffer(insertionPoint);
   auto file = dc->getParentSourceFile()->getFilename();
@@ -677,12 +678,12 @@ static SourceFile *createDefaultArgumentSourceFile(StringRef macroExpression,
   builder.append(column - 1, ' ');
   builder.append(macroExpression);
 
-  std::unique_ptr<llvm::MemoryBuffer> buffer;
-  buffer = llvm::MemoryBuffer::getMemBufferCopy(builder.str(), file);
+  std::unique_ptr<toolchain::MemoryBuffer> buffer;
+  buffer = toolchain::MemoryBuffer::getMemBufferCopy(builder.str(), file);
 
   // Dump default argument to standard output, if requested.
   if (ctx.LangOpts.DumpMacroExpansions) {
-    llvm::errs() << buffer->getBufferIdentifier()
+    toolchain::errs() << buffer->getBufferIdentifier()
                  << "\n------------------------------\n"
                  << buffer->getBuffer()
                  << "\n------------------------------\n";
@@ -735,7 +736,7 @@ static Expr *synthesizeCallerSideDefault(const ParamDecl *param,
           return callerSideMacroExpansionExpr;
         }
     }
-    llvm_unreachable("default argument source file missing caller side macro "
+    toolchain_unreachable("default argument source file missing caller side macro "
                      "expansion expression");
   }
 
@@ -757,9 +758,9 @@ static Expr *synthesizeCallerSideDefault(const ParamDecl *param,
   case DefaultArgumentKind::Normal:
   case DefaultArgumentKind::Inherited:
   case DefaultArgumentKind::StoredProperty:
-    llvm_unreachable("Not a caller-side default");
+    toolchain_unreachable("Not a caller-side default");
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 Expr *CallerSideDefaultArgExprRequest::evaluate(
@@ -777,14 +778,30 @@ Expr *CallerSideDefaultArgExprRequest::evaluate(
   if (!TypeChecker::typeCheckParameterDefault(initExpr, dc, paramTy,
                                               param->isAutoClosure(),
                                               /*atCallerSide=*/true)) {
-    if (param->hasDefaultExpr()) {
+    auto isSimpleLiteral = [&]() -> bool {
+      switch (param->getDefaultArgumentKind()) {
+#define MAGIC_IDENTIFIER(NAME, STRING) \
+      case DefaultArgumentKind::NAME: return true;
+#include "language/AST/MagicIdentifierKinds.def"
+      case DefaultArgumentKind::NilLiteral:
+      case DefaultArgumentKind::EmptyArray:
+      case DefaultArgumentKind::EmptyDictionary:
+        return true;
+      default:
+        return false;
+      }
+    };
+    if (param->hasDefaultExpr() && isSimpleLiteral()) {
       // HACK: If we were unable to type-check the default argument in context,
       // then retry by type-checking it within the parameter decl, which should
       // also fail. This will present the user with a better error message and
       // allow us to avoid diagnosing on each call site.
+      // Note we can't do this for expression macros since name lookup may
+      // differ at the call side vs the declaration. We can however do it for
+      // simple literals.
       transaction.abort();
       (void)param->getTypeCheckedDefaultExpr();
-      assert(ctx.Diags.hadAnyError());
+      ASSERT(ctx.Diags.hadAnyError());
     }
     return new (ctx) ErrorExpr(initExpr->getSourceRange(), paramTy);
   }

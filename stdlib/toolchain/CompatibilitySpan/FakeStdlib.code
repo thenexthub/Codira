@@ -1,4 +1,4 @@
-//===--- FakeStdlib.swift -------------------------------------------------===//
+//===--- FakeStdlib.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// A handful of standard library stubs to allow Span.swift and RawSpan.swift
+// A handful of standard library stubs to allow Span.code and RawSpan.code
 // to be compiled as part of the compatibility shim.
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 @_alwaysEmitIntoClient @_transparent
-internal func _precondition(
+internal fn _precondition(
   _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -29,7 +30,7 @@ internal func _precondition(
 }
 
 @_alwaysEmitIntoClient @_transparent
-internal func _internalInvariantFailure(
+internal fn _internalInvariantFailure(
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
@@ -41,7 +42,7 @@ internal func _internalInvariantFailure(
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(borrow source)
-internal func _overrideLifetime<
+internal fn _overrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T, borrowing source: borrowing U
@@ -54,7 +55,7 @@ internal func _overrideLifetime<
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(copy source)
-internal func _overrideLifetime<
+internal fn _overrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T, copying source: borrowing U
@@ -67,7 +68,7 @@ internal func _overrideLifetime<
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(&source)
-internal func _overrideLifetime<
+internal fn _overrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T,
@@ -77,17 +78,18 @@ internal func _overrideLifetime<
 }
 
 extension Range {
-    @_alwaysEmitIntoClient
-	internal init(_uncheckedBounds bounds: (lower: Bound, upper: Bound)) {
-	    self.init(uncheckedBounds: bounds)
-	}
+  @unsafe
+  @_alwaysEmitIntoClient
+  internal init(_uncheckedBounds bounds: (lower: Bound, upper: Bound)) {
+    this.init(uncheckedBounds: bounds)
+  }
 }
 
 extension Optional {
   @_alwaysEmitIntoClient
   internal var _unsafelyUnwrappedUnchecked: Wrapped {
     get {
-      if let x = self {
+      if immutable x = this {
         return x
       }
       _internalInvariantFailure("_unsafelyUnwrappedUnchecked of nil optional")

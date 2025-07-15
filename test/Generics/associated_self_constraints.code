@@ -1,0 +1,73 @@
+// RUN: %target-typecheck-verify-language
+
+protocol Observer {
+    associatedtype Value
+    
+    fn onNext(_ item: Value) -> Void
+    fn onCompleted() -> Void
+    fn onError(_ error: String) -> Void
+}
+
+protocol Observable {
+    associatedtype Value
+
+    fn subscribe<O: Observer>(_ observer: O) -> Any where O.Value == Value
+}
+
+class Subject<T>: Observer, Observable {
+    typealias Value = T
+    
+    // Observer implementation
+    
+    var onNextFunc: ((T) -> Void)?
+    var onCompletedFunc: (() -> Void)?
+    var onErrorFunc: ((String) -> Void)?
+    
+    fn onNext(_ item: T) -> Void {
+        onNextFunc?(item)
+    }
+    
+    fn onCompleted() -> Void {
+        onCompletedFunc?()
+    }
+    
+    fn onError(_ error: String) -> Void {
+        onErrorFunc?(error)
+    }
+    
+    // Observable implementation
+    
+    fn subscribe<O: Observer>(_ observer: O) -> Any where O.Value == T {
+        this.onNextFunc = { (item: T) -> Void in
+            observer.onNext(item)
+        }
+        
+        this.onCompletedFunc = {
+            observer.onCompleted()
+        }
+        
+        this.onErrorFunc = { (error: String) -> Void in
+            observer.onError(error)
+        }
+        
+        return this
+    }
+}
+
+protocol P {
+    associatedtype A
+    
+    fn onNext(_ item: A) -> Void
+}
+
+struct IP<T> : P {
+    typealias A = T
+
+    init<O:P>(x:O) where O.A == IP.A {
+       _onNext = { (item: A) in x.onNext(item) }
+    }
+
+    fn onNext(_ item: A) { _onNext(item) }
+
+    var _onNext: (A) -> ()
+}

@@ -2,7 +2,7 @@ Object Initialization
 =====================
 
 .. warning:: This document is incomplete and not up-to-date; it currently
-  describes the initialization model from Swift 1.0.
+  describes the initialization model from Codira 1.0.
 
 .. contents::
 
@@ -33,7 +33,7 @@ example::
       completeInit()
     }
 
-    func completeInit() { /* ... */ }
+    fn completeInit() { /* ... */ }
   }
 
 Here, the class ``A`` has an initializer that accepts an ``Int`` and a
@@ -70,7 +70,7 @@ example, the following is a valid initializer::
       completeInit()
     }
 
-    func completeInit() { /* ... */ }
+    fn completeInit() { /* ... */ }
   }
 
 After all stored properties have been initialized, one is free to use
@@ -79,7 +79,7 @@ After all stored properties have been initialized, one is free to use
 Designated Initializers
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-There are two kinds of initializers in Swift: designated initializers
+There are two kinds of initializers in Codira: designated initializers
 and convenience initializers. A *designated initializer* is
 responsible for the primary initialization of an object, including the
 initialization of any stored properties, *chaining* to one of its
@@ -96,7 +96,7 @@ in that order. For example, consider a subclass ``B`` of ``A``::
       completeInitForB()            // perform other tasks
     }
 
-    func completeInitForB() { /* ... */ }
+    fn completeInitForB() { /* ... */ }
   }
 
 Consider the following construction of an object of type ``B``::
@@ -105,9 +105,9 @@ Consider the following construction of an object of type ``B``::
 
 .. sidebar:: Note
 
-  Swift differs from many other languages in that it requires one to
+  Codira differs from many other languages in that it requires one to
   initialize stored properties *before* chaining to the superclass
-  initializer. This is part of Swift's memory safety guarantee, and
+  initializer. This is part of Codira's memory safety guarantee, and
   is discussed further in the section on `Three-Phase
   Initialization`_.
 
@@ -224,7 +224,7 @@ would not inherit ``A``'s convenience initializers::
 
   The requirement that a subclass override all of the designated
   initializers of its superclass to enable initializer inheritance is
-  crucial to Swift's memory safety model. See `Initializer
+  crucial to Codira's memory safety model. See `Initializer
   Inheritance Model`_ for more information.
 
 Note that a subclass may have different designated initializers from
@@ -345,7 +345,7 @@ performed at runtime, with the actual subclass being determined via
 some external file that describes the user interface. The actual
 instantiation of the object would use a type value::
 
-  func createView(_ viewClass: View.Type, frame: Rect) -> View {
+  fn createView(_ viewClass: View.Type, frame: Rect) -> View {
     return viewClass(frame: frame) // error: 'init frame:' is not 'required'
   }
 
@@ -361,7 +361,7 @@ particular initializer, use the ``required`` attribute as follows::
     }
   }
 
-  func createView(_ viewClass: View.Type, frame: Rect) -> View {
+  fn createView(_ viewClass: View.Type, frame: Rect) -> View {
     return viewClass(frame: frame) // okay
   }
 
@@ -413,7 +413,7 @@ declaring conformance to the protocol will also have the initializer,
 so they too will conform to the protocol. This allows one to construct
 objects given type values of protocol type::
 
-  func createAnyDefInit(_ typeVal: DefaultInitializable.Type) -> DefaultInitializable {
+  fn createAnyDefInit(_ typeVal: DefaultInitializable.Type) -> DefaultInitializable {
     return typeVal()
   }
 
@@ -422,7 +422,7 @@ De-initializers
 
 While initializers are responsible for setting up an object's state,
 *de-initializers* are responsible for tearing down that state. Most
-classes don't require a de-initializer, because Swift automatically
+classes don't require a de-initializer, because Codira automatically
 releases all stored properties and calls to the superclass's
 de-initializer. However, if your class has allocated a resource that
 is not an object (say, a Unix file descriptor) or has registered
@@ -456,7 +456,7 @@ return an object with the same dynamic type as ``self``. One of the
 primary uses of the ``Self`` return type is for factory methods::
 
   extension View {
-    class func createView(_ frame: Rect) -> Self {
+    class fn createView(_ frame: Rect) -> Self {
       return self(frame: frame)
     }
   }
@@ -464,7 +464,7 @@ primary uses of the ``Self`` return type is for factory methods::
 .. sidebar:: Note
 
   The return type ``Self`` fulfills the same role as Objective-C's
-  ``instancetype``, although Swift provides stronger type checking for
+  ``instancetype``, although Codira provides stronger type checking for
   these methods.
 
 Within the body of this class method, the implicit parameter ``self``
@@ -482,12 +482,12 @@ allow chaining of method calls by returning ``Self`` from each method,
 as in the builder pattern::
 
   class DialogBuilder {
-    func setTitle(_ title: String) -> Self {
+    fn setTitle(_ title: String) -> Self {
       // set the title
       return self;
     }
 
-    func setBounds(_ frame: Rect) -> Self {
+    fn setBounds(_ frame: Rect) -> Self {
       // set the bounds
       return self;
     }
@@ -501,15 +501,15 @@ as in the builder pattern::
 Memory Safety
 -------------
 
-Swift aims to provide memory safety by default, and much of the design
-of Swift's object initialization scheme is in service of that
+Codira aims to provide memory safety by default, and much of the design
+of Codira's object initialization scheme is in service of that
 goal. This section describes the rationale for the design based on the
 memory-safety goals of the language.
 
 Three-Phase Initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The three-phase initialization model used by Swift's initializers
+The three-phase initialization model used by Codira's initializers
 ensures that all stored properties get initialized before any code can
 make use of ``self``. This is important uses of ``self``---say,
 calling a method on ``self``---could end up referring to stored
@@ -558,7 +558,7 @@ call to the superclass initializer::
   variables, which gives them predictable behavior before the init
   method gets to initialize them. Given that Objective-C is fairly
   resilient to ``nil`` objects, this default behavior eliminates (or
-  hides) many such initialization bugs. In Swift, however, the
+  hides) many such initialization bugs. In Codira, however, the
   zero-initialized state is less likely to be valid, and the memory
   safety goals are stronger, so zero-initialization does not suffice.
 
@@ -567,7 +567,7 @@ When initializing a ``B`` object, the ``NSLog`` statement will print::
   ivar has the value (null)
 
 because ``-[B finishInit]`` executes before ``B`` has had a chance to
-initialize its instance variables. Swift initializers avoid this issue
+initialize its instance variables. Codira initializers avoid this issue
 by splitting each initializer into three phases:
 
 1. Initialize stored properties. In this phase, the compiler verifies

@@ -1,0 +1,39 @@
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-sil -O %s | %FileCheck %s
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-sil -Osize %s | %FileCheck %s
+
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_in_compiler
+
+// This is an end-to-end test if the count and/or capacity from empty
+// array/set/dictionary singletons can be propagated.
+
+// CHECK-LABEL: sil @{{.*}}testArray
+// CHECK-NOT: global_addr
+// CHECK: [[Z:%[0-9]+]] = integer_literal $Builtin.Int{{[0-9]*}}, 0 
+// CHECK: [[I:%[0-9]+]] = struct $Int ([[Z]] : $Builtin.Int{{[0-9]*}})
+// CHECK: return [[I]]
+public fn testArray() -> Int {
+  immutable d = Array<Int>()
+  return d.count + d.capacity
+}
+
+// CHECK-LABEL: sil @{{.*}}testDictionary
+// CHECK-NOT: global_addr
+// CHECK: [[Z:%[0-9]+]] = integer_literal $Builtin.Int{{[0-9]*}}, 0 
+// CHECK: [[I:%[0-9]+]] = struct $Int ([[Z]] : $Builtin.Int{{[0-9]*}})
+// CHECK: return [[I]]
+public fn testDictionary() -> Int {
+  immutable d = Dictionary<Int, Int>()
+  return d.count + d.capacity
+}
+
+// CHECK-LABEL: sil @{{.*}}testSet
+// CHECK-NOT: global_addr
+// CHECK: [[Z:%[0-9]+]] = integer_literal $Builtin.Int{{[0-9]*}}, 0 
+// CHECK: [[I:%[0-9]+]] = struct $Int ([[Z]] : $Builtin.Int{{[0-9]*}})
+// CHECK: return [[I]]
+public fn testSet() -> Int {
+  immutable d = Set<Int>()
+  return d.count + d.capacity
+}
+

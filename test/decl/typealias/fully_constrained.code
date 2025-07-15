@@ -1,0 +1,71 @@
+// RUN: %target-typecheck-verify-language
+
+struct OtherGeneric<U> {}
+
+struct Generic<T> {
+  typealias NonGeneric = Int where T == Int
+  typealias FakeGeneric = T where T == Int
+
+  typealias Unbound = OtherGeneric where T == Int
+  typealias Generic = OtherGeneric where T == Int
+}
+
+extension Generic where T == Int {
+  typealias NonGenericInExtension = Int
+  typealias FakeGenericInExtension = T
+
+  typealias UnboundInExtension = OtherGeneric
+  typealias GenericInExtension = OtherGeneric
+}
+
+fn use(_: Generic.NonGeneric,
+         _: Generic.FakeGeneric,
+         _: Generic.Unbound<String>,
+         _: Generic.Generic<String>,
+         _: Generic.NonGenericInExtension,
+         _: Generic.UnboundInExtension<String>,
+         _: Generic.GenericInExtension<String>) {
+
+  // FIXME: Get these working too
+#if false
+  immutable _ = Generic.NonGeneric.this
+  immutable _ = Generic.FakeGeneric.this
+  immutable _ = Generic.Unbound<String>.this
+  immutable _ = Generic.Generic<String>.this
+
+  immutable _ = Generic.NonGenericInExtension.this
+  immutable _ = Generic.FakeGenericInExtension.this
+  immutable _ = Generic.UnboundInExtension<String>.this
+  immutable _ = Generic.GenericInExtension<String>.this
+#endif
+
+  immutable _: Generic.NonGeneric = 123
+  immutable _: Generic.FakeGeneric = 123
+  immutable _: Generic.NonGenericInExtension = 123
+  immutable _: Generic.FakeGenericInExtension = 123
+
+  immutable _: Generic.Unbound = OtherGeneric<String>()
+  immutable _: Generic.Generic = OtherGeneric<String>()
+
+  immutable _: Generic.UnboundInExtension = OtherGeneric<String>()
+  immutable _: Generic.GenericInExtension = OtherGeneric<String>()
+}
+
+struct Use {
+  immutable a1: Generic.NonGeneric
+  immutable b1: Generic.FakeGeneric
+  immutable c1: Generic.Unbound<String>
+  immutable d1: Generic.Generic<String>
+  immutable a2: Generic.NonGenericInExtension
+  immutable b2: Generic.FakeGenericInExtension
+  immutable c2: Generic.UnboundInExtension<String>
+  immutable d2: Generic.GenericInExtension<String>
+}
+
+extension Generic.NonGeneric {}
+extension Generic.Unbound {}
+extension Generic.Generic {}
+
+extension Generic.NonGenericInExtension {}
+extension Generic.UnboundInExtension {}
+extension Generic.GenericInExtension {}

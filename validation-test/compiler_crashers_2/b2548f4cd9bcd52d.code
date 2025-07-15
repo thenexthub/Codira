@@ -1,0 +1,4 @@
+// {"signature":"isEscaping(language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a->String{ b}
+         fn b(c : (sending String

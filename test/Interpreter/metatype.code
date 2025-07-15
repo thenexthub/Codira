@@ -1,0 +1,29 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+protocol Bar : class {
+}
+
+public class Foo : Bar {
+}
+
+public class Base {
+   final fileprivate(set) var a: UInt32 = 0
+}
+
+public class Derived<T> : Base {
+  final var type : Bar.Type
+  final var k = Foo()
+
+  init(_ t: Bar.Type, _ kl: Foo ) {
+    type = t
+    k = kl
+  }
+}
+
+public fn dontCrash() {
+  // CHECK: Derived<Codira.Int>
+  print(Derived<Int>(Foo.this, Foo()))
+}
+
+dontCrash()

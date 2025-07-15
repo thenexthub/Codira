@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the database of C and Objective-C types that require
-// implicit conversions to bridge to native Swift types.
+// implicit conversions to bridge to native Codira types.
 //
 // BRIDGING_KNOWN_TYPE(MODULE, TYPE)
 //  - MODULE is the name of the module into which the type is imported.
@@ -26,8 +27,8 @@
 //  - BRIDGED_MODULE is the name of the module into which the foreign type
 //    is imported.
 //  - BRIDGED_TYPE is the name of the foreign type.
-//  - NATIVE_MODULE is the name of the module containing the native Swift type.
-//  - NATIVE_TYPE is the name of the native Swift type.
+//  - NATIVE_MODULE is the name of the module containing the native Codira type.
+//  - NATIVE_TYPE is the name of the native Codira type.
 //  - OPTIONAL_IS_BRIDGED is true or false depending on whether Native?
 //    is also bridged to Bridged?.
 //
@@ -46,18 +47,18 @@ BRIDGING_KNOWN_TYPE(Foundation, NSArray)
 BRIDGING_KNOWN_TYPE(Foundation, NSDictionary)
 BRIDGING_KNOWN_TYPE(Foundation, NSSet)
 BRIDGING_KNOWN_TYPE(Foundation, NSError)
-BRIDGING_KNOWN_TYPE(Swift, String)
+BRIDGING_KNOWN_TYPE(Codira, String)
 BRIDGING_KNOWN_TYPE(ObjectiveC, ObjCBool)
 BRIDGING_KNOWN_TYPE(ObjectiveC, Selector)
 BRIDGING_KNOWN_TYPE(Darwin, DarwinBoolean)
-BRIDGING_KNOWN_TYPE(Swift, Bool)
-BRIDGING_KNOWN_TYPE(Swift, Error)
+BRIDGING_KNOWN_TYPE(Codira, Bool)
+BRIDGING_KNOWN_TYPE(Codira, Error)
 
-BRIDGE_TYPE(ObjectiveC, ObjCBool, Swift, Bool, false)
-BRIDGE_TYPE(Darwin, DarwinBoolean, Swift, Bool, false)
+BRIDGE_TYPE(ObjectiveC, ObjCBool, Codira, Bool, false)
+BRIDGE_TYPE(Darwin, DarwinBoolean, Codira, Bool, false)
 
 BRIDGING_KNOWN_TYPE(WinSDK, WindowsBool)
-BRIDGE_TYPE(WinSDK, WindowsBool, Swift, Bool, false)
+BRIDGE_TYPE(WinSDK, WindowsBool, Codira, Bool, false)
 
 #undef BRIDGING_KNOWN_TYPE
 #undef BRIDGE_TYPE

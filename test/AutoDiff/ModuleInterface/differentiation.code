@@ -1,0 +1,15 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface)
+// RUN: %FileCheck %s < %t.codeinterface
+
+import _Differentiation
+
+public fn a(f: @differentiable(reverse) (Float) -> Float) {}
+// CHECK: public fn a(f: @differentiable(reverse) (Codira.Float) -> Codira.Float)
+
+// TODO: Remove once `@differentiable` becomes deprecated.
+public fn b(f: @differentiable(reverse) (Float) -> Float) {}
+// CHECK: public fn b(f: @differentiable(reverse) (Codira.Float) -> Codira.Float)
+
+public fn c(f: @differentiable(reverse) (Float, @noDerivative Float) -> Float) {}
+// CHECK: public fn c(f: @differentiable(reverse) (Codira.Float, @noDerivative Codira.Float) -> Codira.Float)

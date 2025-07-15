@@ -1,4 +1,4 @@
-//===--- swift-api-digester.cpp - API change detector ---------------------===//
+//===--- language-api-digester.cpp - API change detector ---------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// swift-api-digester is a test utility to detect source-breaking API changes
-// during the evolution of a Swift library. The tool works on two phases:
+// language-api-digester is a test utility to detect source-breaking API changes
+// during the evolution of a Codira library. The tool works on two phases:
 // (1) dumping library contents as a JSON file, and (2) comparing two JSON
 // files textually to report interesting changes.
 //
@@ -40,9 +41,10 @@
 #include "language/IDE/APIDigesterData.h"
 #include "language/Option/Options.h"
 #include "language/Parse/ParseVersion.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/Support/VirtualOutputBackends.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <functional>
 
 using namespace language;
@@ -67,7 +69,7 @@ namespace  {
 
 namespace {
 
-using swift::ide::api::KnownProtocolKind;
+using language::ide::api::KnownProtocolKind;
 
 // A node matcher will traverse two trees of SDKNode and find matched nodes
 struct NodeMatcher {
@@ -130,11 +132,11 @@ struct NodeMatch {
 class BestMatchMatcher : public NodeMatcher {
   NodeVector &Left;
   NodeVector &Right;
-  llvm::function_ref<bool(NodePtr, NodePtr)> CanMatch;
-  llvm::function_ref<bool(NodeMatch, NodeMatch)> IsFirstMatchBetter;
+  toolchain::function_ref<bool(NodePtr, NodePtr)> CanMatch;
+  toolchain::function_ref<bool(NodeMatch, NodeMatch)> IsFirstMatchBetter;
   NodeMatchReason Reason;
   MatchedNodeListener &Listener;
-  llvm::SmallPtrSet<NodePtr, 16> MatchedRight;
+  toolchain::SmallPtrSet<NodePtr, 16> MatchedRight;
 
   bool internalCanMatch(NodePtr L, NodePtr R) {
     return MatchedRight.count(R) == 0 && CanMatch(L, R);
@@ -154,8 +156,8 @@ class BestMatchMatcher : public NodeMatcher {
 
 public:
   BestMatchMatcher(NodeVector &Left, NodeVector &Right,
-                   llvm::function_ref<bool(NodePtr, NodePtr)> CanMatch,
-                   llvm::function_ref<bool(NodeMatch, NodeMatch)> IsFirstMatchBetter,
+                   toolchain::function_ref<bool(NodePtr, NodePtr)> CanMatch,
+                   toolchain::function_ref<bool(NodeMatch, NodeMatch)> IsFirstMatchBetter,
                    NodeMatchReason Reason,
                    MatchedNodeListener &Listener) : Left(Left), Right(Right),
   CanMatch(CanMatch),
@@ -182,7 +184,7 @@ class RemovedAddedNodeMatcher : public NodeMatcher, public MatchedNodeListener {
 
   void handleUnmatch(NodeVector &Matched, NodeVector &All, bool Left) {
     for (auto A : All) {
-      if (llvm::is_contained(Matched, A))
+      if (toolchain::is_contained(Matched, A))
         continue;
       if (Left)
         Listener.foundMatch(A, nullptr, NodeMatchReason::Removed);
@@ -256,7 +258,7 @@ class RemovedAddedNodeMatcher : public NodeMatcher, public MatchedNodeListener {
       if (auto VC = dyn_cast<SDKNodeDeclVar>(Child)) {
       auto LastPartOfA = getLastPartOfUsr(VC);
         if (LastPartOfA && LastPartOfR.value() == LastPartOfA.value()) {
-          std::string FullName = (llvm::Twine(A->getName()) + "." +
+          std::string FullName = (toolchain::Twine(A->getName()) + "." +
             Child->getName()).str();
           R->annotate(NodeAnnotation::ModernizeEnum,
                       R->getSDKContext().buffer(FullName));
@@ -295,8 +297,8 @@ class RemovedAddedNodeMatcher : public NodeMatcher, public MatchedNodeListener {
       return false;
     if (((StringRef)LL).starts_with(RR) || ((StringRef)RR).starts_with(LL))
       return true;
-    if (((StringRef)LL).starts_with((llvm::Twine("ns") + RR).str()) ||
-        ((StringRef)RR).starts_with((llvm::Twine("ns") + LL).str()))
+    if (((StringRef)LL).starts_with((toolchain::Twine("ns") + RR).str()) ||
+        ((StringRef)RR).starts_with((toolchain::Twine("ns") + LL).str()))
       return true;
     if (((StringRef)LL).ends_with(RR) || ((StringRef)RR).ends_with(LL))
       return true;
@@ -381,12 +383,12 @@ public:
     NodeVector RenameRight;
 
     for (auto Remain : Removed) {
-      if (!llvm::is_contained(RemovedMatched, Remain))
+      if (!toolchain::is_contained(RemovedMatched, Remain))
         RenameLeft.push_back(Remain);
     }
 
     for (auto Remain : Added) {
-      if (!llvm::is_contained(AddedMatched, Remain))
+      if (!toolchain::is_contained(AddedMatched, Remain))
         RenameRight.push_back(Remain);
     }
 
@@ -488,7 +490,7 @@ void SameNameNodeMatcher::match() {
     for (auto *RN : Right) {
 
       // If RN has matched before, ignore it.
-      if (llvm::is_contained(MatchedRight, RN))
+      if (toolchain::is_contained(MatchedRight, RN))
         continue;
 
       // If LN and RN have the same name for some reason, keep track of RN.
@@ -507,7 +509,7 @@ void SameNameNodeMatcher::match() {
     }
   }
   for (auto &R : Right) {
-    if (!llvm::is_contained(MatchedRight, R)) {
+    if (!toolchain::is_contained(MatchedRight, R)) {
       Added.push_back(R);
     }
   }
@@ -555,7 +557,7 @@ public:
 namespace {
 
 static bool isMissingDeclAcceptable(const SDKNodeDecl *D) {
-  // Don't complain about removing importation of SwiftOnoneSupport.
+  // Don't complain about removing importation of CodiraOnoneSupport.
   if (D->getKind() == SDKNodeKind::DeclImport) {
     return true;
   }
@@ -598,12 +600,12 @@ class PrunePass : public MatchedNodeListener, public SDKTreeDiffPass {
 
   SDKContext &Ctx;
   UpdatedNodesMap &UpdateMap;
-  llvm::StringSet<> ProtocolReqAllowlist;
+  toolchain::StringSet<> ProtocolReqAllowlist;
   SDKNodeRoot *LeftRoot;
   SDKNodeRoot *RightRoot;
   bool DebugMapping;
 
-  static void printSpaces(llvm::raw_ostream &OS, SDKNode *N) {
+  static void printSpaces(toolchain::raw_ostream &OS, SDKNode *N) {
     assert(N);
     StringRef Space = "        ";
     // Accessor doesn't have parent.
@@ -617,7 +619,7 @@ class PrunePass : public MatchedNodeListener, public SDKTreeDiffPass {
   }
 
   static void debugMatch(SDKNode *Left, SDKNode *Right, NodeMatchReason Reason,
-                         llvm::raw_ostream &OS) {
+                         toolchain::raw_ostream &OS) {
     if (Left && !isa<SDKNodeDecl>(Left))
       return;
     if (Right && !isa<SDKNodeDecl>(Right))
@@ -650,7 +652,7 @@ public:
   PrunePass(SDKContext &Ctx, bool DebugMapping)
       : Ctx(Ctx), UpdateMap(Ctx.getNodeUpdateMap()),
         DebugMapping(DebugMapping) {}
-  PrunePass(SDKContext &Ctx, llvm::StringSet<> prAllowlist, bool DebugMapping)
+  PrunePass(SDKContext &Ctx, toolchain::StringSet<> prAllowlist, bool DebugMapping)
       : Ctx(Ctx), UpdateMap(Ctx.getNodeUpdateMap()),
         ProtocolReqAllowlist(std::move(prAllowlist)),
         DebugMapping(DebugMapping) {}
@@ -682,7 +684,7 @@ public:
   }
   void foundMatch(NodePtr Left, NodePtr Right, NodeMatchReason Reason) override {
     if (DebugMapping)
-      debugMatch(Left, Right, Reason, llvm::errs());
+      debugMatch(Left, Right, Reason, toolchain::errs());
     switch (Reason) {
     case NodeMatchReason::Added:
       assert(!Left);
@@ -820,7 +822,7 @@ public:
       auto RConf = cast<SDKNodeDeclType>(Right)->getConformances();
       removeCommon(LConf, RConf);
       SameNameNodeMatcher(LConf, RConf, *this).match();
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     }
     case SDKNodeKind::Conformance:
     case SDKNodeKind::Root: {
@@ -855,8 +857,8 @@ public:
       auto *LSub = dyn_cast<SDKNodeDeclSubscript>(Left);
       auto *RSub = dyn_cast<SDKNodeDeclSubscript>(Right);
       SequentialNodeMatcher(LSub->getChildren(), RSub->getChildren(), *this).match();
-#define ACCESSOR(ID)                                                          \
-      singleMatch(LSub->getAccessor(AccessorKind::ID),                        \
+#define ACCESSOR(ID, KEYWORD)                                                  \
+      singleMatch(LSub->getAccessor(AccessorKind::ID),                         \
                   RSub->getAccessor(AccessorKind::ID), *this);
 #include "language/AST/AccessorKinds.def"
       break;
@@ -866,8 +868,8 @@ public:
       auto *RVar = dyn_cast<SDKNodeDeclVar>(Right);
       // Match property type.
       singleMatch(LVar->getType(), RVar->getType(), *this);
-#define ACCESSOR(ID)                                                          \
-      singleMatch(LVar->getAccessor(AccessorKind::ID),                        \
+#define ACCESSOR(ID, KEYWORD)                                                  \
+      singleMatch(LVar->getAccessor(AccessorKind::ID),                         \
                   RVar->getAccessor(AccessorKind::ID), *this);
 #include "language/AST/AccessorKinds.def"
       break;
@@ -958,8 +960,8 @@ public:
     return TypeMemberDiffs;
   }
 
-  void dump(llvm::raw_ostream &) const;
-  void dump() const { dump(llvm::errs()); }
+  void dump(toolchain::raw_ostream &) const;
+  void dump() const { dump(toolchain::errs()); }
 
 private:
   TypeMemberDiffFinder(const TypeMemberDiffFinder &) = delete;
@@ -971,7 +973,7 @@ private:
 /// e.g. AttributeName was a typealias of String in the old SDK however it becomes
 /// a RawRepresentable struct in the new SDK.
 /// This happens typically when we use apinotes to preserve API stability by
-/// using SwiftWrapper:none in the old SDK.
+/// using CodiraWrapper:none in the old SDK.
 class TypeAliasDiffFinder: public SDKNodeVisitor {
   SDKNodeRoot *leftRoot;
   SDKNodeRoot *rightRoot;
@@ -1022,10 +1024,10 @@ public:
 // in a tree.
 class SearchVisitor : public SDKNodeVisitor {
   bool isFound = false;
-  llvm::function_ref<bool(NodePtr)> Predicate;
+  toolchain::function_ref<bool(NodePtr)> Predicate;
 
 public:
-  SearchVisitor(llvm::function_ref<bool(NodePtr)> Predicate) :
+  SearchVisitor(toolchain::function_ref<bool(NodePtr)> Predicate) :
     Predicate(Predicate) {}
 
   void visit(NodePtr Node) override {
@@ -1358,7 +1360,7 @@ public:
 static void findTypeMemberDiffs(NodePtr leftSDKRoot, NodePtr rightSDKRoot,
                                 TypeMemberDiffVector &out);
 
-static void printNode(llvm::raw_ostream &os, NodePtr node) {
+static void printNode(toolchain::raw_ostream &os, NodePtr node) {
   os << "{" << node->getName() << " " << node->getKind() << " "
             << node->getPrintedName();
   if (auto F = dyn_cast<SDKNodeDeclAbstractFunc>(node)) {
@@ -1370,7 +1372,7 @@ static void printNode(llvm::raw_ostream &os, NodePtr node) {
   os << "}";
 }
 
-void TypeMemberDiffFinder::dump(llvm::raw_ostream &os) const {
+void TypeMemberDiffFinder::dump(toolchain::raw_ostream &os) const {
   for (auto pair : getDiffs()) {
     os << " - ";
     printNode(os, pair.first);
@@ -1395,7 +1397,7 @@ void removeRedundantAndSort(std::vector<T> &Diffs) {
 }
 
 template<typename T>
-void serializeDiffs(llvm::raw_ostream &Fs, std::vector<T> &Diffs) {
+void serializeDiffs(toolchain::raw_ostream &Fs, std::vector<T> &Diffs) {
   if (Diffs.empty())
     return;
   Fs << "\n";
@@ -1531,7 +1533,7 @@ class DiffItemEmitter : public SDKNodeVisitor {
   }
 
   StringRef getIndexString(NodePtr Node) {
-    llvm::SmallString<32> Builder;
+    toolchain::SmallString<32> Builder;
     std::vector<int> Indexes;
     collectIndexes(Node, Indexes);
     auto First = true;
@@ -1772,8 +1774,8 @@ public:
 };
 } // end anonymous namespace
 
-namespace fs = llvm::sys::fs;
-namespace path = llvm::sys::path;
+namespace fs = toolchain::sys::fs;
+namespace path = toolchain::sys::path;
 
 class RenameDetectorForMemberDiff : public MatchedNodeListener {
   InterfaceTypeChangeDetector LeftDetector;
@@ -1783,7 +1785,7 @@ public:
   void foundMatch(NodePtr Left, NodePtr Right, NodeMatchReason Reason) override {
     if (!Left || !Right)
       return;
-    swift::ide::api::detectRename(Left, Right);
+    language::ide::api::detectRename(Left, Right);
     LeftDetector.detect(Left, Right);
     RightDetector.detect(Right, Left);
   }
@@ -1804,8 +1806,8 @@ public:
 };
 
 static std::optional<uint8_t> findSelfIndex(SDKNode *Node) {
-  if (auto func = dyn_cast<SDKNodeDeclAbstractFunc>(Node)) {
-    return func->getSelfIndexOptional();
+  if (auto fn = dyn_cast<SDKNodeDeclAbstractFunc>(Node)) {
+    return fn->getSelfIndexOptional();
   } else if (auto vd = dyn_cast<SDKNodeDeclVar>(Node)) {
     for (auto &C : vd->getChildren()) {
       if (isa<SDKNodeDeclAbstractFunc>(C)) {
@@ -1849,7 +1851,7 @@ static void findTypeMemberDiffs(NodePtr leftSDKRoot, NodePtr rightSDKRoot,
 }
 
 static std::vector<std::unique_ptr<DiagnosticConsumer>>
-createDiagConsumer(llvm::raw_ostream &OS, bool &FailOnError, bool DisableFailOnError,
+createDiagConsumer(toolchain::raw_ostream &OS, bool &FailOnError, bool DisableFailOnError,
                    bool CompilerStyleDiags, StringRef SerializedDiagPath) {
   std::vector<std::unique_ptr<DiagnosticConsumer>> results;
   if (!SerializedDiagPath.empty()) {
@@ -1866,10 +1868,10 @@ createDiagConsumer(llvm::raw_ostream &OS, bool &FailOnError, bool DisableFailOnE
   return results;
 }
 
-static int readFileLineByLine(StringRef Path, llvm::StringSet<> &Lines) {
-  auto FileBufOrErr = llvm::MemoryBuffer::getFile(Path);
+static int readFileLineByLine(StringRef Path, toolchain::StringSet<> &Lines) {
+  auto FileBufOrErr = toolchain::MemoryBuffer::getFile(Path);
   if (!FileBufOrErr) {
-    llvm::errs() << "error opening file '" << Path << "': "
+    toolchain::errs() << "error opening file '" << Path << "': "
       << FileBufOrErr.getError().message() << '\n';
     return 1;
   }
@@ -1888,7 +1890,7 @@ static int readFileLineByLine(StringRef Path, llvm::StringSet<> &Lines) {
   return 0;
 }
 
-static bool readBreakageAllowlist(SDKContext &Ctx, llvm::StringSet<> &lines,
+static bool readBreakageAllowlist(SDKContext &Ctx, toolchain::StringSet<> &lines,
                                   StringRef BreakageAllowlistPath) {
   if (BreakageAllowlistPath.empty())
     return 0;
@@ -1901,7 +1903,7 @@ static bool readBreakageAllowlist(SDKContext &Ctx, llvm::StringSet<> &lines,
   }
   auto importer = ClangImporter::create(instance.getASTContext());
   SmallString<128> preprocessedFilePath;
-  if (auto error = llvm::sys::fs::createTemporaryFile(
+  if (auto error = toolchain::sys::fs::createTemporaryFile(
     "breakage-allowlist-", "txt", preprocessedFilePath)) {
     return 1;
   }
@@ -1914,7 +1916,7 @@ static bool readBreakageAllowlist(SDKContext &Ctx, llvm::StringSet<> &lines,
 
 static int diagnoseModuleChange(SDKContext &Ctx, SDKNodeRoot *LeftModule,
                                 SDKNodeRoot *RightModule, StringRef OutputPath,
-                                llvm::StringSet<> ProtocolReqAllowlist,
+                                toolchain::StringSet<> ProtocolReqAllowlist,
                                 bool DisableFailOnError,
                                 bool CompilerStyleDiags,
                                 bool ExplicitErrOnABIBreakage,
@@ -1923,19 +1925,19 @@ static int diagnoseModuleChange(SDKContext &Ctx, SDKNodeRoot *LeftModule,
                                 bool DebugMapping) {
   assert(LeftModule);
   assert(RightModule);
-  llvm::raw_ostream *OS = &llvm::errs();
+  toolchain::raw_ostream *OS = &toolchain::errs();
   if (!LeftModule || !RightModule) {
     *OS << "Cannot diagnose null SDKNodeRoot";
     exit(1);
   }
-  std::unique_ptr<llvm::raw_ostream> FileOS;
+  std::unique_ptr<toolchain::raw_ostream> FileOS;
   if (!OutputPath.empty()) {
     std::error_code EC;
-    FileOS.reset(new llvm::raw_fd_ostream(OutputPath, EC, llvm::sys::fs::OF_None));
+    FileOS.reset(new toolchain::raw_fd_ostream(OutputPath, EC, toolchain::sys::fs::OF_None));
     OS = FileOS.get();
   }
   bool FailOnError;
-  auto allowedBreakages = std::make_unique<llvm::StringSet<>>();
+  auto allowedBreakages = std::make_unique<toolchain::StringSet<>>();
   if (readBreakageAllowlist(Ctx, *allowedBreakages, BreakageAllowlistPath)) {
     Ctx.getDiags().diagnose(SourceLoc(), diag::cannot_read_allowlist,
                             BreakageAllowlistPath);
@@ -1950,7 +1952,7 @@ static int diagnoseModuleChange(SDKContext &Ctx, SDKNodeRoot *LeftModule,
                          SerializedDiagPath),
       std::move(allowedBreakages),
       /*DowngradeToWarning*/shouldDowngrade);
-  SWIFT_DEFER { pConsumer->finishProcessing(); };
+  LANGUAGE_DEFER { pConsumer->finishProcessing(); };
   Ctx.addDiagConsumer(*pConsumer);
   Ctx.setCommonVersion(std::min(LeftModule->getJsonFormatVersion(),
                                 RightModule->getJsonFormatVersion()));
@@ -1968,7 +1970,7 @@ static int diagnoseModuleChange(SDKContext &Ctx, SDKNodeRoot *LeftModule,
 
 static int diagnoseModuleChange(StringRef LeftPath, StringRef RightPath,
                                 StringRef OutputPath, CheckerOptions Opts,
-                                llvm::StringSet<> ProtocolReqAllowlist,
+                                toolchain::StringSet<> ProtocolReqAllowlist,
                                 bool DisableFailOnError,
                                 bool CompilerStyleDiags,
                                 bool ExplicitErrOnABIBreakage,
@@ -1976,17 +1978,17 @@ static int diagnoseModuleChange(StringRef LeftPath, StringRef RightPath,
                                 StringRef BreakageAllowlistPath,
                                 bool DebugMapping) {
   if (!fs::exists(LeftPath)) {
-    llvm::errs() << LeftPath << " does not exist\n";
+    toolchain::errs() << LeftPath << " does not exist\n";
     return 1;
   }
   if (!fs::exists(RightPath)) {
-    llvm::errs() << RightPath << " does not exist\n";
+    toolchain::errs() << RightPath << " does not exist\n";
     return 1;
   }
   SDKContext Ctx(Opts);
-  SwiftDeclCollector LeftCollector(Ctx);
+  CodiraDeclCollector LeftCollector(Ctx);
   LeftCollector.deSerialize(LeftPath);
-  SwiftDeclCollector RightCollector(Ctx);
+  CodiraDeclCollector RightCollector(Ctx);
   RightCollector.deSerialize(RightPath);
   return diagnoseModuleChange(
       Ctx, LeftCollector.getSDKRoot(), RightCollector.getSDKRoot(), OutputPath,
@@ -2018,41 +2020,41 @@ static void populateAliasChanges(NodeMap &AliasMap, DiffVector &AllItems,
 
 static int generateMigrationScript(StringRef LeftPath, StringRef RightPath,
                                    StringRef DiffPath,
-                                   llvm::StringSet<> &IgnoredRemoveUsrs,
+                                   toolchain::StringSet<> &IgnoredRemoveUsrs,
                                    CheckerOptions Opts, bool OutputInJson,
                                    bool DebugMapping) {
   if (!fs::exists(LeftPath)) {
-    llvm::errs() << LeftPath << " does not exist\n";
+    toolchain::errs() << LeftPath << " does not exist\n";
     return 1;
   }
   if (!fs::exists(RightPath)) {
-    llvm::errs() << RightPath << " does not exist\n";
+    toolchain::errs() << RightPath << " does not exist\n";
     return 1;
   }
-  llvm::errs() << "Diffing: " << LeftPath << " and " << RightPath << "\n";
+  toolchain::errs() << "Diffing: " << LeftPath << " and " << RightPath << "\n";
   std::unique_ptr<DiagnosticConsumer> pConsumer =
       Opts.CompilerStyle ? std::make_unique<PrintingDiagnosticConsumer>()
                          : std::make_unique<ModuleDifferDiagsConsumer>(false);
   SDKContext Ctx(Opts);
   Ctx.addDiagConsumer(*pConsumer);
 
-  SwiftDeclCollector LeftCollector(Ctx);
+  CodiraDeclCollector LeftCollector(Ctx);
   LeftCollector.deSerialize(LeftPath);
-  SwiftDeclCollector RightCollector(Ctx);
+  CodiraDeclCollector RightCollector(Ctx);
   RightCollector.deSerialize(RightPath);
-  llvm::errs() << "Finished deserializing" << "\n";
+  toolchain::errs() << "Finished deserializing" << "\n";
   auto LeftModule = LeftCollector.getSDKRoot();
   auto RightModule = RightCollector.getSDKRoot();
   Ctx.setCommonVersion(std::min(LeftModule->getJsonFormatVersion(),
                                 RightModule->getJsonFormatVersion()));
   // Structural diffs: not merely name changes but changes in SDK tree
   // structure.
-  llvm::errs() << "Detecting type member diffs" << "\n";
+  toolchain::errs() << "Detecting type member diffs" << "\n";
   findTypeMemberDiffs(LeftModule, RightModule, Ctx.getTypeMemberDiffs());
 
   PrunePass Prune(Ctx, DebugMapping);
   Prune.pass(LeftModule, RightModule);
-  llvm::errs() << "Finished pruning" << "\n";
+  toolchain::errs() << "Finished pruning" << "\n";
   ChangeRefinementPass RefinementPass(Ctx.getNodeUpdateMap());
   RefinementPass.pass(LeftModule, RightModule);
   DiffVector AllItems;
@@ -2079,26 +2081,26 @@ static int generateMigrationScript(StringRef LeftPath, StringRef RightPath,
   NoEscapeFuncParamVector AllNoEscapingFuncs;
   NoEscapingFuncEmitter::collectDiffItems(RightModule, AllNoEscapingFuncs);
 
-  llvm::errs() << "Dumping diff to " << DiffPath << '\n';
+  toolchain::errs() << "Dumping diff to " << DiffPath << '\n';
   std::vector<OverloadedFuncInfo> Overloads;
   // OverloadMemberFunctionEmitter::collectDiffItems(RightModule, Overloads);
 
   auto &typeMemberDiffs = Ctx.getTypeMemberDiffs();
   std::error_code EC;
-  llvm::raw_fd_ostream Fs(DiffPath, EC, llvm::sys::fs::OF_None);
+  toolchain::raw_fd_ostream Fs(DiffPath, EC, toolchain::sys::fs::OF_None);
   removeRedundantAndSort(AllItems);
   removeRedundantAndSort(typeMemberDiffs);
   removeRedundantAndSort(AllNoEscapingFuncs);
   removeRedundantAndSort(Overloads);
   if (OutputInJson) {
     std::vector<APIDiffItem*> TotalItems;
-    llvm::transform(AllItems, std::back_inserter(TotalItems),
+    toolchain::transform(AllItems, std::back_inserter(TotalItems),
                     [](CommonDiffItem &Item) { return &Item; });
-    llvm::transform(typeMemberDiffs, std::back_inserter(TotalItems),
+    toolchain::transform(typeMemberDiffs, std::back_inserter(TotalItems),
                     [](TypeMemberDiffItem &Item) { return &Item; });
-    llvm::transform(AllNoEscapingFuncs, std::back_inserter(TotalItems),
+    toolchain::transform(AllNoEscapingFuncs, std::back_inserter(TotalItems),
                     [](NoEscapeFuncParam &Item) { return &Item; });
-    llvm::transform(Overloads, std::back_inserter(TotalItems),
+    toolchain::transform(Overloads, std::back_inserter(TotalItems),
                     [](OverloadedFuncInfo &Item) { return &Item; });
     APIDiffItemStore::serialize(Fs, TotalItems);
     return 0;
@@ -2131,7 +2133,7 @@ static int deserializeDiffItems(APIDiffItemStore &Store, StringRef DiffPath,
     StringRef OutputPath) {
   Store.addStorePath(DiffPath);
   std::error_code EC;
-  llvm::raw_fd_ostream FS(OutputPath, EC, llvm::sys::fs::OF_None);
+  toolchain::raw_fd_ostream FS(OutputPath, EC, toolchain::sys::fs::OF_None);
   APIDiffItemStore::serialize(FS, Store.getAllDiffItems());
   return 0;
 }
@@ -2139,7 +2141,7 @@ static int deserializeDiffItems(APIDiffItemStore &Store, StringRef DiffPath,
 static int deserializeNameCorrection(APIDiffItemStore &Store,
                                      StringRef OutputPath) {
   std::error_code EC;
-  llvm::raw_fd_ostream FS(OutputPath, EC, llvm::sys::fs::OF_None);
+  toolchain::raw_fd_ostream FS(OutputPath, EC, toolchain::sys::fs::OF_None);
   std::set<NameCorrectionInfo> Result;
   for (auto *Item: Store.getAllDiffItems()) {
     if (auto *CI = dyn_cast<CommonDiffItem>(Item)) {
@@ -2159,22 +2161,22 @@ static int deserializeNameCorrection(APIDiffItemStore &Store,
 }
 
 static std::string getDefaultBaselineDir(std::string MainExecutablePath) {
-  llvm::SmallString<128> BaselineDir;
+  toolchain::SmallString<128> BaselineDir;
   BaselineDir.append(MainExecutablePath);
-  llvm::sys::path::remove_filename(BaselineDir); // Remove /swift-api-digester
-  llvm::sys::path::remove_filename(BaselineDir); // Remove /bin
-  llvm::sys::path::append(BaselineDir, "lib", "swift", "FrameworkABIBaseline");
+  toolchain::sys::path::remove_filename(BaselineDir); // Remove /language-api-digester
+  toolchain::sys::path::remove_filename(BaselineDir); // Remove /bin
+  toolchain::sys::path::append(BaselineDir, "lib", "language", "FrameworkABIBaseline");
   return BaselineDir.str().str();
 }
 
 static std::string getEmptyBaselinePath(std::string MainExecutablePath) {
-  llvm::SmallString<128> BaselinePath(
+  toolchain::SmallString<128> BaselinePath(
       getDefaultBaselineDir(MainExecutablePath));
-  llvm::sys::path::append(BaselinePath, "nil.json");
+  toolchain::sys::path::append(BaselinePath, "nil.json");
   return BaselinePath.str().str();
 }
 
-static StringRef getBaselineFilename(llvm::Triple Triple) {
+static StringRef getBaselineFilename(toolchain::Triple Triple) {
   if (Triple.isMacCatalystEnvironment())
     return "iosmac.json";
   else if (Triple.isMacOSX())
@@ -2192,60 +2194,60 @@ static StringRef getBaselineFilename(llvm::Triple Triple) {
   else if (Triple.isXROS())
     return "xros.json";
   else {
-    llvm::errs() << "Unsupported triple target\n";
+    toolchain::errs() << "Unsupported triple target\n";
     exit(1);
   }
 }
 
 static std::string getDefaultBaselinePath(std::string MainExecutablePath,
-                                          StringRef Module, llvm::Triple Triple,
+                                          StringRef Module, toolchain::Triple Triple,
                                           bool ABI) {
-  llvm::SmallString<128> BaselinePath(
+  toolchain::SmallString<128> BaselinePath(
       getDefaultBaselineDir(MainExecutablePath));
-  llvm::sys::path::append(BaselinePath, Module);
+  toolchain::sys::path::append(BaselinePath, Module);
   // Look for ABI or API baseline
-  llvm::sys::path::append(BaselinePath, ABI? "ABI": "API");
-  llvm::sys::path::append(BaselinePath, getBaselineFilename(Triple));
+  toolchain::sys::path::append(BaselinePath, ABI? "ABI": "API");
+  toolchain::sys::path::append(BaselinePath, getBaselineFilename(Triple));
   return BaselinePath.str().str();
 }
 
-static std::string getCustomBaselinePath(llvm::Triple Triple, bool ABI,
+static std::string getCustomBaselinePath(toolchain::Triple Triple, bool ABI,
                                          StringRef BaselineDirPath) {
-  llvm::SmallString<128> BaselinePath(BaselineDirPath);
+  toolchain::SmallString<128> BaselinePath(BaselineDirPath);
   // Look for ABI or API baseline
-  llvm::sys::path::append(BaselinePath, ABI? "ABI": "API");
-  llvm::sys::path::append(BaselinePath, getBaselineFilename(Triple));
+  toolchain::sys::path::append(BaselinePath, ABI? "ABI": "API");
+  toolchain::sys::path::append(BaselinePath, getBaselineFilename(Triple));
   return BaselinePath.str().str();
 }
 
-static std::string getJsonOutputFilePath(llvm::Triple Triple, bool ABI,
+static std::string getJsonOutputFilePath(toolchain::Triple Triple, bool ABI,
                                          std::string &OutputFile,
                                          std::string &OutputDir) {
   if (!OutputFile.empty())
     return OutputFile;
   if (!OutputDir.empty()) {
-    llvm::SmallString<128> OutputPath(OutputDir);
-    llvm::sys::path::append(OutputPath, ABI? "ABI": "API");
-    if (!llvm::sys::fs::exists(OutputPath.str())) {
-      llvm::errs() << "Baseline directory " << OutputPath.str()
+    toolchain::SmallString<128> OutputPath(OutputDir);
+    toolchain::sys::path::append(OutputPath, ABI? "ABI": "API");
+    if (!toolchain::sys::fs::exists(OutputPath.str())) {
+      toolchain::errs() << "Baseline directory " << OutputPath.str()
                    << " doesn't exist\n";
       exit(1);
     }
-    llvm::sys::path::append(OutputPath, getBaselineFilename(Triple));
+    toolchain::sys::path::append(OutputPath, getBaselineFilename(Triple));
     return OutputPath.str().str();
   }
-  llvm::errs() << "Unable to decide output file path\n";
+  toolchain::errs() << "Unable to decide output file path\n";
   exit(1);
 }
 
-class SwiftAPIDigesterInvocation {
+class CodiraAPIDigesterInvocation {
 private:
   std::string MainExecutablePath;
-  std::unique_ptr<llvm::opt::OptTable> Table;
+  std::unique_ptr<toolchain::opt::OptTable> Table;
   CompilerInvocation InitInvoke;
   ActionType Action = ActionType::None;
   CheckerOptions CheckerOpts;
-  llvm::StringSet<> IgnoredUsrs;
+  toolchain::StringSet<> IgnoredUsrs;
   std::string ProtReqAllowList;
   std::vector<std::string> SDKJsonPaths;
   std::string OutputFile;
@@ -2263,12 +2265,13 @@ private:
   std::string SDK;
   std::string BaselineSDK;
   std::string Triple;
-  std::string SwiftVersion;
-  std::vector<std::string> CCSystemFrameworkPaths;
+  std::string CodiraVersion;
+  std::vector<std::string> SystemFrameworkPaths;
   std::vector<std::string> BaselineFrameworkPaths;
   std::vector<std::string> FrameworkPaths;
-  std::vector<std::string> BaselineModuleInputPaths;
-  std::vector<std::string> ModuleInputPaths;
+  std::vector<std::string> SystemModuleImportPaths;
+  std::vector<std::string> BaselineModuleImportPaths;
+  std::vector<std::string> ModuleImportPaths;
   std::string ModuleList;
   std::vector<std::string> ModuleNames;
   std::vector<std::string> PreferInterfaceForModules;
@@ -2277,23 +2280,23 @@ private:
   bool DisableFailOnError;
 
 public:
-  SwiftAPIDigesterInvocation(const std::string &ExecPath)
-      : MainExecutablePath(ExecPath), Table(createSwiftOptTable()) {}
+  CodiraAPIDigesterInvocation(const std::string &ExecPath)
+      : MainExecutablePath(ExecPath), Table(createCodiraOptTable()) {}
 
   int parseArgs(ArrayRef<const char *> Args) {
     unsigned MissingIndex;
     unsigned MissingCount;
-    llvm::opt::InputArgList ParsedArgs = Table->ParseArgs(
-        Args, MissingIndex, MissingCount, SwiftAPIDigesterOption);
+    toolchain::opt::InputArgList ParsedArgs = Table->ParseArgs(
+        Args, MissingIndex, MissingCount, CodiraAPIDigesterOption);
     if (MissingCount) {
-      llvm::errs() << "error: missing argument for option '"
+      toolchain::errs() << "error: missing argument for option '"
                    << ParsedArgs.getArgString(MissingIndex) << "'\n";
       return 1;
     }
 
     if (ParsedArgs.hasArg(OPT_UNKNOWN)) {
       for (const auto *A : ParsedArgs.filtered(OPT_UNKNOWN)) {
-        llvm::errs() << "error: unknown argument '"
+        toolchain::errs() << "error: unknown argument '"
                      << A->getAsString(ParsedArgs) << "'\n";
       }
       return 1;
@@ -2339,7 +2342,7 @@ public:
     if (auto *A = ParsedArgs.getLastArg(OPT_ignored_usrs)) {
       auto Path = A->getValue();
       if (!fs::exists(Path)) {
-        llvm::errs() << Path << " does not exist.\n";
+        toolchain::errs() << Path << " does not exist.\n";
         return 1;
       }
       readFileLineByLine(Path, IgnoredUsrs);
@@ -2364,12 +2367,14 @@ public:
     SDK = ParsedArgs.getLastArgValue(OPT_sdk).str();
     BaselineSDK = ParsedArgs.getLastArgValue(OPT_bsdk).str();
     Triple = ParsedArgs.getLastArgValue(OPT_target).str();
-    SwiftVersion = ParsedArgs.getLastArgValue(OPT_swift_version).str();
-    CCSystemFrameworkPaths = ParsedArgs.getAllArgValues(OPT_iframework);
+    CodiraVersion = ParsedArgs.getLastArgValue(OPT_language_version).str();
+    SystemFrameworkPaths = ParsedArgs.getAllArgValues(OPT_Fsystem);
+    toolchain::append_range(SystemFrameworkPaths, ParsedArgs.getAllArgValues(OPT_iframework));
     BaselineFrameworkPaths = ParsedArgs.getAllArgValues(OPT_BF);
     FrameworkPaths = ParsedArgs.getAllArgValues(OPT_F);
-    BaselineModuleInputPaths = ParsedArgs.getAllArgValues(OPT_BI);
-    ModuleInputPaths = ParsedArgs.getAllArgValues(OPT_I);
+    SystemModuleImportPaths = ParsedArgs.getAllArgValues(OPT_Isystem);
+    BaselineModuleImportPaths = ParsedArgs.getAllArgValues(OPT_BI);
+    ModuleImportPaths = ParsedArgs.getAllArgValues(OPT_I);
     ModuleList = ParsedArgs.getLastArgValue(OPT_module_list_file).str();
     ModuleNames = ParsedArgs.getAllArgValues(OPT_module);
     PreferInterfaceForModules =
@@ -2388,10 +2393,10 @@ public:
         ParsedArgs.hasArg(OPT_abort_on_module_fail);
     CheckerOpts.LocationFilter = ParsedArgs.getLastArgValue(OPT_location);
     CheckerOpts.PrintModule = ParsedArgs.hasArg(OPT_print_module);
-    // When ABI checking is enabled, we should only include Swift symbols
+    // When ABI checking is enabled, we should only include Codira symbols
     // because the checking logics are language-specific.
-    CheckerOpts.SwiftOnly =
-        ParsedArgs.hasArg(OPT_abi) || ParsedArgs.hasArg(OPT_swift_only);
+    CheckerOpts.CodiraOnly =
+        ParsedArgs.hasArg(OPT_abi) || ParsedArgs.hasArg(OPT_language_only);
     CheckerOpts.SkipOSCheck = ParsedArgs.hasArg(OPT_disable_os_checks);
     CheckerOpts.SkipRemoveDeprecatedCheck = ParsedArgs.hasArg(OPT_disable_remove_deprecated_check);
     if (ParsedArgs.hasArg(OPT_enable_remove_deprecated_check)) {
@@ -2416,15 +2421,15 @@ public:
 
   void printHelp() {
     std::string ExecutableName =
-        llvm::sys::path::stem(MainExecutablePath).str();
-    Table->printHelp(llvm::outs(), ExecutableName.c_str(), "Swift API Digester",
-                     /*IncludedFlagsBitmask*/ SwiftAPIDigesterOption,
+        toolchain::sys::path::stem(MainExecutablePath).str();
+    Table->printHelp(toolchain::outs(), ExecutableName.c_str(), "Codira API Digester",
+                     /*IncludedFlagsBitmask*/ CodiraAPIDigesterOption,
                      /*ExcludedFlagsBitmask*/ 0,
                      /*ShowAllAliases*/ false);
   }
 
   bool hasBaselineInput() {
-    return !BaselineModuleInputPaths.empty() ||
+    return !BaselineModuleImportPaths.empty() ||
            !BaselineFrameworkPaths.empty() || !BaselineSDK.empty();
   }
 
@@ -2443,10 +2448,10 @@ public:
       return ComparisonInputMode::BaselineJson;
   }
 
-  int prepareForDump(CompilerInvocation &InitInvoke, llvm::StringSet<> &Modules,
+  int prepareForDump(CompilerInvocation &InitInvoke, toolchain::StringSet<> &Modules,
                      bool IsBaseline = false) {
     InitInvoke.setMainExecutablePath(MainExecutablePath);
-    InitInvoke.setModuleName("swift_ide_test");
+    InitInvoke.setModuleName("language_ide_test");
     setSDKPath(InitInvoke, IsBaseline, SDK, BaselineSDK);
 
     if (!Triple.empty())
@@ -2456,21 +2461,19 @@ public:
     InitInvoke.getLangOptions().EnableObjCInterop =
         InitInvoke.getLangOptions().Target.isOSDarwin();
     InitInvoke.getClangImporterOptions().ModuleCachePath = ModuleCachePath;
-    // Module recovery issue shouldn't bring down the tool.
-    InitInvoke.getLangOptions().AllowDeserializingImplementationOnly = true;
 
-    if (!SwiftVersion.empty()) {
+    if (!CodiraVersion.empty()) {
       using version::Version;
       bool isValid = false;
       if (auto Version = VersionParser::parseVersionString(
-              SwiftVersion, SourceLoc(), nullptr)) {
+              CodiraVersion, SourceLoc(), nullptr)) {
         if (auto Effective = Version.value().getEffectiveLanguageVersion()) {
           InitInvoke.getLangOptions().EffectiveLanguageVersion = *Effective;
           isValid = true;
         }
       }
       if (!isValid) {
-        llvm::errs() << "Unsupported Swift Version.\n";
+        toolchain::errs() << "Unsupported Codira Version.\n";
         exit(1);
       }
     }
@@ -2479,29 +2482,30 @@ public:
       InitInvoke.setRuntimeResourcePath(ResourceDir);
     }
     std::vector<SearchPathOptions::SearchPath> FramePaths;
-    for (const auto &path : CCSystemFrameworkPaths) {
+    for (const auto &path : SystemFrameworkPaths) {
       FramePaths.push_back({path, /*isSystem=*/true});
+    }
+    std::vector<SearchPathOptions::SearchPath> ImportPaths;
+    for (const auto &path : SystemModuleImportPaths) {
+      ImportPaths.push_back({path, /*isSystem=*/true});
     }
     if (IsBaseline) {
       for (const auto &path : BaselineFrameworkPaths) {
         FramePaths.push_back({path, /*isSystem=*/false});
       }
-      std::vector<SearchPathOptions::SearchPath> ImportPaths;
-      for (const auto &path : BaselineModuleInputPaths) {
+      for (const auto &path : BaselineModuleImportPaths) {
         ImportPaths.push_back({path, /*isSystem=*/false});
       }
-      InitInvoke.setImportSearchPaths(ImportPaths);
     } else {
       for (const auto &path : FrameworkPaths) {
         FramePaths.push_back({path, /*isSystem=*/false});
       }
-      std::vector<SearchPathOptions::SearchPath> ImportPaths;
-      for (const auto &path : ModuleInputPaths) {
+      for (const auto &path : ModuleImportPaths) {
         ImportPaths.push_back({path, /*isSystem=*/false});
       }
-      InitInvoke.setImportSearchPaths(ImportPaths);
     }
     InitInvoke.setFrameworkSearchPaths(FramePaths);
+    InitInvoke.setImportSearchPaths(ImportPaths);
     if (!ModuleList.empty()) {
       if (readFileLineByLine(ModuleList, Modules))
         exit(1);
@@ -2513,7 +2517,7 @@ public:
       InitInvoke.getFrontendOptions().PreferInterfaceForModules.push_back(M);
     }
     if (Modules.empty()) {
-      llvm::errs() << "Need to specify -include-all or -module <name>\n";
+      toolchain::errs() << "Need to specify -include-all or -module <name>\n";
       exit(1);
     }
     return 0;
@@ -2521,16 +2525,16 @@ public:
 
   SDKNodeRoot *getSDKRoot(SDKContext &Ctx, bool IsBaseline) {
     CompilerInvocation Invoke;
-    llvm::StringSet<> Modules;
+    toolchain::StringSet<> Modules;
     if (prepareForDump(Invoke, Modules, IsBaseline))
       return nullptr;
     return getSDKNodeRoot(Ctx, Invoke, Modules);
   }
 
   SDKNodeRoot *getBaselineFromJson(SDKContext &Ctx) {
-    SwiftDeclCollector Collector(Ctx);
+    CodiraDeclCollector Collector(Ctx);
     CompilerInvocation Invoke;
-    llvm::StringSet<> Modules;
+    toolchain::StringSet<> Modules;
     // We need to call prepareForDump to parse target triple.
     if (prepareForDump(Invoke, Modules, true))
       return nullptr;
@@ -2552,11 +2556,11 @@ public:
           Invoke.getLangOptions().Target, Ctx.checkingABI());
     }
     if (!fs::exists(Path)) {
-      llvm::errs() << "Baseline at " << Path << " does not exist\n";
+      toolchain::errs() << "Baseline at " << Path << " does not exist\n";
       exit(1);
     }
     if (Verbose) {
-      llvm::errs() << "Using baseline at " << Path << "\n";
+      toolchain::errs() << "Using baseline at " << Path << "\n";
     }
     Collector.deSerialize(Path);
     return Collector.getSDKRoot();
@@ -2565,16 +2569,16 @@ public:
   int run(ArrayRef<const char *> Args) {
     switch (Action) {
     case ActionType::DumpSDK: {
-      llvm::StringSet<> Modules;
+      toolchain::StringSet<> Modules;
       if (prepareForDump(InitInvoke, Modules))
         return 1;
       auto JsonOut =
           getJsonOutputFilePath(InitInvoke.getLangOptions().Target,
                                 CheckerOpts.ABI, OutputFile, OutputDir);
       std::error_code EC;
-      llvm::raw_fd_ostream fs(JsonOut, EC);
+      toolchain::raw_fd_ostream fs(JsonOut, EC);
       if (EC) {
-        llvm::errs() << "Cannot open JSON output file: " << JsonOut << "\n";
+        toolchain::errs() << "Cannot open JSON output file: " << JsonOut << "\n";
         return 1;
       }
       return dumpSDKContent(InitInvoke, Modules, fs, CheckerOpts);
@@ -2582,7 +2586,7 @@ public:
     case ActionType::MigratorGen:
     case ActionType::DiagnoseSDKs: {
       ComparisonInputMode Mode = checkComparisonInputMode();
-      llvm::StringSet<> protocolAllowlist;
+      toolchain::StringSet<> protocolAllowlist;
       if (!ProtReqAllowList.empty()) {
         if (readFileLineByLine(ProtReqAllowList, protocolAllowlist))
           return 1;
@@ -2645,9 +2649,9 @@ public:
     case ActionType::GenerateEmptyBaseline: {
       SDKContext Ctx(CheckerOpts);
       std::error_code EC;
-      llvm::raw_fd_ostream fs(OutputFile, EC);
+      toolchain::raw_fd_ostream fs(OutputFile, EC);
       if (EC) {
-        llvm::errs() << "Cannot open output file: " << OutputFile << "\n";
+        toolchain::errs() << "Cannot open output file: " << OutputFile << "\n";
         return 1;
       }
       dumpSDKRoot(getEmptySDKNodeRoot(Ctx), fs);
@@ -2661,19 +2665,19 @@ public:
       return findDeclUsr(SDKJsonPaths[0], CheckerOpts);
     }
     case ActionType::None:
-      llvm::errs() << "Action required\n";
+      toolchain::errs() << "Action required\n";
       printHelp();
       return 1;
     }
   }
 };
 
-int swift_api_digester_main(ArrayRef<const char *> Args, const char *Argv0,
+int language_api_digester_main(ArrayRef<const char *> Args, const char *Argv0,
                             void *MainAddr) {
   INITIALIZE_LLVM();
 
   std::string MainExecutablePath = fs::getMainExecutable(Argv0, MainAddr);
-  SwiftAPIDigesterInvocation Invocation(MainExecutablePath);
+  CodiraAPIDigesterInvocation Invocation(MainExecutablePath);
 
   if (Invocation.parseArgs(Args) != 0)
     return EXIT_FAILURE;

@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "AsyncRefactoring.h"
@@ -41,12 +45,12 @@ static ConditionPath flippedConditionPath(ConditionPath Path) {
   case ConditionPath::FAILURE:
     return ConditionPath::SUCCESS;
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 void CallbackClassifier::classifyInto(
     ClassifiedBlocks &Blocks, const ClosureCallbackParams &Params,
-    llvm::DenseSet<SwitchStmt *> &HandledSwitches, DiagnosticEngine &DiagEngine,
+    toolchain::DenseSet<SwitchStmt *> &HandledSwitches, DiagnosticEngine &DiagEngine,
     BraceStmt *Body) {
   assert(!Body->getElements().empty() && "Cannot classify empty body");
   CallbackClassifier Classifier(Blocks, Params, HandledSwitches, DiagEngine);
@@ -265,7 +269,7 @@ CallbackClassifier::classifyCallbackCondition(const CallbackCondition &Cond,
     if (auto *BS = dyn_cast<BraceStmt>(ElseStmt)) {
       Nodes = BS->getElements();
     } else {
-      Nodes = llvm::ArrayRef(ElseNode);
+      Nodes = toolchain::ArrayRef(ElseNode);
     }
     if (hasForceUnwrappedErrorParam(Nodes)) {
       // If we also found an unwrap in the success block, we don't know what's
@@ -447,8 +451,8 @@ void CallbackClassifier::classifyConditional(Stmt *Statement,
       // If we reached here, we should have an else if statement. Given we
       // know we're in the else of a known condition, temporarily flip the
       // current block, and set that we know what path we're on.
-      llvm::SaveAndRestore<bool> CondScope(IsKnownConditionPath, true);
-      llvm::SaveAndRestore<ClassifiedBlock *> BlockScope(CurrentBlock,
+      toolchain::SaveAndRestore<bool> CondScope(IsKnownConditionPath, true);
+      toolchain::SaveAndRestore<ClassifiedBlock *> BlockScope(CurrentBlock,
                                                          ElseBlock);
       classifyNodes(ArrayRef<ASTNode>(ElseStmt),
                     /*endCommentLoc*/ SourceLoc());

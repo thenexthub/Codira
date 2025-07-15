@@ -1,0 +1,26 @@
+//===--- ArithmeticEvaluatorTypeIDZone.def - --------------------*- C++ -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+//
+//  This definition file describes the types in the "arithmetic evaluation"
+//  TypeID zone, for use with the TypeID template.
+//
+//===----------------------------------------------------------------------===//
+LANGUAGE_REQUEST(ArithmeticEvaluator, UncachedEvaluationRule,
+              double(ArithmeticExpr *), Uncached, HasNearestLocation)
+LANGUAGE_REQUEST(ArithmeticEvaluator, InternallyCachedEvaluationRule,
+              double(ArithmeticExpr *), Cached, HasNearestLocation)
+LANGUAGE_REQUEST(ArithmeticEvaluator, ExternallyCachedEvaluationRule,
+              double(ArithmeticExpr *), SeparatelyCached, HasNearestLocation)

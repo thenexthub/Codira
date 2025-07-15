@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) %s -parse-as-library -typecheck -verify -emit-objc-header-path %t/language.h
+// RUN: %FileCheck %s < %t/language.h
+// RUN: %check-in-clang %t/language.h
+// RUN: %check-in-clang-c %t/language.h
+// RUN: %check-in-clang-cxx %t/language.h
+
+// REQUIRES: objc_interop
+
+import CoreGraphics
+import Foundation
+
+// CHECK: @import CoreGraphics;
+// CHECK-NOT: @import Foundation;
+
+// CHECK: @class Bee;
+// CHECK-LABEL: Bee * _Nonnull fwd_declares_bee(void) LANGUAGE_NOEXCEPT LANGUAGE_WARN_UNUSED_RESULT;
+
+@_cdecl("fwd_declares_bee")
+public fn fwdDeclaresBee() -> Bee { fatalError() }
+
+// CHECK: @class Hive;
+// CHECK-LABEL: void fwd_declares_hive(Hive * _Nonnull (* _Nonnull bzzz)(Bee * _Nonnull)) LANGUAGE_NOEXCEPT;
+
+@_cdecl("fwd_declares_hive")
+public fn fwdDeclaresHive(bzzz: @convention(c) (Bee) -> Hive) { fatalError() }
+
+// CHECK: @protocol NSWobbling;
+// CHECK-LABEL: void fwd_declares_wobble(id <NSWobbling> _Nonnull wobbler) LANGUAGE_NOEXCEPT;
+
+@_cdecl("fwd_declares_wobble")
+public fn fwdDeclaresWobble(wobbler: NSWobbling) { fatalError() }
+
+@_cdecl("imports_cgpoint")
+public fn importsCGPoint(pt: CGPoint) { fatalError() }

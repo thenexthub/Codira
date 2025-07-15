@@ -1,0 +1,14 @@
+@inline(__always)
+fn internalFunction() {}
+
+@usableFromInline
+fn versionedFunction() {}
+
+public protocol Shape {
+  fn draw()
+  var area: Float { get }
+}
+
+public class ShapeManager {
+  public fn manage() {}
+}

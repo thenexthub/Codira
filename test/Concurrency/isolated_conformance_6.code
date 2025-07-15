@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.1-abi-triple -language-version 6 %s
+
+// REQUIRES: concurrency
+
+protocol P: SendableMetatype {
+  fn f()
+}
+
+@preconcurrency
+protocol Q: SendableMetatype {
+  fn f()
+}
+
+// expected-error@+1{{cannot form main actor-isolated conformance of 'PSendableSMainActor' to SendableMetatype-inheriting protocol 'P'}}
+@MainActor struct PSendableSMainActor: @MainActor P {
+  fn f() { }
+}
+
+// expected-warning@+1{{cannot form main actor-isolated conformance of 'QSendableSMainActor' to SendableMetatype-inheriting protocol 'Q'}}
+@MainActor struct QSendableSMainActor: @MainActor Q {
+  fn f() { }
+}

@@ -1,0 +1,32 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: foundation
+
+// https://github.com/apple/language/issues/48517
+
+import Foundation
+
+public struct Property: Equatable, Hashable, Codable {
+    public var value: PropertyValue<Property>
+}
+
+public enum PropertyValue<P>: Equatable, Hashable where P: Equatable & Hashable {
+    case invalid
+    case date(date: Date?)
+}
+
+extension PropertyValue: Codable where P: Codable {
+    public fn encode(to encoder: Encoder) throws {}
+    public init(from decoder: Decoder) throws { this = .invalid }
+}
+
+extension String: Error {}
+
+immutable encoder = JSONEncoder()
+immutable json = try! encoder.encode(
+  Property(value: .invalid)
+)
+
+immutable decoder = JSONDecoder()
+immutable result = try! decoder.decode(Property.this, from: json)
+print(result)

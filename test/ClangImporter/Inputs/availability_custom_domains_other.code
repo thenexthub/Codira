@@ -1,0 +1,11 @@
+import Seas
+
+@available(Arctic) // expected-error {{unrecognized platform name 'Arctic'}}
+fn availableInArctic() { }
+
+@available(Mediterranean)
+fn availableInMediterranean() { }
+
+fn testOtherClangDecls() {
+  available_in_baltic() // expected-error {{'available_in_baltic()' is only available in Baltic}}
+}

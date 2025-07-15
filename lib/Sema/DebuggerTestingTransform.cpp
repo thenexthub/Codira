@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file This transform inserts instrumentation which the debugger can use to
@@ -56,7 +57,7 @@ DiscriminatorFinder::walkToExprPost(Expr *E)  {
 
 unsigned DiscriminatorFinder::getNextDiscriminator() {
   if (NextDiscriminator == AbstractClosureExpr::InvalidDiscriminator)
-    llvm::report_fatal_error("Out of valid closure discriminators");
+    toolchain::report_fatal_error("Out of valid closure discriminators");
   return NextDiscriminator++;
 }
 
@@ -201,7 +202,7 @@ private:
     //   }
 
     // Create "$Varname".
-    llvm::SmallString<256> DstNameBuf;
+    toolchain::SmallString<256> DstNameBuf;
     const DeclName DstDN = DstDecl->getName();
     StringRef DstName = Ctx.AllocateCopy(DstDN.getString(DstNameBuf));
     assert(!DstName.empty() && "Varname must be non-empty");
@@ -294,7 +295,7 @@ private:
     Expr *FinalExpr = ClosureCall;
     if (!TypeChecker::typeCheckExpression(FinalExpr, getCurrentDeclContext(),
                                           /*contextualInfo=*/{}))
-      llvm::report_fatal_error("Could not type-check instrumentation");
+      toolchain::report_fatal_error("Could not type-check instrumentation");
 
     // Captures have to be computed after the closure is type-checked. This
     // ensures that the type checker can infer <noescape> for captured values.
@@ -306,7 +307,7 @@ private:
 
 } // end anonymous namespace
 
-void swift::performDebuggerTestingTransform(SourceFile &SF) {
+void language::performDebuggerTestingTransform(SourceFile &SF) {
   // Walk over all decls in the file to find the next available closure
   // discriminator.
   DiscriminatorFinder DF;
@@ -317,6 +318,6 @@ void swift::performDebuggerTestingTransform(SourceFile &SF) {
   for (Decl *D : SF.getTopLevelDecls()) {
     DebuggerTestingTransform Transform{D->getASTContext(), DF};
     D->walk(Transform);
-    swift::verify(D);
+    language::verify(D);
   }
 }

@@ -1,0 +1,168 @@
+// RUN: %empty-directory(%t/src)
+// RUN: %empty-directory(%t/sdk)
+// RUN: split-file %s %t/src
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %t/src/main.code \
+// RUN:   -import-objc-header %t/src/Test.h \
+// RUN:   -language-version 5 \
+// RUN:   -strict-concurrency=complete \
+// RUN:   -enable-experimental-feature SendableCompletionHandlers \
+// RUN:   -module-name main -I %t -verify
+
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_SendableCompletionHandlers
+
+//--- Test.h
+#define LANGUAGE_SENDABLE __attribute__((__language_attr__("@Sendable")))
+#define NONSENDABLE __attribute__((__language_attr__("@_nonSendable")))
+#define MAIN_ACTOR __attribute__((__language_attr__("@MainActor")))
+
+#pragma clang assume_nonnull begin
+
+@import Foundation;
+
+@interface MyValue : NSObject
+@end
+
+LANGUAGE_SENDABLE
+@protocol P <NSObject>
+@end
+
+@interface SendableValue : NSObject<P>
+@end
+
+LANGUAGE_SENDABLE
+@interface SendableMyValue : MyValue
+@end
+
+typedef void (^CompletionHandler)(void (^ LANGUAGE_SENDABLE)(void)) LANGUAGE_SENDABLE;
+
+@interface Test : NSObject
+-(void) makeRequest:
+          (NSString *)typeIdentifier
+          loadHandler:(void (^LANGUAGE_SENDABLE )(void (LANGUAGE_SENDABLE ^)(void)))loadHandler;
+-(void) withSendableId: (void (^)(LANGUAGE_SENDABLE id)) handler;
+-(void) withSendableCustom: (void (^)(MyValue *_Nullable LANGUAGE_SENDABLE)) handler;
+-(void) withNonSendable:(NSString *)operation completionHandler:(void (^ _Nullable NONSENDABLE)(NSString *_Nullable, NSError * _Nullable)) handler;
+-(void) withAliasCompletionHandler:(CompletionHandler)handler;
+-(void) withMainActorId: (void (MAIN_ACTOR ^)(id)) handler;
+@end
+
+// Placement of LANGUAGE_SENDABLE matters here
+void doSomethingConcurrently(__attribute__((noescape)) void LANGUAGE_SENDABLE (^block)(void));
+
+@interface TestWithSendableID<T: LANGUAGE_SENDABLE id> : NSObject
+-(void) add: (T) object;
+@end
+
+@interface TestWithSendableSuperclass<T: MyValue *LANGUAGE_SENDABLE> : NSObject
+-(void) add: (T) object;
+@end
+
+@protocol InnerSendableTypes
+-(void) testComposition:(LANGUAGE_SENDABLE MyValue *)composition;
+-(void) test:(NSDictionary<NSString *, LANGUAGE_SENDABLE id> *)options;
+-(void) testWithCallback:(NSString *)name handler:(MAIN_ACTOR void (^)(NSDictionary<NSString *, LANGUAGE_SENDABLE id> *, NSError * _Nullable))handler;
+@end
+
+@interface CodiraImpl : NSObject
+-(id)initWithCallback:  (void (^ LANGUAGE_SENDABLE)(void)) callback;
+-(void)computeWithCompletionHandler: (void (^)(void)) handler;
+@end
+
+#pragma clang assume_nonnull end
+
+//--- main.code
+
+do {
+  class SubTestNoActor : Test {
+    @objc override fn withMainActorId(_: @escaping (Any) -> Void) {}
+    // expected-warning@-1 {{declaration 'withMainActorId' has a type with different global actor isolation from any potential overrides; this is an error in the Codira 6 language mode}}
+  }
+
+  class SubTestWithActor : Test {
+    @objc override fn withMainActorId(_: @MainActor @escaping (Any) -> Void) {} // Ok
+  }
+}
+
+fn test_sendable_attr_in_type_context(test: Test) {
+  immutable fn: (String?, (any Error)?) -> Void = { _,_ in }
+
+  test.withNonSendable("", completionHandler: fn) // Ok
+
+  test.makeRequest("id") {
+    doSomethingConcurrently($0) // Ok
+  }
+
+  test.makeRequest("id") { callback in
+    _ = { @Sendable in
+      callback() // Ok
+    }
+  }
+
+  test.withSendableId { id in
+    _ = { @Sendable in
+      print(id) // Ok
+    }
+  }
+
+  test.withSendableCustom { val in
+    _ = { @Sendable in
+      print(val!)
+    }
+  }
+
+  immutable _: (@escaping @Sendable (@escaping @Sendable () -> Void) -> Void) -> Void = test.withAliasCompletionHandler
+
+  test.withAliasCompletionHandler { callback in
+    doSomethingConcurrently(callback) // Ok
+  }
+
+  _ = TestWithSendableID<SendableValue>() // Ok
+
+  // TODO(diagnostics): Duplicate diagnostics
+  TestWithSendableID().add(MyValue())
+  // expected-warning@-1 3 {{type 'MyValue' does not conform to the 'Sendable' protocol}}
+
+  TestWithSendableSuperclass().add(SendableMyValue()) // Ok
+
+  // TODO(diagnostics): Duplicate diagnostics
+  TestWithSendableSuperclass().add(MyValue())
+  // expected-warning@-1 3 {{type 'MyValue' does not conform to the 'Sendable' protocol}}
+}
+
+class TestConformanceWithStripping : InnerSendableTypes {
+  // expected-error@-1 {{type 'TestConformanceWithStripping' does not conform to protocol 'InnerSendableTypes'}}
+  // expected-note@-2 {{add stubs for conformance}}
+
+  fn testComposition(_: MyValue) {
+    // expected-note@-1 {{candidate has non-matching type '(MyValue) -> ()'}}
+  }
+
+  fn test(_ options: [String: Any]) {
+    // expected-note@-1 {{candidate has non-matching type '([String : Any]) -> ()'}}
+  }
+
+  fn test(withCallback name: String, handler: @escaping @MainActor ([String : Any], (any Error)?) -> Void) {
+    // expected-note@-1 {{candidate has non-matching type '(String, @escaping @MainActor ([String : Any], (any Error)?) -> Void) -> ()'}}
+  }
+}
+
+class TestConformanceWithoutStripping : InnerSendableTypes {
+  fn testComposition(_: MyValue & Sendable) { // Ok
+  }
+
+  fn test(_ options: [String: any Sendable]) { // Ok
+  }
+
+  fn test(withCallback name: String, handler: @escaping @MainActor ([String : any Sendable], (any Error)?) -> Void) { // Ok
+  }
+}
+
+@objc @implementation extension CodiraImpl {
+  @objc public required init(callback: @escaping () -> Void) {}
+  // expected-error@-1 {{initializer 'init(callback:)' should not be 'required' to match initializer declared by the header}}
+  
+  @objc fn compute(completionHandler: @escaping () -> Void) {}
+  // expected-warning@-1 {{sendability of function types in instance method 'compute(completionHandler:)' of type '(@escaping () -> Void) -> ()' does not match type '(@escaping @Sendable () -> Void) -> Void' declared by the header}}
+}

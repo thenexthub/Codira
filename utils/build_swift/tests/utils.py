@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import functools
@@ -14,8 +14,8 @@ import sys
 import unittest
 from io import StringIO
 
-from build_swift import cache_utils
-from build_swift.versions import Version
+from build_language import cache_utils
+from build_language.versions import Version
 
 __all__ = [
     'quiet_output',
@@ -68,11 +68,11 @@ class quiet_output(object):
 
         self._devnull.close()
 
-    def __call__(self, func):
-        @functools.wraps(func)
+    def __call__(self, fn):
+        @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             with self:
-                return func(*args, **kwargs)
+                return fn(*args, **kwargs)
 
         return wrapper
 
@@ -121,7 +121,7 @@ def requires_attr(obj, attr):
 
     try:
         getattr(obj, attr)
-        return lambda func: func
+        return lambda fn: fn
     except AttributeError:
         return unittest.skip('Required attribute "{}" not found on {}'.format(
             attr, obj))
@@ -133,7 +133,7 @@ def requires_module(fullname):
     """
 
     if _can_import(fullname):
-        return lambda func: func
+        return lambda fn: fn
 
     return unittest.skip('Unable to import "{}"'.format(fullname))
 
@@ -144,7 +144,7 @@ def requires_platform(name):
     """
 
     if name == platform.system():
-        return lambda func: func
+        return lambda fn: fn
 
     return unittest.skip(
         'Required platform "{}" does not match system'.format(name))
@@ -160,7 +160,7 @@ def requires_python(version):
         version = Version(version)
 
     if _PYTHON_VERSION >= version:
-        return lambda func: func
+        return lambda fn: fn
 
     return unittest.skip(
         'Requires Python version {} or greater'.format(version))

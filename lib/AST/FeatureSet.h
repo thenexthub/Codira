@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FEATURES_H
-#define SWIFT_AST_FEATURES_H
+#ifndef LANGUAGE_AST_FEATURES_H
+#define LANGUAGE_AST_FEATURES_H
 
 #include "language/AST/Decl.h"
 #include "language/Basic/Feature.h"
@@ -76,4 +77,4 @@ bool usesFeatureIsolatedDeinit(const Decl *decl);
 
 } // end namespace language
 
-#endif /* SWIFT_AST_FEATURES_H */
+#endif /* LANGUAGE_AST_FEATURES_H */

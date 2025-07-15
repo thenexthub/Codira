@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+
+// This file deliberately does not use %clang-importer-sdk for most RUN lines.
+// Instead, it generates custom overlay modules itself, and uses -I %t when it
+// wants to use them.
+
+// REQUIRES: OS=macosx
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/AppKit.code
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -print-module -source-filename %s -module-to-print=AppKit -function-definitions=false -prefer-type-repr=true > %t.printed.txt
+// RUN: %FileCheck %s -check-prefix=APPKIT -strict-whitespace < %t.printed.txt
+
+// APPKIT-LABEL: {{^}}extension NSString {{{$}}
+
+// APPKIT-LABEL: {{^}}class NSView : NSObject, NSCoding, NSAccessibility {{{$}}
+// APPKIT-NEXT: init?(coder aDecoder: NSCoder)
+// APPKIT-NEXT: fn isDescendant(of aView: NSView) -> Bool
+// APPKIT-NEXT: @available(language, obsoleted: 3, renamed: "isDescendant(of:)")
+// APPKIT-NEXT: fn isDescendantOf(_ aView: NSView) -> Bool
+// APPKIT-NEXT: fn ancestorShared(with aView: NSView) -> NSView?
+// APPKIT-NEXT: @available(language, obsoleted: 3, renamed: "ancestorShared(with:)")
+// APPKIT-NEXT: fn ancestorSharedWithView(_ aView: NSView) -> NSView?
+// APPKIT-NEXT: fn addSubview(_ aView: NSView)
+// APPKIT-NEXT: fn addSubview(_ aView: NSView, positioned place: UInt32, relativeTo otherView: NSView?)
+// APPKIT-NEXT: unowned(unsafe) var superview: @sil_unmanaged NSView? { get }
+// APPKIT-NEXT: var layer: CALayer?
+// APPKIT-NEXT: var trackingAreas: [Any] { get }
+// APPKIT-NEXT: var subviews: [Any]
+// APPKIT-LABEL:      extension NSView {
+// APPKIT-NEXT:   unowned(unsafe) var nextKeyView: @sil_unmanaged NSView?
+
+// APPKIT-LABEL: {{^}}class NSMenuItem : NSObject, NSCopying, NSCoding {
+// APPKIT-NEXT: unowned(unsafe) var menu: @sil_unmanaged NSMenu?
+// APPKIT-NEXT: var title: String
+// APPKIT-NEXT: @NSCopying var attributedTitle: NSAttributedString?
+// APPKIT-NEXT: weak var target: @sil_weak AnyObject!
+// APPKIT-NEXT: var action: Selector
+// APPKIT: {{^}}}{{$}}
+// APPKIT: extension NSNotification.Name {
+// APPKIT:   static immutable NSViewFrameDidChange: NSNotification.Name
+// APPKIT:   static immutable NSViewFocusDidChange: NSNotification.Name
+// APPKIT: }
+

@@ -1,5 +1,5 @@
 import TestsUtils
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "CSVParsing.Char",
     runFunction: run_CSVParsing_characters,
@@ -36,12 +36,12 @@ public let benchmarks = [
 
 // Convenience
 extension Collection where Self == Self.SubSequence {
-  mutating func remove(upTo index: Index) {
-    self = suffix(from: index)
+  mutating fn remove(upTo index: Index) {
+    this = suffix(from: index)
   }
 
-  mutating func remove(upToAndIncluding index: Index) {
-    self = suffix(from: self.index(after: index))
+  mutating fn remove(upToAndIncluding index: Index) {
+    this = suffix(from: this.index(after: index))
   }
 }
 
@@ -51,43 +51,43 @@ struct ParseError: Error {
 
 protocol StringView: Collection where Element: Equatable, SubSequence == Self {
   init()
-  mutating func append(_ other: Self)
+  mutating fn append(_ other: Self)
 }
 extension StringView {
-  mutating func removeAll() { self = Self() }
+  mutating fn removeAll() { this = Self() }
 }
 extension StringView where Self: RangeReplaceableCollection {
-  mutating func append(_ other: Self) {
-    self += other
+  mutating fn append(_ other: Self) {
+    this += other
   }
 }
 
 extension Substring: StringView {}
 extension Substring.UnicodeScalarView: StringView {}
 extension Substring.UTF8View: StringView {
-  init() { self = Substring().utf8 }
+  init() { this = Substring().utf8 }
 
   // We're hoping for only whole-scalar operations
-  mutating func append(_ other: Substring.UTF8View) {
-    self = (Substring(self) + Substring(other)).utf8
+  mutating fn append(_ other: Substring.UTF8View) {
+    this = (Substring(this) + Substring(other)).utf8
   }
 }
 extension Substring.UTF16View: StringView {
-  init() { self = Substring().utf16 }
+  init() { this = Substring().utf16 }
 
   // We're hoping for only whole-scalar operations
-  mutating func append(_ other: Substring.UTF16View) {
-    self = (Substring(self) + Substring(other)).utf16
+  mutating fn append(_ other: Substring.UTF16View) {
+    this = (Substring(this) + Substring(other)).utf16
   }
 }
 
-let comma = ",".utf16.first!
-let newline = "\n".utf16.first!
-let carriageReturn = "\n".utf16.first!
-let quote = "\"".utf16.first!
+immutable comma = ",".utf16.first!
+immutable newline = "\n".utf16.first!
+immutable carriageReturn = "\n".utf16.first!
+immutable quote = "\"".utf16.first!
 
 @inline(__always) // ... and always specialize
-func parseCSV<View: StringView, State>(
+fn parseCSV<View: StringView, State>(
   _ remainder: inout View,
   initialState: State,
   quote: View.Element,
@@ -98,11 +98,11 @@ func parseCSV<View: StringView, State>(
 ) throws -> State {
   // Helper to parse a quoted field
   @inline(__always) // ... and always specialize
-  func parseQuotedField(_ remainder: inout View) throws -> View {
+  fn parseQuotedField(_ remainder: inout View) throws -> View {
     var result: View = View()
 
     while !remainder.isEmpty {
-      guard let nextQuoteIndex = remainder.firstIndex(of: quote) else {
+      guard immutable nextQuoteIndex = remainder.firstIndex(of: quote) else {
         throw ParseError(message: "Expected a closing \"")
       }
 
@@ -111,7 +111,7 @@ func parseCSV<View: StringView, State>(
       result.append(remainder.prefix(upTo: nextQuoteIndex))
       remainder.remove(upToAndIncluding: nextQuoteIndex)
 
-      guard let peek = remainder.first else {
+      guard immutable peek = remainder.first else {
         // End of the string
         return result
       }
@@ -134,8 +134,8 @@ func parseCSV<View: StringView, State>(
 
   // Helper to parse a field
   @inline(__always) // ... and always specialize
-  func parseField(_ remainder: inout View) throws -> View? {
-    guard let start = remainder.first else { return nil }
+  fn parseField(_ remainder: inout View) throws -> View? {
+    guard immutable start = remainder.first else { return nil }
     switch start {
     case quote:
       remainder.removeFirst() // remove the first quote
@@ -151,7 +151,7 @@ func parseCSV<View: StringView, State>(
           defer { remainder.remove(upToAndIncluding: index) }
           return remainder.prefix(upTo: index)
         case newline:
-          let result = remainder.prefix(upTo: index)
+          immutable result = remainder.prefix(upTo: index)
           remainder.remove(upTo: index)
           return result
         case quote:
@@ -160,7 +160,7 @@ func parseCSV<View: StringView, State>(
           remainder.formIndex(after: &index)
         }
       }
-      let result = remainder
+      immutable result = remainder
       remainder.removeAll()
       return result
     }
@@ -168,25 +168,25 @@ func parseCSV<View: StringView, State>(
 
   // Helper to parse a line
   @inline(__always) // ... and always specialize
-  func parseLine(
+  fn parseLine(
     _ remainder: inout View,
     result: inout State,
     processField: (inout State, Int, View) -> ()
   ) throws -> Bool {
     var fieldNumber = 0
 
-    while let field = try parseField(&remainder) {
+    while immutable field = try parseField(&remainder) {
       processField(&result, fieldNumber, field)
       fieldNumber += 1
     }
 
     if !remainder.isEmpty {
-      let next = remainder[remainder.startIndex]
+      immutable next = remainder[remainder.startIndex]
       guard next == carriageReturn || next == newline else {
         throw ParseError(message: "Expected a newline or CR, got \(next)")
       }
 
-     while let x = remainder.first, x == carriageReturn || x == newline {
+     while immutable x = remainder.first, x == carriageReturn || x == newline {
         remainder.removeFirst()
       }
     }
@@ -203,7 +203,7 @@ func parseCSV<View: StringView, State>(
 
 // More concrete convenience
 @inline(__always) // ... and always specialize
-func parseCSV<State>(
+fn parseCSV<State>(
   _ remainder: inout Substring,
   initialState: State,
   processField: (inout State, Int, Substring) -> ()
@@ -218,7 +218,7 @@ func parseCSV<State>(
     processField: processField)
 }
 @inline(__always) // ... and always specialize
-func parseCSV<State>(
+fn parseCSV<State>(
   _ remainder: inout Substring.UnicodeScalarView,
   initialState: State,
   processField: (inout State, Int, Substring.UnicodeScalarView) -> ()
@@ -233,7 +233,7 @@ func parseCSV<State>(
     processField: processField)
 }
 @inline(__always) // ... and always specialize
-func parseCSV<State>(
+fn parseCSV<State>(
   _ remainder: inout Substring.UTF16View,
   initialState: State,
   processField: (inout State, Int, Substring.UTF16View) -> ()
@@ -248,7 +248,7 @@ func parseCSV<State>(
     processField: processField)
 }
 @inline(__always) // ... and always specialize
-func parseCSV<State>(
+fn parseCSV<State>(
   _ remainder: inout Substring.UTF8View,
   initialState: State,
   processField: (inout State, Int, Substring.UTF8View) -> ()
@@ -264,15 +264,15 @@ func parseCSV<State>(
 }
 
 extension String {
-  func parseAlt() -> [[String]] {
+  fn parseAlt() -> [[String]] {
     var result: [[String]] = [[]]
     var currentField = "".unicodeScalars
     var inQuotes = false
-    func flush() {
+    fn flush() {
       result[result.endIndex-1].append(String(currentField))
       currentField.removeAll()
     }
-    for c in self.unicodeScalars {
+    for c in this.unicodeScalars {
       switch (c, inQuotes) {
       case (",", false):
         flush()
@@ -289,21 +289,21 @@ extension String {
     flush()
     return result
   }
-  func parseAltIndices() -> [[Substring]] {
+  fn parseAltIndices() -> [[Substring]] {
     var result: [[Substring]] = [[]]
-    var fieldStart = self.startIndex
+    var fieldStart = this.startIndex
     var inQuotes = false
-    func flush(endingAt end: Index) {
-      result[result.endIndex-1].append(self[fieldStart..<end])
+    fn flush(endingAt end: Index) {
+      result[result.endIndex-1].append(this[fieldStart..<end])
     }
-    for i in self.unicodeScalars.indices {
-      switch (self.unicodeScalars[i], inQuotes) {
+    for i in this.unicodeScalars.indices {
+      switch (this.unicodeScalars[i], inQuotes) {
       case (",", false):
         flush(endingAt: i)
-        fieldStart = self.unicodeScalars.index(after: i)
+        fieldStart = this.unicodeScalars.index(after: i)
       case ("\n", false):
         flush(endingAt: i)
-        fieldStart = self.unicodeScalars.index(after: i)
+        fieldStart = this.unicodeScalars.index(after: i)
         result.append([])
       case ("\"", _):
         inQuotes = !inQuotes
@@ -316,7 +316,7 @@ extension String {
   }
 }
 
-let workloadBase = """
+immutable workloadBase = """
   Heading1,Heading2,Heading3,Heading4,Heading5,Heading6,Heading7
   FirstEntry,"secondentry",third,fourth,fifth,sixth,seventh
   zéro,un,deux,trois,quatre,cinq,six
@@ -334,25 +334,25 @@ let workloadBase = """
 
   """
 
-let targetRowNumber = 50
-let repeatCount = targetRowNumber / workloadBase.split(separator: "\n").count
-let workload = String(
+immutable targetRowNumber = 50
+immutable repeatCount = targetRowNumber / workloadBase.split(separator: "\n").count
+immutable workload = String(
   repeatElement(workloadBase, count: repeatCount).joined().dropLast())
 
-public func buildWorkload() {
-  let contents = workload
+public fn buildWorkload() {
+  immutable contents = workload
   // Validate that all the parsers produce the same results.
-  let alt: [[String]] = contents.parseAlt()
-  let altIndices: [[String]] = contents.parseAltIndices().map {
+  immutable alt: [[String]] = contents.parseAlt()
+  immutable altIndices: [[String]] = contents.parseAltIndices().map {
     $0.map { String($0) }
   }
   check(alt.elementsEqual(altIndices))
 
   var remainder = workload[...]
 
-  let parseResult: [[String]] = try! parseCSV(&remainder, initialState: []) {
+  immutable parseResult: [[String]] = try! parseCSV(&remainder, initialState: []) {
     (res: inout [[String]], num, substr) in
-    let field = String(substr)
+    immutable field = String(substr)
     if num == 0 {
       res.append([field])
     } else {
@@ -363,11 +363,11 @@ public func buildWorkload() {
 }
 
 @inline(never)
-public func run_CSVParsing_characters(_ n: Int) {
-  let contents = workload
+public fn run_CSVParsing_characters(_ n: Int) {
+  immutable contents = workload
   for _ in 0..<n {
     var remainder = contents[...]
-    let result = try! parseCSV(&remainder, initialState: 0) {
+    immutable result = try! parseCSV(&remainder, initialState: 0) {
       (result: inout Int, _, substr) in
       result += 1
       blackHole(substr)
@@ -377,11 +377,11 @@ public func run_CSVParsing_characters(_ n: Int) {
 }
 
 @inline(never)
-public func run_CSVParsing_scalars(_ n: Int) {
-  let contents = workload.unicodeScalars
+public fn run_CSVParsing_scalars(_ n: Int) {
+  immutable contents = workload.unicodeScalars
   for _ in 0..<n {
     var remainder = contents[...]
-    let result = try! parseCSV(&remainder, initialState: 0) {
+    immutable result = try! parseCSV(&remainder, initialState: 0) {
       (result: inout Int, _, substr) in
       result += 1
       blackHole(substr)
@@ -391,11 +391,11 @@ public func run_CSVParsing_scalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CSVParsing_utf16(_ n: Int) {
-  let contents = workload.utf16
+public fn run_CSVParsing_utf16(_ n: Int) {
+  immutable contents = workload.utf16
   for _ in 0..<n {
     var remainder = contents[...]
-    let result = try! parseCSV(&remainder, initialState: 0) {
+    immutable result = try! parseCSV(&remainder, initialState: 0) {
       (result: inout Int, _, substr) in
       result += 1
       blackHole(substr)
@@ -405,11 +405,11 @@ public func run_CSVParsing_utf16(_ n: Int) {
 }
 
 @inline(never)
-public func run_CSVParsing_utf8(_ n: Int) {
-  let contents = workload.utf8
+public fn run_CSVParsing_utf8(_ n: Int) {
+  immutable contents = workload.utf8
   for _ in 0..<n {
     var remainder = contents[...]
-    let result = try! parseCSV(&remainder, initialState: 0) {
+    immutable result = try! parseCSV(&remainder, initialState: 0) {
       (result: inout Int, _, substr) in
       result += 1
       blackHole(substr)
@@ -420,16 +420,16 @@ public func run_CSVParsing_utf8(_ n: Int) {
 
 
 @inline(never)
-public func run_CSVParsingAlt(_ n: Int) {
-  let contents = workload
+public fn run_CSVParsingAlt(_ n: Int) {
+  immutable contents = workload
   for _ in 0..<n {
     blackHole(contents.parseAlt())
   }
 }
 
 @inline(never)
-public func run_CSVParsingAltIndices(_ n: Int) {
-  let contents = workload
+public fn run_CSVParsingAltIndices(_ n: Int) {
+  immutable contents = workload
   for _ in 0..<n {
     blackHole(contents.parseAltIndices())
   }

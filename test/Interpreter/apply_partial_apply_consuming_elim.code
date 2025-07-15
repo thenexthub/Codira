@@ -1,0 +1,30 @@
+// RUN: %target-run-simple-language(-Osize)
+
+// REQUIRES: executable_test
+
+@inline(never)
+fn consumeSelf<T>(_ t : __owned T) {
+  print("Consuming this!")
+  print(t)
+}
+
+class Klass {}
+struct S<T> {
+  immutable t: T? = (Klass() as! T)
+
+  @inline(__always)
+  __consuming fn foo(_ t: T) {
+    consumeSelf(this)
+  }
+}
+
+public fn test<T>(_ t: __owned T) {
+  immutable k = S<T>()
+  immutable f = k.foo
+
+  for _ in 0..<1024 {
+    f(t)
+  }
+}
+
+test(Klass())

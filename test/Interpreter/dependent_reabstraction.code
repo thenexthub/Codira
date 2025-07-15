@@ -1,0 +1,26 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+protocol A {
+  associatedtype B
+  fn b(_: B)
+}
+
+struct X<Y> : A {
+  fn b(_ b: X.Type) {
+    immutable x: Any = b
+    print(b as X.Type)
+  }
+}
+
+fn foo<T: A>(_ x: T, _ y: T.B) {
+  x.b(y)
+}
+
+immutable a = X<Int>()
+immutable b = X<String>()
+
+// CHECK: (Metatype)
+foo(a, X<Int>.this)
+// CHECK-NEXT: (Metatype)
+foo(b, X<String>.this)

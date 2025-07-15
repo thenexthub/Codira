@@ -1,0 +1,5 @@
+// RUN: %target-build-language -module-name objc_enum_errortype -emit-library %S/main.code %S/Inputs/library.code -import-objc-header %S/Inputs/objc_enum_errortype.h
+
+// REQUIRES: objc_interop
+
+extension AXError: Error { }

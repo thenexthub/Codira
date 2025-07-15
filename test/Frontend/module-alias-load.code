@@ -1,0 +1,38 @@
+/// Test the -module-alias flag.
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+/// Create a module Bar
+// RUN: %target-language-frontend -module-name Bar %t/FileBar.code -emit-module -emit-module-path %t/Bar.codemodule
+
+/// Check Bar.codemodule is created
+// RUN: test -f %t/Bar.codemodule
+
+/// Create a module Foo that imports Cat with -module-alias Cat=Bar with a serialized module loader
+// RUN: %target-language-frontend -module-name Foo %t/FileFoo.code -module-alias Cat=Bar -I %t -emit-module -emit-module-path %t/Foo.codemodule -Rmodule-loading 2> %t/load-result-foo.output
+
+/// Check Foo.codemodule is created and Bar.codemodule is loaded
+// RUN: test -f %t/Foo.codemodule
+// RUN: test -f %t/Bar.codemodule
+// RUN: not test -f %t/Cat.codemodule
+
+// RUN: %FileCheck %s -input-file %t/load-result-foo.output -check-prefix CHECK-FOO
+// CHECK-FOO: remark: loaded module {{.*}}Bar.codemodule
+
+/// Create a module Zoo that imports Cat with -module-alias Cat=Bar with a source loader
+// RUN: %target-language-frontend -module-name Zoo %t/FileFoo.code -module-alias Cat=Bar -I %t -emit-module -emit-module-path %t/Zoo.codemodule -enable-source-import -Rmodule-loading 2> %t/load-result-zoo.output
+
+// RUN: test -f %t/Zoo.codemodule
+// RUN: test -f %t/Bar.codemodule
+// RUN: not test -f %t/Cat.codemodule
+
+// RUN: %FileCheck %s -input-file %t/load-result-zoo.output -check-prefix CHECK-ZOO
+// CHECK-ZOO: remark: loaded module {{.*}}Bar.codemodule
+
+
+// BEGIN FileBar.code
+public fn bar() {}
+
+// BEGIN FileFoo.code
+import Cat

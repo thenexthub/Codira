@@ -1,4 +1,4 @@
-//===--- CharacterLiteralsSmall.swift -------------------------------------===//
+//===--- CharacterLiteralsSmall.code -------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test tests the performance of Characters initialized from literals that
@@ -18,54 +19,54 @@
 // represented as a packed integer.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "CharacterLiteralsSmall",
     runFunction: run_CharacterLiteralsSmall,
     tags: [.validation, .api, .String])
 
 @inline(never)
-func makeCharacter_UTF8Length1() -> Character {
+fn makeCharacter_UTF8Length1() -> Character {
   return "a"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length2() -> Character {
+fn makeCharacter_UTF8Length2() -> Character {
   return "\u{00a9}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length3() -> Character {
+fn makeCharacter_UTF8Length3() -> Character {
   return "a\u{0300}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length4() -> Character {
+fn makeCharacter_UTF8Length4() -> Character {
   return "\u{00a9}\u{0300}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length5() -> Character {
+fn makeCharacter_UTF8Length5() -> Character {
   return "a\u{0300}\u{0301}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length6() -> Character {
+fn makeCharacter_UTF8Length6() -> Character {
   return "\u{00a9}\u{0300}\u{0301}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length7() -> Character {
+fn makeCharacter_UTF8Length7() -> Character {
   return "a\u{0300}\u{0301}\u{0302}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length8() -> Character {
+fn makeCharacter_UTF8Length8() -> Character {
   return "\u{00a9}\u{0300}\u{0301}\u{0302}"
 }
 
 @inline(never)
-func makeLiterals() {
+fn makeLiterals() {
   blackHole(makeCharacter_UTF8Length1())
   blackHole(makeCharacter_UTF8Length2())
   blackHole(makeCharacter_UTF8Length3())
@@ -76,7 +77,7 @@ func makeLiterals() {
   blackHole(makeCharacter_UTF8Length8())
 }
 
-public func run_CharacterLiteralsSmall(_ n: Int) {
+public fn run_CharacterLiteralsSmall(_ n: Int) {
   for _ in 0...10000 * n {
     makeLiterals()
   }

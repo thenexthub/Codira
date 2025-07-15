@@ -1,0 +1,9 @@
+// RUN: %swift-ide-test -code-completion -source-filename %s -code-completion-token COMPLETE
+
+fn tryMap(_ x: (String) -> Void) {}
+
+fn fetch() {
+    tryMap { data in
+        doesNotExist(data: data, #^COMPLETE^#)
+    }
+}

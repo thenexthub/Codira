@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend %s -emit-ir -o -
+
+fn f() {
+  enum NotAnError: Codira.Error {
+    case nope(length: Int)
+  }
+}
+

@@ -1,0 +1,179 @@
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/cas
+
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -module-cache-path %t/clang-module-cache %s \
+// RUN:   -o %t/deps.json -I %S/../ScanDependencies/Inputs/CHeaders -I %S/../ScanDependencies/Inputs/Codira \
+// RUN:   -emit-dependencies -emit-dependencies-path %t/deps.d -import-objc-header %S/../ScanDependencies/Inputs/CHeaders/Bridging.h \
+// RUN:   -language-version 4 -enable-cross-import-overlays -cache-compile-job \
+// RUN:   -cas-path %t/cas -scanner-output-dir %t -auto-bridging-header-chaining \
+// RUN:   -cas-plugin-path %toolchain_libs_dir/libCASPluginTest%toolchain_plugin_ext \
+// RUN:   -cas-plugin-option first-prefix=myfirst- -cas-plugin-option second-prefix=mysecond- \
+// RUN:   -cas-plugin-option upstream-path=%t/cas-upstream
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json &>/dev/null
+// RUN: %FileCheck -check-prefix CHECK -check-prefix CHECK_NO_CLANG_TARGET %s < %t/deps.json
+
+// Check the contents of the JSON output
+// RUN: %FileCheck %s -check-prefix CHECK -check-prefix CHECK-NO-SEARCH-PATHS < %t/deps.json
+
+// Check the make-style dependencies file
+// RUN: %FileCheck %s -check-prefix CHECK-MAKE-DEPS < %t/deps.d
+
+// Ensure that scanning with `-clang-target` makes sure that Codira modules' respective PCM-dependency-build-argument sets do not contain target triples.
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -module-cache-path %t/clang-module-cache %s \
+// RUN:   -o %t/deps_clang_target.json -I %S/../ScanDependencies/Inputs/CHeaders \
+// RUN:   -I %S/../ScanDependencies/Inputs/Codira -import-objc-header %S/../ScanDependencies/Inputs/CHeaders/Bridging.h \
+// RUN:   -language-version 4 -enable-cross-import-overlays -clang-target %target-cpu-apple-macosx10.14 -cache-compile-job \
+// RUN:   -cas-path %t/cas -scanner-output-dir %t -auto-bridging-header-chaining \
+// RUN:   -cas-plugin-path %toolchain_libs_dir/libCASPluginTest%toolchain_plugin_ext \
+// RUN:   -cas-plugin-option first-prefix=myfirst- -cas-plugin-option second-prefix=mysecond- \
+// RUN:   -cas-plugin-option upstream-path=%t/cas-upstream
+
+
+import C
+import E
+import G
+import SubE
+
+// CHECK: "mainModuleName": "deps"
+
+/// --------Main module
+// CHECK-LABEL: "modulePath": "deps.codemodule",
+// CHECK-NEXT: sourceFiles
+// CHECK-NEXT: plugin_cas.code
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-DAG:     "clang": "C"
+// CHECK-DAG:     "language": "E"
+// CHECK-DAG:     "language": "G"
+// CHECK-DAG:     "language": "SubE"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-DAG:     "language": "_Concurrency"
+// CHECK-DAG:     "language": "_cross_import_E"
+// CHECK: ],
+
+// CHECK-NOT: "error: cannot open Codira placeholder dependency module map from"
+// CHECK: "bridgingHeader":
+// CHECK-NEXT: "path":
+// CHECK-SAME: Bridging.h
+
+// CHECK-NEXT: "sourceFiles":
+// CHECK-NEXT: ChainedBridgingHeader.h
+// CHECK-NEXT: Bridging.h
+// CHECK-NEXT: BridgingOther.h
+
+// CHECK: "moduleDependencies": [
+// CHECK-NEXT: "F"
+// CHECK-NEXT: ]
+
+// CHECK: "languageOverlayDependencies": [
+// CHECK-DAG:     "language": "A"
+// CHECK-DAG:     "language": "F"
+
+
+/// --------Clang module C
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}C-{{.*}}.pcm",
+
+// CHECK: "sourceFiles": [
+// CHECK-DAG: module.modulemap
+// CHECK-DAG: C.h
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-NEXT: "clang": "B"
+
+// CHECK: "moduleMapPath"
+// CHECK-SAME: module.modulemap
+
+// CHECK: "contextHash"
+// CHECK-SAME: "{{.*}}"
+
+/// --------Clang module B
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}B-{{.*}}.pcm",
+// CHECK: "contextHash": "[[B_CONTEXT:.*]]",
+// CHECK: "-o"
+// CHECK-NEXT: B-{{.*}}[[B_CONTEXT]].pcm
+
+// Check make-style dependencies
+// CHECK-MAKE-DEPS: plugin_cas.code
+// CHECK-MAKE-DEPS-SAME: A.codeinterface
+// CHECK-MAKE-DEPS-SAME: G.codeinterface
+// CHECK-MAKE-DEPS-SAME: B.h
+// CHECK-MAKE-DEPS-SAME: Bridging.h
+// CHECK-MAKE-DEPS-SAME: BridgingOther.h
+// CHECK-MAKE-DEPS-SAME: module.modulemap
+
+/// --------Codira module F
+// CHECK:      "modulePath": "{{.*}}{{/|\\}}F-{{.*}}.codemodule",
+// CHECK-NEXT: "sourceFiles": [
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-NEXT:   {
+// CHECK-DAG:     "clang": "F"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-NEXT:   }
+// CHECK-NEXT: ],
+// CHECK: "details":
+// CHECK: "moduleCacheKey":
+
+/// --------Codira module A
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}A-{{.*}}.codemodule",
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "A"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-NEXT: }
+// CHECK: "details":
+// CHECK: "moduleCacheKey":
+
+/// --------Codira module G
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}G-{{.*}}.codemodule"
+// CHECK: "directDependencies"
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "G"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-DAG:   "language": "CodiraOnoneSupport"
+// CHECK: ],
+// CHECK-NEXT: "linkLibraries": [
+// CHECK: "details": {
+
+// CHECK: "commandLine": [
+// CHECK: "-compile-module-from-interface"
+// CHECK: "-target"
+// CHECK: "-module-name"
+// CHECK: "G"
+// CHECK: "-language-version"
+// CHECK: "5"
+// CHECK: ],
+// CHECK: "contextHash": "{{.*}}",
+
+/// --------Codira module E
+// CHECK: "language": "E"
+// CHECK-LABEL: modulePath": "{{.*}}{{/|\\}}E-{{.*}}.codemodule"
+// CHECK: "directDependencies"
+// CHECK-NEXT: {
+// CHECK-NEXT: "language": "Codira"
+
+// CHECK: "moduleInterfacePath"
+// CHECK-SAME: E.codeinterface
+
+/// --------Codira module Codira
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}Codira-{{.*}}.codemodule",
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-NEXT: "clang": "CodiraShims"
+
+/// --------Clang module CodiraShims
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}CodiraShims-{{.*}}.pcm",
+// CHECK: "contextHash": "[[SHIMS_CONTEXT:.*]]",
+// CHECK: "-o"
+// CHECK-NEXT: CodiraShims-{{.*}}[[SHIMS_CONTEXT]].pcm
+// CHECK-NO-SEARCH-PATHS-NOT: "-prebuilt-module-cache-path"
+

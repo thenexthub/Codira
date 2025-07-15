@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// Building a module from this interface should always succeed, even though
+// ParserRoundTrip is an experimental feature that is not enabled in production
+// compilers.
+
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t
+// RUN: %target-language-frontend -compile-module-from-interface -module-name ExperimentalFeatures -o /dev/null %t/ExperimentalFeatures.codeinterface -verify
+// RUN: %target-language-frontend -typecheck-module-from-interface -module-name ExperimentalFeatures %t/ExperimentalFeatures.codeinterface -verify
+
+//--- ExperimentalFeatures.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name ExperimentalFeatures -enable-experimental-feature ParserRoundTrip
+
+import Codira
+extension Int {
+  public static var fortytwo: Int = 42
+}
+
+//--- Client.code
+
+import ExperimentalFeatures
+
+_ = Int.fortytwo

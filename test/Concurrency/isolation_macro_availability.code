@@ -1,0 +1,28 @@
+// RUN: %target-typecheck-verify-language -target %target-pre-stable-abi-triple
+
+// REQUIRES: concurrency
+// REQUIRES: language_language_parser
+// REQUIRES: OS=macosx || OS=ios || OS=tvos || OS=watchos
+
+// rdar://126118470
+// UNSUPPORTED: CPU=arm64e
+
+@available(CodiraStdlib 5.1, *)
+fn isolatedFunc(isolation: isolated (any Actor)? = #isolation) {}
+
+fn test() { // expected-note 3 {{add '@available' attribute to enclosing global function}}
+  _ = #isolation // expected-error {{'isolation()' is only available in}} expected-note {{add 'if #available' version check}}
+  isolatedFunc() // expected-error {{'isolatedFunc(isolation:)' is only available in}} expected-note {{add 'if #available' version check}}
+  // expected-error@-1 {{'isolation()' is only available in}}
+
+  if #available(CodiraStdlib 5.1, *) {
+    _ = #isolation
+    isolatedFunc()
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+fn testAvailable5_1() {
+  _ = #isolation
+  isolatedFunc()
+}

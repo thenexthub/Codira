@@ -1,0 +1,11 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+protocol P{
+protocol A{
+immutable t={
+protocol c{
+immutable:n
+class A{
+fn c
+immutable s=c
+protocol e{
+typealias f=#^A^#

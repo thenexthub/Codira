@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file provides type checking support for Swift's concurrency model.
+// This file provides type checking support for Codira's concurrency model.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_TYPECHECKCONCURRENCY_H
-#define SWIFT_SEMA_TYPECHECKCONCURRENCY_H
+#ifndef LANGUAGE_SEMA_TYPECHECKCONCURRENCY_H
+#define LANGUAGE_SEMA_TYPECHECKCONCURRENCY_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ConcreteDeclRef.h"
@@ -26,6 +27,7 @@
 #include "language/AST/Expr.h"
 #include "language/AST/Module.h"
 #include "language/AST/Type.h"
+#include "language/AST/TypeRepr.h"
 #include "language/Sema/Concurrency.h"
 
 #include <cassert>
@@ -57,7 +59,7 @@ class VarDecl;
 
 /// Add notes suggesting the addition of 'async', as appropriate,
 /// to a diagnostic for a function that isn't an async context.
-void addAsyncNotes(AbstractFunctionDecl const* func);
+void addAsyncNotes(AbstractFunctionDecl const* fn);
 
 /// Check actor isolation rules.
 void checkTopLevelActorIsolation(TopLevelCodeDecl *decl);
@@ -101,8 +103,8 @@ void checkGlobalIsolation(VarDecl *var);
 /// code where strict checking has been enabled.
 bool contextRequiresStrictConcurrencyChecking(
     const DeclContext *dc,
-    llvm::function_ref<Type(const AbstractClosureExpr *)> getType,
-    llvm::function_ref<bool(const ClosureExpr *)> isolatedByPreconcurrency);
+    toolchain::function_ref<Type(const AbstractClosureExpr *)> getType,
+    toolchain::function_ref<bool(const ClosureExpr *)> isolatedByPreconcurrency);
 
 /// Describes a referenced actor variable and whether it is isolated.
 struct ReferencedActor {
@@ -254,7 +256,7 @@ public:
       std::optional<ReferencedActor> actorInstance = std::nullopt,
       std::optional<ActorIsolation> knownDeclIsolation = std::nullopt,
       std::optional<ActorIsolation> knownContextIsolation = std::nullopt,
-      llvm::function_ref<ActorIsolation(AbstractClosureExpr *)>
+      toolchain::function_ref<ActorIsolation(AbstractClosureExpr *)>
           getClosureActorIsolation = __AbstractClosureExpr_getActorIsolation);
 
   operator Kind() const { return kind; }
@@ -329,6 +331,11 @@ bool diagnoseNonSendableTypesInReference(
 void diagnoseMissingSendableConformance(
     SourceLoc loc, Type type, const DeclContext *fromDC, bool preconcurrency);
 
+/// Produce a diagnostic for a missing conformance to SendableMetatype
+void diagnoseMissingSendableMetatypeConformance(SourceLoc loc, Type type,
+                                                const DeclContext *fromDC,
+                                                bool preconcurrency);
+
 /// If the given nominal type is public and does not explicitly
 /// state whether it conforms to Sendable, provide a diagnostic.
 void diagnoseMissingExplicitSendable(NominalTypeDecl *nominal);
@@ -355,7 +362,7 @@ enum class SendableCheck {
 
   /// Sendable conformance was implied by a protocol that inherits from
   /// Sendable and also predates concurrency.
-  ImpliedByStandardProtocol,
+  ImpliedByPreconcurrencyProtocol,
 
   /// Implicit conformance to Sendable.
   Implicit,
@@ -369,7 +376,7 @@ enum class SendableCheck {
 static inline bool isImplicitSendableCheck(SendableCheck check) {
   switch (check) {
   case SendableCheck::Explicit:
-  case SendableCheck::ImpliedByStandardProtocol:
+  case SendableCheck::ImpliedByPreconcurrencyProtocol:
     return false;
 
   case SendableCheck::Implicit:
@@ -438,13 +445,44 @@ struct SendableCheckContext {
 bool diagnoseNonSendableTypes(
     Type type, SendableCheckContext fromContext,
     Type inDerivedConformance, SourceLoc loc,
-    llvm::function_ref<bool(Type, DiagnosticBehavior)> diagnose);
+    toolchain::function_ref<bool(Type, DiagnosticBehavior)> diagnose);
 
 namespace detail {
   template<typename T>
   struct Identity {
     typedef T type;
   };
+}
+
+/// Diagnose any non-Sendable types that occur within the given type, using
+/// the given diagnostic.
+///
+/// \returns \c true if any errors were produced, \c false if no diagnostics or
+/// only warnings and notes were produced or if a decl contains a sending
+/// parameter or result
+template <typename... DiagArgs>
+bool diagnoseNonSendableTypesWithSendingCheck(
+    ValueDecl *decl, Type type, SendableCheckContext fromContext,
+    Type derivedConformance, SourceLoc typeLoc, SourceLoc diagnoseLoc,
+    Diag<Type, DiagArgs...> diag,
+    typename detail::Identity<DiagArgs>::type... diagArgs) {
+  if (auto param = dyn_cast<ParamDecl>(decl)) {
+    if (param->isSending()) {
+      return false;
+    }
+  }
+  if (auto *fn = dyn_cast<FuncDecl>(decl)) {
+    if (fn->hasSendingResult())
+      return false;
+  }
+  if (auto *subscript = dyn_cast<SubscriptDecl>(decl)) {
+    if (isa_and_nonnull<SendingTypeRepr>(subscript->getResultTypeRepr()))
+      return false;
+  }
+
+  return diagnoseNonSendableTypes(
+      type, fromContext, derivedConformance, typeLoc, diagnoseLoc, diag,
+      std::forward<decltype(diagArgs)>(diagArgs)...);
 }
 
 /// Diagnose any non-Sendable types that occur within the given type, using
@@ -515,7 +553,7 @@ bool diagnoseIfAnyNonSendableTypes(
 
         if (!diagnosed) {
           ctx.Diags.diagnose(diagnoseLoc, diag, type, diagArgs...)
-              .limitBehaviorUntilSwiftVersion(behavior, 6)
+              .limitBehaviorUntilCodiraVersion(behavior, 6)
               .limitBehaviorIf(preconcurrency);
           diagnosed = true;
         }
@@ -561,7 +599,7 @@ bool diagnoseNonSendableTypes(
 /// only warnings and notes were produced.
 bool diagnoseSendabilityErrorBasedOn(
     NominalTypeDecl *nominal, SendableCheckContext fromContext,
-    llvm::function_ref<bool(DiagnosticBehavior)> diagnose);
+    toolchain::function_ref<bool(DiagnosticBehavior)> diagnose);
 
 /// Given a set of custom attributes, pick out the global actor attributes
 /// and perform any necessary resolution and diagnostics, returning the
@@ -581,8 +619,8 @@ ActorIsolation getActorIsolationForReference(ValueDecl *decl,
 /// Adjust the type of the variable for concurrency.
 Type adjustVarTypeForConcurrency(
     Type type, VarDecl *var, DeclContext *dc,
-    llvm::function_ref<Type(const AbstractClosureExpr *)> getType,
-    llvm::function_ref<bool(const ClosureExpr *)> isolatedByPreconcurrency);
+    toolchain::function_ref<Type(const AbstractClosureExpr *)> getType,
+    toolchain::function_ref<bool(const ClosureExpr *)> isolatedByPreconcurrency);
 
 /// Adjust the given function type to account for concurrency-specific
 /// attributes whose affect on the type might differ based on context.
@@ -592,9 +630,9 @@ Type adjustVarTypeForConcurrency(
 AnyFunctionType *adjustFunctionTypeForConcurrency(
     AnyFunctionType *fnType, ValueDecl *decl, DeclContext *dc,
     unsigned numApplies, bool isMainDispatchQueue,
-    llvm::function_ref<Type(const AbstractClosureExpr *)> getType,
-    llvm::function_ref<bool(const ClosureExpr *)> isolatedByPreconcurrency,
-    llvm::function_ref<Type(Type)> openType);
+    toolchain::function_ref<Type(const AbstractClosureExpr *)> getType,
+    toolchain::function_ref<bool(const ClosureExpr *)> isolatedByPreconcurrency,
+    toolchain::function_ref<Type(Type)> openType);
 
 /// Classifies known dispatch queue operations.
 enum class DispatchQueueOperation {
@@ -633,8 +671,8 @@ bool isThrowsDecl(ConcreteDeclRef declRef);
 /// for the given expression.
 VarDecl *getReferencedParamOrCapture(
     Expr *expr,
-    llvm::function_ref<Expr *(OpaqueValueExpr *)> getExistentialValue,
-    llvm::function_ref<VarDecl *()> getCurrentIsolatedVar);
+    toolchain::function_ref<Expr *(OpaqueValueExpr *)> getExistentialValue,
+    toolchain::function_ref<VarDecl *()> getCurrentIsolatedVar);
 
 /// Determine whether the given value can be accessed across actors
 /// without from normal synchronous code.
@@ -643,7 +681,7 @@ VarDecl *getReferencedParamOrCapture(
 /// \param isolation The actor isolation of the value.
 /// \param fromDC The context where we are performing the access.
 /// \param options The reference options, such as whether reference
-/// violations should be downgraded to warnings prior to Swift 6.
+/// violations should be downgraded to warnings prior to Codira 6.
 bool isAccessibleAcrossActors(
     ValueDecl *value, const ActorIsolation &isolation,
     const DeclContext *fromDC, ActorReferenceResult::Options &options,
@@ -670,7 +708,7 @@ bool isLetAccessibleAnywhere(const ModuleDecl *fromModule,
 /// Check whether given variable references to a potentially
 /// isolated actor.
 bool isPotentiallyIsolatedActor(
-    VarDecl *var, llvm::function_ref<bool(ParamDecl *)> isIsolated =
+    VarDecl *var, toolchain::function_ref<bool(ParamDecl *)> isIsolated =
                       [](ParamDecl *P) { return P->isIsolated(); });
 
 /// If the enclosing function has @_unsafeInheritExecutorAttr, return it.
@@ -679,7 +717,7 @@ AbstractFunctionDecl *enclosingUnsafeInheritsExecutor(const DeclContext *dc);
 /// Add Fix-Its to the given function to replace the @_unsafeInheritExecutor
 /// attribute with a defaulted isolation parameter.
 void replaceUnsafeInheritExecutorWithDefaultedIsolationParam(
-    AbstractFunctionDecl *func, InFlightDiagnostic &diag);
+    AbstractFunctionDecl *fn, InFlightDiagnostic &diag);
 
 /// Replace any functions in this list that were found in the _Concurrency
 /// module and have _unsafeInheritExecutor_-prefixed versions with those
@@ -705,12 +743,22 @@ void introduceUnsafeInheritExecutorReplacements(
 void introduceUnsafeInheritExecutorReplacements(
     const DeclContext *dc, Type base, SourceLoc loc, LookupResult &result);
 
+/// Function that attempts to handle all of the "bad" conformance isolation
+/// found somewhere, and returns true if it handled them. If not, returns
+/// false so that the conformances can be diagnose.
+using HandleConformanceIsolationFn =
+  toolchain::function_ref<bool(ArrayRef<ActorIsolation>)>;
+
+/// Function used as a default HandleConformanceIsolationFn.
+bool doNotDiagnoseConformanceIsolation(ArrayRef<ActorIsolation>);
+
 /// Check for correct use of isolated conformances in the given reference.
 ///
 /// This checks that any isolated conformances that occur in the given
 /// declaration reference match the isolated of the context.
 bool checkIsolatedConformancesInContext(
-    ConcreteDeclRef declRef, SourceLoc loc, const DeclContext *dc);
+    ConcreteDeclRef declRef, SourceLoc loc, const DeclContext *dc,
+    HandleConformanceIsolationFn handleBad = doNotDiagnoseConformanceIsolation);
 
 /// Check for correct use of isolated conformances in the set given set of
 /// protocol conformances.
@@ -719,7 +767,8 @@ bool checkIsolatedConformancesInContext(
 /// declaration reference match the isolated of the context.
 bool checkIsolatedConformancesInContext(
     ArrayRef<ProtocolConformanceRef> conformances, SourceLoc loc,
-    const DeclContext *dc);
+    const DeclContext *dc,
+    HandleConformanceIsolationFn handleBad = doNotDiagnoseConformanceIsolation);
 
 /// Check for correct use of isolated conformances in the given substitution
 /// map.
@@ -727,22 +776,31 @@ bool checkIsolatedConformancesInContext(
 /// This checks that any isolated conformances that occur in the given
 /// substitution map match the isolated of the context.
 bool checkIsolatedConformancesInContext(
-    SubstitutionMap subs, SourceLoc loc, const DeclContext *dc);
+    SubstitutionMap subs, SourceLoc loc, const DeclContext *dc,
+    HandleConformanceIsolationFn handleBad = doNotDiagnoseConformanceIsolation);
 
 /// Check for correct use of isolated conformances in the given type.
 ///
 /// This checks that any isolated conformances that occur in the given
 /// type match the isolated of the context.
 bool checkIsolatedConformancesInContext(
-    Type type, SourceLoc loc, const DeclContext *dc);
+    Type type, SourceLoc loc, const DeclContext *dc,
+    HandleConformanceIsolationFn handleBad = doNotDiagnoseConformanceIsolation);
+
+/// For a protocol conformance that does not have a "raw" isolation, infer its isolation.
+///
+/// - hasKnownIsolatedWitness: indicates when it is known that there is an actor-isolated witness, meaning
+///   that this operation will not look at other witnesses to determine if they are all nonisolated.
+ActorIsolation inferConformanceIsolation(
+    NormalProtocolConformance *conformance, bool hasKnownIsolatedWitness);
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct DenseMapInfo<swift::ReferencedActor::Kind> {
-  using RefActorKind = swift::ReferencedActor::Kind;
+struct DenseMapInfo<language::ReferencedActor::Kind> {
+  using RefActorKind = language::ReferencedActor::Kind;
 
   static RefActorKind getEmptyKey() {
    return RefActorKind::NonIsolatedContext;
@@ -762,15 +820,15 @@ struct DenseMapInfo<swift::ReferencedActor::Kind> {
  };
 
   template <>
-  struct DenseMapInfo<swift::ActorIsolation> {
-    using RefActor = swift::ActorIsolation;
+  struct DenseMapInfo<language::ActorIsolation> {
+    using RefActor = language::ActorIsolation;
 
     static RefActor getEmptyKey() {
-      return RefActor(swift::ActorIsolation::Kind::Unspecified);
+      return RefActor(language::ActorIsolation::Kind::Unspecified);
     }
 
     static RefActor getTombstoneKey() {
-     return RefActor(swift::ActorIsolation::Kind::Unspecified);
+     return RefActor(language::ActorIsolation::Kind::Unspecified);
     }
 
     static unsigned getHashValue(RefActor Val) {
@@ -781,6 +839,6 @@ struct DenseMapInfo<swift::ReferencedActor::Kind> {
      return LHS == RHS;
     }
   };
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif /* SWIFT_SEMA_TYPECHECKCONCURRENCY_H */
+#endif /* LANGUAGE_SEMA_TYPECHECKCONCURRENCY_H */

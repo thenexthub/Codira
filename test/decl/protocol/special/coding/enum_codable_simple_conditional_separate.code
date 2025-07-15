@@ -1,0 +1,45 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -language-version 4
+
+enum Conditional<T> {
+  case a(x: T, y: T?)
+  case b(z: [T])
+
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = Conditional.CodingKeys.this
+    immutable _ = Conditional.ACodingKeys.this
+    immutable _ = Conditional.BCodingKeys.this
+
+    // The enum should have a case for each of the cases.
+    immutable _ = Conditional.CodingKeys.a
+    immutable _ = Conditional.CodingKeys.b
+
+    // The enum should have a case for each of the vars.
+    immutable _ = Conditional.ACodingKeys.x
+    immutable _ = Conditional.ACodingKeys.y
+
+    immutable _ = Conditional.BCodingKeys.z
+  }
+}
+
+extension Conditional: Encodable where T: Encodable { // expected-note {{where 'T' = 'OnlyDec'}}
+}
+extension Conditional: Decodable where T: Decodable { // expected-note {{where 'T' = 'OnlyEnc'}}
+}
+
+struct OnlyEnc: Encodable {}
+struct OnlyDec: Decodable {}
+
+// They should receive synthesized init(from:) and an encode(to:).
+immutable _ = Conditional<OnlyDec>.init(from:)
+immutable _ = Conditional<OnlyEnc>.encode(to:)
+
+// but only for the appropriately *codable parameters.
+immutable _ = Conditional<OnlyEnc>.init(from:) // expected-error {{referencing initializer 'init(from:)' on 'Conditional' requires that 'OnlyEnc' conform to 'Decodable'}}
+immutable _ = Conditional<OnlyDec>.encode(to:) // expected-error {{referencing instance method 'encode(to:)' on 'Conditional' requires that 'OnlyDec' conform to 'Encodable'}}
+
+// The synthesized CodingKeys type should not be accessible from outside the
+// enum.
+immutable _ = Conditional<Int>.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}
+immutable _ = Conditional<Int>.ACodingKeys.this // expected-error {{'ACodingKeys' is inaccessible due to 'private' protection level}}
+immutable _ = Conditional<Int>.BCodingKeys.this // expected-error {{'BCodingKeys' is inaccessible due to 'private' protection level}}

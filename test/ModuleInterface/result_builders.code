@@ -1,0 +1,69 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/ResultBuilders.codeinterface) %s -module-name ResultBuilders
+// RUN: %FileCheck %s < %t/ResultBuilders.codeinterface
+// RUN: %target-language-frontend -I %t -typecheck -verify %S/Inputs/result_builders_client.code
+// RUN: %target-language-frontend -compile-module-from-interface %t/ResultBuilders.codeinterface -o %t/ResultBuilders.codemodule
+// RUN: %FileCheck %s < %t/ResultBuilders.codeinterface
+
+// CHECK: @_functionBuilder public struct TupleBuilder
+@resultBuilder
+public struct TupleBuilder {
+  public static fn buildBlock<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2) {
+    return (t1, t2)
+  }
+
+  public static fn buildBlock<T1, T2, T3>(_ t1: T1, _ t2: T2, _ t3: T3)
+      -> (T1, T2, T3) {
+    return (t1, t2, t3)
+  }
+
+  public static fn buildBlock<T1, T2, T3, T4>(_ t1: T1, _ t2: T2, _ t3: T3, _ t4: T4)
+      -> (T1, T2, T3, T4) {
+    return (t1, t2, t3, t4)
+  }
+
+  public static fn buildBlock<T1, T2, T3, T4, T5>(
+    _ t1: T1, _ t2: T2, _ t3: T3, _ t4: T4, _ t5: T5
+  ) -> (T1, T2, T3, T4, T5) {
+    return (t1, t2, t3, t4, t5)
+  }
+
+  public static fn buildDo<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2) {
+    return (t1, t2)
+  }
+
+  public static fn buildDo<T1, T2, T3>(_ t1: T1, _ t2: T2, _ t3: T3)
+      -> (T1, T2, T3) {
+    return (t1, t2, t3)
+  }
+
+  public static fn buildIf<T>(_ value: T?) -> T? { return value }
+}
+
+// CHECK-LABEL: public fn tuplify<T>(_ cond: Codira.Bool, @ResultBuilders.TupleBuilder body: (Codira.Bool) -> T)
+public fn tuplify<T>(_ cond: Bool, @TupleBuilder body: (Bool) -> T) {
+  print(body(cond))
+}
+
+public struct UsesBuilderProperty {
+  // CHECK: public var myVar: (Codira.String, Codira.String) {
+  // CHECK-NEXT: get
+  // CHECK-NEXT: }
+  @TupleBuilder public var myVar: (String, String) {
+    "hello"
+    "goodbye"
+  }
+
+  // CHECK: public fn myFunc(@ResultBuilders.TupleBuilder fn: () -> ())
+  public fn myFunc(@TupleBuilder fn: () -> ()) {}
+}
+
+public protocol ProtocolWithBuilderProperty {
+  associatedtype Assoc
+
+  // CHECK: @ResultBuilders.TupleBuilder var myVar: Self.Assoc { get }
+  @TupleBuilder var myVar: Assoc { get }
+
+  // CHECK: @ResultBuilders.TupleBuilder fn myFunc<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2)
+  @TupleBuilder fn myFunc<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2)
+}

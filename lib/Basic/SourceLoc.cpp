@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/SourceFile.h"
@@ -18,21 +19,21 @@
 #include "language/Basic/Range.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
 void SourceManager::verifyAllBuffers() const {
-  llvm::PrettyStackTraceString backtrace{
+  toolchain::PrettyStackTraceString backtrace{
     "Checking that all source buffers are still valid"
   };
 
-  // FIXME: This depends on the buffer IDs chosen by llvm::SourceMgr.
-  LLVM_ATTRIBUTE_USED static char arbitraryTotal = 0;
+  // FIXME: This depends on the buffer IDs chosen by toolchain::SourceMgr.
+  TOOLCHAIN_ATTRIBUTE_USED static char arbitraryTotal = 0;
   for (unsigned i = 1, e = LLVMSourceMgr.getNumBuffers(); i <= e; ++i) {
     auto *buffer = LLVMSourceMgr.getMemoryBuffer(i);
     if (buffer->getBufferSize() == 0)
@@ -99,22 +100,22 @@ StringRef SourceManager::getDisplayNameForLoc(SourceLoc Loc, bool ForceGenerated
 }
 
 unsigned
-SourceManager::addNewSourceBuffer(std::unique_ptr<llvm::MemoryBuffer> Buffer) {
+SourceManager::addNewSourceBuffer(std::unique_ptr<toolchain::MemoryBuffer> Buffer) {
   assert(Buffer);
   StringRef BufIdentifier = Buffer->getBufferIdentifier();
-  auto ID = LLVMSourceMgr.AddNewSourceBuffer(std::move(Buffer), llvm::SMLoc());
+  auto ID = LLVMSourceMgr.AddNewSourceBuffer(std::move(Buffer), toolchain::SMLoc());
   BufIdentIDMap[BufIdentifier] = ID;
   return ID;
 }
 
-unsigned SourceManager::addMemBufferCopy(llvm::MemoryBuffer *Buffer) {
+unsigned SourceManager::addMemBufferCopy(toolchain::MemoryBuffer *Buffer) {
   return addMemBufferCopy(Buffer->getBuffer(), Buffer->getBufferIdentifier());
 }
 
 unsigned SourceManager::addMemBufferCopy(StringRef InputData,
                                          StringRef BufIdentifier) {
-  auto Buffer = std::unique_ptr<llvm::MemoryBuffer>(
-      llvm::MemoryBuffer::getMemBufferCopy(InputData, BufIdentifier));
+  auto Buffer = std::unique_ptr<toolchain::MemoryBuffer>(
+      toolchain::MemoryBuffer::getMemBufferCopy(InputData, BufIdentifier));
   return addNewSourceBuffer(std::move(Buffer));
 }
 
@@ -135,7 +136,7 @@ void SourceManager::createVirtualFile(SourceLoc Loc, StringRef Name,
   File.Name = Name.str();
   File.LineOffset = LineOffset;
 
-  if (CachedVFile.first && Range.contains(SourceLoc(llvm::SMLoc::getFromPointer(
+  if (CachedVFile.first && Range.contains(SourceLoc(toolchain::SMLoc::getFromPointer(
                                CachedVFile.first)))) {
     CachedVFile = {nullptr, nullptr};
   }
@@ -222,7 +223,7 @@ void SourceManager::recordSourceFile(unsigned bufferID, SourceFile *sourceFile){
   bufferIDToSourceFiles[bufferID].push_back(sourceFile);
 }
 
-llvm::TinyPtrVector<SourceFile *>
+toolchain::TinyPtrVector<SourceFile *>
 SourceManager::getSourceFilesForBufferID(unsigned bufferID) const {
   auto found = bufferIDToSourceFiles.find(bufferID);
   if (found == bufferIDToSourceFiles.end())
@@ -244,22 +245,22 @@ SourceManager::~SourceManager() {
 /// Dump the contents of the given memory buffer to a file, returning the
 /// name of that file (when successful) and \c None otherwise.
 static std::optional<std::string>
-dumpBufferToFile(const llvm::MemoryBuffer *buffer,
+dumpBufferToFile(const toolchain::MemoryBuffer *buffer,
                  const SourceManager &sourceMgr,
                  CharSourceRange originalSourceRange) {
   // Create file in the system temporary directory.
   SmallString<128> outputFileName;
-  llvm::sys::path::system_temp_directory(true, outputFileName);
-  llvm::sys::path::append(outputFileName, "swift-generated-sources");
-  if (llvm::sys::fs::create_directory(outputFileName))
+  toolchain::sys::path::system_temp_directory(true, outputFileName);
+  toolchain::sys::path::append(outputFileName, "language-generated-sources");
+  if (toolchain::sys::fs::create_directory(outputFileName))
     return std::nullopt;
 
   // Finalize the name of the resulting file. This is unique based on name
   // mangling.
-  llvm::sys::path::append(outputFileName, buffer->getBufferIdentifier());
+  toolchain::sys::path::append(outputFileName, buffer->getBufferIdentifier());
 
   std::error_code ec = atomicallyWritingToFile(outputFileName,
-     [&](llvm::raw_pwrite_stream &out) {
+     [&](toolchain::raw_pwrite_stream &out) {
        auto contents = buffer->getBuffer();
        out << contents;
 
@@ -331,7 +332,7 @@ StringRef SourceManager::getIdentifierForBuffer(
 
 CharSourceRange SourceManager::getRangeForBuffer(unsigned bufferID) const {
   auto *buffer = LLVMSourceMgr.getMemoryBuffer(bufferID);
-  SourceLoc start{llvm::SMLoc::getFromPointer(buffer->getBufferStart())};
+  SourceLoc start{toolchain::SMLoc::getFromPointer(buffer->getBufferStart())};
   return CharSourceRange(start, buffer->getBufferSize());
 }
 
@@ -485,7 +486,7 @@ namespace {
 
 std::optional<unsigned>
 SourceManager::findBufferContainingLocInternal(SourceLoc Loc) const {
-  assert(Loc.isValid());
+  ASSERT(Loc.isValid());
 
   // If the cache is out-of-date, update it now.
   unsigned numBuffers = LLVMSourceMgr.getNumBuffers();
@@ -547,7 +548,7 @@ unsigned SourceManager::findBufferContainingLoc(SourceLoc Loc) const {
   auto Id = findBufferContainingLocInternal(Loc);
   if (Id.has_value())
     return *Id;
-  llvm_unreachable("no buffer containing location found");
+  toolchain_unreachable("no buffer containing location found");
 }
 
 bool SourceManager::isOwning(SourceLoc Loc) const {
@@ -618,7 +619,7 @@ void SourceLoc::print(raw_ostream &OS, const SourceManager &SM,
 }
 
 void SourceLoc::dump(const SourceManager &SM) const {
-  print(llvm::errs(), SM);
+  print(toolchain::errs(), SM);
 }
 
 void SourceRange::print(raw_ostream &OS, const SourceManager &SM,
@@ -632,7 +633,7 @@ void SourceRange::print(raw_ostream &OS, const SourceManager &SM,
 }
 
 void SourceRange::dump(const SourceManager &SM) const {
-  print(llvm::errs(), SM);
+  print(toolchain::errs(), SM);
 }
 
 CharSourceRange::CharSourceRange(const SourceManager &SM, SourceLoc Start,
@@ -661,7 +662,7 @@ void CharSourceRange::print(raw_ostream &OS, const SourceManager &SM,
 }
 
 void CharSourceRange::dump(const SourceManager &SM) const {
-  print(llvm::errs(), SM);
+  print(toolchain::errs(), SM);
 }
 
 std::optional<unsigned>
@@ -715,7 +716,7 @@ unsigned SourceManager::getExternalSourceBufferID(StringRef Path) {
   }
   unsigned Id = 0u;
   auto InputFileOrErr =
-      swift::vfs::getFileOrSTDIN(*getFileSystem(), Path,
+      language::vfs::getFileOrSTDIN(*getFileSystem(), Path,
                                  /* FileSize */ -1,
                                  /* RequiresNullTerminator */ true,
                                  /* isVolatile */ this->OpenSourcesAsVolatile);
@@ -803,7 +804,7 @@ ArrayRef<unsigned> SourceManager::getAncestors(
   // Cache the ancestors in the generated source info record.
   unsigned *ancestorsPtr = new unsigned [ancestors.size()];
   std::copy(ancestors.begin(), ancestors.end(), ancestorsPtr);
-  knownInfo->second.ancestors = llvm::ArrayRef(ancestorsPtr, ancestors.size());
+  knownInfo->second.ancestors = toolchain::ArrayRef(ancestorsPtr, ancestors.size());
   return knownInfo->second.ancestors;
 }
 
@@ -880,7 +881,7 @@ bool SourceManager::isImportMacroGeneratedLoc(SourceLoc loc) {
 
   auto buffer = findBufferContainingLoc(loc);
   auto genInfo = getGeneratedSourceInfo(buffer);
-  if (genInfo && genInfo->macroName == "_SwiftifyImport")
+  if (genInfo && genInfo->macroName == "_CodiraifyImport")
     return true;
 
   return false;

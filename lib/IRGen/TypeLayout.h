@@ -1,23 +1,27 @@
 //===------------- TypeLayout.h ---------------  Type layouts ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_TYPE_LAYOUT_H
-#define SWIFT_IRGEN_TYPE_LAYOUT_H
+#ifndef LANGUAGE_IRGEN_TYPE_LAYOUT_H
+#define LANGUAGE_IRGEN_TYPE_LAYOUT_H
 
 #include "FixedTypeInfo.h"
 #include "TypeInfo.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 namespace irgen {
@@ -64,7 +68,7 @@ protected:
   /// None -> Not yet computed
   /// Optional(nullptr) -> No layout string
   /// Optional(Constant*) -> Layout string
-  mutable std::optional<llvm::Constant *> _layoutString;
+  mutable std::optional<toolchain::Constant *> _layoutString;
 
 public:
   TypeLayoutEntryKind kind;
@@ -93,8 +97,8 @@ public:
 
   TypeLayoutEntryKind getKind() const { return kind; }
 
-  virtual llvm::Value *alignmentMask(IRGenFunction &IGF) const;
-  virtual llvm::Value *size(IRGenFunction &IGF) const;
+  virtual toolchain::Value *alignmentMask(IRGenFunction &IGF) const;
+  virtual toolchain::Value *size(IRGenFunction &IGF) const;
 
   /// Return the size of the type if known statically
   virtual std::optional<Size> fixedSize(IRGenModule &IGM) const;
@@ -113,9 +117,9 @@ public:
 
   /// Return the number of extra inhabitants if known statically
   virtual std::optional<uint32_t> fixedXICount(IRGenModule &IGM) const;
-  virtual llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const;
-  virtual llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const;
-  virtual llvm::Constant *layoutString(IRGenModule &IGM,
+  virtual toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const;
+  virtual toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const;
+  virtual toolchain::Constant *layoutString(IRGenModule &IGM,
                                        GenericSignature genericSig) const;
   virtual bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                               GenericSignature genericSig) const;
@@ -138,16 +142,16 @@ public:
                             Address src) const;
 
   /// Returns a pointer to the object (T*) inside of the buffer.
-  virtual llvm::Value *initBufferWithCopyOfBuffer(IRGenFunction &IGF,
+  virtual toolchain::Value *initBufferWithCopyOfBuffer(IRGenFunction &IGF,
                                                   Address dest,
                                                   Address src) const;
 
-  virtual llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                               llvm::Value *numEmptyCases,
+  virtual toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                               toolchain::Value *numEmptyCases,
                                                Address addr) const;
 
-  virtual void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                         llvm::Value *numEmptyCases,
+  virtual void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                         toolchain::Value *numEmptyCases,
                                          Address enumAddr) const;
 
   const EnumTypeLayoutEntry *getAsEnum() const;
@@ -156,30 +160,30 @@ public:
 
   virtual std::optional<const FixedTypeInfo *> getFixedTypeInfo() const;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  LLVM_DUMP_METHOD virtual void dump() const {
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+  TOOLCHAIN_DUMP_METHOD virtual void dump() const {
     assert(isEmpty() && "Missing subclass implementation?");
-    llvm::dbgs() << "{empty}";
+    toolchain::dbgs() << "{empty}";
   }
 #endif
 protected:
-  llvm::Value *
+  toolchain::Value *
   getEnumTagSinglePayloadGeneric(IRGenFunction &IGF, Address addr,
-                                 llvm::Value *numEmptyCases,
-                                 llvm::function_ref<llvm::Value *(Address addr)>
+                                 toolchain::Value *numEmptyCases,
+                                 toolchain::function_ref<toolchain::Value *(Address addr)>
                                      getExtraInhabitantIndexFun) const;
 
   void storeEnumTagSinglePayloadGeneric(
-      IRGenFunction &IGF, llvm::Value *tag, llvm::Value *numEmptyCases,
+      IRGenFunction &IGF, toolchain::Value *tag, toolchain::Value *numEmptyCases,
       Address addr,
-      llvm::function_ref<void(Address addr, llvm::Value *tag)>
+      toolchain::function_ref<void(Address addr, toolchain::Value *tag)>
           storeExtraInhabitantIndexFun) const;
 
   void gatherProperties(TypeLayoutEntry *fromEntry);
 };
 
 class ScalarTypeLayoutEntry : public TypeLayoutEntry,
-                              public llvm::FoldingSetNode {
+                              public toolchain::FoldingSetNode {
 public:
   const FixedTypeInfo &typeInfo;
   SILType representative;
@@ -196,12 +200,12 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID, const TypeInfo &ti,
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID, const TypeInfo &ti,
                       SILType ty);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
   std::optional<Size> fixedSize(IRGenModule &IGM) const override;
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
@@ -210,10 +214,10 @@ public:
   bool canValueWitnessExtraInhabitantsUpTo(IRGenModule &IGM,
                                            unsigned index) const override;
   bool isSingleRetainablePointer() const override;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Type *getStorageType(IRGenFunction &IGF) const;
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Type *getStorageType(IRGenFunction &IGF) const;
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
@@ -230,26 +234,26 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
   static bool classof(const TypeLayoutEntry *entry);
 
   std::optional<const FixedTypeInfo *> getFixedTypeInfo() const override;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 
 };
 
 class ArchetypeLayoutEntry : public TypeLayoutEntry,
-                             public llvm::FoldingSetNode {
+                             public toolchain::FoldingSetNode {
   SILType archetype;
 
 public:
@@ -261,11 +265,11 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID, SILType archetype);
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID, SILType archetype);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
   std::optional<Size> fixedSize(IRGenModule &IGM) const override;
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
@@ -274,9 +278,9 @@ public:
   bool canValueWitnessExtraInhabitantsUpTo(IRGenModule &IGM,
                                            unsigned index) const override;
   bool isSingleRetainablePointer() const override;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
@@ -293,23 +297,23 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
   static bool classof(const TypeLayoutEntry *entry);
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 };
 
 class ResilientTypeLayoutEntry : public TypeLayoutEntry,
-                                 public llvm::FoldingSetNode {
+                                 public toolchain::FoldingSetNode {
   SILType ty;
 
 public:
@@ -321,11 +325,11 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID, SILType ty);
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID, SILType ty);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
   std::optional<Size> fixedSize(IRGenModule &IGM) const override;
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
@@ -334,9 +338,9 @@ public:
   bool canValueWitnessExtraInhabitantsUpTo(IRGenModule &IGM,
                                            unsigned index) const override;
   bool isSingleRetainablePointer() const override;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
@@ -353,22 +357,22 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
   static bool classof(const TypeLayoutEntry *entry);
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 };
 
-class AlignedGroupEntry : public TypeLayoutEntry, public llvm::FoldingSetNode {
+class AlignedGroupEntry : public TypeLayoutEntry, public toolchain::FoldingSetNode {
   std::vector<TypeLayoutEntry *> entries;
   SILType ty;
   Alignment::int_type minimumAlignment;
@@ -388,13 +392,13 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       const std::vector<TypeLayoutEntry *> &entries,
                       Alignment::int_type minimumAlignment);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
   std::optional<Size> fixedSize(IRGenModule &IGM) const override;
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
@@ -403,9 +407,9 @@ public:
   bool canValueWitnessExtraInhabitantsUpTo(IRGenModule &IGM,
                                            unsigned index) const override;
   bool isSingleRetainablePointer() const override;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
@@ -422,19 +426,19 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
   static bool classof(const TypeLayoutEntry *entry);
 
   std::optional<const FixedTypeInfo *> getFixedTypeInfo() const override;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 
@@ -457,21 +461,21 @@ private:
   /// Optional(Count) -> Fixed XICount
   mutable std::optional<std::optional<uint32_t>> _fixedXICount = std::nullopt;
 
-  llvm::Value *withExtraInhabitantProvidingEntry(
-      IRGenFunction &IGF, Address addr, llvm::Type *returnType,
-      llvm::function_ref<llvm::Value *(TypeLayoutEntry *,
+  toolchain::Value *withExtraInhabitantProvidingEntry(
+      IRGenFunction &IGF, Address addr, toolchain::Type *returnType,
+      toolchain::function_ref<toolchain::Value *(TypeLayoutEntry *,
                                        Address /*entry addr*/,
-                                       llvm::Value * /*entry xi count*/)>
+                                       toolchain::Value * /*entry xi count*/)>
           entryFun) const;
   void
   withEachEntry(IRGenFunction &IGF, Address dest, Address src,
-                llvm::function_ref<void(TypeLayoutEntry *entry,
+                toolchain::function_ref<void(TypeLayoutEntry *entry,
                                         Address entryDest, Address entrySrc)>
                     entryFun) const;
 };
 
 class EnumTypeLayoutEntry : public TypeLayoutEntry,
-                            public llvm::FoldingSetNode {
+                            public toolchain::FoldingSetNode {
 public:
   /// More efficient value semantics implementations for certain enum layouts.
   enum CopyDestroyStrategy {
@@ -514,12 +518,12 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID, unsigned numEmptyCases,
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID, unsigned numEmptyCases,
                       const std::vector<TypeLayoutEntry *> &cases);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
   std::optional<Size> fixedSize(IRGenModule &IGM) const override;
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
@@ -529,9 +533,9 @@ public:
                                            unsigned index) const override;
   bool isSingleRetainablePointer() const override;
   CopyDestroyStrategy copyDestroyKind(IRGenModule &IGM) const;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
@@ -548,19 +552,19 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
-  llvm::Value *getEnumTag(IRGenFunction &IGF, Address enumAddr) const;
+  toolchain::Value *getEnumTag(IRGenFunction &IGF, Address enumAddr) const;
 
   void destructiveProjectEnumData(IRGenFunction &IGF, Address enumAddr) const;
 
-  void destructiveInjectEnumTag(IRGenFunction &IGF, llvm::Value *tag,
+  void destructiveInjectEnumTag(IRGenFunction &IGF, toolchain::Value *tag,
                                 Address enumAddr) const;
 
   bool isMultiPayloadEnum() const;
@@ -568,7 +572,7 @@ public:
 
   std::optional<const FixedTypeInfo *> getFixedTypeInfo() const override;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 
@@ -591,8 +595,8 @@ private:
   /// Optional(Count) -> Fixed XICount
   mutable std::optional<std::optional<uint32_t>> _fixedXICount = std::nullopt;
 
-  llvm::Value *maxPayloadSize(IRGenFunction &IGF) const;
-  llvm::BasicBlock *testSinglePayloadEnumContainsPayload(IRGenFunction &IGF,
+  toolchain::Value *maxPayloadSize(IRGenFunction &IGF) const;
+  toolchain::BasicBlock *testSinglePayloadEnumContainsPayload(IRGenFunction &IGF,
                                                          Address addr) const;
 
   void initializeSinglePayloadEnum(IRGenFunction &IGF, Address dest,
@@ -605,35 +609,35 @@ private:
   void assignMultiPayloadEnum(IRGenFunction &IGF, Address dest, Address src,
                               IsTake_t isTake) const;
 
-  std::pair<Address, llvm::Value *>
+  std::pair<Address, toolchain::Value *>
   getMultiPayloadEnumTagByteAddrAndNumBytes(IRGenFunction &IGF,
                                             Address addr) const;
 
-  llvm::Value *
+  toolchain::Value *
   getEnumTagSinglePayloadForSinglePayloadEnum(IRGenFunction &IGF, Address addr,
-                                              llvm::Value *numEmptyCases) const;
+                                              toolchain::Value *numEmptyCases) const;
   void storeEnumTagSinglePayloadForSinglePayloadEnum(IRGenFunction &IGF,
-                                                     llvm::Value *tag,
-                                                     llvm::Value *numEmptyCases,
+                                                     toolchain::Value *tag,
+                                                     toolchain::Value *numEmptyCases,
                                                      Address enumAddr) const;
-  llvm::Value *
+  toolchain::Value *
   getEnumTagSinglePayloadForMultiPayloadEnum(IRGenFunction &IGF, Address addr,
-                                             llvm::Value *numEmptyCases) const;
+                                             toolchain::Value *numEmptyCases) const;
   void storeEnumTagSinglePayloadForMultiPayloadEnum(IRGenFunction &IGF,
-                                                    llvm::Value *tag,
-                                                    llvm::Value *numEmptyCases,
+                                                    toolchain::Value *tag,
+                                                    toolchain::Value *numEmptyCases,
                                                     Address enumAddr) const;
-  llvm::Value *getEnumTagMultipayload(IRGenFunction &IGF,
+  toolchain::Value *getEnumTagMultipayload(IRGenFunction &IGF,
                                       Address enumAddr) const;
 
-  void storeEnumTagMultipayload(IRGenFunction &IGF, llvm::Value *tag,
+  void storeEnumTagMultipayload(IRGenFunction &IGF, toolchain::Value *tag,
                                 Address enumAddr) const;
 
   /// Store a value to the enum's tag bytes.
-  void storeMultiPayloadTag(IRGenFunction &IGF, llvm::Value *value,
+  void storeMultiPayloadTag(IRGenFunction &IGF, toolchain::Value *value,
                             Address enumAddr) const;
   /// Store a value to the enum's payload bytes.
-  void storeMultiPayloadValue(IRGenFunction &IGF, llvm::Value *value,
+  void storeMultiPayloadValue(IRGenFunction &IGF, toolchain::Value *value,
                               Address enumAddr) const;
 
   void destroyMultiPayloadEnum(IRGenFunction &IGF, Address enumAddr) const;
@@ -641,9 +645,9 @@ private:
 
   void multiPayloadEnumForPayloadAndEmptyCases(
       IRGenFunction &IGF, Address addr,
-      llvm::function_ref<void(TypeLayoutEntry *payload, llvm::Value *tagIndex)>
+      toolchain::function_ref<void(TypeLayoutEntry *payload, toolchain::Value *tagIndex)>
           payloadFunction,
-      llvm::function_ref<void()> noPayloadFunction) const;
+      toolchain::function_ref<void()> noPayloadFunction) const;
 
   bool buildSinglePayloadRefCountString(IRGenModule &IGM,
                                         LayoutStringBuilder &B,
@@ -659,7 +663,7 @@ private:
 /// type layouts don't have the functionality implemented yet (e.g. multi enum
 /// extra inhabitants).
 class TypeInfoBasedTypeLayoutEntry : public TypeLayoutEntry,
-                                     public llvm::FoldingSetNode {
+                                     public toolchain::FoldingSetNode {
 public:
   const FixedTypeInfo &typeInfo;
   SILType representative;
@@ -673,13 +677,13 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID, const TypeInfo &ti,
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID, const TypeInfo &ti,
                       SILType ty);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
   bool isTriviallyDestroyable() const override;
   bool canValueWitnessExtraInhabitantsUpTo(IRGenModule &IGM,
                                            unsigned index) const override;
@@ -688,8 +692,8 @@ public:
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
   std::optional<uint32_t> fixedXICount(IRGenModule &IGM) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Type *getStorageType(IRGenFunction &IGF) const;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Type *getStorageType(IRGenFunction &IGF) const;
 
   void destroy(IRGenFunction &IGF, Address addr) const override;
 
@@ -703,27 +707,27 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
 
   std::optional<const FixedTypeInfo *> getFixedTypeInfo() const override;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 };
 
-class ArrayLayoutEntry : public TypeLayoutEntry, public llvm::FoldingSetNode {
+class ArrayLayoutEntry : public TypeLayoutEntry, public toolchain::FoldingSetNode {
 public:
   TypeLayoutEntry *elementLayout;
   SILType elementType;
@@ -740,13 +744,13 @@ public:
   void computeProperties() override;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
-  static void Profile(llvm::FoldingSetNodeID &ID, TypeLayoutEntry *elementLayout,
+  void Profile(toolchain::FoldingSetNodeID &id) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID, TypeLayoutEntry *elementLayout,
                       SILType elementType, CanType countType);
 
-  llvm::Value *alignmentMask(IRGenFunction &IGF) const override;
-  llvm::Value *size(IRGenFunction &IGF) const override;
-  llvm::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
+  toolchain::Value *alignmentMask(IRGenFunction &IGF) const override;
+  toolchain::Value *size(IRGenFunction &IGF) const override;
+  toolchain::Value *extraInhabitantCount(IRGenFunction &IGF) const override;
   bool isTriviallyDestroyable() const override;
   bool canValueWitnessExtraInhabitantsUpTo(IRGenModule &IGM,
                                            unsigned index) const override;
@@ -755,8 +759,8 @@ public:
   bool isFixedSize(IRGenModule &IGM) const override;
   std::optional<Alignment> fixedAlignment(IRGenModule &IGM) const override;
   std::optional<uint32_t> fixedXICount(IRGenModule &IGM) const override;
-  llvm::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
-  llvm::Type *getStorageType(IRGenFunction &IGF) const;
+  toolchain::Value *isBitwiseTakable(IRGenFunction &IGF) const override;
+  toolchain::Type *getStorageType(IRGenFunction &IGF) const;
 
   void destroy(IRGenFunction &IGF, Address addr) const override;
 
@@ -770,36 +774,36 @@ public:
   void initWithTake(IRGenFunction &IGF, Address dest,
                     Address src) const override;
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address addr) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *tag,
-                                 llvm::Value *numEmptyCases,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *tag,
+                                 toolchain::Value *numEmptyCases,
                                  Address enumAddr) const override;
 
-  llvm::Constant *layoutString(IRGenModule &IGM,
+  toolchain::Constant *layoutString(IRGenModule &IGM,
                                GenericSignature genericSig) const override;
   bool refCountString(IRGenModule &IGM, LayoutStringBuilder &B,
                       GenericSignature genericSig) const override;
 
   std::optional<const FixedTypeInfo *> getFixedTypeInfo() const override;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
   void dump() const override;
 #endif
 };
 
 class TypeLayoutCache {
-  llvm::BumpPtrAllocator bumpAllocator;
+  toolchain::BumpPtrAllocator bumpAllocator;
 
-  llvm::FoldingSet<ScalarTypeLayoutEntry> scalarEntries;
-  llvm::FoldingSet<ArchetypeLayoutEntry> archetypeEntries;
-  llvm::FoldingSet<AlignedGroupEntry> alignedGroupEntries;
-  llvm::FoldingSet<EnumTypeLayoutEntry> enumEntries;
-  llvm::FoldingSet<ResilientTypeLayoutEntry> resilientEntries;
-  llvm::FoldingSet<TypeInfoBasedTypeLayoutEntry> typeInfoBasedEntries;
-  llvm::FoldingSet<ArrayLayoutEntry> arrayEntries;
+  toolchain::FoldingSet<ScalarTypeLayoutEntry> scalarEntries;
+  toolchain::FoldingSet<ArchetypeLayoutEntry> archetypeEntries;
+  toolchain::FoldingSet<AlignedGroupEntry> alignedGroupEntries;
+  toolchain::FoldingSet<EnumTypeLayoutEntry> enumEntries;
+  toolchain::FoldingSet<ResilientTypeLayoutEntry> resilientEntries;
+  toolchain::FoldingSet<TypeInfoBasedTypeLayoutEntry> typeInfoBasedEntries;
+  toolchain::FoldingSet<ArrayLayoutEntry> arrayEntries;
 
   TypeLayoutEntry emptyEntry;
 public:

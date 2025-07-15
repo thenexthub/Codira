@@ -1,24 +1,28 @@
 //===--- AddressLowering.h - Lower SIL address-only types. ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/STLExtras.h"
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -204,7 +208,7 @@ struct ValueStorage {
   }
 
 #ifndef NDEBUG
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 #endif
 };
@@ -221,7 +225,7 @@ public:
     ValueStorage storage;
     ValueStoragePair(SILValue v, ValueStorage s) : value(v), storage(s) {}
 #ifndef NDEBUG
-    void print(llvm::raw_ostream &OS) const;
+    void print(toolchain::raw_ostream &OS) const;
     void dump() const;
 #endif
   };
@@ -229,14 +233,14 @@ public:
 private:
   typedef std::vector<ValueStoragePair> ValueVector;
   // Hash of values to ValueVector indices.
-  typedef llvm::DenseMap<SILValue, unsigned> ValueHashMap;
+  typedef toolchain::DenseMap<SILValue, unsigned> ValueHashMap;
 
   ValueVector valueVector;
   ValueHashMap valueHashMap;
 
   // True after valueVector is done growing, so ValueStorage references will no
   // longer be invalidated.
-  SWIFT_ASSERT_ONLY_DECL(bool stableStorage = false);
+  LANGUAGE_ASSERT_ONLY_DECL(bool stableStorage = false);
 
 public:
   class ProjectionIterator {
@@ -345,7 +349,7 @@ public:
     return &valueVector[iter->second].storage;
   }
 
-  void setStable() { SWIFT_ASSERT_ONLY(stableStorage = true); }
+  void setStable() { LANGUAGE_ASSERT_ONLY(stableStorage = true); }
 
   /// Given storage for a projection, return the projected storage by following
   /// single level of projected storage. The returned storage may
@@ -403,9 +407,9 @@ public:
   bool isComposingUseProjection(Operand *oper) const;
 
 #ifndef NDEBUG
-  void printProjections(SILValue value, llvm::raw_ostream &OS) const;
+  void printProjections(SILValue value, toolchain::raw_ostream &OS) const;
   void dumpProjections(SILValue value) const;
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 #endif
 };

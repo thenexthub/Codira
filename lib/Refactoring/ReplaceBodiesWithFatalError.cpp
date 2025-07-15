@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "RefactoringActions.h"
@@ -65,7 +66,7 @@ bool RefactoringActionReplaceBodiesWithFatalError::isApplicable(
   case RangeKind::Invalid:
     return false;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 bool RefactoringActionReplaceBodiesWithFatalError::performChange() {

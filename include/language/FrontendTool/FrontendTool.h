@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides a high-level API for interacting with the basic
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTENDTOOL_H
-#define SWIFT_FRONTENDTOOL_H
+#ifndef LANGUAGE_FRONTENDTOOL_H
+#define LANGUAGE_FRONTENDTOOL_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
-namespace llvm {
+namespace toolchain {
 class Module;
 }
 
@@ -62,7 +63,7 @@ public:
 
 namespace frontend {
 namespace utils {
-StringRef escapeForMake(StringRef raw, llvm::SmallVectorImpl<char> &buffer);
+StringRef escapeForMake(StringRef raw, toolchain::SmallVectorImpl<char> &buffer);
 }
 }
 

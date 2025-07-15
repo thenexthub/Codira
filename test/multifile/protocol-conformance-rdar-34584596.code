@@ -1,0 +1,2 @@
+// RUN: %target-language-frontend -emit-ir -O -o - -primary-file %S/Inputs/rdar-34584596-A.code %S/Inputs/rdar-34584596-B.code %S/Inputs/rdar-34584596-C.code -module-name main
+

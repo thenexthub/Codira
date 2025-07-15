@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_BLOTSETVECTOR_H
-#define SWIFT_BASIC_BLOTSETVECTOR_H
+#ifndef LANGUAGE_BASIC_BLOTSETVECTOR_H
+#define LANGUAGE_BASIC_BLOTSETVECTOR_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 #include <vector>
 
@@ -50,7 +51,7 @@ namespace language {
 /// the value as being dead.
 template <typename ValueT,
           typename VectorT = std::vector<std::optional<ValueT>>,
-          typename MapT = llvm::DenseMap<ValueT, unsigned>>
+          typename MapT = toolchain::DenseMap<ValueT, unsigned>>
 class BlotSetVector {
   VectorT vector;
   MapT map;
@@ -177,12 +178,12 @@ public:
 
 template <typename ValueT, unsigned N>
 class SmallBlotSetVector
-    : public BlotSetVector<ValueT, llvm::SmallVector<std::optional<ValueT>, N>,
-                           llvm::SmallDenseMap<ValueT, unsigned, N>> {
+    : public BlotSetVector<ValueT, toolchain::SmallVector<std::optional<ValueT>, N>,
+                           toolchain::SmallDenseMap<ValueT, unsigned, N>> {
 public:
   SmallBlotSetVector() {}
 };
 
 } // namespace language
 
-#endif // SWIFT_BASIC_BLOTSETVECTOR_H
+#endif // LANGUAGE_BASIC_BLOTSETVECTOR_H

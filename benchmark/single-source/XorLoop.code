@@ -1,4 +1,4 @@
-//===--- XorLoop.swift ----------------------------------------------------===//
+//===--- XorLoop.code ----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "XorLoop",
     runFunction: run_XorLoop,
     tags: [.validation])
 
 @inline(never)
-public func run_XorLoop(_ n: Int) {
+public fn run_XorLoop(_ n: Int) {
   for _ in 1...5*n {
-    let size = 100000
-    let ref_result = 47813324
+    immutable size = 100000
+    immutable ref_result = 47813324
     var x = [Int](repeating: 0xA05FD, count: size)
     for i in 0..<size {
       x[i] = x[i] ^ 12345678
     }
-    let res = x[10]+x[100]+x[1000]+x[10000]
+    immutable res = x[10]+x[100]+x[1000]+x[10000]
     check(res == ref_result)
   }
 }

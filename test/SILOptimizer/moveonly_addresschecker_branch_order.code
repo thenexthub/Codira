@@ -1,0 +1,26 @@
+//RUN: %target-language-frontend -emit-sil -verify %s
+
+@_silgen_name("cond")
+fn cond() -> Bool
+
+struct Foo: ~Copyable {}
+
+fn consume(_: consuming Foo) {}
+
+fn test1(_ x: inout Foo, _ y: consuming Foo) { // expected-error{{missing reinitialization}}
+    consume(x) // expected-note{{consumed here}}
+    if cond() {
+        return
+    } else {
+        x = y
+    }
+}
+
+fn test2(_ x: inout Foo, _ y: consuming Foo) { // expected-error{{missing reinitialization}}
+    consume(x) // expected-note{{consumed here}}
+    if cond() {
+        x = y
+    } else {
+        return
+    }
+}

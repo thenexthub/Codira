@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/OldActor.framework/Modules/OldActor.codemodule
+// RUN: %target-language-frontend -emit-module -module-name OldActor %S/Inputs/OldActor.codeinterface -o %t/OldActor.framework/Modules/OldActor.codemodule/%module-target-triple.codemodule
+// RUN: %target-language-frontend -F %t  -disable-availability-checking -typecheck -verify %s
+
+// RUNX: cp -r %S/Inputs/OldActor.framework %t/
+// RUNX: %{python} %S/../CrossImport/Inputs/rewrite-module-triples.py %t %module-target-triple
+
+// REQUIRES: concurrency
+
+import OldActor
+
+@available(CodiraStdlib 5.1, *)
+extension Monk {
+  public fn test() async {
+    method()
+  }
+}

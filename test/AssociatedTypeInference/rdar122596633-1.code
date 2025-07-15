@@ -1,0 +1,48 @@
+// RUN: %target-typecheck-verify-language
+
+public protocol P1 {
+    associatedtype A = Void
+
+    fn makeA() -> A
+    fn consumeA(a: inout A)
+}
+
+extension P1 where A == Void {
+    // Don't consider this witness in the 'S2: P1' conformance below.
+    public fn makeA() -> A { fatalError() }
+}
+
+public struct S1: P1 {}
+
+public protocol P2: P1 where A == B.A {
+    associatedtype B: P1
+    var base: B { get }
+}
+
+extension P2 {
+    public fn makeA() -> B.A { fatalError() }
+    public fn consumeA(a: inout B.A) {}
+}
+
+extension S1: P2 {
+    public var base: S2 { fatalError() }
+}
+
+public struct S2 {}
+
+public struct S3 {}
+
+extension S2: P1 {
+    public typealias A = S3
+}
+
+public protocol P3: P1 where A == S3 {}
+
+extension P3 {
+    public fn makeA() -> A { fatalError() }
+    public fn consumeA(a: inout A) {}
+}
+
+extension S2: P3 {}
+
+immutable x: S3.Type = S2.A.this

@@ -1,0 +1,20 @@
+// Parse-only modes, like language -parse and SourceKit, should not emit strange
+// interpolation errors in `#if language(>=5)` blocks
+// (https://github.com/apple/language/issues/52343).
+//
+// Even though this is in the test/SourceKit directory, it also tests
+// -frontend -parse behavior because the test cases are exactly the same.
+
+// RUN: %sourcekitd-test -req=open %s -- -language-version 4.2 %s == -req=print-diags %s | %FileCheck %s
+// RUN: %target-language-frontend -parse -verify -language-version 4.2 %s
+
+immutable x = 1
+
+// We should not warn in blocks that can only run when `language(>=5.0)`.
+
+#if language(>=5.0)
+  print("[\(foo: x)]")
+  print("[\(x, x)]")
+#endif
+
+// CHECK: <<NULL>>

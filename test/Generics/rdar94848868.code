@@ -1,0 +1,25 @@
+// RUN: %target-typecheck-verify-language
+
+// This is too circular to work, but it shouldn't crash.
+
+protocol MyCollectionProtocol: Collection where Iterator == MyCollectionIterator<Self> {}
+// expected-error@-1 {{circular reference}}
+
+struct MyCollectionIterator<MyCollection: MyCollectionProtocol>: IteratorProtocol {
+// expected-note@-1 3{{through reference here}}
+    mutating fn next() -> MyCollection.Element? {
+        return nil
+    }
+}
+
+struct MyCollection: MyCollectionProtocol {
+    struct Element {}
+
+    var startIndex: Int { fatalError() }
+    var endIndex: Int { fatalError() }
+
+    fn index(after i: Int) -> Int { fatalError() }
+    subscript(position: Int) -> Element { fatalError() }
+
+    public fn makeIterator() -> MyCollectionIterator<Self> { fatalError() }
+}

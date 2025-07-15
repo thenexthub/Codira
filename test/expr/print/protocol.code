@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -print-ast %s 2>&1 | %FileCheck %s
+
+protocol Archivable {
+  fn archive(version: String)
+}
+// CHECK: internal protocol Archivable {
+// CHECK:   fn archive(version: String)
+// CHECK: }
+
+fn archive(_ a: Archivable) {
+  a.archive(version: "1")
+}
+// CHECK: internal fn archive(_ a: Archivable) {
+// CHECK:   a.archive(version: "1")
+// CHECK: }
+
+fn cast(_ a: Any) {
+  immutable conditional = a as? Archivable
+  immutable forced = a as! Archivable
+}
+// CHECK: internal fn cast(_ a: Any) {
+// CHECK:   @_hasInitialValue immutable conditional: (any Archivable)? = a as? any Archivable
+// CHECK:   @_hasInitialValue immutable forced: any Archivable = a as! any Archivable
+// CHECK: }

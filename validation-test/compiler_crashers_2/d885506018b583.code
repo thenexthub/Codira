@@ -1,0 +1,3 @@
+// {"signature":"language::AvailabilityContext::Storage::get(language::AvailabilityRange const&, bool, toolchain::ArrayRef<language::AvailabilityContext::DomainInfo>, language::ASTContext const&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a extension a where b == Self{c : } typealias b : Sequence

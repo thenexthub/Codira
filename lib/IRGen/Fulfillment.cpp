@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements routines for searching for ways to find metadata
@@ -48,7 +49,7 @@ static bool isLeafTypeMetadata(CanType type) {
 #define TYPE(ID, SUPER)
 #include "language/AST/TypeNodes.def"
   case TypeKind::Error:
-    llvm_unreachable("kind is invalid for a canonical type");
+    toolchain_unreachable("kind is invalid for a canonical type");
 
 #define ARTIFICIAL_TYPE(ID, SUPER) \
   case TypeKind::ID:
@@ -60,7 +61,7 @@ static bool isLeafTypeMetadata(CanType type) {
   case TypeKind::PackExpansion:
   case TypeKind::PackElement:
   case TypeKind::BuiltinTuple:
-    llvm_unreachable("these types do not have metadata");
+    toolchain_unreachable("these types do not have metadata");
 
   // All the builtin types are leaves.
 #define BUILTIN_TYPE(ID, SUPER) \
@@ -126,7 +127,7 @@ static bool isLeafTypeMetadata(CanType type) {
   case TypeKind::Integer:
     return true;
   }
-  llvm_unreachable("bad type kind");
+  toolchain_unreachable("bad type kind");
 }
 
 /// Given that we have a source for metadata of the given type, check
@@ -181,35 +182,44 @@ bool FulfillmentMap::searchTypeMetadata(IRGenModule &IGM, CanType type,
                                      source, std::move(path), keys);
   }
 
-  if (auto tupleType = dyn_cast<TupleType>(type)) {
-    if (tupleType->getNumElements() == 1 &&
-        isa<PackExpansionType>(tupleType.getElementType(0))) {
-
-      bool hadFulfillment = false;
-      auto packType = tupleType.getInducedPackType();
-
-      {
-        auto argPath = path;
-        argPath.addTuplePackComponent();
-        hadFulfillment |= searchTypeMetadataPack(IGM, packType,
-                                                 isExact, metadataState, source,
-                                                 std::move(argPath), keys);
-      }
-
-      {
-        auto argPath = path;
-        argPath.addTupleShapeComponent();
-        hadFulfillment |= searchShapeRequirement(IGM, packType, source,
-                                                 std::move(argPath));
-
-      }
-
-      return hadFulfillment;
-    }
-  }
-
   // TODO: functions
   // TODO: metatypes
+
+  return false;
+}
+
+/// Metadata fulfillment in a tuple conformance witness thunks.
+///
+/// \return true if any fulfillments were added by this search.
+bool FulfillmentMap::searchTupleTypeMetadata(IRGenModule &IGM, CanTupleType tupleType,
+                                             IsExact_t isExact,
+                                             MetadataState metadataState,
+                                             unsigned source, MetadataPath &&path,
+                                             const InterestingKeysCallback &keys) {
+  if (tupleType->getNumElements() == 1 &&
+      isa<PackExpansionType>(tupleType.getElementType(0))) {
+
+    bool hadFulfillment = false;
+    auto packType = tupleType.getInducedPackType();
+
+    {
+      auto argPath = path;
+      argPath.addTuplePackComponent();
+      hadFulfillment |= searchTypeMetadataPack(IGM, packType,
+                                               isExact, metadataState, source,
+                                               std::move(argPath), keys);
+    }
+
+    {
+      auto argPath = path;
+      argPath.addTupleShapeComponent();
+      hadFulfillment |= searchShapeRequirement(IGM, packType, source,
+                                               std::move(argPath));
+
+    }
+
+    return hadFulfillment;
+  }
 
   return false;
 }
@@ -294,8 +304,8 @@ bool FulfillmentMap::searchWitnessTable(IRGenModule &IGM,
                                         const InterestingKeysCallback &keys) {
   assert(Lowering::TypeConverter::protocolRequiresWitnessTable(protocol));
 
-  llvm::SmallPtrSet<ProtocolDecl*, 4> interestingConformancesBuffer;
-  llvm::SmallPtrSetImpl<ProtocolDecl *> *interestingConformances = nullptr;
+  toolchain::SmallPtrSet<ProtocolDecl*, 4> interestingConformancesBuffer;
+  toolchain::SmallPtrSetImpl<ProtocolDecl *> *interestingConformances = nullptr;
 
   // If the interesting-keys set is limiting the set of interesting
   // conformances, collect that filter.
@@ -319,7 +329,7 @@ bool FulfillmentMap::searchWitnessTable(IRGenModule &IGM,
 bool FulfillmentMap::searchWitnessTable(
     IRGenModule &IGM, CanType type, ProtocolDecl *protocol, unsigned source,
     MetadataPath &&path, const InterestingKeysCallback &keys,
-    llvm::SmallPtrSetImpl<ProtocolDecl *> *interestingConformances) {
+    toolchain::SmallPtrSetImpl<ProtocolDecl *> *interestingConformances) {
 
   bool hadFulfillment = false;
 
@@ -518,11 +528,11 @@ static StringRef getStateName(MetadataState state) {
   case MetadataState::LayoutComplete: return "layout-complete";
   case MetadataState::Abstract: return "abstract";
   }
-  llvm_unreachable("unhandled state");
+  toolchain_unreachable("unhandled state");
 }
 
 void FulfillmentMap::dump() const {
-  auto &out = llvm::errs();
+  auto &out = toolchain::errs();
   for (auto &entry : Fulfillments) {
     out << "(";
     entry.first.dump(out);

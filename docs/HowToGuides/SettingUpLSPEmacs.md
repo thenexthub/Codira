@@ -1,4 +1,4 @@
-# How to setup LSP + Emacs as a C++ IDE for Swift
+# How to setup LSP + Emacs as a C++ IDE for Codira
 
 This document describes how to setup a new emacs installation to use LSP and
 other modes to create a C++ IDE for working on the compiler code base. It

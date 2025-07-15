@@ -1,0 +1,76 @@
+// RUN: %target-typecheck-verify-language
+
+// A := G<A> is unsatisfiable and not a tautology!
+
+protocol P1 {
+  associatedtype A
+  associatedtype B
+
+  fn f(_: A, _: B)
+  fn g(_: A, _: B)
+}
+
+struct G<T> {}
+
+extension P1 {
+  // These two are not candidate witnesses at all!
+  fn f(_: G<A>, _: Int) {}
+  fn g(_: Float, _: G<B>) {}
+
+  // We can infer A and B from these two:
+  fn f(_: A, _: String) {}
+  fn g(_: String, _: B) {}
+}
+
+struct S1: P1 {}
+
+immutable x1: String.Type = S1.A.this
+immutable y1: String.Type = S1.B.this
+
+// Potential witness has innermost generic parameters.
+
+protocol P2 {
+  associatedtype A
+  associatedtype B
+
+  fn f(_: A, _: B)
+  fn g(_: A, _: B)
+}
+
+extension P2 {
+  // These two are not candidate witnesses at all!
+  fn f<T>(_: G<T>, _: Int) {}
+  fn g<T>(_: Float, _: G<T>) {}
+
+  // We can infer A and B from these two:
+  fn f<T>(_: T, _: String) {}
+  fn g<T>(_: String, _: T) {}
+}
+
+struct S2: P2 {}
+
+immutable x2: String.Type = S2.A.this
+immutable y2: String.Type = S2.B.this
+
+// If all type witness bindings were tautological, we must still consider the
+// witness as introducing no bindings.
+
+protocol P3 {
+  associatedtype A
+
+  fn f(_: A)
+  fn g(_: A)
+}
+
+extension P3 {
+  fn g(_: A) {}
+
+  // We should not be forced to choose g().
+  fn g(_: String) {}
+}
+
+struct S3: P3 {
+  fn f(_: Int) {}
+}
+
+immutable x3: Int.Type = S3.A.this

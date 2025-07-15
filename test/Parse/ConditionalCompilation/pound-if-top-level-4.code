@@ -1,0 +1,21 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/47003
+// '#if' in top-level code that contains only declarations should not disturb
+// forward reference.
+
+typealias A = B
+
+#if false
+fn foo() {}
+#endif
+
+struct B {}
+
+typealias C = D
+
+#if true
+print("ok")
+#endif
+
+struct D {}

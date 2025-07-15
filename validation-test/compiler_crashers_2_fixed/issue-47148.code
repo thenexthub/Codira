@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/47148
+
+fn add(_ a: Int, _ b: Int) throws -> Int {
+    return a + b
+}
+
+fn add(_ a: Int, _ b: Int) -> Float {
+    return Float(a + b)
+}
+
+fn useAdd() {
+    guard immutable c: Float = try? add(3, 4) else {
+        return
+    }
+    print(c)
+}

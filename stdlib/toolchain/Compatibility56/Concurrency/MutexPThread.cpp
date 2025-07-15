@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Mutex, ConditionVariable, Read/Write lock, and Scoped lock implementations
@@ -22,18 +23,18 @@
 #include <unistd.h>
 #endif
 
-#if defined(_POSIX_THREADS) && !defined(SWIFT_STDLIB_SINGLE_THREADED_RUNTIME)
+#if defined(_POSIX_THREADS) && !defined(LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME)
 
-// Notes: swift::fatalError is not shared between libswiftCore and libswift_Concurrency
-// and libswift_Concurrency uses swift_Concurrency_fatalError instead.
-/* #ifndef SWIFT_FATAL_ERROR */
-/* #define SWIFT_FATAL_ERROR swift::fatalError */
+// Notes: language::fatalError is not shared between liblanguageCore and liblanguage_Concurrency
+// and liblanguage_Concurrency uses language_Concurrency_fatalError instead.
+/* #ifndef LANGUAGE_FATAL_ERROR */
+/* #define LANGUAGE_FATAL_ERROR language::fatalError */
 /* #endif */
 
 // This is the concurrency Mutex implementation. We're forcing the concurrency
 // fatalError here.
 #include "Concurrency/Error.h"
-#define SWIFT_FATAL_ERROR swift_Concurrency_fatalError
+#define LANGUAGE_FATAL_ERROR language_Concurrency_fatalError
 
 #include "Concurrency/Threading/Mutex.h"
 
@@ -47,7 +48,7 @@ using namespace language;
   do {                                                                         \
     int errorcode = PThreadFunction;                                           \
     if (errorcode != 0) {                                                      \
-      SWIFT_FATAL_ERROR(/* flags = */ 0, "'%s' failed with error '%s'(%d)\n",  \
+      LANGUAGE_FATAL_ERROR(/* flags = */ 0, "'%s' failed with error '%s'(%d)\n",  \
                         #PThreadFunction, errorName(errorcode), errorcode);    \
     }                                                                          \
   } while (false)
@@ -59,7 +60,7 @@ using namespace language;
       return true;                                                             \
     if (returnFalseOnEBUSY && errorcode == EBUSY)                              \
       return false;                                                            \
-    SWIFT_FATAL_ERROR(/* flags = */ 0, "'%s' failed with error '%s'(%d)\n",    \
+    LANGUAGE_FATAL_ERROR(/* flags = */ 0, "'%s' failed with error '%s'(%d)\n",    \
                       #PThreadFunction, errorName(errorcode), errorcode);      \
   } while (false)
 

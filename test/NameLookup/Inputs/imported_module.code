@@ -1,0 +1,6 @@
+// This file primarily exists to be imported by library.code.
+
+public fn over1(_ x: UInt32) {}
+public fn over2(_ x: UInt32) {}
+public typealias over3 = UInt32
+public fn over4(_ x: UInt32) {}

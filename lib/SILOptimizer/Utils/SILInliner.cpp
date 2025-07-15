@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-inliner"
@@ -27,8 +28,8 @@
 #include "language/SIL/TypeSubstCloner.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -131,6 +132,32 @@ public:
       collectAbortApply(abortApply);
       endBorrowInsertPts.push_back(&*std::next(abortApply->getIterator()));
     }
+
+    // We may have a mark_dependence/mark_dependence_addr on the coroutine's
+    // token. This is needed to represent lifetime dependence on values created
+    // within the coroutine. Delete such mark_dependence instructions since the
+    // dependencies on values created within the coroutine will be exposed after
+    // inlining.
+    if (BeginApply->getCalleeFunction()
+            ->getLoweredFunctionType()
+            ->hasLifetimeDependencies()) {
+      SmallVector<SILInstruction *> toDelete;
+      for (auto *tokenUser : BeginApply->getTokenResult()->getUsers()) {
+        auto mdi = MarkDependenceInstruction(tokenUser);
+        if (!mdi) {
+          continue;
+        }
+        assert(mdi.isNonEscaping());
+        if (auto *valueMDI = dyn_cast<MarkDependenceInst>(*mdi)) {
+          valueMDI->replaceAllUsesWith(valueMDI->getValue());
+        }
+        toDelete.push_back(*mdi);
+      }
+
+      for (auto *inst : toDelete) {
+        inst->eraseFromParent();
+      }
+    }
   }
 
   // Split the basic block before the end/abort_apply. We will insert code
@@ -155,8 +182,8 @@ public:
   /// \return false to use the normal inlining logic
   bool processTerminator(
       TermInst *terminator, SILBasicBlock *returnToBB,
-      llvm::function_ref<SILBasicBlock *(SILBasicBlock *)> remapBlock,
-      llvm::function_ref<SILValue(SILValue)> getMappedValue) {
+      toolchain::function_ref<SILBasicBlock *(SILBasicBlock *)> remapBlock,
+      toolchain::function_ref<SILValue(SILValue)> getMappedValue) {
     // A yield branches to the begin_apply return block passing the yielded
     // results as branch arguments. Collect the yields target block for
     // resuming later. Pass an integer token to the begin_apply return block
@@ -307,7 +334,7 @@ class SILInlineCloner
   /// of SIL-to-SIL transformations).
   SILLocation Loc;
   const SILDebugScope *CallSiteScope = nullptr;
-  llvm::SmallDenseMap<const SILDebugScope *, const SILDebugScope *, 8>
+  toolchain::SmallDenseMap<const SILDebugScope *, const SILDebugScope *, 8>
       InlinedScopeCache;
 
   // Block in the original caller serving as the successor of the inlined
@@ -475,14 +502,14 @@ void SILInlineCloner::cloneInline(ArrayRef<SILValue> AppliedArgs) {
   SmallBitVector inCxxArgs(AppliedArgs.size());
   if (!Apply->getFunction()->hasOwnership()) {
 
-    for (auto p : llvm::enumerate(AppliedArgs)) {
+    for (auto p : toolchain::enumerate(AppliedArgs)) {
       SILValue callArg = p.value();
       entryArgs.push_back(callArg);
     }
   } else {
-    for (auto p : llvm::enumerate(AppliedArgs)) {
+    for (auto p : toolchain::enumerate(AppliedArgs)) {
       SILValue callArg = p.value();
-      SWIFT_DEFER { entryArgs.push_back(callArg); };
+      LANGUAGE_DEFER { entryArgs.push_back(callArg); };
       unsigned idx = p.index();
       if (idx >= calleeConv.getSILArgIndexOfFirstParam()) {
         auto paramInfo = calleeConv.getParamInfoForSILArg(idx);
@@ -501,6 +528,9 @@ void SILInlineCloner::cloneInline(ArrayRef<SILValue> AppliedArgs) {
           auto enableLexicalLifetimes =
               module.getASTContext().SILOpts.supportsLexicalLifetimes(module);
           if (!enableLexicalLifetimes)
+            continue;
+
+          if (!Original.isDeinitBarrier())
             continue;
 
           // Exclusive mutating accesses don't entail a lexical scope.
@@ -856,7 +886,7 @@ static void diagnose(ASTContext &Context, SourceLoc loc, Diag<T...> diag,
 static InlineCost getEnforcementCost(SILAccessEnforcement enforcement) {
   switch (enforcement) {
   case SILAccessEnforcement::Unknown:
-    llvm_unreachable("evaluating cost of access with unknown enforcement?");
+    toolchain_unreachable("evaluating cost of access with unknown enforcement?");
   case SILAccessEnforcement::Dynamic:
     return InlineCost::Expensive;
   case SILAccessEnforcement::Static:
@@ -864,12 +894,12 @@ static InlineCost getEnforcementCost(SILAccessEnforcement enforcement) {
   case SILAccessEnforcement::Signed:
     return InlineCost::Free;
   }
-  llvm_unreachable("bad enforcement");
+  toolchain_unreachable("bad enforcement");
 }
 
 /// For now just assume that every SIL instruction is one to one with an LLVM
 /// instruction. This is of course very much so not true.
-InlineCost swift::instructionInlineCost(SILInstruction &I) {
+InlineCost language::instructionInlineCost(SILInstruction &I) {
   switch (I.getKind()) {
   case SILInstructionKind::IntegerLiteralInst:
   case SILInstructionKind::FloatLiteralInst:
@@ -987,7 +1017,7 @@ InlineCost swift::instructionInlineCost(SILInstruction &I) {
     return getEnforcementCost(cast<EndUnpairedAccessInst>(I)
                                 .getEnforcement());
 
-  // TODO: These are free if the metatype is for a Swift class.
+  // TODO: These are free if the metatype is for a Codira class.
   case SILInstructionKind::ThickToObjCMetatypeInst:
   case SILInstructionKind::ObjCToThickMetatypeInst:
     return InlineCost::Expensive;
@@ -1026,6 +1056,7 @@ InlineCost swift::instructionInlineCost(SILInstruction &I) {
   case SILInstructionKind::UnwindInst:
   case SILInstructionKind::YieldInst:
   case SILInstructionKind::EndCOWMutationInst:
+  case SILInstructionKind::EndCOWMutationAddrInst:
     return InlineCost::Free;
 
   // Turning the task reference into a continuation should be basically free.
@@ -1095,6 +1126,7 @@ InlineCost swift::instructionInlineCost(SILInstruction &I) {
   case SILInstructionKind::DynamicMethodBranchInst:
   case SILInstructionKind::EnumInst:
   case SILInstructionKind::IndexAddrInst:
+  case SILInstructionKind::VectorBaseAddrInst:
   case SILInstructionKind::TailAddrInst:
   case SILInstructionKind::IndexRawPointerInst:
   case SILInstructionKind::InitEnumDataAddrInst:
@@ -1178,7 +1210,7 @@ InlineCost swift::instructionInlineCost(SILInstruction &I) {
   case SILInstructionKind::BuiltinInst: {
     auto *BI = cast<BuiltinInst>(&I);
     // Expect intrinsics are 'free' instructions.
-    if (BI->getIntrinsicInfo().ID == llvm::Intrinsic::expect)
+    if (BI->getIntrinsicInfo().ID == toolchain::Intrinsic::expect)
       return InlineCost::Free;
     if (BI->getBuiltinInfo().ID == BuiltinValueKind::OnFastPath)
       return InlineCost::Free;
@@ -1187,11 +1219,11 @@ InlineCost swift::instructionInlineCost(SILInstruction &I) {
   }
   case SILInstructionKind::MarkFunctionEscapeInst:
   case SILInstructionKind::MarkUninitializedInst:
-    llvm_unreachable("not valid in canonical sil");
+    toolchain_unreachable("not valid in canonical sil");
   case SILInstructionKind::ObjectInst:
   case SILInstructionKind::VectorInst:
-    llvm_unreachable("not valid in a function");
+    toolchain_unreachable("not valid in a function");
   }
 
-  llvm_unreachable("Unhandled ValueKind in switch.");
+  toolchain_unreachable("Unhandled ValueKind in switch.");
 }

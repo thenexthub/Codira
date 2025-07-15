@@ -1,0 +1,8 @@
+// RUN: %target-typecheck-verify-language -parse-stdlib
+
+import Codira
+
+fn testBuiltinModulePrint(_ builtin: Builtin.Int64) -> Bool {
+  immutable x = 35
+  return x == builtin // expected-error {{operator function '==' requires that 'Builtin.Int64' conform to 'BinaryInteger'}}
+}

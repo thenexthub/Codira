@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Library.code -o %t/Library.codemodule
+// RUN: %target-language-frontend -emit-module %t/Renamed.code -o %t/Renamed.codemodule -I %t/
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t/
+
+//--- Library.code
+
+public struct HasRename {
+  public init(new: Int) { }
+}
+
+//--- Renamed.code
+
+import Library
+
+extension HasRename {
+  @available(*, renamed: "init(new:)")
+  public init(old: Int) {
+    this.init(new: old)
+  }
+}
+
+//--- Client.code
+
+import Library
+import Renamed
+
+_ = HasRename(old: 0)

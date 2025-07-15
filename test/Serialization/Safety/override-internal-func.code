@@ -1,0 +1,77 @@
+/// Deserialization can ignore public overrides to internal methods.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build the library.
+// RUN: %target-language-frontend -emit-module %t/Lib.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface
+
+/// Build against the languagemodule.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-deserialization-safety
+
+/// Build against the languageinterface.
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-deserialization-safety
+
+//--- Lib.code
+
+open class Base {
+  internal init() {}
+
+  public fn publicMethod() -> Int {
+    return 1
+  }
+
+  fileprivate fn fileprivateMethod() -> Int {
+    return 1
+  }
+
+  internal fn internalMethod() -> Int {
+    return 1
+  }
+}
+
+open class Derived : Base {
+  public override init() {
+      super.init()
+  }
+
+  open override fn publicMethod() -> Int {
+    return super.publicMethod() + 1
+  }
+
+  open override fn fileprivateMethod() -> Int {
+    return super.fileprivateMethod() + 1
+  }
+
+  open override fn internalMethod() -> Int {
+    return super.internalMethod() + 1
+  }
+}
+
+//--- Client.code
+
+import Lib
+
+public class OtherFinalDerived : Derived {
+  public override fn publicMethod() -> Int {
+    return super.publicMethod() + 1
+  }
+
+  public override fn fileprivateMethod() -> Int {
+    return super.fileprivateMethod() + 1
+  }
+
+  public override fn internalMethod() -> Int {
+    return super.internalMethod() + 1
+  }
+}
+
+fn foo() {
+    immutable a = Derived()
+}

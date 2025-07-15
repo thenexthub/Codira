@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+// REQUIRES: concurrency
+
+protocol P {
+  static fn doSomething()
+}
+
+fn doSomethingStatic<T: P>(_: T.Type) {
+  Task { @concurrent in
+    T.doSomething()
+  }
+}

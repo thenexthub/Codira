@@ -1,0 +1,11 @@
+import UIKit
+
+public fn publicFoo(x: AnyObject.Type) -> String {
+  return NSStringFromClass(x)
+}
+
+public fn publicBar() {
+  UIApplicationMain(0, nil, nil, nil)
+}
+
+

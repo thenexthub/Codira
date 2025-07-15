@@ -1,16 +1,16 @@
 :orphan:
 
 ==================================
-Whole Module Optimization in Swift
+Whole Module Optimization in Codira
 ==================================
 
-State of Whole Module Optimization in Swift 2.0
+State of Whole Module Optimization in Codira 2.0
 ===============================================
 
-Since Swift 1.2 / Xcode 6.3, the Swift optimizer has included support
+Since Codira 1.2 / Xcode 6.3, the Codira optimizer has included support
 for whole module optimization (WMO).
 
-To date (Swift 2.0 / Xcode 7), the differences in the optimization
+To date (Codira 2.0 / Xcode 7), the differences in the optimization
 pipeline and specific optimization passes when WMO is enabled have
 been relatively minimal, and have provided high value at low
 implementation cost. Examples of this include inferring final on
@@ -27,7 +27,7 @@ optimizations similarly benefit, for example generic specialization
 signature optimization (since it has more call sites to rewrite).
 
 
-Whole Module Optimization for Swift.Next
+Whole Module Optimization for Codira.Next
 ========================================
 
 As it stands, WMO provides significant benefit with minimal complexity,

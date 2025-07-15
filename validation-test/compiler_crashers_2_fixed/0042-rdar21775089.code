@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+struct MySlice<Base : MyIndexableType> : MyCollectionType {}
+struct MyMutableSlice<Base : MyMutableCollectionType> : MyMutableCollectionType {}
+
+protocol MySequenceType {}
+protocol MyIndexableType {}
+
+protocol MyCollectionType : MySequenceType, MyIndexableType {
+  associatedtype SubSequence = MySlice<Self>
+  fn makeSubSequence() -> SubSequence
+}
+extension MyCollectionType {
+  fn makeSubSequence() -> MySlice<Self> {
+    typealias S = Self
+    return MySlice<S>()
+  }
+}
+
+protocol MyMutableCollectionType : MyCollectionType {
+  associatedtype SubSequence = MyMutableSlice<Self>
+}
+extension MyMutableCollectionType {
+  fn makeSubSequence() -> MyMutableSlice<Self> {
+    typealias S = Self
+    return MyMutableSlice<S>()
+  }
+}
+

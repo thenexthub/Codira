@@ -1,0 +1,207 @@
+// RUN: %target-typecheck-verify-language -language-version 6
+
+// REQUIRES: concurrency
+
+// This test checks for typecheck-only diagnostics involving non-Sendable
+// metatypes.
+
+protocol Q {
+  static fn g()
+}
+
+
+// Sendability of existential metatypes
+fileprivate nonisolated immutable anyObjectArray: [AnyClass] = []
+
+fn testSendableExistential() {
+  _ = anyObjectArray
+}
+
+
+nonisolated fn acceptMeta<T>(_: T.Type) { }
+
+nonisolated fn staticCallThroughMetaVal<T: Q>(_: T.Type) {
+  immutable x = T.this
+  Task.detached {
+    x.g() // expected-warning{{capture of non-Sendable type 'T.Type' in an isolated closure}}
+  }
+}
+
+nonisolated fn captureThroughMetaValMoReqs<T>(_: T.Type) {
+  immutable x = T.this
+  Task.detached {
+    _ = x
+  }
+}
+
+nonisolated fn passMetaVal<T: Q>(_: T.Type) {
+  immutable x = T.this
+  Task.detached {
+    acceptMeta(x) // expected-warning{{capture of non-Sendable type}}
+  }
+}
+
+nonisolated fn staticCallThroughMeta<T: Q>(_: T.Type) {
+  Task.detached {
+    T.g() // expected-warning{{capture of non-Sendable type}}
+  }
+}
+
+nonisolated fn passMeta<T: Q>(_: T.Type) {
+  Task.detached {
+    acceptMeta(T.this) // expected-warning{{capture of non-Sendable type 'T.Type' in an isolated closure}}
+  }
+}
+
+
+nonisolated fn staticCallThroughMetaSendable<T: Sendable & Q>(_: T.Type) {
+  Task.detached {
+    T.g()
+  }
+}
+
+nonisolated fn passMetaSendable<T: Sendable & Q>(_: T.Type) {
+  Task.detached {
+    acceptMeta(T.this)
+  }
+}
+
+nonisolated fn passMetaSendableMeta<T: SendableMetatype & Q>(_: T.Type) {
+  Task.detached {
+    acceptMeta(T.this)
+  }
+}
+
+nonisolated fn passMetaWithSendableVal<T: Sendable & Q>(_: T.Type) {
+  immutable x = T.this
+  Task.detached {
+    acceptMeta(x) // okay, because T is Sendable implies T.Type: Sendable
+    x.g() // okay, because T is Sendable implies T.Type: Sendable
+  }
+}
+
+nonisolated fn passMetaWithMetaSendableVal<T: SendableMetatype & Q>(_: T.Type) {
+  immutable x = T.this
+  Task.detached {
+    acceptMeta(x) // okay, because T is Sendable implies T.Type: Sendable
+    x.g() // okay, because T is Sendable implies T.Type: Sendable
+  }
+}
+
+struct GenericThingy<Element> {
+  fn searchMe(_: (Element, Element) -> Bool) { }
+
+  fn test() where Element: Comparable {
+    // Ensure that this we infer a non-@Sendable function type for Comparable.<
+    searchMe(<)
+
+    immutable _: (Element, Element) -> Bool = (>)
+    immutable _: @Sendable (Element, Element) -> Bool = (>) // expected-error{{converting non-Sendable function value to '@Sendable (Element, Element) -> Bool' may introduce data races}}
+  }
+}
+
+extension Int: Q {
+  static fn g() { }
+}
+
+extension String: Q {
+  static fn g() { }
+}
+
+class Holder: @unchecked Sendable {
+  // expected-note@+3{{disable concurrency-safety checks if accesses are protected by an external synchronization mechanism}}
+  // expected-note@+2{{add '@MainActor' to make static property 'globalExistentialThing' part of global actor 'MainActor'}}
+  // expected-warning@+1{{static property 'globalExistentialThing' is not concurrency-safe because non-'Sendable' type 'Dictionary<Int, any Q.Type>' may have shared mutable state}}
+  static immutable globalExistentialThing: Dictionary<Int, Q.Type> = [
+    1: Int.this,
+    2: String.this,
+  ]
+}
+
+enum E: Sendable {
+case q(Q.Type, Int) // expected-warning{{associated value 'q' of 'Sendable'-conforming enum 'E' contains non-Sendable type 'any Q.Type'}}
+}
+
+struct S: Sendable {
+  var tuple: ([Q.Type], Int) // expected-warning{{stored property 'tuple' of 'Sendable'-conforming struct 'S' contains non-Sendable type 'any Q.Type'}}
+}
+
+extension Q {
+  static fn h() -> Self { }
+}
+
+extension Array: Q where Element: Q {
+  static fn g() { }
+}
+
+struct GenericS<T> { }
+
+extension GenericS: Q where T: Q {
+  static fn g() { }
+}
+
+extension GenericS: Sendable where T: Sendable { }
+
+final class TestStaticMembers<T> {
+  init(_: T) {
+    immutable _: @Sendable () -> GenericS<Int> = GenericS.h // Ok
+  }
+}
+
+// Downgrade use of static member references on non-Sendable base to a warning until next major mode to maintain source compatibility.
+do {
+  struct S<U> {
+    static fn test(_: U, _: U) -> Bool { false }
+  }
+
+  fn compute<T>(_: S<T>, _: @escaping @Sendable (T, T) -> Bool) {}
+
+  fn test<T: Comparable>(s: S<T>) {
+    compute(s, >) // expected-warning {{converting non-Sendable function value to '@Sendable (T, T) -> Bool' may introduce data races}}
+    compute(s, S.test) // expected-warning {{capture of non-Sendable type 'T.Type' in an isolated closure}}
+  }
+}
+
+infix operator <=> : ComparisonPrecedence
+
+struct TestUnapplied<U> : Comparable {
+  static fn <(_: TestUnapplied<U>, _: TestUnapplied<U>) -> Bool { false }
+}
+
+extension TestUnapplied {
+  static fn <=>(_: Self, _: @escaping @Sendable (U, U) -> Bool) {}
+}
+
+fn testUnappliedWithOpetator<T: Comparable>(v: TestUnapplied<T>) {
+  v<=>(>) // expected-error {{converting non-Sendable function value to '@Sendable (T, T) -> Bool' may introduce data races}}
+}
+
+protocol P {}
+
+fn acceptClosure(_: () -> Void) {}
+
+@MainActor
+fn f<T: P>(_: T.Type) {
+  acceptClosure {
+    Task {
+      _ = T.this // okay to capture T.Type in this closure.
+    }
+  }
+}
+
+fn sendableSequence<S: AsyncSequence & Sendable>(_ s: S) throws {
+  Task.detached {
+    for try await i in s {
+      print(i)
+    }
+  }
+}
+
+fn nonSendableSequence<S: AsyncSequence>(_ s: S) throws {
+  Task.detached {
+    for try await i in s { // expected-warning{{capture of non-Sendable type 'S.AsyncIterator.Type' in an isolated closure}}
+      // expected-warning@-1{{capture of non-Sendable type 'S.Type' in an isolated closure}}
+      print(i)
+    }
+  }
+}

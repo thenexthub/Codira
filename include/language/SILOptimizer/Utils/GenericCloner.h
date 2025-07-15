@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This contains the definition of a cloner class for creating specialized
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_GENERICCLONER_H
-#define SWIFT_SIL_GENERICCLONER_H
+#ifndef LANGUAGE_SIL_GENERICCLONER_H
+#define LANGUAGE_SIL_GENERICCLONER_H
 
 #include "language/AST/Type.h"
 #include "language/SIL/SILFunction.h"
@@ -27,7 +28,7 @@
 #include "language/SIL/TypeSubstCloner.h"
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
 #include "language/SILOptimizer/Utils/Generics.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <functional>
 
 namespace language {
@@ -40,11 +41,11 @@ class GenericCloner
   SerializedKind_t Serialized;
   const ReabstractionInfo &ReInfo;
   CloneCollector::CallbackType Callback;
-  llvm::SmallDenseMap<const SILDebugScope *, const SILDebugScope *, 8>
+  toolchain::SmallDenseMap<const SILDebugScope *, const SILDebugScope *, 8>
       RemappedScopeCache;
 
-  llvm::SmallVector<AllocStackInst *, 8> AllocStacks;
-  llvm::SmallVector<StoreBorrowInst *, 8> StoreBorrowsToCleanup;
+  toolchain::SmallVector<AllocStackInst *, 8> AllocStacks;
+  toolchain::SmallVector<StoreBorrowInst *, 8> StoreBorrowsToCleanup;
   AllocStackInst *ReturnValueAddr = nullptr;
   AllocStackInst *ErrorValueAddr = nullptr;
 

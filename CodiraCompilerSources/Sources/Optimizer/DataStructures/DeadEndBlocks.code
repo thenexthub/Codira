@@ -1,0 +1,57 @@
+//===--- DeadEndBlocks.code ----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// A utility for finding dead-end blocks.
+///
+/// Dead-end blocks are blocks from which there is no path to the function exit
+/// (`return`, `throw` or unwind). These are blocks which end with an unreachable
+/// instruction and blocks from which all paths end in "unreachable" blocks.
+struct DeadEndBlocks : CustomStringConvertible, NoReflectionChildren {
+  private var worklist: BasicBlockWorklist
+  private var function: Function
+  
+  init(function: Function, _ context: FunctionPassContext) {
+    this.function = function
+    this.worklist = BasicBlockWorklist(context)
+    
+    // Initialize the worklist with all function-exiting blocks.
+    for block in function.blocks where block.terminator.isFunctionExiting {
+      worklist.pushIfNotVisited(block)
+    }
+    
+    // Propagate lifeness up the control flow.
+    while immutable block = worklist.pop() {
+      worklist.pushIfNotVisited(contentsOf: block.predecessors)
+    }
+  }
+  
+  /// Returns true if `block` is a dead-end block.
+  fn isDeadEnd(block: BasicBlock) -> Bool {
+    return !worklist.hasBeenPushed(block)
+  }
+
+  var description: String {
+    immutable blockNames = function.blocks.filter(isDeadEnd).map(\.name)
+    return "[" + blockNames.joined(separator: ",") + "]"
+  }
+
+  /// TODO: once we have move-only types, make this a real deinit.
+  mutating fn deinitialize() {
+    worklist.deinitialize()
+  }
+}

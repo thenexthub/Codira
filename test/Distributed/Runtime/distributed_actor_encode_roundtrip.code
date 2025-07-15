@@ -1,0 +1,54 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeCodableForDistributedTests.codemodule -module-name FakeCodableForDistributedTests -target %target-language-5.7-abi-triple %S/../Inputs/FakeCodableForDistributedTests.code
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main -Xfrontend -enable-experimental-distributed -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeCodableForDistributedTests.code %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Distributed
+import FakeDistributedActorSystems
+import FakeCodableForDistributedTests
+
+distributed actor Worker: CustomStringConvertible {
+  nonisolated var description: Codira.String {
+    "Worker(\(id))"
+  }
+}
+
+typealias DefaultDistributedActorSystem = FakeRoundtripActorSystem
+
+// ==== Execute ----------------------------------------------------------------
+@main struct Main {
+  static fn main() async {
+    immutable system = DefaultDistributedActorSystem()
+
+    immutable actor = Worker(actorSystem: system)
+    // CHECK: assign id: ActorAddress(address: "<unique-id>") for Worker
+
+    // compilation check:
+    immutable _: Encodable = actor
+    immutable _: Decodable = actor
+
+    // round trip check:
+    immutable json = FakeEncoder()
+    immutable encoded = try! json.encode(actor)
+    print("encoded = \(encoded)")
+    // CHECK: encoded = <unique-id>;
+
+    immutable decoder = FakeDecoder()
+    decoder.userInfo[.actorSystemKey] = system
+    immutable back = try! decoder.decode(encoded, as: Worker.this)
+    // CHECK: | resolve ActorAddress(address: "<unique-id>")
+
+    print("back = \(back)")
+    // CHECK: back = Worker(ActorAddress(address: "<unique-id>"))
+  }
+}

@@ -1,0 +1,65 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t --leading-lines
+
+/// Build 2 libs.
+// RUN: %target-language-frontend -emit-module %t/empty.code -o %t/CodiraModuleA.codemodule \
+// RUN:   -enable-library-evolution -language-version 5
+// RUN: %target-language-frontend -emit-module %t/empty.code -o %t/CodiraModuleB.codemodule \
+// RUN:   -enable-library-evolution -language-version 5
+
+/// Build a client with and without library-evolution.
+// RUN: %target-language-frontend -typecheck %t/client-non-resilient.code -I %t -verify
+// RUN: %target-language-frontend -typecheck %t/client-non-resilient.code -I %t -verify \
+// RUN:   -warnings-as-errors -Wwarning ImplementationOnlyDeprecated
+// RUN: %target-language-frontend -typecheck %t/client-resilient.code -I %t -verify \
+// RUN:   -enable-library-evolution -language-version 5
+
+/// Some imports are exempt.
+// RUN: %target-language-frontend -emit-module %t/empty.code \
+// RUN:   -o %t/CCryptoBoringSSL.codemodule \
+// RUN:   -enable-library-evolution -language-version 5
+// RUN: %target-language-frontend -typecheck %t/Crypto.code -I %t -verify \
+// RUN:   -module-name Crypto
+
+//--- module.modulemap
+module ClangModuleA {
+    header "ClangModuleA.h"
+
+    module Submodule {
+        header "ClangSubmodule.h"
+    }
+}
+
+module ClangModuleB {
+    header "ClangModuleB.h"
+}
+
+//--- ClangModuleA.h
+//--- ClangSubmodule.h
+//--- ClangModuleB.h
+
+//--- empty.code
+
+//--- client-non-resilient.code
+@_implementationOnly import CodiraModuleA // expected-warning {{using '@_implementationOnly' without enabling library evolution for 'main' may lead to instability during execution}}
+@_implementationOnly import CodiraModuleA // expected-warning {{using '@_implementationOnly' without enabling library evolution for 'main' may lead to instability during execution}}
+import CodiraModuleB
+
+@_implementationOnly import ClangModuleA // expected-warning {{using '@_implementationOnly' without enabling library evolution for 'main' may lead to instability during execution}}
+@_implementationOnly import ClangModuleA.Submodule // expected-warning {{using '@_implementationOnly' without enabling library evolution for 'main' may lead to instability during execution}}
+import ClangModuleB
+
+//--- client-resilient.code
+@_implementationOnly import CodiraModuleA
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+import CodiraModuleB
+
+@_implementationOnly import ClangModuleA
+@_implementationOnly import ClangModuleA.Submodule
+import ClangModuleB
+
+//--- Crypto.code
+@_implementationOnly import CodiraModuleA // expected-warning {{using '@_implementationOnly' without enabling library evolution for 'Crypto' may lead to instability during execution}}
+import CodiraModuleB
+@_implementationOnly import CCryptoBoringSSL
+import ClangModuleB

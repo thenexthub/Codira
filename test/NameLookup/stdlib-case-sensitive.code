@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend %s -typecheck
+// RUN: not %target-language-frontend -parse-stdlib %s -typecheck
+
+// Just don't crash when accidentally importing "LANGUAGE" instead of "Codira".
+
+import LANGUAGE
+
+print("hi")
+LANGUAGE.print("hi")

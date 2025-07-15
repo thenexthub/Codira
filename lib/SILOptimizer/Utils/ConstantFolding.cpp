@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/ConstantFolding.h"
@@ -25,20 +26,20 @@
 #include "language/SILOptimizer/Utils/CastOptimizer.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/IR/Intrinsics.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/APFloat.h"
+#include "toolchain/ADT/APSInt.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/IR/Intrinsics.h"
+#include "toolchain/Support/Debug.h"
 
 #define DEBUG_TYPE "sil-constant-folding"
 
 using namespace language;
 
-APInt swift::constantFoldBitOperation(APInt lhs, APInt rhs, BuiltinValueKind ID) {
+APInt language::constantFoldBitOperation(APInt lhs, APInt rhs, BuiltinValueKind ID) {
   switch (ID) {
-    default: llvm_unreachable("Not all cases are covered!");
+    default: toolchain_unreachable("Not all cases are covered!");
     case BuiltinValueKind::And:
       return lhs & rhs;
     case BuiltinValueKind::AShr:
@@ -54,13 +55,13 @@ APInt swift::constantFoldBitOperation(APInt lhs, APInt rhs, BuiltinValueKind ID)
   }
 }
 
-APInt swift::constantFoldComparisonFloat(APFloat lhs, APFloat rhs,
+APInt language::constantFoldComparisonFloat(APFloat lhs, APFloat rhs,
                                          BuiltinValueKind ID) {
   bool result;
   bool isOrdered = !lhs.isNaN() && !rhs.isNaN();
 
   switch (ID) {
-  default: llvm_unreachable("Invalid float compare kind");
+  default: toolchain_unreachable("Invalid float compare kind");
   // Ordered comparisons
   case BuiltinValueKind::FCMP_OEQ: result = isOrdered && lhs == rhs; break;
   case BuiltinValueKind::FCMP_OGT: result = isOrdered && lhs > rhs; break;
@@ -83,11 +84,11 @@ APInt swift::constantFoldComparisonFloat(APFloat lhs, APFloat rhs,
   return APInt(1, result);
 }
 
-APInt swift::constantFoldComparisonInt(APInt lhs, APInt rhs,
+APInt language::constantFoldComparisonInt(APInt lhs, APInt rhs,
                                        BuiltinValueKind ID) {
   bool result;
   switch (ID) {
-    default: llvm_unreachable("Invalid integer compare kind");
+    default: toolchain_unreachable("Invalid integer compare kind");
     case BuiltinValueKind::ICMP_EQ:  result = lhs == rhs; break;
     case BuiltinValueKind::ICMP_NE:  result = lhs != rhs; break;
     case BuiltinValueKind::ICMP_SLT: result = lhs.slt(rhs); break;
@@ -102,31 +103,31 @@ APInt swift::constantFoldComparisonInt(APInt lhs, APInt rhs,
   return APInt(1, result);
 }
 
-APInt swift::constantFoldBinaryWithOverflow(APInt lhs, APInt rhs,
+APInt language::constantFoldBinaryWithOverflow(APInt lhs, APInt rhs,
                                             bool &Overflow,
-                                            llvm::Intrinsic::ID ID) {
+                                            toolchain::Intrinsic::ID ID) {
   switch (ID) {
-    default: llvm_unreachable("Invalid case");
-    case llvm::Intrinsic::sadd_with_overflow:
+    default: toolchain_unreachable("Invalid case");
+    case toolchain::Intrinsic::sadd_with_overflow:
       return lhs.sadd_ov(rhs, Overflow);
-    case llvm::Intrinsic::uadd_with_overflow:
+    case toolchain::Intrinsic::uadd_with_overflow:
       return lhs.uadd_ov(rhs, Overflow);
-    case llvm::Intrinsic::ssub_with_overflow:
+    case toolchain::Intrinsic::ssub_with_overflow:
       return lhs.ssub_ov(rhs, Overflow);
-    case llvm::Intrinsic::usub_with_overflow:
+    case toolchain::Intrinsic::usub_with_overflow:
       return lhs.usub_ov(rhs, Overflow);
-    case llvm::Intrinsic::smul_with_overflow:
+    case toolchain::Intrinsic::smul_with_overflow:
       return lhs.smul_ov(rhs, Overflow);
-    case llvm::Intrinsic::umul_with_overflow:
+    case toolchain::Intrinsic::umul_with_overflow:
       return lhs.umul_ov(rhs, Overflow);
   }
 }
 
-APInt swift::constantFoldDiv(APInt lhs, APInt rhs, bool &Overflow,
+APInt language::constantFoldDiv(APInt lhs, APInt rhs, bool &Overflow,
                              BuiltinValueKind ID) {
   assert(rhs != 0 && "division by zero");
   switch (ID) {
-    default : llvm_unreachable("Invalid case");
+    default : toolchain_unreachable("Invalid case");
     case BuiltinValueKind::SDiv:
       return lhs.sdiv_ov(rhs, Overflow);
     case BuiltinValueKind::SRem: {
@@ -144,7 +145,7 @@ APInt swift::constantFoldDiv(APInt lhs, APInt rhs, bool &Overflow,
   }
 }
 
-APInt swift::constantFoldCast(APInt val, const BuiltinInfo &BI) {
+APInt language::constantFoldCast(APInt val, const BuiltinInfo &BI) {
   // Get the cast result.
   Type SrcTy = BI.Types[0];
   Type DestTy = BI.Types.size() == 2 ? BI.Types[1] : Type();
@@ -157,7 +158,7 @@ APInt swift::constantFoldCast(APInt val, const BuiltinInfo &BI) {
   if (SrcBitWidth == DestBitWidth) {
     return val;
   } else switch (BI.ID) {
-    default : llvm_unreachable("Invalid case.");
+    default : toolchain_unreachable("Invalid case.");
     case BuiltinValueKind::Trunc:
     case BuiltinValueKind::TruncOrBitCast:
       return val.trunc(DestBitWidth);
@@ -205,7 +206,7 @@ static SILValue constructResultWithOverflowTuple(BuiltinInst *BI,
 
 /// Fold arithmetic intrinsics with overflow.
 static SILValue
-constantFoldBinaryWithOverflow(BuiltinInst *BI, llvm::Intrinsic::ID ID,
+constantFoldBinaryWithOverflow(BuiltinInst *BI, toolchain::Intrinsic::ID ID,
                                bool ReportOverflow,
                                std::optional<bool> &ResultsInError) {
   OperandValueArrayRef Args = BI->getArguments();
@@ -259,24 +260,24 @@ constantFoldBinaryWithOverflow(BuiltinInst *BI, llvm::Intrinsic::ID ID,
     StringRef Operator = "+";
 
     switch (ID) {
-      default: llvm_unreachable("Invalid case");
-      case llvm::Intrinsic::sadd_with_overflow:
+      default: toolchain_unreachable("Invalid case");
+      case toolchain::Intrinsic::sadd_with_overflow:
         Signed = true;
         break;
-      case llvm::Intrinsic::uadd_with_overflow:
+      case toolchain::Intrinsic::uadd_with_overflow:
         break;
-      case llvm::Intrinsic::ssub_with_overflow:
+      case toolchain::Intrinsic::ssub_with_overflow:
         Operator = "-";
         Signed = true;
         break;
-      case llvm::Intrinsic::usub_with_overflow:
+      case toolchain::Intrinsic::usub_with_overflow:
         Operator = "-";
         break;
-      case llvm::Intrinsic::smul_with_overflow:
+      case toolchain::Intrinsic::smul_with_overflow:
         Operator = "*";
         Signed = true;
         break;
-      case llvm::Intrinsic::umul_with_overflow:
+      case toolchain::Intrinsic::umul_with_overflow:
         Operator = "*";
         break;
     }
@@ -324,8 +325,8 @@ constantFoldBinaryWithOverflow(BuiltinInst *BI, BuiltinValueKind ID,
 static SILValue
 constantFoldCountLeadingOrTrialingZeroIntrinsic(BuiltinInst *bi,
                                                 bool countLeadingZeros) {
-  assert((bi->getIntrinsicID() == (llvm::Intrinsic::ID)llvm::Intrinsic::ctlz ||
-          bi->getIntrinsicID() == (llvm::Intrinsic::ID)llvm::Intrinsic::cttz) &&
+  assert((bi->getIntrinsicID() == (toolchain::Intrinsic::ID)toolchain::Intrinsic::ctlz ||
+          bi->getIntrinsicID() == (toolchain::Intrinsic::ID)toolchain::Intrinsic::cttz) &&
          "Invalid Intrinsic - expected Ctlz/Cllz");
   OperandValueArrayRef args = bi->getArguments();
 
@@ -350,11 +351,11 @@ constantFoldCountLeadingOrTrialingZeroIntrinsic(BuiltinInst *bi,
   return builder.createIntegerLiteral(bi->getLoc(), lhs->getType(), lzAsAPInt);
 }
 
-static SILValue constantFoldIntrinsic(BuiltinInst *BI, llvm::Intrinsic::ID ID,
+static SILValue constantFoldIntrinsic(BuiltinInst *BI, toolchain::Intrinsic::ID ID,
                                       std::optional<bool> &ResultsInError) {
   switch (ID) {
   default: break;
-  case llvm::Intrinsic::expect: {
+  case toolchain::Intrinsic::expect: {
     // An expect of an integral constant is the constant itself.
     assert(BI->getArguments().size() == 2 && "Expect should have 2 args.");
     auto *Op1 = dyn_cast<IntegerLiteralInst>(BI->getArguments()[0]);
@@ -363,25 +364,25 @@ static SILValue constantFoldIntrinsic(BuiltinInst *BI, llvm::Intrinsic::ID ID,
     return Op1;
   }
 
-  case llvm::Intrinsic::ctlz: {
+  case toolchain::Intrinsic::ctlz: {
     return constantFoldCountLeadingOrTrialingZeroIntrinsic(
         BI, true /*countLeadingZeros*/);
   }
-  case llvm::Intrinsic::cttz: {
+  case toolchain::Intrinsic::cttz: {
     return constantFoldCountLeadingOrTrialingZeroIntrinsic(
         BI, false /*countLeadingZeros*/);
   }
 
-  case llvm::Intrinsic::sadd_with_overflow:
-  case llvm::Intrinsic::uadd_with_overflow:
-  case llvm::Intrinsic::ssub_with_overflow:
-  case llvm::Intrinsic::usub_with_overflow:
-  case llvm::Intrinsic::smul_with_overflow:
-  case llvm::Intrinsic::umul_with_overflow:
+  case toolchain::Intrinsic::sadd_with_overflow:
+  case toolchain::Intrinsic::uadd_with_overflow:
+  case toolchain::Intrinsic::ssub_with_overflow:
+  case toolchain::Intrinsic::usub_with_overflow:
+  case toolchain::Intrinsic::smul_with_overflow:
+  case toolchain::Intrinsic::umul_with_overflow:
     return constantFoldBinaryWithOverflow(BI, ID,
                                           /* ReportOverflow */ false,
                                           ResultsInError);
-  case llvm::Intrinsic::rint:
+  case toolchain::Intrinsic::rint:
     if (auto *floatLiteral = dyn_cast<FloatLiteralInst>(BI->getArguments()[0])) {
       SILBuilderWithScope builder(BI);
       APFloat result = floatLiteral->getValue();
@@ -633,9 +634,9 @@ constantFoldAndCheckDivision(BuiltinInst *BI, BuiltinValueKind ID,
     // nullptr.
     diagnose(M.getASTContext(), BI->getLoc().getSourceLoc(),
              diag::division_overflow,
-             llvm::toString(NumVal, /*Radix*/ 10, /*Signed*/ true),
+             toolchain::toString(NumVal, /*Radix*/ 10, /*Signed*/ true),
              IsRem ? "%" : "/",
-             llvm::toString(DenomVal, /*Radix*/ 10, /*Signed*/ true));
+             toolchain::toString(DenomVal, /*Radix*/ 10, /*Signed*/ true));
     ResultsInError = std::optional<bool>(true);
     return nullptr;
   }
@@ -699,7 +700,7 @@ static SILValue constantFoldBinary(BuiltinInst *BI, BuiltinValueKind ID,
     APInt RHSI = RHS->getValue();
 
     switch (ID) {
-    default: llvm_unreachable("Not all cases are covered!");
+    default: toolchain_unreachable("Not all cases are covered!");
     case BuiltinValueKind::Add:
       LHSI += RHSI;
       break;
@@ -760,7 +761,7 @@ static SILValue constantFoldBinary(BuiltinInst *BI, BuiltinValueKind ID,
     APFloat LHSF = LHS->getValue();
     APFloat RHSF = RHS->getValue();
     switch (ID) {
-    default: llvm_unreachable("Not all cases are covered!");
+    default: toolchain_unreachable("Not all cases are covered!");
     case BuiltinValueKind::FAdd:
       LHSF.add(RHSF, APFloat::rmNearestTiesToEven);
       break;
@@ -997,7 +998,7 @@ static SILValue foldFPToIntConversion(BuiltinInst *BI,
     return nullptr;
   }
 
-  llvm::APSInt resInt(destTy->getFixedWidth(), conversionToUnsigned);
+  toolchain::APSInt resInt(destTy->getFixedWidth(), conversionToUnsigned);
   bool isExact = false;
   APFloat::opStatus status =
     fpVal.convertToInteger(resInt, APFloat::rmTowardZero, &isExact);
@@ -1062,9 +1063,9 @@ IEEESemantics getFPSemantics(BuiltinFloatType *fpType) {
   case BuiltinFloatType::IEEE128:
     return IEEESemantics(128, 15, 112, false);
   case BuiltinFloatType::PPC128:
-    llvm_unreachable("ppc128 is not supported");
+    toolchain_unreachable("ppc128 is not supported");
   }
-  llvm_unreachable("invalid floating point kind");
+  toolchain_unreachable("invalid floating point kind");
 }
 
 /// This function, given the exponent and significand of a binary fraction
@@ -1128,7 +1129,7 @@ bool isLossyUnderflow(APFloat srcVal, BuiltinFloatType *srcType,
 }
 
 /// This function determines whether the float literal in the given
-/// SIL instruction is specified using hex-float notation in the Swift source.
+/// SIL instruction is specified using hex-float notation in the Codira source.
 bool isHexLiteralInSource(FloatLiteralInst *flitInst) {
   auto *flitExpr = flitInst->getLoc().getAsASTNode<FloatLiteralExpr>();
   return flitExpr && flitExpr->getDigitsText().starts_with("0x");
@@ -1235,13 +1236,13 @@ static SILValue constantFoldIsConcrete(BuiltinInst *BI) {
   return inst;
 }
 
-SILValue swift::constantFoldBuiltin(BuiltinInst *BI,
+SILValue language::constantFoldBuiltin(BuiltinInst *BI,
                                     std::optional<bool> &ResultsInError) {
   const IntrinsicInfo &Intrinsic = BI->getIntrinsicInfo();
   SILModule &M = BI->getModule();
 
-  // If it's an llvm intrinsic, fold the intrinsic.
-  if (Intrinsic.ID != llvm::Intrinsic::not_intrinsic)
+  // If it's an toolchain intrinsic, fold the intrinsic.
+  if (Intrinsic.ID != toolchain::Intrinsic::not_intrinsic)
     return constantFoldIntrinsic(BI, Intrinsic.ID, ResultsInError);
 
   // Otherwise, it should be one of the builtin functions.
@@ -1438,7 +1439,7 @@ case BuiltinValueKind::id:
     if (VInt.isNegative() && ResultsInError.has_value()) {
       diagnose(M.getASTContext(), BI->getLoc().getSourceLoc(),
                diag::wrong_non_negative_assumption,
-               llvm::toString(VInt, /*Radix*/ 10, /*Signed*/ true));
+               toolchain::toString(VInt, /*Radix*/ 10, /*Signed*/ true));
       ResultsInError = std::optional<bool>(true);
     }
     return V;
@@ -1487,7 +1488,7 @@ static bool constantFoldInstruction(Operand *Op,
   // "use-after-free" from an ownership model perspective.
   if (auto *DSI = dyn_cast<DestructureStructInst>(User)) {
     if (auto *Struct = dyn_cast<StructInst>(DSI->getOperand())) {
-      llvm::transform(
+      toolchain::transform(
           Struct->getAllOperands(), std::back_inserter(Results),
           [&](Operand &op) -> SILValue {
             SILValue operandValue = op.get();
@@ -1521,7 +1522,7 @@ static bool constantFoldInstruction(Operand *Op,
   // "use-after-free" from the ownership model perspective.
   if (auto *DTI = dyn_cast<DestructureTupleInst>(User)) {
     if (auto *Tuple = dyn_cast<TupleInst>(DTI->getOperand())) {
-      llvm::transform(
+      toolchain::transform(
           Tuple->getAllOperands(), std::back_inserter(Results),
           [&](Operand &op) -> SILValue {
             SILValue operandValue = op.get();
@@ -1595,7 +1596,7 @@ static bool isApplyOfKnownAvailability(SILInstruction &I) {
   if (!arg2)
     return false;
 
-  auto version = VersionRange::allGTE(llvm::VersionTuple(
+  auto version = VersionRange::allGTE(toolchain::VersionTuple(
       arg0->getValue().getLimitedValue(), arg1->getValue().getLimitedValue(),
       arg2->getValue().getLimitedValue()));
 
@@ -1772,7 +1773,7 @@ static bool isReadNoneAndInvertible(SILInstruction *i) {
 
 SILAnalysis::InvalidationKind
 ConstantFolder::processWorkList() {
-  LLVM_DEBUG(llvm::dbgs() << "*** ConstPropagation processing: \n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** ConstPropagation processing: \n");
 
   // This is the list of traits that this transformation might preserve.
   bool InvalidateBranches = false;
@@ -1782,7 +1783,7 @@ ConstantFolder::processWorkList() {
   // The list of instructions whose evaluation resulted in error or warning.
   // This is used to avoid duplicate error reporting in case we reach the same
   // instruction from different entry points in the WorkList.
-  llvm::DenseSet<SILInstruction *> ErrorSet;
+  toolchain::DenseSet<SILInstruction *> ErrorSet;
   CastOptimizer CastOpt(FuncBuilder, nullptr /*SILBuilderContext*/,
                         /* replaceValueUsesAction */
                         [&](SILValue oldValue, SILValue newValue) {
@@ -1828,7 +1829,7 @@ ConstantFolder::processWorkList() {
     SILInstruction *I = WorkList.pop_back_val();
     assert(I->getParent() && "SILInstruction must have parent.");
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting: " << *I);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting: " << *I);
 
     // Replace assert_configuration instructions by their constant value. We
     // want them to be replace even if we can't fully propagate the constant.
@@ -1880,7 +1881,7 @@ ConstantFolder::processWorkList() {
       SILInstruction *Result = nullptr;
       switch(I->getKind()) {
       default:
-        llvm_unreachable("Unexpected instruction for cast optimizations");
+        toolchain_unreachable("Unexpected instruction for cast optimizations");
       case SILInstructionKind::CheckedCastBranchInst:
         Result = CastOpt.simplifyCheckedCastBranchInst(cast<CheckedCastBranchInst>(I));
         break;
@@ -1987,7 +1988,7 @@ ConstantFolder::processWorkList() {
     for (auto Result : I->getResults()) {
       for (auto *Use : Result->getUses()) {
         SILInstruction *User = Use->getUser();
-        LLVM_DEBUG(llvm::dbgs() << "    User: " << *User);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    User: " << *User);
 
         // It is possible that we had processed this user already. Do not try to
         // fold it again if we had previously produced an error while folding
@@ -2060,12 +2061,12 @@ ConstantFolder::processWorkList() {
           ErrorSet.insert(User);
 
         // We failed to constant propagate... continue...
-        if (!Success || llvm::none_of(ConstantFoldedResults,
+        if (!Success || toolchain::none_of(ConstantFoldedResults,
                                       [](SILValue v) { return bool(v); }))
           continue;
 
         // Now iterate over our new results.
-        for (auto pair : llvm::enumerate(ConstantFoldedResults)) {
+        for (auto pair : toolchain::enumerate(ConstantFoldedResults)) {
           SILValue C = pair.value();
           unsigned Index = pair.index();
 
@@ -2155,10 +2156,10 @@ ConstantFolder::processWorkList() {
 
 void ConstantFolder::dumpWorklist() const {
 #ifndef NDEBUG
-  llvm::dbgs() << "*** Dumping Constant Folder Worklist ***\n";
+  toolchain::dbgs() << "*** Dumping Constant Folder Worklist ***\n";
   for (auto *i : WorkList) {
-    llvm::dbgs() << *i;
+    toolchain::dbgs() << *i;
   }
-  llvm::dbgs() << "\n";
+  toolchain::dbgs() << "\n";
 #endif
 }

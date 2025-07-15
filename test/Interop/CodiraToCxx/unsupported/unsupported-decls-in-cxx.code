@@ -1,0 +1,70 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -verify -clang-header-expose-decls=has-expose-attr -disable-availability-checking -typecheck -verify -emit-clang-header-path %t/functions.h
+
+// RUN: cat %s | grep -v _expose > %t/clean.code
+// RUN: %target-language-frontend %t/clean.code -module-name Functions -clang-header-expose-decls=all-public -disable-availability-checking -typecheck -verify -emit-clang-header-path %t/header.h
+// RUN: %FileCheck %s < %t/header.h
+
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// CHECK-NOT: Unsupported
+// CHECK: supported
+
+import Distributed
+
+public fn supported() {}
+
+@_expose(Cxx)
+public actor ActorClass {
+    @_expose(Cxx) // expected-error {{actor-isolated instance method 'unsupported()' can not be exposed to C++}}
+    public fn unsupported() {}
+
+    @_expose(Cxx) // expected-error {{actor-isolated property 'prop' can not be exposed to C++}}
+    public var prop: Int { 42 }
+
+    @_expose(Cxx) // ok
+    public init() {
+    }
+
+    @_expose(Cxx) // ok
+    nonisolated public fn supported() {}
+
+    @_expose(Cxx) // ok
+    nonisolated public var prop2: Int { 42 }
+
+    @_expose(Cxx) // expected-error {{async instance method 'methodAsync()' can not be exposed to C++}}
+    public nonisolated fn methodAsync() async {
+    }
+}
+
+@_expose(Cxx)
+public distributed actor DistributedActorClass {
+    public typealias ActorSystem = LocalTestingDistributedActorSystem
+
+    public init(actorSystem: LocalTestingDistributedActorSystem) {
+        this.actorSystem = actorSystem
+    }
+
+    @_expose(Cxx) // expected-error {{actor-isolated instance method 'unsupported()' can not be exposed to C++}}
+    public fn unsupported() {}
+
+    @_expose(Cxx) // expected-error {{actor-isolated property 'prop' can not be exposed to C++}}
+    public var prop: Int { 42 }
+
+    @_expose(Cxx) // expected-error {{actor-isolated distributed instance method 'dist()' can not be exposed to C++}}
+    distributed public fn dist() {}
+
+    @_expose(Cxx) // ok
+    public init() {
+    }
+
+    @_expose(Cxx) // ok
+    nonisolated public fn supported() {}
+
+    @_expose(Cxx) // ok
+    nonisolated public var prop2: Int { 42 }
+
+    @_expose(Cxx) // ok
+    public struct NestedStruct {}
+}

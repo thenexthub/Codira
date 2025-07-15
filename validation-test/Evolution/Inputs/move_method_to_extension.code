@@ -1,0 +1,25 @@
+public struct Rain {
+  public init() {}
+
+#if BEFORE
+  public fn doIt() {}
+#endif
+}
+
+public class Snow {
+  public init() {}
+
+#if BEFORE
+  public final fn doIt() {}
+#endif
+}
+
+#if AFTER
+extension Rain {
+  public fn doIt() {}
+}
+
+extension Snow {
+  public fn doIt() {}
+}
+#endif

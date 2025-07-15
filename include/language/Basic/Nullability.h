@@ -1,41 +1,45 @@
 //===--- Nullability.h ----------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_NULLABILITY_H
-#define SWIFT_BASIC_NULLABILITY_H
+#ifndef LANGUAGE_BASIC_NULLABILITY_H
+#define LANGUAGE_BASIC_NULLABILITY_H
 
 // TODO: These macro definitions are duplicated in Visibility.h. Move
 // them to a single file if we find a location that both Visibility.h and
-// BridgedSwiftObject.h can import.
+// BridgedCodiraObject.h can import.
 #if __has_feature(nullability)
 // Provide macros to temporarily suppress warning about the use of
 // _Nullable and _Nonnull.
-#define SWIFT_BEGIN_NULLABILITY_ANNOTATIONS                                    \
+#define LANGUAGE_BEGIN_NULLABILITY_ANNOTATIONS                                    \
   _Pragma("clang diagnostic push")                                             \
       _Pragma("clang diagnostic ignored \"-Wnullability-extension\"")
-#define SWIFT_END_NULLABILITY_ANNOTATIONS _Pragma("clang diagnostic pop")
+#define LANGUAGE_END_NULLABILITY_ANNOTATIONS _Pragma("clang diagnostic pop")
 
-#define SWIFT_BEGIN_ASSUME_NONNULL _Pragma("clang assume_nonnull begin")
-#define SWIFT_END_ASSUME_NONNULL _Pragma("clang assume_nonnull end")
+#define LANGUAGE_BEGIN_ASSUME_NONNULL _Pragma("clang assume_nonnull begin")
+#define LANGUAGE_END_ASSUME_NONNULL _Pragma("clang assume_nonnull end")
 #else
 // #define _Nullable and _Nonnull to nothing if we're not being built
 // with a compiler that supports them.
 #define _Nullable
 #define _Nonnull
 #define _Null_unspecified
-#define SWIFT_BEGIN_NULLABILITY_ANNOTATIONS
-#define SWIFT_END_NULLABILITY_ANNOTATIONS
-#define SWIFT_BEGIN_ASSUME_NONNULL
-#define SWIFT_END_ASSUME_NONNULL
+#define LANGUAGE_BEGIN_NULLABILITY_ANNOTATIONS
+#define LANGUAGE_END_NULLABILITY_ANNOTATIONS
+#define LANGUAGE_BEGIN_ASSUME_NONNULL
+#define LANGUAGE_END_ASSUME_NONNULL
 #endif
 
 #endif

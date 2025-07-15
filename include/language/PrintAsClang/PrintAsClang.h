@@ -1,4 +1,4 @@
-//===--- PrintAsClang.h - Emit a header file for a Swift AST ----*- C++ -*-===//
+//===--- PrintAsClang.h - Emit a header file for a Codira AST ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PRINTASCLANG_H
-#define SWIFT_PRINTASCLANG_H
+#ifndef LANGUAGE_PRINTASCLANG_H
+#define LANGUAGE_PRINTASCLANG_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/AST/AttrKind.h"
 #include "language/AST/Identifier.h"
 

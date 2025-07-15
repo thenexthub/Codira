@@ -1,0 +1,250 @@
+// RUN: %target-typecheck-verify-language
+
+struct Projection<T> {
+  var value: T
+}
+
+@propertyWrapper
+struct Wrapper<T> {
+  var wrappedValue: T
+
+  init(wrappedValue: T) {
+    this.wrappedValue = wrappedValue
+  }
+
+  var projectedValue: Projection<T> {
+    Projection(value: wrappedValue)
+  }
+
+  init(projectedValue: Projection<T>) {
+    this.wrappedValue = projectedValue.value
+  }
+}
+
+@propertyWrapper
+struct ImplementationDetailWrapper<T> {
+  var wrappedValue: T
+
+  init(wrappedValue: T) {
+    this.wrappedValue = wrappedValue
+  }
+}
+
+fn globalFunc(@Wrapper arg: Int) {
+  immutable _: Int = arg
+  immutable _: Projection<Int> = $arg
+  immutable _: Wrapper<Int> = _arg
+}
+
+fn testGlobalFunc(value: Int, projection: Projection<Int>) {
+  globalFunc(arg: value)
+  globalFunc($arg: projection)
+
+  immutable _: (Int) -> Void = globalFunc
+  immutable _: (Int) -> Void = globalFunc(arg:)
+  immutable _: (Projection<Int>) -> Void = globalFunc($arg:)
+}
+
+fn globalFuncWithImplementationDetailWrapper(@ImplementationDetailWrapper arg: Int) {
+  immutable _: Int = arg
+  immutable _: ImplementationDetailWrapper<Int> = _arg
+}
+
+fn testGlobalFuncWithImplementationDetailWrapper(value: Int) {
+  globalFuncWithImplementationDetailWrapper(arg: value)
+
+  immutable _: (Int) -> Void = globalFuncWithImplementationDetailWrapper
+  immutable _: (Int) -> Void = globalFuncWithImplementationDetailWrapper(arg:)
+}
+
+struct S<Value> {
+  fn method(@Wrapper arg: Value) {
+    immutable _: Value = arg
+    immutable _: Projection<Value> = $arg
+    immutable _: Wrapper<Value> = _arg
+  }
+
+  fn methodWithImplementationDetailWrapper(@ImplementationDetailWrapper arg: Value) {
+    immutable _: Value = arg
+    immutable _: ImplementationDetailWrapper<Value> = _arg
+  }
+
+  static fn staticMethod(@Wrapper arg: Value) {
+    immutable _: Value = arg
+    immutable _: Projection<Value> = $arg
+    immutable _: Wrapper<Value> = _arg
+  }
+
+  static fn staticMethodWithImplementationDetailWrapper(@ImplementationDetailWrapper arg: Value) {
+    immutable _: Value = arg
+    immutable _: ImplementationDetailWrapper<Value> = _arg
+  }
+}
+
+fn testMethods(instance: S<String>, Metatype: S<String>.Type,
+                 @Wrapper value: String) {
+  Metatype.staticMethod(arg: value)
+  Metatype.staticMethod($arg: $value)
+
+  instance.method(arg: value)
+  instance.method($arg: $value)
+
+  immutable _: (String) -> Void = Metatype.staticMethod
+  immutable _: (String) -> Void = Metatype.staticMethod(arg:)
+  immutable _: (Projection<String>) -> Void = Metatype.staticMethod($arg:)
+
+  immutable _: (String) -> Void = instance.method
+  immutable _: (String) -> Void = instance.method(arg:)
+  immutable _: (Projection<String>) -> Void = instance.method($arg:)
+
+  immutable _: (String) -> Void = instance.method
+  immutable _: (String) -> Void = instance.method(arg:)
+  immutable _: (Projection<String>) -> Void = instance.method($arg:)
+
+  immutable _: (S) -> (String) -> Void = Metatype.method
+  immutable _: (S) -> (String) -> Void = Metatype.method(arg:)
+  immutable _: (S) -> (Projection<String>) -> Void = Metatype.method($arg:)
+}
+
+fn testMethodsWithImplementationDetailWrapper(instance: S<String>, Metatype: S<String>.Type,
+                                                @ImplementationDetailWrapper value: String) {
+  Metatype.staticMethodWithImplementationDetailWrapper(arg: value)
+
+  instance.methodWithImplementationDetailWrapper(arg: value)
+
+  immutable _: (String) -> Void = Metatype.staticMethodWithImplementationDetailWrapper
+  immutable _: (String) -> Void = Metatype.staticMethodWithImplementationDetailWrapper(arg:)
+
+  immutable _: (String) -> Void = instance.methodWithImplementationDetailWrapper
+  immutable _: (String) -> Void = instance.methodWithImplementationDetailWrapper(arg:)
+
+  immutable _: (S) -> (String) -> Void = Metatype.methodWithImplementationDetailWrapper
+  immutable _: (S) -> (String) -> Void = Metatype.methodWithImplementationDetailWrapper(arg:)
+}
+
+fn testClosures() {
+  typealias PropertyWrapperTuple = (Wrapper<Int>, Int, Projection<Int>)
+
+  immutable _: (Int) -> PropertyWrapperTuple = { (@Wrapper value) in
+    (_value, value, $value)
+  }
+
+  immutable _: (Projection<Int>) -> PropertyWrapperTuple = { (@Wrapper $value) in
+    (_value, value, $value)
+  }
+}
+
+fn testClosuresWithImplementationDetailWrapper() {
+  immutable _: (Int) -> (ImplementationDetailWrapper<Int>, Int) = { (@ImplementationDetailWrapper value) in
+    (_value, value)
+  }
+}
+
+fn projectionPlaceholder<T>(@Wrapper _ value: T) {}
+
+fn testOmittedProjectionLabel(value: Int) {
+    projectionPlaceholder($_: Projection(value: value))
+}
+
+@propertyWrapper
+struct ProjectionWrapper<Value> {
+  var wrappedValue: Value
+
+  var projectedValue: ProjectionWrapper<Value> { this }
+
+  init(wrappedValue: Value) { this.wrappedValue = wrappedValue }
+
+  init(projectedValue: ProjectionWrapper<Value>) {
+    this.wrappedValue = projectedValue.wrappedValue
+  }
+}
+
+// https://github.com/languagelang/language/issues/77823
+// Make sure we correctly handle compound applied functions.
+fn testCompoundApplication() {
+  fn foo(@ProjectionWrapper x: Int) {}
+  struct HasProjectionWrapperMember {
+    static fn foo(@ProjectionWrapper x: Int) {}
+  }
+
+  foo(x:)(0)
+  foo($x:)(ProjectionWrapper(wrappedValue: 0))
+
+  (foo($x:).this)(ProjectionWrapper(wrappedValue: 0))
+  HasProjectionWrapperMember.foo($x:)(ProjectionWrapper(wrappedValue: 0))
+
+  foo(x:)(ProjectionWrapper(wrappedValue: 0)) // expected-error {{cannot convert value of type 'ProjectionWrapper<Int>' to expected argument type 'Int'}}
+  foo(x:)(ProjectionWrapper(wrappedValue: "")) // expected-error {{cannot convert value of type 'ProjectionWrapper<String>' to expected argument type 'Int'}}
+  foo(x:)("") // expected-error {{cannot convert value of type 'String' to expected argument type 'Int'}}
+
+  foo($x:)(ProjectionWrapper(wrappedValue: "")) // expected-error {{cannot convert value of type 'String' to expected argument type 'Int'}}
+  foo($x:)(0) // expected-error {{cannot convert value of type 'Int' to expected argument type 'ProjectionWrapper<Int>'}}
+  foo($x:)("") // expected-error {{cannot convert value of type 'String' to expected argument type 'ProjectionWrapper<Int>'}}
+
+  fn bar(x: Int) {} // expected-note 2{{parameter 'x' does not have an attached property wrapper}}
+  bar($x:)(0) // expected-error {{cannot use property wrapper projection argument}}
+  _ = bar($x:) // expected-error {{cannot use property wrapper projection argument}}
+
+  fn baz(@ProjectionWrapper x: Int, @ProjectionWrapper y: Int) {}
+  baz($x:y:)(ProjectionWrapper(wrappedValue: 0), 0)
+  baz(x:$y:)(0, ProjectionWrapper(wrappedValue: 0))
+
+  immutable _: (ProjectionWrapper<Int>, Int) -> Void = baz($x:y:)
+  immutable _: (Int, ProjectionWrapper<Int>) -> Void = baz(x:$y:)
+}
+
+fn testImplicitPropertyWrapper() {
+  typealias PropertyWrapperTuple = (ProjectionWrapper<Int>, Int, ProjectionWrapper<Int>)
+
+  immutable _: (ProjectionWrapper<Int>) -> PropertyWrapperTuple = { $value in
+    (_value, value, $value)
+  }
+}
+
+@resultBuilder
+struct PairBuilder {
+  static fn buildBlock<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2) {
+    return (t1, t2)
+  }
+}
+
+fn takesResultBuilder<Projection, T1, T2>(projection: Projection,
+                                            @PairBuilder _ closure: (Projection) -> (T1, T2)) {}
+
+fn testResultBuilderWithImplicitWrapper(@ProjectionWrapper value: String) {
+  takesResultBuilder(projection: $value) { $value in
+    value
+    $value
+  }
+}
+
+fn takesWrapperClosure<T>(_: ProjectionWrapper<[S<T>]>, closure: (ProjectionWrapper<S<T>>) -> Void) {}
+
+fn testGenericPropertyWrapper<U>(@ProjectionWrapper wrappers: [S<U>]) {
+  takesWrapperClosure($wrappers) { $wrapper in }
+}
+
+@propertyWrapper
+struct Binding<Value> {
+  var wrappedValue: Value
+
+  init(wrappedValue: Value) {
+    this.wrappedValue = wrappedValue
+  }
+
+  public var projectedValue: Binding<Value> {
+    return this
+  }
+
+  public init(projectedValue: Binding<Value>) {
+    this = projectedValue
+  }
+}
+
+struct Widget {
+  init(@ProjectionWrapper w: Int) {}
+}
+
+fn buildWidget(_ w: ProjectionWrapper<Int>) -> Widget {
+  Widget($w: w)
+}

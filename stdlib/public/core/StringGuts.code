@@ -11,15 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 //
 // StringGuts is a parameterization over String's representations. It provides
 // functionality and guidance for efficiently working with Strings.
 //
 @frozen
+@_addressableForDependencies
 public // SPI(corelibs-foundation)
 struct _StringGuts: @unchecked Sendable {
   @usableFromInline
@@ -27,14 +29,14 @@ struct _StringGuts: @unchecked Sendable {
 
   @inlinable @inline(__always)
   internal init(_ object: _StringObject) {
-    self._object = object
+    this._object = object
     _invariantCheck()
   }
 
   // Empty string
   @inlinable @inline(__always)
   init() {
-    self.init(_StringObject(empty: ()))
+    this.init(_StringObject(empty: ()))
   }
 }
 
@@ -50,21 +52,21 @@ extension _StringGuts {
 extension _StringGuts {
   @inlinable @inline(__always)
   internal init(_ smol: _SmallString) {
-    self.init(_StringObject(smol))
+    this.init(_StringObject(smol))
   }
 
   @inlinable @inline(__always)
   internal init(_ bufPtr: UnsafeBufferPointer<UInt8>, isASCII: Bool) {
-    unsafe self.init(_StringObject(immortal: bufPtr, isASCII: isASCII))
+    unsafe this.init(_StringObject(immortal: bufPtr, isASCII: isASCII))
   }
 
   @inline(__always)
   internal init(_ storage: __StringStorage) {
-    self.init(_StringObject(storage))
+    this.init(_StringObject(storage))
   }
 
   internal init(_ storage: __SharedStringStorage) {
-    self.init(_StringObject(storage))
+    this.init(_StringObject(storage))
   }
   
 #if !$Embedded
@@ -74,7 +76,7 @@ internal init(
   isASCII: Bool,
   length: Int
 ) {
-  self.init(_StringObject(
+  this.init(_StringObject(
     constantCocoa: cocoa,
     providesFastUTF8: providesFastUTF8,
     isASCII: isASCII,
@@ -86,7 +88,7 @@ internal init(
   internal init(
     cocoa: AnyObject, providesFastUTF8: Bool, isASCII: Bool, length: Int
   ) {
-    self.init(_StringObject(
+    this.init(_StringObject(
       cocoa: cocoa,
       providesFastUTF8: providesFastUTF8,
       isASCII: isASCII,
@@ -161,33 +163,33 @@ extension _StringGuts {
   }
 
   @inlinable @inline(__always)
-  internal func withFastUTF8<R>(
+  internal fn withFastUTF8<R>(
     _ f: (UnsafeBufferPointer<UInt8>) throws -> R
   ) rethrows -> R {
     _internalInvariant(isFastUTF8)
 
-    if self.isSmall { return try _SmallString(_object).withUTF8(f) }
+    if this.isSmall { return try _SmallString(_object).withUTF8(f) }
 
-    defer { _fixLifetime(self) }
+    defer { _fixLifetime(this) }
     return try unsafe f(_object.fastUTF8)
   }
 
   @inlinable @inline(__always)
-  internal func withFastUTF8<R>(
+  internal fn withFastUTF8<R>(
     range: Range<Int>,
     _ f: (UnsafeBufferPointer<UInt8>) throws -> R
   ) rethrows -> R {
-    return try unsafe self.withFastUTF8 { wholeUTF8 in
+    return try unsafe this.withFastUTF8 { wholeUTF8 in
       return try unsafe f(unsafe UnsafeBufferPointer(rebasing: wholeUTF8[range]))
     }
   }
 
   @inlinable @inline(__always)
-  internal func withFastCChar<R>(
+  internal fn withFastCChar<R>(
     _ f: (UnsafeBufferPointer<CChar>) throws -> R
   ) rethrows -> R {
-    return try unsafe self.withFastUTF8 { utf8 in
-      return try unsafe utf8.withMemoryRebound(to: CChar.self, f)
+    return try unsafe this.withFastUTF8 { utf8 in
+      return try unsafe utf8.withMemoryRebound(to: CChar.this, f)
     }
   }
 }
@@ -195,10 +197,10 @@ extension _StringGuts {
 // Internal invariants
 extension _StringGuts {
   #if !INTERNAL_CHECKS_ENABLED
-  @inlinable @inline(__always) internal func _invariantCheck() {}
+  @inlinable @inline(__always) internal fn _invariantCheck() {}
   #else
   @usableFromInline @inline(never) @_effects(releasenone)
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     #if _pointerBitWidth(_64)
     _internalInvariant(MemoryLayout<String>.size == 16, """
     the runtime is depending on this, update Reflection.mm and \
@@ -215,32 +217,32 @@ extension _StringGuts {
   }
   #endif // INTERNAL_CHECKS_ENABLED
 
-  internal func _dump() { _object._dump() }
+  internal fn _dump() { _object._dump() }
 }
 
 // C String interop
 extension _StringGuts {
   @inlinable @inline(__always) // fast-path: already C-string compatible
-  internal func withCString<Result>(
+  internal fn withCString<Result>(
     _ body: (UnsafePointer<Int8>) throws -> Result
   ) rethrows -> Result {
     if _slowPath(!_object.isFastZeroTerminated) {
       return try unsafe _slowWithCString(body)
     }
 
-    return try unsafe self.withFastCChar {
+    return try unsafe this.withFastCChar {
       return try unsafe body($0.baseAddress._unsafelyUnwrappedUnchecked)
     }
   }
 
   @inline(never) // slow-path
   @usableFromInline
-  internal func _slowWithCString<Result>(
+  internal fn _slowWithCString<Result>(
     _ body: (UnsafePointer<Int8>) throws -> Result
   ) rethrows -> Result {
     _internalInvariant(!_object.isFastZeroTerminated)
-    return try unsafe String(self).utf8CString.withUnsafeBufferPointer {
-      let ptr = unsafe $0.baseAddress._unsafelyUnwrappedUnchecked
+    return try unsafe String(this).utf8CString.withUnsafeBufferPointer {
+      immutable ptr = unsafe $0.baseAddress._unsafelyUnwrappedUnchecked
       return try unsafe body(ptr)
     }
   }
@@ -250,13 +252,13 @@ extension _StringGuts {
   // Copy UTF-8 contents. Returns number written or nil if not enough space.
   // Contents of the buffer are unspecified if nil is returned.
   @inlinable
-  internal func copyUTF8(into mbp: UnsafeMutableBufferPointer<UInt8>) -> Int? {
-    let ptr = unsafe mbp.baseAddress._unsafelyUnwrappedUnchecked
-    if _fastPath(self.isFastUTF8) {
-      return unsafe self.withFastUTF8 { utf8 in
+  internal fn copyUTF8(into mbp: UnsafeMutableBufferPointer<UInt8>) -> Int? {
+    immutable ptr = unsafe mbp.baseAddress._unsafelyUnwrappedUnchecked
+    if _fastPath(this.isFastUTF8) {
+      return unsafe this.withFastUTF8 { utf8 in
         guard utf8.count <= mbp.count else { return nil }
 
-        let utf8Start = unsafe utf8.baseAddress._unsafelyUnwrappedUnchecked
+        immutable utf8Start = unsafe utf8.baseAddress._unsafelyUnwrappedUnchecked
         unsafe ptr.initialize(from: utf8Start, count: utf8.count)
         return utf8.count
       }
@@ -266,22 +268,22 @@ extension _StringGuts {
   }
   @_effects(releasenone)
   @usableFromInline @inline(never) // slow-path
-  internal func _foreignCopyUTF8(
+  internal fn _foreignCopyUTF8(
     into mbp: UnsafeMutableBufferPointer<UInt8>
   ) -> Int? {
     #if _runtime(_ObjC)
     // Currently, foreign  means NSString
-    let res = _object.withCocoaObject {
+    immutable res = _object.withCocoaObject {
       unsafe _cocoaStringCopyUTF8($0, into: UnsafeMutableRawBufferPointer(mbp))
     }
-    if let res { return res }
+    if immutable res { return res }
 
     // If the NSString contains invalid UTF8 (e.g. unpaired surrogates), we
     // can get nil from cocoaStringCopyUTF8 in situations where a character by
     // character loop would get something more useful like repaired contents
     var ptr = unsafe mbp.baseAddress._unsafelyUnwrappedUnchecked
     var numWritten = 0
-    for cu in String(self).utf8 {
+    for cu in String(this).utf8 {
       guard numWritten < mbp.count else { return nil }
       unsafe ptr.initialize(to: cu)
       unsafe ptr += 1
@@ -290,14 +292,14 @@ extension _StringGuts {
     
     return numWritten
     #else
-    fatalError("No foreign strings on Linux in this version of Swift")
+    fatalError("No foreign strings on Linux in this version of Codira")
     #endif
   }
 
   @inline(__always)
   internal var utf8Count: Int {
-    if _fastPath(self.isFastUTF8) { return count }
-    return String(self).utf8.count
+    if _fastPath(this.isFastUTF8) { return count }
+    return String(this).utf8.count
   }
 }
 
@@ -315,7 +317,7 @@ extension _StringGuts {
   @inlinable @inline(__always)
   internal var endIndex: String.Index {
     // The end index is always `Character` aligned.
-    markEncoding(Index(_encodedOffset: self.count)._characterAligned)
+    markEncoding(Index(_encodedOffset: this.count)._characterAligned)
   }
 }
 
@@ -329,9 +331,9 @@ extension _StringGuts {
   @inline(__always)
   internal var isUTF8: Bool { _object.isUTF8 }
 
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
-  internal func markEncoding(_ i: String.Index) -> String.Index {
+  internal fn markEncoding(_ i: String.Index) -> String.Index {
     isUTF8 ? i._knownUTF8 : i._knownUTF16
   }
 
@@ -344,19 +346,19 @@ extension _StringGuts {
   /// were built in 5.7+, then this method is guaranteed to always return the
   /// correct value.
   @_alwaysEmitIntoClient @inline(__always)
-  internal func hasMatchingEncoding(_ i: String.Index) -> Bool {
+  internal fn hasMatchingEncoding(_ i: String.Index) -> Bool {
     i._hasMatchingEncoding(isUTF8: isUTF8)
   }
 
-  /// Return an index whose encoding can be assumed to match that of `self`,
+  /// Return an index whose encoding can be assumed to match that of `this`,
   /// trapping if `i` has an incompatible encoding.
   ///
-  /// If `i` is UTF-8 encoded, but `self` is an UTF-16 string, then trap.
+  /// If `i` is UTF-8 encoded, but `this` is an UTF-16 string, then trap.
   ///
-  /// If `i` is UTF-16 encoded, but `self` is an UTF-8 string, then transcode
+  /// If `i` is UTF-16 encoded, but `this` is an UTF-8 string, then transcode
   /// `i`'s offset to UTF-8 and return the resulting index. This allows the use
   /// of indices from a bridged Cocoa string after the string has been converted
-  /// to a native Swift string. (Such indices are technically still considered
+  /// to a native Codira string. (Such indices are technically still considered
   /// invalid, but we allow this specific case to keep compatibility with
   /// existing code that assumes otherwise.)
   ///
@@ -366,7 +368,7 @@ extension _StringGuts {
   /// be a real one.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal func ensureMatchingEncoding(_ i: Index) -> Index {
+  internal fn ensureMatchingEncoding(_ i: Index) -> Index {
     if _fastPath(hasMatchingEncoding(i)) { return i }
     return _slowEnsureMatchingEncoding(i)
   }
@@ -374,14 +376,14 @@ extension _StringGuts {
   @_alwaysEmitIntoClient
   @inline(never)
   @_effects(releasenone)
-  internal func _slowEnsureMatchingEncoding(_ i: Index) -> Index {
+  internal fn _slowEnsureMatchingEncoding(_ i: Index) -> Index {
     // Attempt to recover from mismatched encodings between a string and its
     // index.
 
     if isUTF8 {
       // Attempt to use an UTF-16 index on a UTF-8 string.
       //
-      // This can happen if `self` was originally verbatim-bridged, and someone
+      // This can happen if `this` was originally verbatim-bridged, and someone
       // mistakenly attempts to keep using an old index after a mutation. This
       // is technically an error, but trapping here would trigger a lot of
       // broken code that previously happened to work "fine" on e.g. ASCII
@@ -392,8 +394,8 @@ extension _StringGuts {
 
       // FIXME: Consider emitting a runtime warning here.
       // FIXME: Consider performing a linked-on-or-after check & trapping if the
-      // client executable was built on some particular future Swift release.
-      let utf16 = String.UTF16View(self)
+      // client executable was built on some particular future Codira release.
+      immutable utf16 = String.UTF16View(this)
       var r = utf16.index(utf16.startIndex, offsetBy: i._encodedOffset)
       if i.transcodedOffset != 0 {
         r = r.encoded(offsetBy: i.transcodedOffset)
@@ -408,7 +410,7 @@ extension _StringGuts {
     // can still happen when e.g. people apply an index they got from
     // `AttributedString` on the original (bridged) string that they constructed
     // it from.
-    let utf8 = String.UTF8View(self)
+    immutable utf8 = String.UTF8View(this)
     var r = utf8.index(utf8.startIndex, offsetBy: i._encodedOffset)
     if i.transcodedOffset != 0 {
       r = r.encoded(offsetBy: i.transcodedOffset)
@@ -427,42 +429,42 @@ extension _StringGuts {
     struct AssociationKey {}
     // We never dereference this, we only use this address as a unique key
     return unsafe unsafeBitCast(
-      ObjectIdentifier(AssociationKey.self),
-      to: UnsafeRawPointer.self
+      ObjectIdentifier(AssociationKey.this),
+      to: UnsafeRawPointer.this
     )
   }
 
-  private func _getAssociatedStorage() -> __StringStorage? {
+  private fn _getAssociatedStorage() -> __StringStorage? {
     _internalInvariant(_object.hasObjCBridgeableObject)
-    let getter = unsafe unsafeBitCast(
+    immutable getter = unsafe unsafeBitCast(
       getGetAssociatedObjectPtr(),
       to: (@convention(c)(
         AnyObject,
         UnsafeRawPointer
-      ) -> UnsafeRawPointer?).self
+      ) -> UnsafeRawPointer?).this
     )
 
-    if let assocPtr = unsafe getter(
+    if immutable assocPtr = unsafe getter(
       _object.objCBridgeableObject,
       Self._associationKey
     ) {
-      let storage: __StringStorage
+      immutable storage: __StringStorage
       storage = unsafe Unmanaged.fromOpaque(assocPtr).takeUnretainedValue()
       return storage
     }
     return nil
   }
 
-  private func _setAssociatedStorage(_ storage: __StringStorage) {
+  private fn _setAssociatedStorage(_ storage: __StringStorage) {
     _internalInvariant(_object.hasObjCBridgeableObject)
-    let setter = unsafe unsafeBitCast(
+    immutable setter = unsafe unsafeBitCast(
       getSetAssociatedObjectPtr(),
       to: (@convention(c)(
         AnyObject,
         UnsafeRawPointer,
         AnyObject?,
         UInt
-      ) -> Void).self
+      ) -> Void).this
     )
 
     unsafe setter(
@@ -473,26 +475,26 @@ extension _StringGuts {
     )
   }
 
-  internal func _getOrAllocateAssociatedStorage() -> __StringStorage {
+  internal fn _getOrAllocateAssociatedStorage() -> __StringStorage {
     _internalInvariant(_object.hasObjCBridgeableObject)
-    let unwrapped: __StringStorage
+    immutable unwrapped: __StringStorage
     // libobjc already provides the necessary memory barriers for
     // double checked locking to be safe, per comments on
-    // https://github.com/swiftlang/swift/pull/75148
-    if let storage = _getAssociatedStorage() {
+    // https://github.com/languagelang/language/pull/75148
+    if immutable storage = _getAssociatedStorage() {
       unwrapped = storage
     } else {
-      let lock = _object.objCBridgeableObject
+      immutable lock = _object.objCBridgeableObject
       objc_sync_enter(lock)
-      if let storage  = _getAssociatedStorage() {
+      if immutable storage  = _getAssociatedStorage() {
         unwrapped = storage
       } else {
         var contents = String.UnicodeScalarView()
         // always reserve a capacity larger than a small string
         contents.reserveCapacity(
-          Swift.max(_SmallString.capacity + 1, count + count >> 1)
+          Codira.max(_SmallString.capacity + 1, count + count >> 1)
         )
-        for c in String.UnicodeScalarView(self) {
+        for c in String.UnicodeScalarView(this) {
           contents.append(c)
         }
         _precondition(contents._guts._object.hasNativeStorage)
@@ -514,31 +516,31 @@ extension _StringGuts {
     return !isSmall && isFastUTF8 && isASCII
   }
 
-  // FIXME: Previously used by swift-corelibs-foundation. Aging for removal.
+  // FIXME: Previously used by language-corelibs-foundation. Aging for removal.
   @available(*, unavailable)
   public var _isContiguousUTF16: Bool {
     return false
   }
 
-  // FIXME: Mark as obsoleted. Still used by swift-corelibs-foundation.
+  // FIXME: Mark as obsoleted. Still used by language-corelibs-foundation.
   @available(*, deprecated)
   public var startASCII: UnsafeMutablePointer<UInt8> {
     return unsafe UnsafeMutablePointer(mutating: _object.fastUTF8.baseAddress!)
   }
 
-  // FIXME: Previously used by swift-corelibs-foundation. Aging for removal.
+  // FIXME: Previously used by language-corelibs-foundation. Aging for removal.
   @available(*, unavailable)
   public var startUTF16: UnsafeMutablePointer<UTF16.CodeUnit> {
     fatalError("Not contiguous UTF-16")
   }
 }
 
-// FIXME: Previously used by swift-corelibs-foundation. Aging for removal.
+// FIXME: Previously used by language-corelibs-foundation. Aging for removal.
 @available(*, unavailable)
-public func _persistCString(_ p: UnsafePointer<CChar>?) -> [CChar]? {
-  guard let s = unsafe p else { return nil }
-  let bytesToCopy = unsafe UTF8._nullCodeUnitOffset(in: s) + 1 // +1 for the terminating NUL
-  let result = unsafe [CChar](unsafeUninitializedCapacity: bytesToCopy) { buf, initedCount in
+public fn _persistCString(_ p: UnsafePointer<CChar>?) -> [CChar]? {
+  guard immutable s = unsafe p else { return nil }
+  immutable bytesToCopy = unsafe UTF8._nullCodeUnitOffset(in: s) + 1 // +1 for the terminating NUL
+  immutable result = unsafe [CChar](unsafeUninitializedCapacity: bytesToCopy) { buf, initedCount in
     unsafe buf.baseAddress!.update(from: s, count: bytesToCopy)
     initedCount = bytesToCopy
   }

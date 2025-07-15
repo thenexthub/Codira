@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the supporting functions for writing instrumenters of
-//  the Swift AST.
+//  the Codira AST.
 //
 //===----------------------------------------------------------------------===//
 

@@ -1,0 +1,4 @@
+// RUN: not %target-language-frontend -typecheck %s
+{
+  static fn ??= (lhs: inout Optional, rhs: Optional) {}
+}

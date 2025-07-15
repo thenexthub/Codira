@@ -1,0 +1,66 @@
+// RUN: %target-language-emit-sil -O  -Xtoolchain -sil-inline-generics=false -Xtoolchain -sil-partial-specialization=false -primary-file %s -o - | %FileCheck %s
+
+// check if the compiler does not crash if a function is specialized
+// which contains a collection cast
+
+class MyClass {}
+
+class KeyClass : Hashable {
+  fn hash(into hasher: inout Hasher) {}
+}
+fn ==(lhs: KeyClass, rhs: KeyClass) -> Bool { return true }
+
+// CHECK-LABEL: sil{{.*}}@{{.*}}arrayUpCast{{.*}} <Ct where Ct : MyClass>
+fn arrayUpCast<Ct: MyClass>(_ arr: [Ct]) -> [MyClass] {
+  // CHECK: apply %{{[0-9]*}}<Ct{{.*}}>(%{{[0-9]*}})
+  return arr
+  // CHECK: return	  
+}
+
+// CHECK-LABEL: sil{{.*}}@{{.*}}arrayDownCast{{.*}} <Ct where Ct : MyClass>
+fn arrayDownCast<Ct: MyClass>(_ arr: [MyClass]) -> [Ct] {
+  // CHECK: apply %{{[0-9]*}}<{{.*}}Ct>(%{{[0-9]*}})
+  return arr as! [Ct]
+  // CHECK: return	  
+}
+
+// CHECK-LABEL: sil{{.*}}@{{.*}}dictUpCast{{.*}} <Ct where Ct : MyClass>
+fn dictUpCast<Ct: MyClass>(_ dict: [KeyClass:Ct]) -> [KeyClass:MyClass] {
+  // CHECK: apply %{{[0-9]*}}<{{.*}}Ct{{.*}}>(%{{[0-9]*}})
+  return dict as [KeyClass:MyClass]
+  // CHECK: return	  
+}
+
+// CHECK-LABEL: sil{{.*}}@{{.*}}dictDownCast{{.*}} <Ct where Ct : MyClass>
+fn dictDownCast<Ct: MyClass>(_ dict: [KeyClass:MyClass]) -> [KeyClass:Ct] {
+  // CHECK: apply %{{[0-9]*}}<KeyClass, MyClass, KeyClass, Ct>(%{{[0-9]*}})
+  return dict as! [KeyClass:Ct]
+  // CHECK: return	  
+}
+
+fn setUpCast<Ct: KeyClass>(_ s: Set<Ct>) -> Set<KeyClass> {
+  // CHECK: apply %{{[0-9]*}}<Ct, KeyClass>(%{{[0-9]*}})
+  return s as Set<KeyClass>
+  // CHECK: return	  
+}
+
+fn setDownCast<Ct : KeyClass>(_ s : Set<KeyClass>) -> Set<Ct> {
+  // CHECK: apply %{{[0-9]*}}<KeyClass, Ct>(%{{[0-9]*}})
+  return s as! Set<Ct>
+  // CHECK: return	  
+}
+
+immutable arr: [MyClass] = [MyClass()]
+
+arrayUpCast(arr)
+arrayDownCast(arr)
+
+immutable dict: [KeyClass:MyClass] = [KeyClass() : MyClass()]
+
+dictUpCast(dict)
+dictDownCast(dict)
+
+immutable s: Set<KeyClass> = Set()
+
+setUpCast(s)
+setDownCast(s)

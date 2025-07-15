@@ -1,1 +1,1 @@
-add_swift_tool_subdirectory(libSwiftScan)
+add_language_tool_subdirectory(libCodiraScan)

@@ -1,0 +1,43 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s \
+// RUN:  -enable-objc-interop -module-name attrs_objc
+
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name attrs_objc
+
+// RUN: %FileCheck %s --input-file %t.codeinterface
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objcMembers
+public class ObjCTest: NSObject {
+  // CHECK: #if {{.*}} $ABIAttributeSE0479
+  // CHECK: @abi(fn abiObjCFunc())
+  // CHECK: @objc public fn abiObjCFunc()
+  // CHECK: #else
+  // CHECK: @_silgen_name("$s10attrs_objc8ObjCTestC03abiC5CFuncyyF")
+  // CHECK: @objc public fn abiObjCFunc()
+  // CHECK: #endif
+  @abi(fn abiObjCFunc())
+  @objc public fn abiObjCFunc() {}
+
+  // CHECK: #if {{.*}} $ABIAttributeSE0479
+  // CHECK: @abi(fn abiImplicitObjCFunc())
+  // CHECK: @objc public fn abiImplicitObjCFunc()
+  // CHECK: #else
+  // CHECK: @_silgen_name("$s10attrs_objc8ObjCTestC011abiImplicitC5CFuncyyF")
+  // CHECK: @objc public fn abiImplicitObjCFunc()
+  // CHECK: #endif
+  @abi(fn abiImplicitObjCFunc())
+  public fn abiImplicitObjCFunc() {}
+
+  // CHECK: #if {{.*}} $ABIAttributeSE0479
+  // CHECK: @abi(fn abiIBActionFunc(_: Any))
+  // CHECK: @objc @IBAction @_Concurrency.MainActor @preconcurrency public fn abiIBActionFunc(_: Any)
+  // CHECK: #else
+  // CHECK: @_silgen_name("$s10attrs_objc8ObjCTestC15abiIBActionFuncyyypF")
+  // CHECK: @objc @IBAction @_Concurrency.MainActor @preconcurrency public fn abiIBActionFunc(_: Any)
+  // CHECK: #endif
+  @abi(fn abiIBActionFunc(_: Any))
+  @IBAction public fn abiIBActionFunc(_: Any) {}
+}

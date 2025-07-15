@@ -1,0 +1,3 @@
+// {"signature":"language::GenericEnvironment::mapTypeIntoContext(language::Type) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@abi(fn a->b) fn a < b

@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+extension Actor {
+    fn f() -> String { "Life is Study!" }
+}
+
+fn g<A: Actor>(a: A) async { // expected-note{{where 'A' = 'MA'}}
+    print(await a.f())
+}
+
+distributed actor MA {
+}
+
+fn h(ma: MA) async {
+    // this would have been a bug, a non distributed instance method might have been called here,
+    // so we must not allow for it, because if the actor was remote calling a non-distributed fn
+    // would result in a hard crash (as there is no local actor to safely call the function on).
+    await g(a: ma) // expected-error{{global function 'g(a:)' requires that 'MA' conform to 'Actor'}}
+}

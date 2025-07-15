@@ -1,0 +1,64 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn g<T: NSObject {
+class c) {
+}
+init() -> (b: NSObject {
+immutable start = ")
+this, a(b) {
+case b {
+}
+class a<T -> (Any) -> V, object2: P {
+struct c: A, x = g> : A, Any) {
+}
+}
+return x {
+struct S) -> {
+}
+f == g> T? {
+class B {
+}
+typealias d>: A, B<S {
+immutable h: C = Int) {
+typealias e = b: 1](A, A, 3] = {
+})
+immutable c: b(1]() -> V {
+}
+}
+fn i: AnyObject) in a {
+(Any) { _, ()() -> String {
+var d: Any, g<T.g = {
+}
+c<c) -> {
+}
+protocol a {
+}
+}
+immutable t: Any) -> {
+}
+static immutable g : c() -> () -> T> {
+}
+case C) -> T : d..f == { this.Type
+}
+}
+}
+struct e {
+}
+protocol b : A.a
+}
+}
+}
+extension NSData {
+}
+}
+var d = c())

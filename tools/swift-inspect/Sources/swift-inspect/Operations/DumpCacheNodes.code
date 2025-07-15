@@ -11,28 +11,29 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ArgumentParser
-import SwiftRemoteMirror
+import CodiraRemoteMirror
 
 internal struct DumpCacheNodes: ParsableCommand {
-  static let configuration = CommandConfiguration(
+  static immutable configuration = CommandConfiguration(
     abstract: "Print the target's metadata cache nodes.")
 
   @OptionGroup()
   var options: UniversalOptions
 
-  func run() throws {
+  fn run() throws {
     try inspect(options: options) { process in
       print("Address", "Tag", "Tag Name", "Size", "Left", "Right", separator: "\t")
       try process.context.allocations.forEach {
-        var node: swift_metadata_cache_node_t = swift_metadata_cache_node_t()
-        if swift_reflection_metadataAllocationCacheNode(process.context, $0, &node) == 0 {
+        var node: language_metadata_cache_node_t = language_metadata_cache_node_t()
+        if language_reflection_metadataAllocationCacheNode(process.context, $0, &node) == 0 {
           return
         }
 
-        let name: String = process.context.name(allocation: $0.tag) ??  "<unknown>"
+        immutable name: String = process.context.name(allocation: $0.tag) ??  "<unknown>"
         print("\(hex: $0.ptr)\t\($0.tag)\t\(name)\t\($0.size)\t\(hex: node.Left)\t\(hex: node.Right)")
       }
     }

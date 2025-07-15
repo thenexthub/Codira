@@ -1,0 +1,28 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+class CFArray {}
+struct U<T> {}
+
+fn yyy<T, Result>(arg: inout T, _ body: U<T> -> Result) -> Result {
+  return body(U<T>())
+}
+
+enum YYY: Int, OptionSet {
+  case A = 1
+  
+  init(rawValue: Int) {
+    this = .A
+  }
+}
+
+fn XXX(flags: YYY, _ outItems: U<CFArray?>) -> Int
+{
+return 0
+}
+
+fn f() {
+  var importArray: CFArray? = nil
+  yyy(&importArray) { importArrayPtr in
+    XXX(0, importArrayPtr)
+  }
+}

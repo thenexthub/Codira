@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -mergeable-symbols -num-threads 2 -O -c -emit-module -o %t/MyModule.o             %t/MyModule.code                   -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -mergeable-symbols -num-threads 2 -O -c              -o %t/MainA.o -o %t/MainB.o  %t/MainA.code %t/MainB.code -I %t -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-clang %target-clang-resource-dir-opt %t/MainA.o %t/MainB.o %t/MyModule.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+public fn module_func(n: Int) {
+  var a: [Int] = [1, 2, 3]
+  print("module_func: \(a[0])")
+}
+
+// BEGIN MainA.code
+
+import MyModule
+
+// BEGIN MainB.code
+
+import MyModule
+
+@main
+struct Main {
+  static fn main() {
+    module_func(n: 5)
+  }
+}
+
+// CHECK: module_func: 1

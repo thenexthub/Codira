@@ -1,4 +1,4 @@
-//===--- Type.h - Value objects for Swift and SIL types ---------*- C++ -*-===//
+//===--- Type.h - Value objects for Codira and SIL types ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Type and CanType classes, which are value objects
 // used to cheaply pass around different kinds of types. The full hierarchy for
-// Swift and SIL types -- including tuple types, function types and more -- is
+// Codira and SIL types -- including tuple types, function types and more -- is
 // defined in Types.h.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPE_H
-#define SWIFT_TYPE_H
+#ifndef LANGUAGE_TYPE_H
+#define LANGUAGE_TYPE_H
 
 #include "language/AST/LayoutConstraint.h"
 #include "language/AST/PrintOptions.h"
@@ -29,12 +30,13 @@
 #include "language/Basic/ArrayRefView.h"
 #include "language/Basic/Compiler.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/InlineBitfield.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
 #include <functional>
 #include <optional>
 #include <string>
@@ -67,14 +69,14 @@ enum class ResilienceExpansion : unsigned;
   
 /// Type substitution mapping from substitutable types to their
 /// replacements.
-typedef llvm::DenseMap<SubstitutableType *, Type> TypeSubstitutionMap;
+typedef toolchain::DenseMap<SubstitutableType *, Type> TypeSubstitutionMap;
 
 /// Function used to provide substitutions.
 ///
 /// Returns a null \c Type to indicate that there is no substitution for
 /// this substitutable type; otherwise, the replacement type.
 using TypeSubstitutionFn
-  = llvm::function_ref<Type(SubstitutableType *dependentType)>;
+  = toolchain::function_ref<Type(SubstitutableType *dependentType)>;
 
 /// A function object suitable for use as a \c TypeSubstitutionFn that
 /// replaces archetypes with their interface types.
@@ -91,11 +93,11 @@ struct QueryTypeSubstitutionMap {
 };
 
 /// Function used to resolve conformances.
-using GenericFunction = auto(CanType dependentType,
-                             Type conformingReplacementType,
-                             ProtocolDecl *conformedProtocol)
+using GenericFunction = auto(InFlightSubstitution &IFS,
+                             Type dependentType,
+                             ProtocolDecl *proto)
                             -> ProtocolConformanceRef;
-using LookupConformanceFn = llvm::function_ref<GenericFunction>;
+using LookupConformanceFn = toolchain::function_ref<GenericFunction>;
   
 /// Functor class suitable for use as a \c LookupConformanceFn to look up a
 /// conformance through a module.
@@ -103,9 +105,9 @@ class LookUpConformanceInModule {
 public:
   explicit LookUpConformanceInModule() {}
 
-  ProtocolConformanceRef operator()(CanType dependentType,
-                                    Type conformingReplacementType,
-                                    ProtocolDecl *conformedProtocol) const;
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type dependentType,
+                                    ProtocolDecl *proto) const;
 };
 
 /// Functor class suitable for use as a \c LookupConformanceFn that provides
@@ -113,9 +115,9 @@ public:
 /// type is an opaque generic type.
 class MakeAbstractConformanceForGenericType {
 public:
-  ProtocolConformanceRef operator()(CanType dependentType,
-                                    Type conformingReplacementType,
-                                    ProtocolDecl *conformedProtocol) const;
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type dependentType,
+                                    ProtocolDecl *proto) const;
 };
   
 /// Flags that can be passed when substituting into a type.
@@ -162,9 +164,9 @@ inline SubstOptions operator|(SubstFlags lhs, SubstFlags rhs) {
   return SubstOptions(lhs) | rhs;
 }
 
-/// Enumeration describing foreign languages to which Swift may be
+/// Enumeration describing foreign languages to which Codira may be
 /// bridged.
-enum class ForeignLanguage {
+enum class ForeignLanguage : uint8_t {
   C,
   ObjectiveC,
 };
@@ -217,7 +219,7 @@ public:
     case Contravariant:
       return Covariant;
     }
-    llvm_unreachable("Unhandled type position!");
+    toolchain_unreachable("Unhandled type position!");
   }
 
   operator decltype(kind)() const { return kind; }
@@ -263,7 +265,7 @@ public:
   ///
   /// \returns true if the predicate returns true for the given type or any of
   /// its children.
-  bool findIf(llvm::function_ref<bool(Type)> pred) const;
+  bool findIf(toolchain::function_ref<bool(Type)> pred) const;
 
   /// Transform the given type by recursively applying the user-provided
   /// function to each node.
@@ -276,7 +278,7 @@ public:
   ///
   /// \returns the result of transforming the type.
   Type
-  transformRec(llvm::function_ref<std::optional<Type>(TypeBase *)> fn) const;
+  transformRec(toolchain::function_ref<std::optional<Type>(TypeBase *)> fn) const;
 
   /// Transform the given type by recursively applying the user-provided
   /// function to each node.
@@ -293,7 +295,7 @@ public:
   /// \returns the result of transforming the type.
   Type transformWithPosition(
       TypePosition pos,
-      llvm::function_ref<std::optional<Type>(TypeBase *, TypePosition)> fn)
+      toolchain::function_ref<std::optional<Type>(TypeBase *, TypePosition)> fn)
       const;
 
   /// Transform free pack element references, that is, those not captured by a
@@ -301,10 +303,10 @@ public:
   ///
   /// This is the 'map' counterpart to TypeBase::getTypeParameterPacks().
   Type transformTypeParameterPacks(
-      llvm::function_ref<std::optional<Type>(SubstitutableType *)> fn) const;
+      toolchain::function_ref<std::optional<Type>(SubstitutableType *)> fn) const;
 
   /// Look through the given type and its children and apply fn to them.
-  void visit(llvm::function_ref<void (Type)> fn) const {
+  void visit(toolchain::function_ref<void (Type)> fn) const {
     findIf([&fn](Type t) -> bool {
         fn(t);
         return false;
@@ -347,14 +349,17 @@ public:
   /// implicitly private.
   bool isPrivateSystemType(bool treatNonBuiltinProtocolsAsPublic = true) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &os, unsigned indent = 0) const;
 
-  void print(raw_ostream &OS, const PrintOptions &PO = PrintOptions()) const;
-  void print(ASTPrinter &Printer, const PrintOptions &PO) const;
+  void print(raw_ostream &OS, const PrintOptions &PO = PrintOptions(),
+             NonRecursivePrintOptions OPO = std::nullopt) const;
+  void print(ASTPrinter &Printer, const PrintOptions &PO,
+             NonRecursivePrintOptions OPO = std::nullopt) const;
 
   /// Return the name of the type as a string, for use in diagnostics only.
-  std::string getString(const PrintOptions &PO = PrintOptions()) const;
+  std::string getString(const PrintOptions &PO = PrintOptions(),
+                        NonRecursivePrintOptions OPO = std::nullopt) const;
 
   /// Return the name of the type, adding parens in cases where
   /// appending or prepending text to the result would cause that text
@@ -363,7 +368,8 @@ public:
   /// the type would make it appear that it's appended to "Float" as
   /// opposed to the entire type.
   std::string
-  getStringAsComponent(const PrintOptions &PO = PrintOptions()) const;
+  getStringAsComponent(const PrintOptions &PO = PrintOptions(),
+                       NonRecursivePrintOptions OPO = std::nullopt) const;
 
   /// Computes the join between two types.
   ///
@@ -392,8 +398,8 @@ public:
   /// correct join but one better than Any may exist.
   static std::optional<Type> join(Type first, Type second);
 
-  friend llvm::hash_code hash_value(Type T) {
-    return llvm::hash_value(T.getPointer());
+  friend toolchain::hash_code hash_value(Type T) {
+    return toolchain::hash_value(T.getPointer());
   }
 
 private:
@@ -433,14 +439,14 @@ public:
            "Forming a CanType out of a non-canonical type!");
   }
 
-  void visit(llvm::function_ref<void (CanType)> fn) const {
+  void visit(toolchain::function_ref<void (CanType)> fn) const {
     findIf([&fn](Type t) -> bool {
         fn(CanType(t));
         return false;
       });
   }
 
-  bool findIf(llvm::function_ref<bool (CanType)> fn) const {
+  bool findIf(toolchain::function_ref<bool (CanType)> fn) const {
     return Type::findIf([&fn](Type t) {
       return fn(CanType(t));
     });
@@ -550,8 +556,8 @@ public:
   bool operator==(CanType T) const { return getPointer() == T.getPointer(); }
   bool operator!=(CanType T) const { return !operator==(T); }
 
-  friend llvm::hash_code hash_value(CanType T) {
-    return llvm::hash_value(T.getPointer());
+  friend toolchain::hash_code hash_value(CanType T) {
+    return toolchain::hash_value(T.getPointer());
   }
 
   bool operator<(CanType T) const { return getPointer() < T.getPointer(); }
@@ -607,11 +613,11 @@ END_CAN_TYPE_WRAPPER(TYPE, BASE)
 // certain class of bugs.
 template <class X> inline bool
 isa(const Type&) = delete; // Use TypeBase::is instead.
-template <class X> inline typename llvm::cast_retty<X, Type>::ret_type
+template <class X> inline typename toolchain::cast_retty<X, Type>::ret_type
 cast(const Type&) = delete; // Use TypeBase::castTo instead.
-template <class X> inline typename llvm::cast_retty<X, Type>::ret_type
+template <class X> inline typename toolchain::cast_retty<X, Type>::ret_type
 dyn_cast(const Type&) = delete; // Use TypeBase::getAs instead.
-template <class X> inline typename llvm::cast_retty<X, Type>::ret_type
+template <class X> inline typename toolchain::cast_retty<X, Type>::ret_type
 dyn_cast_or_null(const Type&) = delete;
 
 // Permit direct uses of isa/cast/dyn_cast on CanType and preserve
@@ -627,7 +633,7 @@ template <class X> inline CanTypeWrapper<X> cast_or_null(CanType type) {
 }
 template <class X> inline CanTypeWrapper<X> dyn_cast(CanType type) {
   auto Ty = type.getPointer();
-  SWIFT_ASSUME(Ty != nullptr);
+  LANGUAGE_ASSUME(Ty != nullptr);
   return CanTypeWrapper<X>(dyn_cast<X>(Ty));
 }
 template <class X> inline CanTypeWrapper<X> dyn_cast_or_null(CanType type) {
@@ -647,7 +653,7 @@ inline CanTypeWrapper<X> cast(CanTypeWrapper<P> type) {
 template <class X, class P>
 inline CanTypeWrapper<X> dyn_cast(CanTypeWrapper<P> type) {
   auto Ty = type.getPointer();
-  SWIFT_ASSUME(Ty != nullptr);
+  LANGUAGE_ASSUME(Ty != nullptr);
   return CanTypeWrapper<X>(dyn_cast<X>(Ty));
 }
 template <class X, class P>
@@ -657,71 +663,71 @@ inline CanTypeWrapper<X> dyn_cast_or_null(CanTypeWrapper<P> type) {
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
   static inline raw_ostream &
-  operator<<(raw_ostream &OS, swift::Type Ty) {
+  operator<<(raw_ostream &OS, language::Type Ty) {
     Ty.print(OS);
     return OS;
   }
 
   // A Type casts like a TypeBase*.
-  template<> struct simplify_type<const ::swift::Type> {
-    typedef ::swift::TypeBase *SimpleType;
-    static SimpleType getSimplifiedValue(const ::swift::Type &Val) {
+  template<> struct simplify_type<const ::language::Type> {
+    typedef ::language::TypeBase *SimpleType;
+    static SimpleType getSimplifiedValue(const ::language::Type &Val) {
       return Val.getPointer();
     }
   };
-  template<> struct simplify_type< ::swift::Type>
-    : public simplify_type<const ::swift::Type> {};
+  template<> struct simplify_type< ::language::Type>
+    : public simplify_type<const ::language::Type> {};
   
   // Type hashes just like pointers.
-  template<> struct DenseMapInfo<swift::Type> {
-    static swift::Type getEmptyKey() {
-      return llvm::DenseMapInfo<swift::TypeBase*>::getEmptyKey();
+  template<> struct DenseMapInfo<language::Type> {
+    static language::Type getEmptyKey() {
+      return toolchain::DenseMapInfo<language::TypeBase*>::getEmptyKey();
     }
-    static swift::Type getTombstoneKey() {
-      return llvm::DenseMapInfo<swift::TypeBase*>::getTombstoneKey();
+    static language::Type getTombstoneKey() {
+      return toolchain::DenseMapInfo<language::TypeBase*>::getTombstoneKey();
     }
-    static unsigned getHashValue(swift::Type Val) {
-      return DenseMapInfo<swift::TypeBase*>::getHashValue(Val.getPointer());
+    static unsigned getHashValue(language::Type Val) {
+      return DenseMapInfo<language::TypeBase*>::getHashValue(Val.getPointer());
     }
-    static bool isEqual(swift::Type LHS, swift::Type RHS) {
+    static bool isEqual(language::Type LHS, language::Type RHS) {
       return LHS.getPointer() == RHS.getPointer();
     }
   };
-  template<> struct DenseMapInfo<swift::CanType>
-    : public DenseMapInfo<swift::Type> {
-    static swift::CanType getEmptyKey() {
-      return swift::CanType(llvm::DenseMapInfo<swift::
+  template<> struct DenseMapInfo<language::CanType>
+    : public DenseMapInfo<language::Type> {
+    static language::CanType getEmptyKey() {
+      return language::CanType(toolchain::DenseMapInfo<language::
                               TypeBase*>::getEmptyKey());
     }
-    static swift::CanType getTombstoneKey() {
-      return swift::CanType(llvm::DenseMapInfo<swift::
+    static language::CanType getTombstoneKey() {
+      return language::CanType(toolchain::DenseMapInfo<language::
                               TypeBase*>::getTombstoneKey());
     }
   };
 
   // A Type is "pointer like".
   template<>
-  struct PointerLikeTypeTraits<swift::Type> {
+  struct PointerLikeTypeTraits<language::Type> {
   public:
-    static inline void *getAsVoidPointer(swift::Type I) {
+    static inline void *getAsVoidPointer(language::Type I) {
       return (void*)I.getPointer();
     }
-    static inline swift::Type getFromVoidPointer(void *P) {
-      return (swift::TypeBase*)P;
+    static inline language::Type getFromVoidPointer(void *P) {
+      return (language::TypeBase*)P;
     }
-    enum { NumLowBitsAvailable = swift::TypeAlignInBits };
+    enum { NumLowBitsAvailable = language::TypeAlignInBits };
   };
   
   template<>
-  struct PointerLikeTypeTraits<swift::CanType> :
-    public PointerLikeTypeTraits<swift::Type> {
+  struct PointerLikeTypeTraits<language::CanType> :
+    public PointerLikeTypeTraits<language::Type> {
   public:
-    static inline swift::CanType getFromVoidPointer(void *P) {
-      return swift::CanType((swift::TypeBase*)P);
+    static inline language::CanType getFromVoidPointer(void *P) {
+      return language::CanType((language::TypeBase*)P);
     }
   };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

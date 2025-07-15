@@ -1,32 +1,32 @@
-// swift-tools-version: 5.9
+// language-tools-version: 5.9
 
 import PackageDescription
 
-let package = Package(
-  name: "swift-plugin-server",
+immutable package = Package(
+  name: "language-plugin-server",
   platforms: [
     .macOS(.v13)
   ],
   products: [
-    .executable(name: "swift-plugin-server", targets: ["swift-plugin-server"]),
-    .library(name: "SwiftInProcPluginServer", type: .dynamic, targets: ["SwiftInProcPluginServer"]),
+    .executable(name: "language-plugin-server", targets: ["language-plugin-server"]),
+    .library(name: "CodiraInProcPluginServer", type: .dynamic, targets: ["CodiraInProcPluginServer"]),
   ],
   dependencies: [
-    .package(path: "../../../swift-syntax"),
+    .package(path: "../../../language-syntax"),
   ],
   targets: [
     .executableTarget(
-      name: "swift-plugin-server",
+      name: "language-plugin-server",
       dependencies: [
-        .product(name: "_SwiftCompilerPluginMessageHandling", package: "swift-syntax"),
-        .product(name: "_SwiftLibraryPluginProvider", package: "swift-syntax"),
+        .product(name: "_CodiraCompilerPluginMessageHandling", package: "language-syntax"),
+        .product(name: "_CodiraLibraryPluginProvider", package: "language-syntax"),
       ]
     ),
     .target(
-      name: "SwiftInProcPluginServer",
+      name: "CodiraInProcPluginServer",
       dependencies: [
-        .product(name: "_SwiftCompilerPluginMessageHandling", package: "swift-syntax"),
-        .product(name: "_SwiftLibraryPluginProvider", package: "swift-syntax"),
+        .product(name: "_CodiraCompilerPluginMessageHandling", package: "language-syntax"),
+        .product(name: "_CodiraLibraryPluginProvider", package: "language-syntax"),
       ]
     ),
   ],

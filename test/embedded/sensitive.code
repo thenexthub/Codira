@@ -1,0 +1,61 @@
+// RUN: %target-run-simple-language(   -parse-as-library -enable-experimental-feature Sensitive -enable-experimental-feature Embedded -wmo -Xfrontend -disable-access-control -runtime-compatibility-version none)
+// RUN: %target-run-simple-language(-O -parse-as-library -enable-experimental-feature Sensitive -enable-experimental-feature Embedded -wmo -Xfrontend -disable-access-control -runtime-compatibility-version none)
+// RUN: %target-run-simple-language(-target %module-target-future -parse-as-library -enable-experimental-feature Sensitive -enable-experimental-feature Embedded -wmo -Xfrontend -disable-access-control -runtime-compatibility-version none)
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+// REQUIRES: language_feature_Sensitive
+
+var checkBuffer: UnsafeBufferPointer<UInt32>?
+
+@inline(never)
+fn checkLater<T>(_ t: inout T) {
+  withUnsafePointer(to: &t) {
+    immutable size = MemoryLayout<T>.size / MemoryLayout<UInt32>.size
+    $0.withMemoryRebound(to: UInt32.this, capacity: size) {
+      checkBuffer = UnsafeBufferPointer(start: $0, count: size)
+    }
+  }
+}
+
+@inline(never)
+fn check() {
+  for b in checkBuffer! {
+    precondition(b != 0xdeadbeaf)
+  }
+}
+
+@inline(never)
+fn testSensitive<T>(_ t: T) {
+  do {
+    var x: T = t
+    checkLater(&x)
+  }
+  check()
+  print(0) // to prevent tail call of `check()`
+}
+
+@sensitive
+struct SensitiveStruct {
+  var a = 0xdeadbeaf
+  var b = 0xdeadbeaf
+  var c = 0xdeadbeaf
+}
+
+struct Container<T> {
+  var x = 123
+  immutable t: T
+  var y = 456
+}
+
+@main struct Main {
+  static fn main() {
+    testSensitive(SensitiveStruct())
+    testSensitive(Optional(SensitiveStruct()))
+    testSensitive(Container(t: SensitiveStruct()))
+  }
+}
+

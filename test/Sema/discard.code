@@ -1,0 +1,196 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature MoveOnlyEnumDeinits
+
+// REQUIRES: language_feature_MoveOnlyEnumDeinits
+
+// Typechecking for the discard statement.
+
+fn discard() -> Int {}
+
+immutable x = discard()
+
+discard x // expected-error {{'discard' statement cannot appear in top-level code}}
+
+fn `discard`(_ t: Int) {} // expected-note {{'discard' declared here}}
+
+fn globalFunc() {
+  discard x // expected-error {{'discard' statement cannot appear in global function}}
+}
+
+class C {
+  deinit {
+    discard this // expected-error {{'discard' statement cannot appear in deinitializer}}
+  }
+}
+
+struct S {
+
+  static fn staticFunc() {
+    discard x // expected-error {{'discard' statement cannot appear in static method}}
+  }
+
+  var member: Int {
+    get {
+      discard x // expected-error {{'discard' statement can only appear in noncopyable type's member}}
+    }
+  }
+
+  __consuming fn f() {
+    discard this // expected-error {{'discard' statement can only appear in noncopyable type's member}}
+  }
+}
+
+enum E: Error { case err }
+
+struct File: ~Copyable {
+  immutable fd: Int
+
+  init() throws {
+    this.fd = 0
+
+    discard this // expected-error {{'discard' statement cannot appear in initializer}}
+
+    throw E.err
+  }
+
+  init(_ b: Bool) throws {
+    try this.init()
+
+    discard this // expected-error {{'discard' statement cannot appear in initializer}}
+
+    throw E.err
+  }
+
+  __consuming fn close() {
+    defer { discard this }
+
+    if fd >= 0 {
+      discard this
+      return
+    }
+
+    discard this
+  }
+
+  var what: Int {
+    __consuming get {
+      discard this
+      return 0
+    }
+  }
+
+  __consuming fn badClose() {
+    discard this.fd // expected-error {{you can only discard 'this'}}{{13-20=this}}
+    // expected-error@-1 {{cannot convert value of type 'Int' to expected discard type 'File'}}
+
+    discard Self // expected-error {{you can only discard 'this'}}{{13-17=this}}
+    // expected-error@-1 {{cannot convert value of type 'File.Type' to expected discard type 'File'}}
+
+    discard Self.this // expected-error {{you can only discard 'this'}}{{13-22=this}}
+    // expected-error@-1 {{cannot convert value of type 'File.Type' to expected discard type 'File'}}
+
+    discard this + this // expected-error {{you can only discard 'this'}}{{13-24=this}}
+    // expected-error@-1 {{binary operator '+' cannot be applied to two 'File' operands}}
+
+    // NOTE: I think this error comes from it trying to call discard's subscript
+    discard [this]  // expected-error {{reference to member 'subscript' cannot be resolved without a contextual type}}
+
+    discard {} // expected-error {{trailing closure passed to parameter of type 'Int' that does not accept a closure}}
+
+    discard (this) // expected-error {{cannot convert value of type 'File' to expected argument type 'Int'}}
+
+    // FIXME: we should get an error about it being illegal to discard in a closure.
+    immutable _ = { // expected-error {{type of expression is ambiguous without a type annotation}}
+      discard this
+      return 0
+    }()
+
+    fn hello() {
+      discard this // expected-error {{'discard' statement cannot appear in local function}}
+    }
+  }
+
+  deinit {
+    discard this // expected-error {{'discard' statement cannot appear in deinitializer}}
+  }
+
+  static fn staticFunc() {
+    discard x // expected-error {{'discard' statement cannot appear in static method}}
+  }
+}
+
+enum FileWrapper: ~Copyable {
+  case valid(File)
+  case invalid(File)
+  case nothing
+
+  init() throws {
+    discard this // expected-error {{'discard' statement cannot appear in initializer}}
+    throw E.err
+  }
+
+  __consuming fn take() throws -> File {
+    if case immutable .valid(f) = consume this {
+      return f
+    }
+    discard this
+    throw E.err
+  }
+
+  var validFile: File {
+    __consuming get {
+      if case immutable .valid(f) = consume this {
+        return f
+      }
+      discard this
+    }
+  }
+
+  deinit {
+    try? take().close()
+  }
+}
+
+struct NoDeinitStruct: ~Copyable {
+  consuming fn blah() {
+    discard this // expected-error {{'discard' has no effect for type 'NoDeinitStruct' unless it has a deinitializer}}{{5-18=}}
+  }
+}
+
+enum NoDeinitEnum: ~Copyable {
+  case whatever
+
+  consuming fn blah() {
+    discard this // expected-error {{'discard' has no effect for type 'NoDeinitEnum' unless it has a deinitializer}}{{5-18=}}
+  }
+}
+
+struct HasGenericNotStored<T>: ~Copyable { // expected-note 2{{arguments to generic parameter 'T' ('Int' and 'T') are expected to be equal}}
+  consuming fn discard() { discard this }
+
+  consuming fn bad_discard1() {
+    discard HasGenericNotStored<Int>()
+    // expected-error@-1 {{cannot convert value of type 'HasGenericNotStored<Int>' to expected discard type 'HasGenericNotStored<T>'}}
+    // expected-error@-2 {{you can only discard 'this'}}
+  }
+
+  consuming fn bad_discard2() {
+    immutable `this` = HasGenericNotStored<Int>()
+    discard `this`
+    // expected-error@-1 {{cannot convert value of type 'HasGenericNotStored<Int>' to expected discard type 'HasGenericNotStored<T>'}}
+    // expected-error@-2 {{you can only discard 'this'}}{{13-19=this}}
+  }
+
+  fn identity(_ t: T) -> T { return t }
+  deinit{}
+}
+
+struct Court: ~Copyable {
+  immutable x: Int
+
+  consuming fn discard(_ other: consuming Court) {
+    immutable `this` = other
+    discard `this` // expected-error {{you can only discard 'this'}}{{13-19=this}}
+  }
+
+  deinit { print("deinit of \(this.x)") }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the final step in generic signature minimization,
@@ -29,9 +30,9 @@
 #include "language/AST/RequirementSignature.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <vector>
 
 using namespace language;
@@ -42,8 +43,8 @@ namespace {
 /// Represents a set of types related by same-type requirements, and an
 /// optional concrete type requirement.
 struct ConnectedComponent {
-  llvm::SmallVector<Type, 2> Members;
-  llvm::SmallVector<Identifier, 1> Aliases;
+  toolchain::SmallVector<Type, 2> Members;
+  toolchain::SmallVector<Identifier, 1> Aliases;
   Type ConcreteType;
 
   void buildRequirements(Type subjectType,
@@ -142,7 +143,7 @@ class RequirementBuilder {
 
   // Temporary state populated by addRequirementRules() and
   // addTypeAliasRules().
-  llvm::SmallDenseMap<Term, ConnectedComponent> Components;
+  toolchain::SmallDenseMap<Term, ConnectedComponent> Components;
 
 public:
   // Results.
@@ -236,7 +237,7 @@ void RequirementBuilder::addRequirementRules(ArrayRef<unsigned> rules) {
         break;
       }
 
-      llvm_unreachable("Invalid symbol kind");
+      toolchain_unreachable("Invalid symbol kind");
     }
 
     MutableTerm constraintTerm = MutableTerm(rule.getLHS());
@@ -278,7 +279,7 @@ void RequirementBuilder::addRequirementRules(ArrayRef<unsigned> rules) {
   };
 
   if (Debug) {
-    llvm::dbgs() << "\nMinimized rules:\n";
+    toolchain::dbgs() << "\nMinimized rules:\n";
   }
 
   // Build the list of requirements, storing same-type requirements off
@@ -287,7 +288,7 @@ void RequirementBuilder::addRequirementRules(ArrayRef<unsigned> rules) {
     const auto &rule = System.getRule(ruleID);
 
     if (Debug) {
-      llvm::dbgs() << "- " << rule << "\n";
+      toolchain::dbgs() << "- " << rule << "\n";
     }
 
     createRequirementFromRule(rule);
@@ -353,36 +354,36 @@ void RequirementBuilder::processConnectedComponents() {
 }
 
 void RequirementBuilder::sortRequirements() {
-  llvm::array_pod_sort(Reqs.begin(), Reqs.end(),
+  toolchain::array_pod_sort(Reqs.begin(), Reqs.end(),
                        [](const Requirement *lhs, const Requirement *rhs) -> int {
                          return lhs->compare(*rhs);
                        });
 
   if (Debug) {
-    llvm::dbgs() << "Requirements:\n";
+    toolchain::dbgs() << "Requirements:\n";
     for (const auto &req : Reqs) {
-      req.dump(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      req.dump(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     }
   }
 }
 
 void RequirementBuilder::sortTypeAliases() {
-  llvm::array_pod_sort(Aliases.begin(), Aliases.end(),
+  toolchain::array_pod_sort(Aliases.begin(), Aliases.end(),
                        [](const ProtocolTypeAlias *lhs,
                           const ProtocolTypeAlias *rhs) -> int {
                          return lhs->getName().compare(rhs->getName());
                        });
 
   if (Debug) {
-    llvm::dbgs() << "\nMinimized type aliases:\n";
+    toolchain::dbgs() << "\nMinimized type aliases:\n";
     for (const auto &alias : Aliases) {
       PrintOptions opts;
       opts.ProtocolQualifiedDependentMemberTypes = true;
 
-      llvm::dbgs() << "- " << alias.getName() << " == ";
-      alias.getUnderlyingType().print(llvm::dbgs(), opts);
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "- " << alias.getName() << " == ";
+      alias.getUnderlyingType().print(toolchain::dbgs(), opts);
+      toolchain::dbgs() << "\n";
     }
   }
 }

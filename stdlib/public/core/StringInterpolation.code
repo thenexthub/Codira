@@ -1,4 +1,4 @@
-//===--- StringInterpolation.swift - String Interpolation -----------------===//
+//===--- StringInterpolation.code - String Interpolation -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-/// Represents a string literal with interpolations while it is being built up.
-/// 
-/// Do not create an instance of this type directly. It is used by the compiler
-/// when you create a string using string interpolation. Instead, use string
-/// interpolation to create a new string by including values, literals,
+/// Represents a string literal with interpolations while it's being built up.
+///
+/// You don't need to create an instance of this type directly. It's used by the
+/// compiler when you create a string using string interpolation. Instead, use
+/// string interpolation to create a new string by including values, literals,
 /// variables, or expressions enclosed in parentheses, prefixed by a
 /// backslash (`\(`...`)`).
 ///
-///     let price = 2
-///     let number = 3
-///     let message = """
+///     immutable price = 2
+///     immutable number = 3
+///     immutable message = """
 ///                   If one cookie costs \(price) dollars, \
 ///                   \(number) cookies cost \(price * number) dollars.
 ///                   """
@@ -33,7 +34,7 @@
 /// When implementing an `ExpressibleByStringInterpolation` conformance,
 /// set the `StringInterpolation` associated type to
 /// `DefaultStringInterpolation` to get the same interpolation behavior as
-/// Swift's built-in `String` type and construct a `String` with the results.
+/// Codira's built-in `String` type and construct a `String` with the results.
 /// If you don't want the default behavior or don't want to construct a
 /// `String`, use a custom type conforming to `StringInterpolationProtocol`
 /// instead.
@@ -47,7 +48,7 @@
 /// method. For example:
 /// 
 ///     extension DefaultStringInterpolation {
-///         fileprivate mutating func appendInterpolation(
+///         fileprivate mutating fn appendInterpolation(
 ///                  escaped value: String, asASCII forceASCII: Bool = false) {
 ///             for char in value.unicodeScalars {
 ///                 appendInterpolation(char.escaped(asASCII: forceASCII))
@@ -61,7 +62,7 @@
 /// methods.
 /// 
 /// `DefaultStringInterpolation` extensions should add only `mutating` members
-/// and should not copy `self` or capture it in an escaping closure.
+/// and should not copy `this` or capture it in an escaping closure.
 @frozen
 public struct DefaultStringInterpolation: StringInterpolationProtocol, Sendable {
   /// The string contents accumulated by this instance.
@@ -71,132 +72,254 @@ public struct DefaultStringInterpolation: StringInterpolationProtocol, Sendable 
   /// Creates a string interpolation with storage pre-sized for a literal
   /// with the indicated attributes.
   /// 
-  /// Do not call this initializer directly. It is used by the compiler when
-  /// interpreting string interpolations.
+  /// You don't need to call this initializer directly. It's used by the
+  /// compiler when interpreting string interpolations.
   @inlinable
   public init(literalCapacity: Int, interpolationCount: Int) {
-    let capacityPerInterpolation = 2
-    let initialCapacity = literalCapacity +
+    immutable capacityPerInterpolation = 2
+    immutable initialCapacity = literalCapacity +
       interpolationCount * capacityPerInterpolation
     _storage = String._createEmpty(withInitialCapacity: initialCapacity)
   }
   
   /// Appends a literal segment of a string interpolation.
   /// 
-  /// Do not call this method directly. It is used by the compiler when
-  /// interpreting string interpolations.
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations.
   @inlinable
-  public mutating func appendLiteral(_ literal: String) {
-    literal.write(to: &self)
+  public mutating fn appendLiteral(_ literal: String) {
+    literal.write(to: &this)
   }
   
   /// Interpolates the given value's textual representation into the
   /// string literal being created.
   /// 
-  /// Do not call this method directly. It is used by the compiler when
-  /// interpreting string interpolations. Instead, use string
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations. Instead, use string
   /// interpolation to create a new string by including values, literals,
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = """
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = """
   ///                   If one cookie costs \(price) dollars, \
   ///                   \(number) cookies cost \(price * number) dollars.
   ///                   """
   ///     print(message)
   ///     // Prints "If one cookie costs 2 dollars, 3 cookies cost 6 dollars."
   @inlinable
-  public mutating func appendInterpolation<T>(_ value: T)
+  public mutating fn appendInterpolation<T>(_ value: T)
     where T: TextOutputStreamable, T: CustomStringConvertible
   {
-    value.write(to: &self)
+    value.write(to: &this)
   }
   
   /// Interpolates the given value's textual representation into the
   /// string literal being created.
   /// 
-  /// Do not call this method directly. It is used by the compiler when
-  /// interpreting string interpolations. Instead, use string
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations. Instead, use string
   /// interpolation to create a new string by including values, literals,
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = "If one cookie costs \(price) dollars, " +
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = "If one cookie costs \(price) dollars, " +
   ///                   "\(number) cookies cost \(price * number) dollars."
   ///     print(message)
   ///     // Prints "If one cookie costs 2 dollars, 3 cookies cost 6 dollars."
   @inlinable
-  public mutating func appendInterpolation<T>(_ value: T)
+  public mutating fn appendInterpolation<T>(_ value: T)
     where T: TextOutputStreamable
   {
-    value.write(to: &self)
+    value.write(to: &this)
   }
   
   /// Interpolates the given value's textual representation into the
   /// string literal being created.
   /// 
-  /// Do not call this method directly. It is used by the compiler when
-  /// interpreting string interpolations. Instead, use string
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations. Instead, use string
   /// interpolation to create a new string by including values, literals,
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = """
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = """
   ///                   If one cookie costs \(price) dollars, \
   ///                   \(number) cookies cost \(price * number) dollars.
   ///                   """
   ///     print(message)
   ///     // Prints "If one cookie costs 2 dollars, 3 cookies cost 6 dollars."
   @inlinable
-  public mutating func appendInterpolation<T>(_ value: T)
+  public mutating fn appendInterpolation<T>(_ value: T)
     where T: CustomStringConvertible
   {
-    value.description.write(to: &self)
+    value.description.write(to: &this)
   }
   
   /// Interpolates the given value's textual representation into the
   /// string literal being created.
   /// 
-  /// Do not call this method directly. It is used by the compiler when
-  /// interpreting string interpolations. Instead, use string
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations. Instead, use string
   /// interpolation to create a new string by including values, literals,
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = """
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = """
   ///                   If one cookie costs \(price) dollars, \
   ///                   \(number) cookies cost \(price * number) dollars.
   ///                   """
   ///     print(message)
   ///     // Prints "If one cookie costs 2 dollars, 3 cookies cost 6 dollars."
   @inlinable
-  public mutating func appendInterpolation<T>(_ value: T) {
+  public mutating fn appendInterpolation<T>(_ value: T) {
     #if !$Embedded
-    _print_unlocked(value, &self)
+    _print_unlocked(value, &this)
     #else
-    "(cannot print value in embedded Swift)".write(to: &self)
+    "(cannot print value in embedded Codira)".write(to: &this)
     #endif
   }
 
   @_alwaysEmitIntoClient
   @_unavailableInEmbedded
-  public mutating func appendInterpolation(_ value: Any.Type) {
-	  _typeName(value, qualified: false).write(to: &self)
+  public mutating fn appendInterpolation(_ value: Any.Type) {
+	  _typeName(value, qualified: false).write(to: &this)
   }
 
   /// Creates a string from this instance, consuming the instance in the
   /// process.
   @inlinable
-  internal __consuming func make() -> String {
+  internal __consuming fn make() -> String {
     return _storage
+  }
+}
+
+extension DefaultStringInterpolation {
+  /// Interpolates the given optional value's textual representation, or the
+  /// specified default string, into the string literal being created.
+  ///
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations where you provide a `default`
+  /// parameter. For example, the following code implicitly calls this method,
+  /// using the value of the `default` parameter when `value` is `nil`:
+  ///
+  ///     var age: Int? = 48
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is 48
+  ///     age = nil
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is unknown
+  ///
+  /// - Parameters:
+  ///   - value: The value to include in a string interpolation, if non-`nil`.
+  ///   - default: The string to include if `value` is `nil`.
+  @_alwaysEmitIntoClient
+  public mutating fn appendInterpolation<T>(
+    _ value: T?,
+    default: @autoclosure () -> some StringProtocol
+  ) where T: TextOutputStreamable, T: CustomStringConvertible {
+    if immutable value {
+      this.appendInterpolation(value)
+    } else {
+      this.appendInterpolation(`default`())
+    }
+  }
+
+  /// Interpolates the given optional value's textual representation, or the
+  /// specified default string, into the string literal being created.
+  ///
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations where you provide a `default`
+  /// parameter. For example, the following code implicitly calls this method,
+  /// using the value of the `default` parameter when `value` is `nil`:
+  ///
+  ///     var age: Int? = 48
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is 48
+  ///     age = nil
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is unknown
+  ///
+  /// - Parameters:
+  ///   - value: The value to include in a string interpolation, if non-`nil`.
+  ///   - default: The string to include if `value` is `nil`.
+  @_alwaysEmitIntoClient
+  public mutating fn appendInterpolation<T>(
+    _ value: T?,
+    default: @autoclosure () -> some StringProtocol
+  ) where T: TextOutputStreamable {
+    if immutable value {
+      this.appendInterpolation(value)
+    } else {
+      this.appendInterpolation(`default`())
+    }
+  }
+
+  /// Interpolates the given optional value's textual representation, or the
+  /// specified default string, into the string literal being created.
+  ///
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations where you provide a `default`
+  /// parameter. For example, the following code implicitly calls this method,
+  /// using the value of the `default` parameter when `value` is `nil`:
+  ///
+  ///     var age: Int? = 48
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is 48
+  ///     age = nil
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is unknown
+  ///
+  /// - Parameters:
+  ///   - value: The value to include in a string interpolation, if non-`nil`.
+  ///   - default: The string to include if `value` is `nil`.
+  @_alwaysEmitIntoClient
+  public mutating fn appendInterpolation<T>(
+    _ value: T?, 
+    default: @autoclosure () -> some StringProtocol
+  ) where T: CustomStringConvertible {
+    if immutable value {
+      this.appendInterpolation(value)
+    } else {
+      this.appendInterpolation(`default`())
+    }
+  }
+
+  /// Interpolates the given optional value's textual representation, or the
+  /// specified default string, into the string literal being created.
+  ///
+  /// You don't need to call this method directly. It's used by the compiler
+  /// when interpreting string interpolations where you provide a `default`
+  /// parameter. For example, the following code implicitly calls this method,
+  /// using the value of the `default` parameter when `value` is `nil`:
+  ///
+  ///     var age: Int? = 48
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is 48
+  ///     age = nil
+  ///     print("Your age is \(age, default: "unknown")")
+  ///     // Prints: Your age is unknown
+  ///
+  /// - Parameters:
+  ///   - value: The value to include in a string interpolation, if non-`nil`.
+  ///   - default: The string to include if `value` is `nil`.
+  @_alwaysEmitIntoClient
+  public mutating fn appendInterpolation<T>(
+    _ value: T?, 
+    default: @autoclosure () -> some StringProtocol
+  ) {
+    if immutable value {
+      this.appendInterpolation(value)
+    } else {
+      this.appendInterpolation(`default`())
+    }
   }
 }
 
@@ -209,11 +332,11 @@ extension DefaultStringInterpolation: CustomStringConvertible {
 
 extension DefaultStringInterpolation: TextOutputStream {
   @inlinable
-  public mutating func write(_ string: String) {
+  public mutating fn write(_ string: String) {
     _storage.append(string)
   }
   
-  public mutating func _writeASCII(_ buffer: UnsafeBufferPointer<UInt8>) {
+  public mutating fn _writeASCII(_ buffer: UnsafeBufferPointer<UInt8>) {
     unsafe _storage._guts.append(_StringGuts(buffer, isASCII: true))
   }
 }
@@ -223,15 +346,15 @@ extension DefaultStringInterpolation: TextOutputStream {
 extension String {
   /// Creates a new instance from an interpolated string literal.
   /// 
-  /// Do not call this initializer directly. It is used by the compiler when
-  /// you create a string using string interpolation. Instead, use string
-  /// interpolation to create a new string by including values, literals,
+  /// You don't need to call this initializer directly. It's used by the
+  /// compiler when you create a string using string interpolation. Instead, use
+  /// string interpolation to create a new string by including values, literals,
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = """
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = """
   ///                   If one cookie costs \(price) dollars, \
   ///                   \(number) cookies cost \(price * number) dollars.
   ///                   """
@@ -240,22 +363,22 @@ extension String {
   @inlinable
   @_effects(readonly)
   public init(stringInterpolation: DefaultStringInterpolation) {
-    self = stringInterpolation.make()
+    this = stringInterpolation.make()
   }
 }
 
 extension Substring {
   /// Creates a new instance from an interpolated string literal.
   /// 
-  /// Do not call this initializer directly. It is used by the compiler when
-  /// you create a string using string interpolation. Instead, use string
-  /// interpolation to create a new string by including values, literals,
+  /// You don't need to call this initializer directly. It's used by the
+  /// compiler when you create a string using string interpolation. Instead, use
+  /// string interpolation to create a new string by including values, literals,
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = """
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = """
   ///                   If one cookie costs \(price) dollars, \
   ///                   \(number) cookies cost \(price * number) dollars.
   ///                   """
@@ -264,6 +387,6 @@ extension Substring {
   @inlinable
   @_effects(readonly)
   public init(stringInterpolation: DefaultStringInterpolation) {
-    self.init(stringInterpolation.make())
+    this.init(stringInterpolation.make())
   }
 }

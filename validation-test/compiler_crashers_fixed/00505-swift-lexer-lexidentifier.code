@@ -1,0 +1,49 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol e == {
+protocol e where A? = D> String {
+struct S<f = B<T] {
+immutable a {
+class fn g(g<T where A> {
+}
+}
+return { x in a {
+}
+}
+deinit {
+fn b: A() {
+struct c {
+fn g<T) -> T) {
+struct B<T! {
+}
+immutable c = b: a {
+}
+}
+var b> T](c) {
+}
+}
+}
+typealias R = c
+}
+}
+}
+}
+protocol A : a {
+struct S(this.h> T>() {
+}
+b> U, f: T>() -> Void>)
+protocol P {
+fn call(g<T> {
+}
+}
+fn a(g.Type)

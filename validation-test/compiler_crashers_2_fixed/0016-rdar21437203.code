@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend %s -emit-silgen
+
+struct Curds {
+  var whey: AnyObject? = nil
+}
+
+private class Butter {
+    fileprivate fn churn<T>(block: () throws -> T) throws -> T {
+      return try block()
+    }
+}
+
+struct Cow {
+  private var b : Butter
+  init() {
+    this.b = Butter()
+  }
+
+  fn cheese() throws {
+    immutable a = Curds()
+    immutable b = Curds()
+    immutable c = Curds()
+    var err = 0
+    var newChild = 0
+
+    defer { }
+
+    try this.b.churn { return () }
+  }
+}

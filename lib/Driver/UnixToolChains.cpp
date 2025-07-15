@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include <fstream>
@@ -18,7 +19,7 @@
 #include "ToolChains.h"
 
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Platform.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/TaskQueue.h"
@@ -31,18 +32,18 @@
 #include "language/Option/SanitizerOptions.h"
 #include "clang/Basic/Version.h"
 #include "clang/Driver/Util.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Program.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Program.h"
 
 using namespace language;
 using namespace language::driver;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 std::string
 toolchains::GenericUnix::sanitizerRuntimeLibName(StringRef Sanitizer,
@@ -72,16 +73,16 @@ ToolChain::InvocationInfo toolchains::GenericUnix::constructInvocation(
     const AutolinkExtractJobAction &job, const JobContext &context) const {
   assert(context.Output.getPrimaryOutputType() == file_types::TY_AutolinkFile);
 
-  InvocationInfo II{"swift-autolink-extract"};
+  InvocationInfo II{"language-autolink-extract"};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                          file_types::TY_Object);
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                         file_types::TY_LLVM_BC);
+                         file_types::TY_TOOLCHAIN_BC);
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
-  addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+  addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
 
   Arguments.push_back("-o");
   Arguments.push_back(
@@ -94,8 +95,8 @@ std::string toolchains::GenericUnix::getDefaultLinker() const {
   return "";
 }
 
-bool toolchains::GenericUnix::addRuntimeRPath(const llvm::Triple &T,
-                                              const llvm::opt::ArgList &Args) const {
+bool toolchains::GenericUnix::addRuntimeRPath(const toolchain::Triple &T,
+                                              const toolchain::opt::ArgList &Args) const {
   // If we are building a static executable, do not add a rpath for the runtime
   // as it is a static binary and the loader will not be invoked.
   if (Args.hasFlag(options::OPT_static_executable,
@@ -135,7 +136,7 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
 
   switch (job.getKind()) {
   case LinkKind::None:
-    llvm_unreachable("invalid link kind");
+    toolchain_unreachable("invalid link kind");
   case LinkKind::Executable:
     // Default case, nothing extra needed.
     break;
@@ -143,7 +144,7 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
     Arguments.push_back("-shared");
     break;
   case LinkKind::StaticLibrary:
-    llvm_unreachable("the dynamic linker cannot build static libraries");
+    toolchain_unreachable("the dynamic linker cannot build static libraries");
   }
 
   // Select the linker to use.
@@ -164,7 +165,7 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
   }
   if (!Linker.empty()) {
 #if defined(__HAIKU__)
-    // For now, passing -fuse-ld on Haiku doesn't work as swiftc doesn't
+    // For now, passing -fuse-ld on Haiku doesn't work as languagec doesn't
     // recognise it. Passing -use-ld= as the argument works fine.
     Arguments.push_back(context.Args.MakeArgString("-use-ld=" + Linker));
 #else
@@ -173,7 +174,7 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
   }
 
   if (tripleBTCFIByDefaultInOpenBSD(getTriple())) {
-#ifndef SWIFT_OPENBSD_BTCFI
+#ifndef LANGUAGE_OPENBSD_BTCFI
     Arguments.push_back("-Xlinker");
     Arguments.push_back("-z");
     Arguments.push_back("-Xlinker");
@@ -190,7 +191,7 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
     Arguments.push_back(context.Args.MakeArgString(A->getValue()));
   }
 
-  if (getTriple().getObjectFormat() == llvm::Triple::ELF &&
+  if (getTriple().getObjectFormat() == toolchain::Triple::ELF &&
       job.getKind() == LinkKind::Executable &&
       !context.Args.hasFlag(options::OPT_static_executable,
                             options::OPT_no_static_executable, false)) {
@@ -237,19 +238,19 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
                      /*Shared=*/!(staticExecutable || staticStdlib));
 
   if (!context.Args.hasArg(options::OPT_nostartfiles)) {
-    SmallString<128> swiftrtPath = SharedResourceDirPath;
-    llvm::sys::path::append(swiftrtPath,
-                            swift::getMajorArchitectureName(getTriple()));
-    llvm::sys::path::append(swiftrtPath, "swiftrt.o");
-    Arguments.push_back(context.Args.MakeArgString(swiftrtPath));
+    SmallString<128> languagertPath = SharedResourceDirPath;
+    toolchain::sys::path::append(languagertPath,
+                            language::getMajorArchitectureName(getTriple()));
+    toolchain::sys::path::append(languagertPath, "languagert.o");
+    Arguments.push_back(context.Args.MakeArgString(languagertPath));
   }
 
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                          file_types::TY_Object);
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                         file_types::TY_LLVM_BC);
+                         file_types::TY_TOOLCHAIN_BC);
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
-  addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+  addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
 
   for (const Arg *arg :
        context.Args.filtered(options::OPT_F, options::OPT_Fsystem)) {
@@ -299,20 +300,20 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
   getResourceDirPath(linkFilePath, context.Args, /*Shared=*/false);
 
   if (staticExecutable) {
-    llvm::sys::path::append(linkFilePath, "static-executable-args.lnk");
+    toolchain::sys::path::append(linkFilePath, "static-executable-args.lnk");
   } else if (staticStdlib) {
-    llvm::sys::path::append(linkFilePath, "static-stdlib-args.lnk");
+    toolchain::sys::path::append(linkFilePath, "static-stdlib-args.lnk");
   } else {
     linkFilePath.clear();
-    Arguments.push_back("-lswiftCore");
+    Arguments.push_back("-llanguageCore");
   }
 
   if (!linkFilePath.empty()) {
-    if (llvm::sys::fs::is_regular_file(linkFilePath)) {
+    if (toolchain::sys::fs::is_regular_file(linkFilePath)) {
       Arguments.push_back(
           context.Args.MakeArgString(Twine("@") + linkFilePath));
     } else {
-      llvm::report_fatal_error(Twine(linkFilePath) + " not found");
+      toolchain::report_fatal_error(Twine(linkFilePath) + " not found");
     }
   }
 
@@ -335,15 +336,14 @@ toolchains::GenericUnix::constructInvocation(const DynamicLinkJobAction &job,
 
   if (context.Args.hasArg(options::OPT_profile_generate)) {
     SmallString<128> LibProfile(SharedResourceDirPath);
-    llvm::sys::path::remove_filename(LibProfile); // remove platform name
-    llvm::sys::path::append(LibProfile, "clang", "lib");
-
-    llvm::sys::path::append(LibProfile, getTriple().getOSName(),
-                            Twine("libclang_rt.profile-") +
-                                getTriple().getArchName() + ".a");
+    toolchain::sys::path::remove_filename(LibProfile); // remove platform name
+    toolchain::sys::path::append(LibProfile, "clang", "lib");
+    toolchain::sys::path::append(
+        LibProfile, getUnversionedTriple(getTriple()).getOSName(),
+        Twine("libclang_rt.profile-") + getTriple().getArchName() + ".a");
     Arguments.push_back(context.Args.MakeArgString(LibProfile));
     Arguments.push_back(context.Args.MakeArgString(
-        Twine("-u", llvm::getInstrProfRuntimeHookVarName())));
+        Twine("-u", toolchain::getInstrProfRuntimeHookVarName())));
   }
 
   // Run clang in verbose mode if "-v" is set
@@ -381,9 +381,9 @@ toolchains::GenericUnix::constructInvocation(const StaticLinkJobAction &job,
   const char *AR;
   // Configure the toolchain.
   if (getTriple().isAndroid())
-    AR = "llvm-ar";
+    AR = "toolchain-ar";
   else
-    AR = context.OI.LTOVariant != OutputInfo::LTOKind::None ? "llvm-ar" : "ar";
+    AR = context.OI.LTOVariant != OutputInfo::LTOKind::None ? "toolchain-ar" : "ar";
   Arguments.push_back("crs");
 
   Arguments.push_back(
@@ -392,9 +392,9 @@ toolchains::GenericUnix::constructInvocation(const StaticLinkJobAction &job,
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                          file_types::TY_Object);
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                         file_types::TY_LLVM_BC);
+                         file_types::TY_TOOLCHAIN_BC);
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
-  addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+  addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
 
   InvocationInfo II{AR, Arguments};
 

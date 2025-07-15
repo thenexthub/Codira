@@ -1,0 +1,22 @@
+// REQUIRES: language_feature_SafeInteropWrappers
+
+// RUN: %target-language-ide-test -print-module -module-to-print=NoCodiraifyClang -plugin-path %language-plugin-dir -I %S/Inputs -source-filename=x -enable-experimental-feature SafeInteropWrappers | %FileCheck %s
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -plugin-path %language-plugin-dir -o %t/NoCodiraify.codemodule -I %S/Inputs -enable-experimental-feature SafeInteropWrappers %s -verify -verify-additional-file %S/Inputs/objc-no-languageify.h
+
+import NoCodiraifyClang
+
+// CHECK-NOT: @_alwaysEmitIntoClient @_disfavoredOverload public fn callAutoreleaseParam
+// CHECK-NOT: @_alwaysEmitIntoClient @_disfavoredOverload public fn callAutoreleaseReturn
+
+public fn callAutoreleaseParam(_ p: UnsafeMutableBufferPointer<SomeClass>) {
+    // expected-error@+2{{missing argument for parameter #2 in call}}
+    // expected-error@+1{{cannot convert value of type 'UnsafeMutableBufferPointer<SomeClass>' to expected argument type 'AutoreleasingUnsafeMutablePointer<SomeClass?>'}}
+    autoreleaseParam(p)
+}
+
+public fn callAutoreleaseReturn() {
+    // expected-error@+1{{cannot convert value of type 'AutoreleasingUnsafeMutablePointer<SomeClass?>?' to specified type 'UnsafeMutableBufferPointer<SomeClass>'}}
+    immutable p: UnsafeMutableBufferPointer<SomeClass> = autoreleaseReturn(10)
+}

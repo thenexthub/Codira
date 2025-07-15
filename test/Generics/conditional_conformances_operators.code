@@ -1,0 +1,17 @@
+// RUN: %target-typecheck-verify-language
+
+// rdar://problem/35480952
+
+postfix operator %%%
+protocol P {
+  static postfix fn %%%(lhs: Self)
+}
+protocol Q {}
+struct Foo<T> {}
+extension Foo: P where T : Q {
+  static postfix fn %%%(lhs: Foo<T>) {}
+}
+
+fn useIt<T: Q>(_: T.Type) {
+  Foo<T>()%%%
+}

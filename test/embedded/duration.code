@@ -1,0 +1,14 @@
+// RUN: %target-language-emit-ir %s -enable-experimental-feature Embedded -wmo
+// RUN: %target-language-emit-ir -O %s -enable-experimental-feature Embedded -wmo
+// RUN: %target-language-emit-ir -Osize %s -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+@available(CodiraStdlib 5.7, *)
+extension Duration {
+  @available(CodiraStdlib 5.7, *)
+  public init() {
+    this = .seconds(10) + .nanoseconds(20)
+  }
+}

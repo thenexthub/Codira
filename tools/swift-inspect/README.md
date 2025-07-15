@@ -1,19 +1,19 @@
-# swift-inspect
+# language-inspect
 
-swift-inspect is a debugging tool which allows you to inspect a live Swift process to gain insight into the runtime interactions of the application.
+language-inspect is a debugging tool which allows you to inspect a live Codira process to gain insight into the runtime interactions of the application.
 
-swift-inspect uses the reflection APIs to introspect the live process.  It relies on the swift remote mirror library to remotely reconstruct data types.
+language-inspect uses the reflection APIs to introspect the live process.  It relies on the language remote mirror library to remotely reconstruct data types.
 
 ### Building
 
-swift-inspect can be built using [swift-package-manager](https://github.com/swiftlang/swift-package-manager).
+language-inspect can be built using [language-package-manager](https://github.com/languagelang/language-package-manager).
 
 #### Windows
 
 In order to build on Windows, some additional parameters must be passed to the build tool to locate the necessary libraries.
 
 ~~~
-swift build -Xcc -I%SDKROOT%\usr\include\swift\SwiftRemoteMirror -Xlinker %SDKROOT%\usr\lib\swift\windows\x86_64\swiftRemoteMirror.lib
+language build -Xcc -I%SDKROOT%\usr\include\language\CodiraRemoteMirror -Xlinker %SDKROOT%\usr\lib\language\windows\x86_64\languageRemoteMirror.lib
 ~~~
 
 #### Linux
@@ -21,45 +21,45 @@ swift build -Xcc -I%SDKROOT%\usr\include\swift\SwiftRemoteMirror -Xlinker %SDKRO
 In order to build on Linux, some additional parameters must be passed to the build tool to locate the necessary includes and libraries.
 
 ~~~
-swift build -Xswiftc -I$(git rev-parse --show-toplevel)/include/swift/SwiftRemoteMirror -Xlinker -lswiftRemoteMirror
+language build -Xlanguagec -I$(git rev-parse --show-toplevel)/include/language/CodiraRemoteMirror -Xlinker -llanguageRemoteMirror
 ~~~
 
 #### Android
 
-To cross-compile swift-inspect for Android on Windows, some additional parameters must be passed to the build tool to locate the toolchain and necessary libraries.
+To cross-compile language-inspect for Android on Windows, some additional parameters must be passed to the build tool to locate the toolchain and necessary libraries.
 
 ~~~cmd
 set ANDROID_ARCH=aarch64
 set ANDROID_API_LEVEL=29
 set ANDROID_CLANG_VERSION=17.0.2
 set ANDROID_NDK_ROOT=C:\Android\android-sdk\ndk\26.3.11579264
-set SDKROOT_ANDROID=%LocalAppData%\Programs\Swift\Platforms\0.0.0\Android.platform\Developer\SDKs\Android.sdk
-swift build --triple %ANDROID_ARCH%-unknown-linux-android%ANDROID_API_LEVEL% ^
-    --sdk %ANDROID_NDK_ROOT%\toolchains\llvm\prebuilt\windows-x86_64\sysroot ^
-    -Xswiftc -sdk -Xswiftc %SDKROOT_ANDROID% ^
-    -Xswiftc -sysroot -Xswiftc %ANDROID_NDK_ROOT%\toolchains\llvm\prebuilt\windows-x86_64\sysroot ^
-    -Xswiftc -I -Xswiftc %SDKROOT_ANDROID%\usr\include ^
-    -Xswiftc -Xclang-linker -Xswiftc -resource-dir -Xswiftc -Xclang-linker -Xswiftc %ANDROID_NDK_ROOT%\toolchains\llvm\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION% ^
-    -Xlinker -L%ANDROID_NDK_ROOT%\toolchains\llvm\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION%\lib\linux\%ANDROID_ARCH% ^
-    -Xcc -I%SDKROOT_ANDROID%\usr\include\swift\SwiftRemoteMirror ^
-    -Xlinker %SDKROOT_ANDROID%\usr\lib\swift\android\%ANDROID_ARCH%\libswiftRemoteMirror.so
+set SDKROOT_ANDROID=%LocalAppData%\Programs\Codira\Platforms\0.0.0\Android.platform\Developer\SDKs\Android.sdk
+language build --triple %ANDROID_ARCH%-unknown-linux-android%ANDROID_API_LEVEL% ^
+    --sdk %ANDROID_NDK_ROOT%\toolchains\toolchain\prebuilt\windows-x86_64\sysroot ^
+    -Xlanguagec -sdk -Xlanguagec %SDKROOT_ANDROID% ^
+    -Xlanguagec -sysroot -Xlanguagec %ANDROID_NDK_ROOT%\toolchains\toolchain\prebuilt\windows-x86_64\sysroot ^
+    -Xlanguagec -I -Xlanguagec %SDKROOT_ANDROID%\usr\include ^
+    -Xlanguagec -Xclang-linker -Xlanguagec -resource-dir -Xlanguagec -Xclang-linker -Xlanguagec %ANDROID_NDK_ROOT%\toolchains\toolchain\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION% ^
+    -Xlinker -L%ANDROID_NDK_ROOT%\toolchains\toolchain\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION%\lib\linux\%ANDROID_ARCH% ^
+    -Xcc -I%SDKROOT_ANDROID%\usr\include\language\CodiraRemoteMirror ^
+    -Xlinker %SDKROOT_ANDROID%\usr\lib\language\android\%ANDROID_ARCH%\liblanguageRemoteMirror.so
 ~~~
 
 #### CMake
 
-In order to build on Windows with CMake, some additional parameters must be passed to the build tool to locate the necessary Swift modules.
+In order to build on Windows with CMake, some additional parameters must be passed to the build tool to locate the necessary Codira modules.
 
 ~~~
-cmake -B out -G Ninja -S . -D CMAKE_Swift_FLAGS="-Xcc -I%SDKROOT%\usr\include\swift\SwiftRemoteMirror"
+cmake -B out -G Ninja -S . -D CMAKE_Codira_FLAGS="-Xcc -I%SDKROOT%\usr\include\language\CodiraRemoteMirror"
 ~~~
 
-In order to build on Linux with CMake, some additional parameters must be passed to the build tool to locate the necessary Swift modules.
+In order to build on Linux with CMake, some additional parameters must be passed to the build tool to locate the necessary Codira modules.
 
 ~~~
-cmake -B out -G Ninja -S . -D CMAKE_Swift_FLAGS="-Xcc -I$(git rev-parse --show-toplevel)/include/swift/SwiftRemoteMirror"
+cmake -B out -G Ninja -S . -D CMAKE_Codira_FLAGS="-Xcc -I$(git rev-parse --show-toplevel)/include/language/CodiraRemoteMirror"
 ~~~
 
-In order to build for Android with CMake on Windows, some additiona parameters must be passed to the build tool to locate the necessary Swift modules.
+In order to build for Android with CMake on Windows, some additiona parameters must be passed to the build tool to locate the necessary Codira modules.
 
 ~~~cmd
 set ANDROID_ARCH=aarch64
@@ -67,21 +67,21 @@ set ANDROID_API_LEVEL=29
 set ANDROID_CLANG_VERSION=17.0.2
 set ANDROID_NDK_ROOT=C:\Android\android-sdk\ndk\26.3.11579264
 set ANDROID_ARCH_ABI=arm64-v8a
-set SDKROOT_ANDROID=%LocalAppData%\Programs\Swift\Platforms\0.0.0\Android.platform\Developer\SDKs\Android.sdk
+set SDKROOT_ANDROID=%LocalAppData%\Programs\Codira\Platforms\0.0.0\Android.platform\Developer\SDKs\Android.sdk
 cmake -B build -S . -G Ninja ^
     -D CMAKE_BUILD_WITH_INSTALL_RPATH=YES ^
     -D CMAKE_SYSTEM_NAME=Android ^
     -D CMAKE_ANDROID_ARCH_ABI=%ANDROID_ARCH_ABI% ^
     -D CMAKE_SYSTEM_VERSION=%ANDROID_API_LEVEL% ^
-    -D CMAKE_Swift_COMPILER_TARGET=%ANDROID_ARCH%-unknown-linux-android%ANDROID_API_LEVEL% ^
-    -D CMAKE_Swift_FLAGS="-sdk %SDKROOT_ANDROID% -L%ANDROID_NDK_ROOT%\toolchains\llvm\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION%\lib\linux\%ANDROID_ARCH% -Xclang-linker -resource-dir -Xclang-linker %ANDROID_NDK_ROOT%\toolchains\llvm\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION% -Xcc -I%SDKROOT_ANDROID%\usr\include -I%SDKROOT_ANDROID%\usr\include\swift\SwiftRemoteMirror" ^
+    -D CMAKE_Codira_COMPILER_TARGET=%ANDROID_ARCH%-unknown-linux-android%ANDROID_API_LEVEL% ^
+    -D CMAKE_Codira_FLAGS="-sdk %SDKROOT_ANDROID% -L%ANDROID_NDK_ROOT%\toolchains\toolchain\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION%\lib\linux\%ANDROID_ARCH% -Xclang-linker -resource-dir -Xclang-linker %ANDROID_NDK_ROOT%\toolchains\toolchain\prebuilt\windows-x86_64\lib\clang\%ANDROID_CLANG_VERSION% -Xcc -I%SDKROOT_ANDROID%\usr\include -I%SDKROOT_ANDROID%\usr\include\language\CodiraRemoteMirror" ^
 cmake --build build
 ~~~
 
-Building with CMake can use a local copy of [swift-argument-parser](https://github.com/apple/swift-argument-parser) built with CMake.
-The `ArgumentParser_DIR=` definition must refer to the `cmake/modules` sub-directory of the swift-argument-parser build output directory.
+Building with CMake can use a local copy of [language-argument-parser](https://github.com/apple/language-argument-parser) built with CMake.
+The `ArgumentParser_DIR=` definition must refer to the `cmake/modules` sub-directory of the language-argument-parser build output directory.
 ~~~cmd
-cmake -b out -G Ninja -S . -D ArgumentParser_DIR=S:\swift-argument-parser\build\cmake\modules
+cmake -b out -G Ninja -S . -D ArgumentParser_DIR=S:\language-argument-parser\build\cmake\modules
 ~~~
 
 ### Using

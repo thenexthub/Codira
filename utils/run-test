@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-# utils/run-test - test runner for Swift -*- python -*-
+# utils/run-test - test runner for Codira -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import multiprocessing
 import os
 import shutil
 import sys
 
-from build_swift.build_swift import argparse
-from build_swift.build_swift.constants import SWIFT_SOURCE_ROOT
+from build_language.build_language import argparse
+from build_language.build_language.constants import LANGUAGE_SOURCE_ROOT
 
-from swift_build_support.swift_build_support import shell
-from swift_build_support.swift_build_support.targets import StdlibDeploymentTarget
+from language_build_support.code_build_support import shell
+from language_build_support.code_build_support.targets import StdlibDeploymentTarget
 
 
 TEST_MODES = [
@@ -37,21 +37,21 @@ TEST_SUBSETS = [
     'only_stress',
 ]
 
-SWIFT_SOURCE_DIR = os.path.join(SWIFT_SOURCE_ROOT, 'swift')
-TEST_SOURCE_DIR = os.path.join(SWIFT_SOURCE_DIR, 'test')
-VALIDATION_TEST_SOURCE_DIR = os.path.join(SWIFT_SOURCE_DIR, 'validation-test')
+LANGUAGE_SOURCE_DIR = os.path.join(LANGUAGE_SOURCE_ROOT, 'language')
+TEST_SOURCE_DIR = os.path.join(LANGUAGE_SOURCE_DIR, 'test')
+VALIDATION_TEST_SOURCE_DIR = os.path.join(LANGUAGE_SOURCE_DIR, 'validation-test')
 
 
-def _get_default_llvm_source_dir():
-    legacy_llvm_dir_path = os.path.join(SWIFT_SOURCE_ROOT, 'llvm')
-    if os.path.isdir(legacy_llvm_dir_path):
-        return legacy_llvm_dir_path
-    return os.path.join(SWIFT_SOURCE_ROOT, 'llvm-project', 'llvm')
+def _get_default_toolchain_source_dir():
+    legacy_toolchain_dir_path = os.path.join(LANGUAGE_SOURCE_ROOT, 'toolchain')
+    if os.path.isdir(legacy_toolchain_dir_path):
+        return legacy_toolchain_dir_path
+    return os.path.join(LANGUAGE_SOURCE_ROOT, 'toolchain-project', 'toolchain')
 
 
 # Default path for "lit.py" executable.
-LIT_BIN_DEFAULT = os.path.join(os.environ.get("LLVM_SOURCE_DIR",
-                                              _get_default_llvm_source_dir()),
+LIT_BIN_DEFAULT = os.path.join(os.environ.get("TOOLCHAIN_SOURCE_DIR",
+                                              _get_default_toolchain_source_dir()),
                                'utils', 'lit', 'lit.py')
 
 host_target = StdlibDeploymentTarget.host_target().name
@@ -62,21 +62,21 @@ def error_exit(msg):
     sys.exit(1)
 
 
-# Return true if the path looks like swift build directory.
-def is_swift_build_dir(path, unified_build_dir):
+# Return true if the path looks like language build directory.
+def is_language_build_dir(path, unified_build_dir):
     if not unified_build_dir:
         tests_path = [path, "test-%s" % host_target]
     else:
-        tests_path = [path, "tools", "swift", "test-%s" % host_target]
+        tests_path = [path, "tools", "language", "test-%s" % host_target]
 
     return (os.path.exists(os.path.join(path, "CMakeCache.txt")) and
             os.path.isdir(os.path.join(*tests_path)))
 
 
-# Return true if the swift build directory is configured with `Xcode`
+# Return true if the language build directory is configured with `Xcode`
 # generator.
 def is_build_dir_xcode(path):
-    return os.path.exists(os.path.join(path, 'Swift.xcodeproj'))
+    return os.path.exists(os.path.join(path, 'Codira.xcodeproj'))
 
 
 # Return true if 'path' is sub path of 'd'
@@ -95,7 +95,7 @@ def normalize_test_path(path, build_dir, variant, unified_build_dir):
     if not unified_build_dir:
         tests_path = [build_dir]
     else:
-        tests_path = [build_dir, "tools", "swift"]
+        tests_path = [build_dir, "tools", "language"]
 
     for d, prefix in [(TEST_SOURCE_DIR, 'test-%s'),
                       (VALIDATION_TEST_SOURCE_DIR, 'validation-test-%s')]:
@@ -113,13 +113,13 @@ def main():
                         nargs="*", metavar="PATH",
                         help="paths to test. Accept multiple. "
                              "If --build-dir is not specified, these paths "
-                             "must be test paths in the Swift build "
+                             "must be test paths in the Codira build "
                              "directory. (default: primary test suite if "
                              "--build-dir is specified, none otherwise)")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="run test with verbose output")
     parser.add_argument("--build-dir", type=os.path.realpath, metavar="PATH",
-                        help="Swift build directory")
+                        help="Codira build directory")
     parser.add_argument("--build",
                         choices=["true", "verbose", "skip"], default='true',
                         help="build test dependencies before running tests "
@@ -155,10 +155,10 @@ def main():
                         help="directory to store test results (default: none)")
     parser.add_argument("--lit", default=LIT_BIN_DEFAULT, metavar="PATH",
                         help="lit.py executable path "
-                             "(default: ${LLVM_SOURCE_DIR}/utils/lit/lit.py)")
+                             "(default: ${TOOLCHAIN_SOURCE_DIR}/utils/lit/lit.py)")
     parser.add_argument("--unified", action="store_true",
                         help="The build directory is an unified LLVM build, "
-                             "not a standalone Swift build")
+                             "not a standalone Codira build")
 
     args = parser.parse_args()
 
@@ -173,21 +173,21 @@ def main():
         # Fixup build directory.
         # build_dir can be:
         #   build-root/  # assuming we are to test host deployment target.
-        #   build-root/swift-{tool-deployment_target}/
+        #   build-root/language-{tool-deployment_target}/
         for d in [
                 build_dir,
-                os.path.join(build_dir, 'swift-%s' % host_target)]:
-            if is_swift_build_dir(d, args.unified):
+                os.path.join(build_dir, 'language-%s' % host_target)]:
+            if is_language_build_dir(d, args.unified):
                 build_dir = d
                 break
         else:
-            error_exit("'%s' is not a swift build directory" % args.build_dir)
+            error_exit("'%s' is not a language build directory" % args.build_dir)
 
         # If no path given, run primary test suite.
         if not args.paths:
             args.paths = [TEST_SOURCE_DIR]
 
-        # $ run-test --build-dir=<swift-build-dir> <test-dir-in-source> ... \
+        # $ run-test --build-dir=<language-build-dir> <test-dir-in-source> ... \
         #       --target macosx-x86_64 --target iphonesimulator-i386
         for target in targets:
             paths += [normalize_test_path(p, build_dir, target, args.unified)
@@ -206,12 +206,12 @@ def main():
             # Traverse the first test path to find the `build_dir`
             d = os.path.dirname(paths[0])
             while d not in ['', os.sep]:
-                if is_swift_build_dir(d, args.unified):
+                if is_language_build_dir(d, args.unified):
                     build_dir = d
                     break
                 d = os.path.dirname(d)
             else:
-                error_exit("Can't infer swift build directory")
+                error_exit("Can't infer language build directory")
 
     # Ensure we have up to date test dependency
     if args.build != 'skip' and is_build_dir_xcode(build_dir):
@@ -221,16 +221,16 @@ def main():
         sys.stdout.flush()
 
     elif args.build != 'skip':
-        dependency_targets = ["all", "SwiftUnitTests"]
+        dependency_targets = ["all", "CodiraUnitTests"]
         upload_stdlib_targets = []
         need_validation = any('/validation-test-' in path for path in paths)
         for target in targets:
             if args.mode != 'only_non_executable':
                 upload_stdlib_targets += ["upload-stdlib-%s" % target]
             if need_validation:
-                dependency_targets += ["swift-stdlib-%s" % target]
+                dependency_targets += ["language-stdlib-%s" % target]
             else:
-                dependency_targets += ["swift-test-stdlib-%s" % target]
+                dependency_targets += ["language-test-stdlib-%s" % target]
 
         cmake_build = ['cmake', '--build', build_dir, '--']
         if args.build == 'verbose':
@@ -261,8 +261,8 @@ def main():
         test_args = ["-sv"]
 
     # Test parameters.
-    test_args += ['--param', 'swift_test_mode=%s' % args.mode,
-                  '--param', 'swift_test_subset=%s' % args.subset]
+    test_args += ['--param', 'language_test_mode=%s' % args.mode,
+                  '--param', 'language_test_subset=%s' % args.subset]
 
     for param in args.param:
         test_args += ['--param', param]
@@ -272,7 +272,7 @@ def main():
         test_args += ['--param', 'color_output']
 
     if args.result_dir:
-        test_args += ['--param', 'swift_test_results_dir=%s' % args.result_dir,
+        test_args += ['--param', 'language_test_results_dir=%s' % args.result_dir,
                       '--xunit-xml-output=%s' % os.path.join(args.result_dir,
                                                              'lit-tests.xml')]
 

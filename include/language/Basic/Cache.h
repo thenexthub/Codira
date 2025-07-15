@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_CACHE_H
-#define SWIFT_BASIC_CACHE_H
+#ifndef LANGUAGE_BASIC_CACHE_H
+#define LANGUAGE_BASIC_CACHE_H
 
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
 namespace language {
@@ -27,10 +28,10 @@ namespace sys {
 template <typename T>
 struct CacheKeyHashInfo {
   static uintptr_t getHashValue(const T &Val) {
-    return llvm::DenseMapInfo<T>::getHashValue(Val);
+    return toolchain::DenseMapInfo<T>::getHashValue(Val);
   }
   static bool isEqual(void *LHS, void *RHS) {
-    return llvm::DenseMapInfo<T>::isEqual(*static_cast<T*>(LHS),
+    return toolchain::DenseMapInfo<T>::isEqual(*static_cast<T*>(LHS),
                                           *static_cast<T*>(RHS));
   }
 };
@@ -78,7 +79,7 @@ protected:
 
   ImplTy Impl = nullptr;
 
-  static ImplTy create(llvm::StringRef Name, const CallBacks &CBs);
+  static ImplTy create(toolchain::StringRef Name, const CallBacks &CBs);
 
   /// Sets value for key.
   ///
@@ -150,7 +151,7 @@ template <typename KeyT, typename ValueT,
           typename ValueInfoT = CacheValueInfo<ValueT> >
 class Cache : CacheImpl {
 public:
-  explicit Cache(llvm::StringRef Name) {
+  explicit Cache(toolchain::StringRef Name) {
     CallBacks CBs = {
       /*UserData=*/nullptr,
       keyHash,
@@ -215,8 +216,8 @@ private:
 };
 
 template <typename T>
-struct CacheValueInfo<llvm::IntrusiveRefCntPtr<T>>{
-  static void *enterCache(const llvm::IntrusiveRefCntPtr<T> &Val) {
+struct CacheValueInfo<toolchain::IntrusiveRefCntPtr<T>>{
+  static void *enterCache(const toolchain::IntrusiveRefCntPtr<T> &Val) {
     return const_cast<T *>(Val.get());
   }
   static void retain(void *Ptr) {
@@ -225,10 +226,10 @@ struct CacheValueInfo<llvm::IntrusiveRefCntPtr<T>>{
   static void release(void *Ptr) {
     static_cast<T*>(Ptr)->Release();
   }
-  static llvm::IntrusiveRefCntPtr<T> getFromCache(void *Ptr) {
+  static toolchain::IntrusiveRefCntPtr<T> getFromCache(void *Ptr) {
     return static_cast<T*>(Ptr);
   }
-  static size_t getCost(const llvm::IntrusiveRefCntPtr<T> &Val) {
+  static size_t getCost(const toolchain::IntrusiveRefCntPtr<T> &Val) {
     return CacheValueCostInfo<T>::getCost(*Val);
   }
 };
@@ -236,4 +237,4 @@ struct CacheValueInfo<llvm::IntrusiveRefCntPtr<T>>{
 } // end namespace sys
 } // end namespace language
 
-#endif // SWIFT_BASIC_CACHE_H
+#endif // LANGUAGE_BASIC_CACHE_H

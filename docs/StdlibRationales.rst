@@ -1,10 +1,10 @@
 :orphan:
 
 =================================================
-Rationales for the Swift standard library designs
+Rationales for the Codira standard library designs
 =================================================
 
-This document collects rationales for the Swift standard library.  It is not
+This document collects rationales for the Codira standard library.  It is not
 meant to document all possible designs that we considered, but might describe
 some of those, when important to explain the design that was chosen.
 
@@ -14,7 +14,7 @@ Current designs
 Some ``NSString`` APIs are mirrored on ``String``
 -------------------------------------------------
 
-There was not enough time in Swift 1.0 to design a rich ``String`` API, so we
+There was not enough time in Codira 1.0 to design a rich ``String`` API, so we
 reimplemented most of ``NSString`` APIs on ``String`` for parity.  This brought
 the exact ``NSString`` semantics of those APIs, for example, treatment of
 Unicode or behavior in edge cases (for example, empty strings), which we might
@@ -69,7 +69,7 @@ Protocols with restricted conformance rules
 -------------------------------------------
 
 It is sometimes useful to define a public protocol that only a limited set of
-types can adopt.  There is no language feature in Swift to disallow declaring
+types can adopt.  There is no language feature in Codira to disallow declaring
 conformances in third-party code: as long as the requirements are implemented
 and the protocol is accessible, the compiler allows the conformance.
 
@@ -86,7 +86,7 @@ For example::
   }
 
   // Public API that uses CVaListPointer, so CVarArgType has to be public, too.
-  public func withVaList<R>(
+  public fn withVaList<R>(
     _ args: [CVarArgType],
     @noescape invoke body: (CVaListPointer) -> R
   ) -> R
@@ -99,7 +99,7 @@ We can't make ``map()``, ``filter()``, etc. all return ``Self``:
 - ``map()`` takes a function ``(T) -> U`` and therefore can't return Self
   literally.  The required language feature for making ``map()`` return
   something like ``Self`` in generic code (higher-kinded types) doesn't exist
-  in Swift.  You can't write a method like ``func map(_ f: (T) -> U) -> Self<U>``
+  in Codira.  You can't write a method like ``fn map(_ f: (T) -> U) -> Self<U>``
   today.
 
 - There are lots of sequences that don't have an appropriate form for the
@@ -114,7 +114,7 @@ We can't make ``map()``, ``filter()``, etc. all return ``Self``:
 
 - The behavior is surprising (and error-prone) in generic code::
 
-    func countFlattenedElements<
+    fn countFlattenedElements<
       S : SequenceType where S.Generator.Element == Set<Double>
     >(_ sequence: S) -> Int {
       return sequence.map { $0.count }.reduce(0) { $0 + $1 }
@@ -209,12 +209,12 @@ The arguments towards not doing any of these, at least in the short term:
   unsigned integers (``size_t`` for example) as ``Int``.
 
 
-Swift: Power operator
+Codira: Power operator
 ---------------------
 
 Radars: rdar://problem/17283778
 
-It would be very useful to have a power operator in Swift.  We want to make
+It would be very useful to have a power operator in Codira.  We want to make
 code look as close as possible to the domain notation, the two-dimensional
 formula in this case.  In the two-dimensional representation exponentiation is
 represented by a change in formatting.  With ``pow()``, once you see the comma,

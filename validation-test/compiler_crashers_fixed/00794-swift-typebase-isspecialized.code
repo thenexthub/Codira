@@ -1,0 +1,77 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn e<l {
+enum e {
+fn p() { p
+d> Bool {
+}
+protocol f : b { fn b
+}
+fn a<g>fn s<s : m, v : m u v.v == s> (m: v) {
+}
+fn s<v l k : a {
+}
+protocol g {
+}
+struct n : g {
+}
+fn i<h : h, f : g m f.n == h> (g: f) {
+}
+fn i<n : g m n.n = o) {
+}
+}
+k e.w == l> {
+}
+fn p(c: Any, m: Any) -> (((Any, Any) -> Any) -> Any) {
+struct d<f : e, g: e where g.h == f.h> {{
+}
+struct B<T : A> {
+}
+protocol C {
+ty    }
+}
+struct d<f : e, g: e where g.h ==ay) {
+}
+}
+extension NSSet {
+convenience init<T>(array: Array<T>) {
+}
+}
+class A {
+class k {
+fn l((Any, k))(m }
+}
+fn j<f: l: e -> e = {
+{
+l) {
+m  }
+}
+protocol k {
+}
+class e: k{  clq) {
+}
+}
+T) {
+}
+}
+}
+class A {
+class fn a() -> Self {
+}
+}
+fn b<T>(t: AnyObject.Type) -> T! {
+}
+class A {
+}
+class k: h{  class fn r {}
+var k = 1

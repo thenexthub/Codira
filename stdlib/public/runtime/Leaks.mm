@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // See Leaks.h for a description of this leaks detector.
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
 
 #include "Leaks.h"
 #include "language/Basic/Lazy.h"
@@ -38,15 +39,15 @@ using namespace language;
 //                              Extra Interfaces
 //===----------------------------------------------------------------------===//
 
-static void _swift_leaks_stopTrackingObjCObject(id obj);
-static void _swift_leaks_startTrackingObjCObject(id obj);
+static void _language_leaks_stopTrackingObjCObject(id obj);
+static void _language_leaks_startTrackingObjCObject(id obj);
 
 //===----------------------------------------------------------------------===//
 //                                   State
 //===----------------------------------------------------------------------===//
 
-/// A set of allocated swift only objects that we are tracking for leaks.
-static Lazy<std::set<HeapObject *>> TrackedSwiftObjects;
+/// A set of allocated language only objects that we are tracking for leaks.
+static Lazy<std::set<HeapObject *>> TrackedCodiraObjects;
 
 /// A set of allocated objc objects that we are tracking for leaks.
 static Lazy<std::set<id>> TrackedObjCObjects;
@@ -66,28 +67,28 @@ static IMP old_allocWithZone_fun;
 //                            Init and Deinit Code
 //===----------------------------------------------------------------------===//
 
-static void __swift_leaks_dealloc(id self, SEL _cmd) {
-  _swift_leaks_stopTrackingObjCObject(self);
+static void __language_leaks_dealloc(id self, SEL _cmd) {
+  _language_leaks_stopTrackingObjCObject(self);
   ((void (*)(id, SEL))old_dealloc_fun)(self, _cmd);
 }
 
-static id __swift_leaks_alloc(id self, SEL _cmd) {
+static id __language_leaks_alloc(id self, SEL _cmd) {
   id result = ((id (*)(id, SEL))old_alloc_fun)(self, _cmd);
-  _swift_leaks_startTrackingObjCObject(result);
+  _language_leaks_startTrackingObjCObject(result);
   return result;
 }
 
-static id __swift_leaks_allocWithZone(id self, SEL _cmd, id zone) {
+static id __language_leaks_allocWithZone(id self, SEL _cmd, id zone) {
   id result = ((id (*)(id, SEL, id))old_allocWithZone_fun)(self, _cmd, zone);
-  _swift_leaks_startTrackingObjCObject(result);
+  _language_leaks_startTrackingObjCObject(result);
   return result;
 }
 
-void _swift_leaks_startTrackingObjects(const char *name) {
+void _language_leaks_startTrackingObjects(const char *name) {
   pthread_mutex_lock(&LeaksMutex);
 
   // First clear our tracked objects set.
-  TrackedSwiftObjects->clear();
+  TrackedCodiraObjects->clear();
   TrackedObjCObjects->clear();
 
   // Set that we should track objects.
@@ -95,9 +96,9 @@ void _swift_leaks_startTrackingObjects(const char *name) {
 
   // Swizzle out -(void)dealloc, +(id)alloc, and +(id)allocWithZone: for our
   // custom implementations.
-  IMP new_dealloc_fun = (IMP)__swift_leaks_dealloc;
-  IMP new_alloc_fun = (IMP)__swift_leaks_alloc;
-  IMP new_allocWithZone_fun = (IMP)__swift_leaks_allocWithZone;
+  IMP new_dealloc_fun = (IMP)__language_leaks_dealloc;
+  IMP new_alloc_fun = (IMP)__language_leaks_alloc;
+  IMP new_allocWithZone_fun = (IMP)__language_leaks_allocWithZone;
 
   Method deallocMethod =
       class_getInstanceMethod([NSObject class], @selector(dealloc));
@@ -114,9 +115,9 @@ void _swift_leaks_startTrackingObjects(const char *name) {
 }
 
 /// This assumes that the LeaksMutex is already being held.
-static void dumpSwiftHeapObjects() {
+static void dumpCodiraHeapObjects() {
   const char *comma = "";
-  for (HeapObject *Obj : *TrackedSwiftObjects) {
+  for (HeapObject *Obj : *TrackedCodiraObjects) {
     const HeapMetadata *Metadata = Obj->metadata;
 
     fprintf(stderr, "%s", comma);
@@ -165,21 +166,21 @@ static void dumpObjCHeapObjects() {
   }
 }
 
-int _swift_leaks_stopTrackingObjects(const char *name) {
+int _language_leaks_stopTrackingObjects(const char *name) {
   pthread_mutex_lock(&LeaksMutex);
-  unsigned Result = TrackedSwiftObjects->size() + TrackedObjCObjects->size();
+  unsigned Result = TrackedCodiraObjects->size() + TrackedObjCObjects->size();
 
-  fprintf(stderr, "{\"name\":\"%s\", \"swift_count\": %u, \"objc_count\": %u, "
-                  "\"swift_objects\": [",
-          name, unsigned(TrackedSwiftObjects->size()),
+  fprintf(stderr, "{\"name\":\"%s\", \"language_count\": %u, \"objc_count\": %u, "
+                  "\"language_objects\": [",
+          name, unsigned(TrackedCodiraObjects->size()),
           unsigned(TrackedObjCObjects->size()));
-  dumpSwiftHeapObjects();
+  dumpCodiraHeapObjects();
   fprintf(stderr, "], \"objc_objects\": [");
   dumpObjCHeapObjects();
   fprintf(stderr, "]}\n");
 
   fflush(stderr);
-  TrackedSwiftObjects->clear();
+  TrackedCodiraObjects->clear();
   TrackedObjCObjects->clear();
   ShouldTrackObjects = false;
 
@@ -202,21 +203,21 @@ int _swift_leaks_stopTrackingObjects(const char *name) {
 //                               Tracking Code
 //===----------------------------------------------------------------------===//
 
-void _swift_leaks_startTrackingObject(HeapObject *Object) {
+void _language_leaks_startTrackingObject(HeapObject *Object) {
   pthread_mutex_lock(&LeaksMutex);
   if (ShouldTrackObjects) {
-    TrackedSwiftObjects->insert(Object);
+    TrackedCodiraObjects->insert(Object);
   }
   pthread_mutex_unlock(&LeaksMutex);
 }
 
-void _swift_leaks_stopTrackingObject(HeapObject *Object) {
+void _language_leaks_stopTrackingObject(HeapObject *Object) {
   pthread_mutex_lock(&LeaksMutex);
-  TrackedSwiftObjects->erase(Object);
+  TrackedCodiraObjects->erase(Object);
   pthread_mutex_unlock(&LeaksMutex);
 }
 
-static void _swift_leaks_startTrackingObjCObject(id Object) {
+static void _language_leaks_startTrackingObjCObject(id Object) {
   pthread_mutex_lock(&LeaksMutex);
   if (ShouldTrackObjects) {
     TrackedObjCObjects->insert(Object);
@@ -224,7 +225,7 @@ static void _swift_leaks_startTrackingObjCObject(id Object) {
   pthread_mutex_unlock(&LeaksMutex);
 }
 
-static void _swift_leaks_stopTrackingObjCObject(id Object) {
+static void _language_leaks_stopTrackingObjCObject(id Object) {
   pthread_mutex_lock(&LeaksMutex);
   TrackedObjCObjects->erase(Object);
   pthread_mutex_unlock(&LeaksMutex);

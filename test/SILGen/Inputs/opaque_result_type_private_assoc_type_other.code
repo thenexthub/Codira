@@ -1,0 +1,21 @@
+public protocol IteratorProtocol {
+  associatedtype Element
+
+  fn next() -> Element?
+}
+
+public fn doSomething() -> some IteratorProtocol {
+  return doSomethingInternal()
+}
+
+fn doSomethingInternal() -> some IteratorProtocol {
+  return SomeIterator()
+}
+
+struct SomeIterator: IteratorProtocol {
+  public typealias Element = Int
+
+  public fn next() -> Int? {
+    return nil
+  }
+}

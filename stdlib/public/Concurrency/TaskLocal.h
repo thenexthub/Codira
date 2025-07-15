@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing task locals.
+// Codira ABI describing task locals.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASKLOCAL_H
-#define SWIFT_ABI_TASKLOCAL_H
+#ifndef LANGUAGE_ABI_TASKLOCAL_H
+#define LANGUAGE_ABI_TASKLOCAL_H
 
 #include "language/ABI/HeapObject.h"
 #include "language/ABI/Metadata.h"
 #include "language/ABI/MetadataValues.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 namespace language {
 class AsyncTask;
 struct OpaqueValue;
-struct SwiftError;
+struct CodiraError;
 class TaskStatusRecord;
 class TaskGroup;
 
@@ -71,7 +72,7 @@ public:
     };
 
   private:
-    llvm::PointerIntPair<Item *, 2, Kind> nextAndKind;
+    toolchain::PointerIntPair<Item *, 2, Kind> nextAndKind;
 
   protected:
     explicit Item(Item *next, Kind kind) : nextAndKind(next, kind) {}

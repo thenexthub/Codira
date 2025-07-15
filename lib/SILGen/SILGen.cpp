@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "silgen"
@@ -49,28 +50,32 @@
 #include "language/Serialization/SerializedSILLoader.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "llvm/ProfileData/InstrProfReader.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ProfileData/InstrProfReader.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 using namespace Lowering;
+
+toolchain::cl::list<std::string> PrintFunctionAST(
+    "print-function-ast", toolchain::cl::CommaSeparated,
+    toolchain::cl::desc("Only print out the ast for this function"));
 
 //===----------------------------------------------------------------------===//
 // SILGenModule Class implementation
 //===----------------------------------------------------------------------===//
 
 SILGenModule::SILGenModule(SILModule &M, ModuleDecl *SM)
-    : M(M), Types(M.Types), SwiftModule(SM),
+    : M(M), Types(M.Types), CodiraModule(SM),
       FileIDsByFilePath(SM->computeFileIDMap(/*shouldDiagnose=*/true)) {
   const SILOptions &Opts = M.getOptions();
   if (!Opts.UseProfile.empty()) {
     // FIXME: Create file system to read the profile. In the future, the vfs
     // needs to come from CompilerInstance.
-    auto FS = llvm::vfs::getRealFileSystem();
+    auto FS = toolchain::vfs::getRealFileSystem();
     auto ReaderOrErr =
-        llvm::IndexedInstrProfReader::create(Opts.UseProfile, *FS);
+        toolchain::IndexedInstrProfReader::create(Opts.UseProfile, *FS);
     if (auto E = ReaderOrErr.takeError()) {
       diagnose(SourceLoc(), diag::profile_read_error, Opts.UseProfile,
-               llvm::toString(std::move(E)));
+               toolchain::toString(std::move(E)));
     } else {
       M.setPGOReader(std::move(ReaderOrErr.get()));
     }
@@ -117,7 +122,7 @@ static SILDeclRef getBridgingFn(std::optional<SILDeclRef> &cacheSlot,
     if (!mod) {
       SGM.diagnose(SourceLoc(), diag::bridging_module_missing,
                    moduleName.str(), functionName);
-      llvm::report_fatal_error("unable to set up the ObjC bridge!");
+      toolchain::report_fatal_error("unable to set up the ObjC bridge!");
     }
 
     SmallVector<ValueDecl *, 2> decls;
@@ -126,19 +131,19 @@ static SILDeclRef getBridgingFn(std::optional<SILDeclRef> &cacheSlot,
     if (decls.empty()) {
       SGM.diagnose(SourceLoc(), diag::bridging_function_missing,
                    moduleName.str(), functionName);
-      llvm::report_fatal_error("unable to set up the ObjC bridge!");
+      toolchain::report_fatal_error("unable to set up the ObjC bridge!");
     }
     if (decls.size() != 1) {
       SGM.diagnose(SourceLoc(), diag::bridging_function_overloaded,
                    moduleName.str(), functionName);
-      llvm::report_fatal_error("unable to set up the ObjC bridge!");
+      toolchain::report_fatal_error("unable to set up the ObjC bridge!");
     }
 
     auto *fd = dyn_cast<FuncDecl>(decls.front());
     if (!fd) {
       SGM.diagnose(SourceLoc(), diag::bridging_function_not_function,
                    moduleName.str(), functionName);
-      llvm::report_fatal_error("unable to set up the ObjC bridge!");
+      toolchain::report_fatal_error("unable to set up the ObjC bridge!");
     }
 
     // Check that the function takes the expected arguments and returns the
@@ -161,23 +166,23 @@ static SILDeclRef getBridgingFn(std::optional<SILDeclRef> &cacheSlot,
             makeTransformIterator(inputTypes.begin(), toSILType))) {
       SGM.diagnose(fd->getLoc(), diag::bridging_function_not_correct_type,
                    moduleName.str(), functionName);
-      llvm::report_fatal_error("unable to set up the ObjC bridge!");
+      toolchain::report_fatal_error("unable to set up the ObjC bridge!");
     }
 
     if (fnConv.getSingleSILResultType(TypeExpansionContext::minimal()) !=
         toSILType(outputType)) {
       SGM.diagnose(fd->getLoc(), diag::bridging_function_not_correct_type,
                    moduleName.str(), functionName);
-      llvm::report_fatal_error("unable to set up the ObjC bridge!");
+      toolchain::report_fatal_error("unable to set up the ObjC bridge!");
     }
 
     cacheSlot = c;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "bridging function "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "bridging function "
                           << moduleName << '.' << functionName
                           << " mapped to ";
-             cacheSlot->print(llvm::dbgs()));
+             cacheSlot->print(toolchain::dbgs()));
 
   return *cacheSlot;
 }
@@ -261,7 +266,7 @@ FuncDecl *SILGenModule::getBridgeToObjectiveCRequirement(SILLocation loc) {
 
   // Look for _bridgeToObjectiveC().
   auto &ctx = getASTContext();
-  DeclName name(ctx, ctx.Id_bridgeToObjectiveC, llvm::ArrayRef<Identifier>());
+  DeclName name(ctx, ctx.Id_bridgeToObjectiveC, toolchain::ArrayRef<Identifier>());
   auto *found = dyn_cast_or_null<FuncDecl>(
     proto->getSingleRequirement(name));
 
@@ -287,7 +292,7 @@ FuncDecl *SILGenModule::getUnconditionallyBridgeFromObjectiveCRequirement(
   // Look for _bridgeToObjectiveC().
   auto &ctx = getASTContext();
   DeclName name(ctx, ctx.getIdentifier("_unconditionallyBridgeFromObjectiveC"),
-                llvm::ArrayRef(Identifier()));
+                toolchain::ArrayRef(Identifier()));
   auto *found = dyn_cast_or_null<FuncDecl>(
     proto->getSingleRequirement(name));
 
@@ -453,12 +458,21 @@ FuncDecl *SILGenModule::getAsyncMainDrainQueue() {
   return lookupConcurrencyIntrinsic(getASTContext(), "_asyncMainDrainQueue");
 }
 
-FuncDecl *SILGenModule::getSwiftJobRun() {
-  return lookupConcurrencyIntrinsic(getASTContext(), "_swiftJobRun");
+FuncDecl *SILGenModule::getCodiraJobRun() {
+  return lookupConcurrencyIntrinsic(getASTContext(), "_languageJobRun");
 }
 
 FuncDecl *SILGenModule::getDeinitOnExecutor() {
   return lookupConcurrencyIntrinsic(getASTContext(), "_deinitOnExecutor");
+}
+
+FuncDecl *SILGenModule::getDeinitOnExecutorMainActorBackDeploy() {
+  auto found = lookupConcurrencyIntrinsic(getASTContext(),
+                                          "_deinitOnExecutorMainActorBackDeploy");
+  if (found)
+    return found;
+
+  return getDeinitOnExecutor();
 }
 
 FuncDecl *SILGenModule::getCreateExecutors() {
@@ -470,15 +484,15 @@ FuncDecl *SILGenModule::getExit() {
 
   // Try the most likely modules.
   Identifier mostLikelyIdentifier;
-  const llvm::Triple &triple = C.LangOpts.Target;
+  const toolchain::Triple &triple = C.LangOpts.Target;
   if (triple.isOSDarwin()) {
     mostLikelyIdentifier = C.getIdentifier("Darwin");
   } else if (triple.isOSWASI()) {
-    mostLikelyIdentifier = C.getIdentifier("SwiftWASILibc");
+    mostLikelyIdentifier = C.getIdentifier("CodiraWASILibc");
   } else if (triple.isWindowsMSVCEnvironment()) {
     mostLikelyIdentifier = C.getIdentifier("ucrt");
   } else {
-    mostLikelyIdentifier = C.getIdentifier("SwiftGlibc");
+    mostLikelyIdentifier = C.getIdentifier("CodiraGlibc");
   }
   ModuleDecl *exitModule = C.getModuleByIdentifier(mostLikelyIdentifier);
   FuncDecl *exitFunction = nullptr;
@@ -491,7 +505,7 @@ FuncDecl *SILGenModule::getExit() {
 
   if (!exitFunction) {
     // No go, look for it in any loaded module. Several of the internal
-    // Swift modules or swift-corelibs modules may have absorbed <stdlib.h>
+    // Codira modules or language-corelibs modules may have absorbed <stdlib.h>
     // when buliding without fully specified clang modules in the OS/SDK.
     for (const auto &loadedModuleVector : C.getLoadedModules()) {
       if (loadedModuleVector.first == mostLikelyIdentifier) {
@@ -518,7 +532,7 @@ Type SILGenModule::getConfiguredExecutorFactory() {
   auto &ctx = getASTContext();
 
   // Look in the main module for a typealias
-  Type factory = ctx.getNamedSwiftType(ctx.MainModule, "DefaultExecutorFactory");
+  Type factory = ctx.getNamedCodiraType(ctx.MainModule, "DefaultExecutorFactory");
 
   // If we don't find it, fall back to _Concurrency.PlatformExecutorFactory
   if (!factory)
@@ -534,7 +548,7 @@ Type SILGenModule::getDefaultExecutorFactory() {
   if (!module)
     return Type();
 
-  return ctx.getNamedSwiftType(module, "DefaultExecutorFactory");
+  return ctx.getNamedCodiraType(module, "DefaultExecutorFactory");
 }
 
 ProtocolConformance *SILGenModule::getNSErrorConformanceToError() {
@@ -574,22 +588,22 @@ SILGenModule::getKeyPathProjectionCoroutine(bool isReadAccess,
     assert(typeKind == KPTK_KeyPath ||
            typeKind == KPTK_WritableKeyPath ||
            typeKind == KPTK_ReferenceWritableKeyPath);
-    functionName = "swift_readAtKeyPath";
+    functionName = "language_readAtKeyPath";
     isBaseInout = false;
     isResultInout = false;
     keyPathDecl = getASTContext().getKeyPathDecl();
   } else if (typeKind == KPTK_WritableKeyPath) {
-    functionName = "swift_modifyAtWritableKeyPath";
+    functionName = "language_modifyAtWritableKeyPath";
     isBaseInout = true;
     isResultInout = true;
     keyPathDecl = getASTContext().getWritableKeyPathDecl();
   } else if (typeKind == KPTK_ReferenceWritableKeyPath) {
-    functionName = "swift_modifyAtReferenceWritableKeyPath";
+    functionName = "language_modifyAtReferenceWritableKeyPath";
     isBaseInout = false;
     isResultInout = true;
     keyPathDecl = getASTContext().getReferenceWritableKeyPathDecl();
   } else {
-    llvm_unreachable("bad combination");
+    toolchain_unreachable("bad combination");
   }
 
   auto fn = M.lookUpFunction(functionName);
@@ -692,9 +706,11 @@ static bool shouldEmitFunctionBody(const AbstractFunctionDecl *AFD) {
     return false;
 
   auto &ctx = AFD->getASTContext();
-  if (ctx.TypeCheckerOpts.EnableLazyTypecheck) {
+  if (ctx.TypeCheckerOpts.EnableLazyTypecheck || AFD->isInMacroExpansionFromClangHeader()) {
     // Force the function body to be type-checked and then skip it if there
-    // have been any errors.
+    // have been any errors. Normally macro expansions are type checked in the module they
+    // expand in - this does not apply to language macros applied to nodes imported from clang,
+    // so force type checking of them here if they haven't already, to prevent crashing.
     (void)AFD->getTypecheckedBody();
 
     // FIXME: Only skip bodies that contain type checking errors.
@@ -766,6 +782,13 @@ static ActorIsolation getActorIsolationForFunction(SILFunction &fn) {
       // Deallocating destructor is always nonisolated. Isolation of the deinit
       // applies only to isolated deallocator and destroyer.
       return ActorIsolation::forNonisolated(false);
+    }
+
+    // If we have a closure expr, check if our type is
+    // nonisolated(nonsending). In that case, we use that instead.
+    if (auto *closureExpr = constant.getAbstractClosureExpr()) {
+      if (auto actorIsolation = closureExpr->getActorIsolation())
+        return actorIsolation;
     }
 
     // If we have actor isolation for our constant, put the isolation onto the
@@ -871,6 +894,22 @@ void SILGenModule::visit(Decl *D) {
     return;
 
   ASTVisitor::visit(D);
+}
+
+static bool isInPrintFunctionList(AbstractFunctionDecl *fd) {
+  if (PrintFunctionAST.empty()) {
+    return false;
+  }
+  auto fnName = SILDeclRef(fd).mangle();
+  for (const std::string &printFnName : PrintFunctionAST) {
+    if (printFnName == fnName)
+      return true;
+    if (!printFnName.empty() && printFnName[0] != '$' && !fnName.empty() &&
+        fnName[0] == '$' && printFnName == fnName.substr(1)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void SILGenModule::visitFuncDecl(FuncDecl *fd) { emitFunction(fd); }
@@ -1056,7 +1095,7 @@ void SILGenModule::emitFunctionDefinition(SILDeclRef constant, SILFunction *f) {
     }
 
     default:
-      llvm_unreachable("Bad default argument kind");
+      toolchain_unreachable("Bad default argument kind");
     }
 
     break;
@@ -1227,7 +1266,7 @@ void SILGenModule::emitFunctionDefinition(SILDeclRef constant, SILFunction *f) {
     //
     // In the async case, emitAsyncMainThreadStart is responsible for generating
     // the contents of @main. This wraps @async_main in a task, passes that task
-    // to swift_job_run to execute the first thunk, and starts the runloop to
+    // to language_job_run to execute the first thunk, and starts the runloop to
     // run any additional continuations. The kind is EntryPoint, and the decl is
     // async.
     // When the kind is 'AsyncMain', we are generating @async_main. In this
@@ -1303,17 +1342,17 @@ void SILGenModule::preEmitFunction(SILDeclRef constant, SILFunction *F,
   // Set our actor isolation.
   F->setActorIsolation(getActorIsolationForFunction(*F));
 
-  LLVM_DEBUG(llvm::dbgs() << "lowering ";
-             F->printName(llvm::dbgs());
-             llvm::dbgs() << " : ";
-             F->getLoweredType().print(llvm::dbgs());
-             llvm::dbgs() << '\n';
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "lowering ";
+             F->printName(toolchain::dbgs());
+             toolchain::dbgs() << " : ";
+             F->getLoweredType().print(toolchain::dbgs());
+             toolchain::dbgs() << '\n';
              if (auto *decl = Loc.getAsASTNode<ValueDecl>()) {
-               decl->dump(llvm::dbgs());
-               llvm::dbgs() << '\n';
+               decl->dump(toolchain::dbgs());
+               toolchain::dbgs() << '\n';
              } else if (auto *expr = Loc.getAsASTNode<Expr>()) {
-               expr->dump(llvm::dbgs());
-               llvm::dbgs() << "\n";
+               expr->dump(toolchain::dbgs());
+               toolchain::dbgs() << "\n";
              });
 }
 
@@ -1325,8 +1364,8 @@ void SILGenModule::postEmitFunction(SILDeclRef constant,
   recontextualizeCapturedLocalArchetypes(F, sig);
 
   assert(!F->isExternalDeclaration() && "did not emit any function body?!");
-  LLVM_DEBUG(llvm::dbgs() << "lowered sil:\n";
-             F->print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "lowered sil:\n";
+             F->print(toolchain::dbgs()));
   F->verifyIncompleteOSSA();
 
   emitDifferentiabilityWitnessesForFunction(constant, F);
@@ -1429,14 +1468,19 @@ void SILGenModule::emitDifferentiabilityWitness(
   auto *diffWitness = M.lookUpDifferentiabilityWitness(key);
   if (!diffWitness) {
     // Differentiability witnesses have the same linkage as the original
-    // function, stripping external.
-    auto linkage = stripExternalFromLinkage(originalFunction->getLinkage());
+    // function, stripping external. For @_alwaysEmitIntoClient original
+    // functions, force PublicNonABI linkage of the differentiability witness so
+    // we can serialize it (the original function itself might be HiddenExternal
+    // in this case if we only have declaration without definition).
+    auto linkage =
+        originalFunction->markedAsAlwaysEmitIntoClient()
+            ? SILLinkage::PublicNonABI
+            : stripExternalFromLinkage(originalFunction->getLinkage());
     diffWitness = SILDifferentiabilityWitness::createDefinition(
         M, linkage, originalFunction, diffKind, silConfig.parameterIndices,
         silConfig.resultIndices, config.derivativeGenericSignature,
         /*jvp*/ nullptr, /*vjp*/ nullptr,
-        /*isSerialized*/ hasPublicVisibility(originalFunction->getLinkage()),
-        attr);
+        /*isSerialized*/ hasPublicVisibility(linkage), attr);
   }
 
   // Set derivative function in differentiability witness.
@@ -1466,6 +1510,11 @@ void SILGenModule::emitDifferentiabilityWitness(
 }
 
 void SILGenModule::emitAbstractFuncDecl(AbstractFunctionDecl *AFD) {
+  if (isInPrintFunctionList(AFD)) {
+    auto &out = toolchain::errs();
+    AFD->dump(out);
+  }
+  
   // Emit default arguments and property wrapper initializers.
   emitArgumentGenerators(AFD, AFD->getParameters());
 
@@ -1627,7 +1676,7 @@ void SILGenModule::emitObjCAllocatorDestructor(ClassDecl *cd,
   // Emit the isolated deallocating destructor.
   // If emitted, it implements actual deallocating and deallocating destructor
   // only switches executor
-  if (dd->hasBody() && isActorIsolated) {
+  if (dd->hasBody() && !dd->isBodySkipped() && isActorIsolated) {
     SILDeclRef dealloc(dd, SILDeclRef::Kind::IsolatedDeallocator);
     emitFunctionDefinition(dealloc, getFunction(dealloc, ForDefinition));
   }
@@ -1744,7 +1793,7 @@ void SILGenModule::emitDefaultArgGenerator(SILDeclRef constant,
                                            ParamDecl *param) {
   switch (param->getDefaultArgumentKind()) {
   case DefaultArgumentKind::None:
-    llvm_unreachable("No default argument here?");
+    toolchain_unreachable("No default argument here?");
 
   case DefaultArgumentKind::Normal:
   case DefaultArgumentKind::StoredProperty:
@@ -1930,11 +1979,11 @@ void SILGenModule::visitVarDecl(VarDecl *vd) {
 }
 
 void SILGenModule::visitSubscriptDecl(SubscriptDecl *sd) {
-  llvm_unreachable("top-level subscript?");
+  toolchain_unreachable("top-level subscript?");
 }
 
 void SILGenModule::visitMissingDecl(MissingDecl *sd) {
-  llvm_unreachable("missing decl in SILGen");
+  toolchain_unreachable("missing decl in SILGen");
 }
 
 void SILGenModule::visitMacroDecl(MacroDecl *d) {
@@ -1946,7 +1995,7 @@ void SILGenModule::visitMacroExpansionDecl(MacroExpansionDecl *d) {
 }
 
 void SILGenModule::visitEmittedAccessors(
-    AbstractStorageDecl *D, llvm::function_ref<void(AccessorDecl *)> callback) {
+    AbstractStorageDecl *D, toolchain::function_ref<void(AccessorDecl *)> callback) {
   D->visitEmittedAccessors([&](AccessorDecl *accessor) {
     if (shouldSkipDecl(accessor))
       return;
@@ -1960,13 +2009,13 @@ SILGenModule::canStorageUseStoredKeyPathComponent(AbstractStorageDecl *decl,
                                                   ResilienceExpansion expansion) {
   // If the declaration is resilient, we have to treat the component as
   // computed.
-  if (decl->isResilient(M.getSwiftModule(), expansion))
+  if (decl->isResilient(M.getCodiraModule(), expansion))
     return false;
 
   auto strategy = decl->getAccessStrategy(
       AccessSemantics::Ordinary,
       decl->supportsMutation() ? AccessKind::ReadWrite : AccessKind::Read,
-      M.getSwiftModule(), expansion, std::nullopt,
+      M.getCodiraModule(), expansion, std::nullopt,
       /*useOldABI=*/false);
   switch (strategy.getKind()) {
   case AccessStrategy::Storage: {
@@ -2013,7 +2062,7 @@ SILGenModule::canStorageUseStoredKeyPathComponent(AbstractStorageDecl *decl,
   case AccessStrategy::DispatchToDistributedThunk:
     return false;
   }
-  llvm_unreachable("unhandled strategy");
+  toolchain_unreachable("unhandled strategy");
 }
 
 static bool canStorageUseTrivialDescriptor(SILGenModule &SGM,
@@ -2026,7 +2075,7 @@ static bool canStorageUseTrivialDescriptor(SILGenModule &SGM,
   // stored) and doesn't have a setter with less-than-public visibility.
   auto expansion = ResilienceExpansion::Maximal;
 
-  if (!SGM.M.getSwiftModule()->isResilient()) {
+  if (!SGM.M.getCodiraModule()->isResilient()) {
     if (SGM.canStorageUseStoredKeyPathComponent(decl, expansion)) {
       // External modules can't directly access storage, unless this is a
       // property in a fixed-layout type.
@@ -2064,17 +2113,16 @@ void SILGenModule::tryEmitPropertyDescriptor(AbstractStorageDecl *decl) {
   if (!SILModuleConventions(M).useLoweredAddresses())
     return;
   
-  if (!decl->exportsPropertyDescriptor())
+  auto descriptorContext = decl->getPropertyDescriptorGenericSignature();
+  if (!descriptorContext)
     return;
 
   PrettyStackTraceDecl stackTrace("emitting property descriptor for", decl);
 
   Type baseTy;
   if (decl->getDeclContext()->isTypeContext()) {
-
     baseTy = decl->getDeclContext()->getSelfInterfaceType()
-                 ->getReducedType(decl->getInnermostDeclContext()
-                                      ->getGenericSignatureOfContext());
+                 ->getReducedType(*descriptorContext);
     
     if (decl->isStatic()) {
       baseTy = MetatypeType::get(baseTy);
@@ -2082,11 +2130,10 @@ void SILGenModule::tryEmitPropertyDescriptor(AbstractStorageDecl *decl) {
   } else {
     // TODO: Global variables should eventually be referenceable as
     // key paths from (), viz. baseTy = TupleType::getEmpty(getASTContext());
-    llvm_unreachable("should not export a property descriptor yet");
+    toolchain_unreachable("should not export a property descriptor yet");
   }
 
-  auto genericEnv = decl->getInnermostDeclContext()
-                        ->getGenericEnvironmentOfContext();
+  auto genericEnv = descriptorContext->getGenericEnvironment();
   unsigned baseOperand = 0;
   bool needsGenericContext = true;
   
@@ -2096,8 +2143,16 @@ void SILGenModule::tryEmitPropertyDescriptor(AbstractStorageDecl *decl) {
   }
   
   SubstitutionMap subs;
-  if (genericEnv)
-    subs = genericEnv->getForwardingSubstitutionMap();
+  if (genericEnv) {
+    // The substitutions are used when invoking the underlying accessors, so
+    // we get these from the original declaration generic environment, even if
+    // `getPropertyDescriptorGenericSignature` computed a different generic
+    // environment, since the accessors will not need the extra Copyable or
+    // Escapable requirements.
+    subs = SubstitutionMap::get(decl->getInnermostDeclContext()
+                                    ->getGenericSignatureOfContext(),
+      genericEnv->getForwardingSubstitutionMap());
+  }
   
   auto component = emitKeyPathComponentForDecl(SILLocation(decl),
                                                genericEnv,
@@ -2105,7 +2160,7 @@ void SILGenModule::tryEmitPropertyDescriptor(AbstractStorageDecl *decl) {
                                                baseOperand, needsGenericContext,
                                                subs, decl, {},
                                                baseTy->getCanonicalType(),
-                                               M.getSwiftModule(),
+                                               M.getCodiraModule(),
                                                /*property descriptor*/ true);
   
   (void)SILProperty::create(M, /*serializedKind*/ 0, decl, component);
@@ -2191,7 +2246,7 @@ void SILGenModule::emitSymbolSource(SymbolSource Source) {
     addGlobalVariable(Source.getGlobal());
     break;
   case SymbolSource::Kind::IR:
-    llvm_unreachable("Unimplemented: Emission of LinkEntities");
+    toolchain_unreachable("Unimplemented: Emission of LinkEntities");
   case SymbolSource::Kind::Unknown:
   case SymbolSource::Kind::LinkerDirective:
     // Nothing to do
@@ -2223,7 +2278,7 @@ ASTLoweringRequest::evaluate(Evaluator &evaluator,
       ctx.LangOpts.AllowModuleWithCompilerErrors)
     return silMod;
 
-  SILGenModule SGM(*silMod, silMod->getSwiftModule());
+  SILGenModule SGM(*silMod, silMod->getCodiraModule());
 
   // Emit a specific set of SILDeclRefs if needed.
   if (auto Sources = desc.SourcesToEmit) {
@@ -2239,12 +2294,12 @@ ASTLoweringRequest::evaluate(Evaluator &evaluator,
 
   // Also make sure to process any intermediate files that may contain SIL.
   bool shouldDeserialize =
-      llvm::any_of(desc.getFilesToEmit(), [](const FileUnit *File) -> bool {
+      toolchain::any_of(desc.getFilesToEmit(), [](const FileUnit *File) -> bool {
         return isa<SerializedASTFile>(File);
       });
   if (shouldDeserialize) {
     auto *primary = desc.context.dyn_cast<FileUnit *>();
-    silMod->getSILLoader()->getAllForModule(silMod->getSwiftModule()->getName(),
+    silMod->getSILLoader()->getAllForModule(silMod->getCodiraModule()->getName(),
                                             primary);
   }
 
@@ -2269,7 +2324,7 @@ ASTLoweringRequest::evaluate(Evaluator &evaluator,
 }
 
 std::unique_ptr<SILModule>
-swift::performASTLowering(ModuleDecl *mod, Lowering::TypeConverter &tc,
+language::performASTLowering(ModuleDecl *mod, Lowering::TypeConverter &tc,
                           const SILOptions &options,
                           const IRGenOptions *irgenOptions) {
   auto desc = ASTLoweringDescriptor::forWholeModule(mod, tc, options,
@@ -2278,7 +2333,7 @@ swift::performASTLowering(ModuleDecl *mod, Lowering::TypeConverter &tc,
                          ASTLoweringRequest{desc});
 }
 
-std::unique_ptr<SILModule> swift::performASTLowering(CompilerInstance &CI,
+std::unique_ptr<SILModule> language::performASTLowering(CompilerInstance &CI,
                                                      SymbolSources Sources) {
   auto *M = CI.getMainModule();
   const auto &Invocation = CI.getInvocation();
@@ -2292,7 +2347,7 @@ std::unique_ptr<SILModule> swift::performASTLowering(CompilerInstance &CI,
 }
 
 std::unique_ptr<SILModule>
-swift::performASTLowering(FileUnit &sf, Lowering::TypeConverter &tc,
+language::performASTLowering(FileUnit &sf, Lowering::TypeConverter &tc,
                           const SILOptions &options,
                           const IRGenOptions *irgenOptions) {
   auto desc =

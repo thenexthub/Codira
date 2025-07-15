@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_SILLOADER_H
-#define SWIFT_SERIALIZATION_SILLOADER_H
+#ifndef LANGUAGE_SERIALIZATION_SILLOADER_H
+#define LANGUAGE_SERIALIZATION_SILLOADER_H
 
 #include "language/AST/AutoDiff.h"
 #include "language/AST/Decl.h"

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BRIDGING_MACROS_H
-#define SWIFT_BRIDGING_MACROS_H
+#ifndef LANGUAGE_BRIDGING_MACROS_H
+#define LANGUAGE_BRIDGING_MACROS_H
 
 #include "language/Basic/BasicBridging.h"
 
@@ -22,16 +23,16 @@
 extern "C" {
 #endif
 
-void *_Nonnull swift_Macros_resolveExternalMacro(
+void *_Nonnull language_Macros_resolveExternalMacro(
     const char *_Nonnull moduleName, const char *_Nonnull typeName,
     void *_Nonnull opaquePluginHandle);
-void swift_Macros_destroyExternalMacro(void *_Nonnull macro);
+void language_Macros_destroyExternalMacro(void *_Nonnull macro);
 
-bool swift_Macros_checkDefaultArgumentMacroExpression(
+bool language_Macros_checkDefaultArgumentMacroExpression(
     void *_Nonnull diagEngine, void *_Nonnull sourceFile,
     const void *_Nonnull macroSourceLocation);
 
-ptrdiff_t swift_Macros_checkMacroDefinition(
+ptrdiff_t language_Macros_checkMacroDefinition(
     void *_Nonnull diagEngine, BridgedStringRef sourceFileBuffer,
     BridgedStringRef macroDeclText,
     BridgedStringRef *_Nonnull expansionSourceOutPtr,
@@ -39,16 +40,16 @@ ptrdiff_t swift_Macros_checkMacroDefinition(
     ptrdiff_t *_Nonnull numReplacements,
     ptrdiff_t *_Nullable *_Nonnull genericReplacementsPtr,
     ptrdiff_t *_Nonnull numGenericReplacements);
-void swift_Macros_freeExpansionReplacements(
+void language_Macros_freeExpansionReplacements(
     ptrdiff_t *_Nullable replacementsPtr, ptrdiff_t numReplacements);
 
-ptrdiff_t swift_Macros_expandFreestandingMacro(
+ptrdiff_t language_Macros_expandFreestandingMacro(
     void *_Nonnull diagEngine, const void *_Nonnull macro,
     const char *_Nonnull discriminator, uint8_t rawMacroRole,
     void *_Nonnull sourceFile, const void *_Nullable sourceLocation,
     BridgedStringRef *_Nonnull evaluatedSourceOut);
 
-ptrdiff_t swift_Macros_expandAttachedMacro(
+ptrdiff_t language_Macros_expandAttachedMacro(
     void *_Nonnull diagEngine, const void *_Nonnull macro,
     const char *_Nonnull discriminator, const char *_Nonnull qualifiedType,
     const char *_Nonnull conformances, uint8_t rawMacroRole,
@@ -60,10 +61,10 @@ ptrdiff_t swift_Macros_expandAttachedMacro(
     const void *_Nullable parentDeclSourceLocation,
     BridgedStringRef *_Nonnull evaluatedSourceOut);
 
-bool swift_Macros_initializePlugin(void *_Nonnull handle,
+bool language_Macros_initializePlugin(void *_Nonnull handle,
                                    void *_Nullable diagEngine);
-void swift_Macros_deinitializePlugin(void *_Nonnull handle);
-bool swift_Macros_pluginServerLoadLibraryPlugin(
+void language_Macros_deinitializePlugin(void *_Nonnull handle);
+bool language_Macros_pluginServerLoadLibraryPlugin(
     void *_Nonnull handle, const char *_Nonnull libraryPath,
     const char *_Nonnull moduleName, BridgedStringRef *_Nullable errorOut);
 
@@ -71,4 +72,4 @@ bool swift_Macros_pluginServerLoadLibraryPlugin(
 }
 #endif
 
-#endif // SWIFT_BRIDGING_MACROS_H
+#endif // LANGUAGE_BRIDGING_MACROS_H

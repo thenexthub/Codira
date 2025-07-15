@@ -1,0 +1,15 @@
+// To make sure this test is resilient to directory changes, we create nested directories inside of the
+// temporary test directory and assert those exist, or don't exist, in the emitted ir
+//
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/root/nested
+// RUN: echo "fn coverage() {}" > %t/root/nested/coverage_relative_path.code
+// RUN: cd %t/root
+
+// RUN: %target-language-frontend -profile-generate -profile-coverage-mapping -Xtoolchain -enable-name-compression=false -emit-ir nested/coverage_relative_path.code | %FileCheck -check-prefix=ABSOLUTE %s
+//
+// ABSOLUTE: @__toolchain_coverage_mapping = {{.*"\\02.*root[^/\\]*nested[/\\]*coverage_relative_path\.code}}
+
+// RUN: %target-language-frontend -profile-generate -profile-coverage-mapping -Xtoolchain -enable-name-compression=false -coverage-prefix-map %t/root=. -emit-ir %t/root/nested/coverage_relative_path.code | %FileCheck -check-prefix=RELATIVE %s
+//
+// RELATIVE: @__toolchain_coverage_mapping = {{.*"\\02.*\\01[^/]*\.[/\\]*nested[/\\]*coverage_relative_path\.code}}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ClangDiagnosticConsumer.h"
@@ -24,14 +25,14 @@
 #include "clang/Frontend/DiagnosticRenderer.h"
 #include "clang/Frontend/FrontendDiagnostic.h"
 #include "clang/Lex/LexDiagnostic.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
 using namespace language::importer;
 
 namespace {
   class ClangDiagRenderer final : public clang::DiagnosticNoteRenderer {
-    const llvm::function_ref<void(clang::FullSourceLoc,
+    const toolchain::function_ref<void(clang::FullSourceLoc,
                                   clang::DiagnosticsEngine::Level,
                                   StringRef)> callback;
 
@@ -44,9 +45,9 @@ namespace {
 
   private:
     /// Is this a diagnostic that doesn't do the user any good to show if it
-    /// is located in one of Swift's synthetic buffers? If so, returns true to
+    /// is located in one of Codira's synthetic buffers? If so, returns true to
     /// suppress it.
-    static bool shouldSuppressDiagInSwiftBuffers(clang::DiagOrStoredDiag info) {
+    static bool shouldSuppressDiagInCodiraBuffers(clang::DiagOrStoredDiag info) {
       if (info.isNull())
         return false;
 
@@ -59,8 +60,8 @@ namespace {
              ID == clang::diag::err_module_not_built;
     }
 
-    /// Returns true if \p loc is inside one of Swift's synthetic buffers.
-    static bool isInSwiftBuffers(clang::FullSourceLoc loc) {
+    /// Returns true if \p loc is inside one of Codira's synthetic buffers.
+    static bool isInCodiraBuffers(clang::FullSourceLoc loc) {
       StringRef bufName = StringRef(loc.getManager().getBufferName(loc));
       return bufName == ClangImporter::Implementation::moduleImportBufferName ||
              bufName == ClangImporter::Implementation::bridgingHeaderBufferName;
@@ -72,16 +73,16 @@ namespace {
                                StringRef Message,
                                ArrayRef<clang::CharSourceRange> Ranges,
                                clang::DiagOrStoredDiag Info) override {
-      if (isInSwiftBuffers(Loc)) {
+      if (isInCodiraBuffers(Loc)) {
         // FIXME: Ideally, we'd report non-suppressed diagnostics on synthetic
-        // buffers, printing their names (eg. <swift-imported-modules>:...) but
+        // buffers, printing their names (eg. <language-imported-modules>:...) but
         // this risks printing _excerpts_ of those buffers to stderr too; at
         // present the synthetic buffers are "large blocks of null bytes" which
         // we definitely don't want to print out. So until we have some clever
         // way to print the name but suppress printing excerpts, we just replace
         // the Loc with an invalid one here, which suppresses both.
         Loc = clang::FullSourceLoc();
-        if (shouldSuppressDiagInSwiftBuffers(Info))
+        if (shouldSuppressDiagInCodiraBuffers(Info))
           return;
       }
       callback(Loc, Level, Message);
@@ -98,9 +99,9 @@ namespace {
 
     void emitNote(clang::FullSourceLoc Loc, StringRef Message) override {
       // We get invalid note locations when trying to describe where a module
-      // is imported and the actual location is in Swift. We also want to ignore
-      // things like "in module X imported from <swift-imported-modules>".
-      if (Loc.isInvalid() || isInSwiftBuffers(Loc))
+      // is imported and the actual location is in Codira. We also want to ignore
+      // things like "in module X imported from <language-imported-modules>".
+      if (Loc.isInvalid() || isInCodiraBuffers(Loc))
         return;
       emitDiagnosticMessage(Loc, {}, clang::DiagnosticsEngine::Note, Message,
                             {}, {});
@@ -112,7 +113,7 @@ ClangDiagnosticConsumer::ClangDiagnosticConsumer(
     ClangImporter::Implementation &impl,
     clang::DiagnosticOptions &clangDiagOptions,
     bool dumpToStderr)
-  : TextDiagnosticPrinter(llvm::errs(), &clangDiagOptions),
+  : TextDiagnosticPrinter(toolchain::errs(), &clangDiagOptions),
     ImporterImpl(impl), DumpToStderr(dumpToStderr) {}
 
 void ClangDiagnosticConsumer::HandleDiagnostic(
@@ -131,7 +132,7 @@ void ClangDiagnosticConsumer::HandleDiagnostic(
     HeaderLoc loc(clangDiag.getLocation(), DiagLoc,
                   &clangDiag.getSourceManager());
     ImporterImpl.diagnose(loc, diag::clang_cannot_build_module,
-                          ImporterImpl.SwiftContext.LangOpts.EnableObjCInterop,
+                          ImporterImpl.CodiraContext.LangOpts.EnableObjCInterop,
                           CurrentImport->getName());
     return;
   }
@@ -171,7 +172,7 @@ void ClangDiagnosticConsumer::HandleDiagnostic(
     ImporterImpl.diagnose(noteLoc, diagKind, message);
   };
 
-  llvm::SmallString<128> message;
+  toolchain::SmallString<128> message;
   clangDiag.FormatDiagnostic(message);
 
   if (clangDiag.getLocation().isInvalid()) {

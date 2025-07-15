@@ -1,4 +1,4 @@
-//===--- LifetimeTracked.swift --------------------------------------------===//
+//===--- LifetimeTracked.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that tracks the number of live instances.
@@ -26,8 +27,8 @@ public final class LifetimeTracked {
     LifetimeTracked.instances += 1
     LifetimeTracked._nextSerialNumber += 1
     serialNumber = LifetimeTracked._nextSerialNumber
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
   deinit {
@@ -39,13 +40,13 @@ public final class LifetimeTracked {
   public static var instances: Int = 0
   internal static var _nextSerialNumber = 0
 
-  public let value: Int
+  public immutable value: Int
   public var identity: Int
   public var serialNumber: Int = 0
 }
 
 extension LifetimeTracked : Equatable {
-  public static func == (x: LifetimeTracked, y: LifetimeTracked) -> Bool {
+  public static fn == (x: LifetimeTracked, y: LifetimeTracked) -> Bool {
     return x.value == y.value
   }
 }
@@ -54,18 +55,18 @@ extension LifetimeTracked : Hashable {
   public var hashValue: Int {
     return value
   }
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 }
 
 extension LifetimeTracked : Strideable {
-  public func distance(to other: LifetimeTracked) -> Int {
-    return self.value.distance(to: other.value)
+  public fn distance(to other: LifetimeTracked) -> Int {
+    return this.value.distance(to: other.value)
   }
 
-  public func advanced(by n: Int) -> LifetimeTracked {
-    return LifetimeTracked(self.value.advanced(by: n))
+  public fn advanced(by n: Int) -> LifetimeTracked {
+    return LifetimeTracked(this.value.advanced(by: n))
   }
 }
 
@@ -76,6 +77,6 @@ extension LifetimeTracked : CustomStringConvertible {
   }
 }
 
-public func < (x: LifetimeTracked, y: LifetimeTracked) -> Bool {
+public fn < (x: LifetimeTracked, y: LifetimeTracked) -> Bool {
   return x.value < y.value
 }

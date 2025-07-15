@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP class useful for laying out foreign class metadata.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_FOREIGNCLASSMETADATAVISITOR_H
-#define SWIFT_IRGEN_FOREIGNCLASSMETADATAVISITOR_H
+#ifndef LANGUAGE_IRGEN_FOREIGNCLASSMETADATAVISITOR_H
+#define LANGUAGE_IRGEN_FOREIGNCLASSMETADATAVISITOR_H
 
 #include "NominalMetadataVisitor.h"
 
@@ -102,4 +103,4 @@ public:
 } // end namespace irgen
 } // end namespace language
 
-#endif // SWIFT_IRGEN_FOREIGNCLASSMETADATAVISITOR_H
+#endif // LANGUAGE_IRGEN_FOREIGNCLASSMETADATAVISITOR_H

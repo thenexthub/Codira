@@ -1,0 +1,23 @@
+import CodiraDiagnostics
+import CodiraOperators
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+public struct PrintMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    immutable printCalls = node.argumentList.map {
+      "print(\($0.expression))"
+    }.joined(separator: "\n")
+    return
+      """
+      {
+      \(raw: printCalls)
+      }()
+      """
+  }
+}
+

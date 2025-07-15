@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %languagec_driver -whole-module-optimization %S/../Inputs/empty.code -### 2>&1 | %FileCheck -check-prefix WMO %s
+// WMO-NOT: -primary-file
+// RUN: %languagec_driver -whole-module-optimization -no-whole-module-optimization %S/../Inputs/empty.code -### 2>&1 | %FileCheck -check-prefix NO-WMO %s
+// NO-WMO: -primary-file

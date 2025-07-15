@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/baseline)
+// RUN: %empty-directory(%t/lazy)
+// RUN: %empty-directory(%t/lazy-skip-all)
+// RUN: %empty-directory(%t/lazy-skip-non-inlinable)
+
+// (1) Generate a baseline .codeinterface and build a client against it.
+// RUN: %target-language-frontend -language-version 5 %S/../Inputs/lazy_typecheck.code -module-name lazy_typecheck -typecheck -emit-module-interface-path %t/baseline/lazy_typecheck.codeinterface -enable-library-evolution -parse-as-library -package-name Package -DFLAG
+// RUN: rm -rf %t/baseline/*.codemodule
+// RUN: %target-language-frontend -package-name ClientPackage -typecheck -verify %S/../Inputs/lazy_typecheck_client.code -I %t/baseline/
+
+// (2) Generate a .codeinterface with -experimental-lazy-typecheck and build the client against it.
+//     The .codeinterface should be identical to the baseline and avoid triggering typechecking
+//     for any "NoTypecheck" decls.
+// RUN: %target-language-frontend -language-version 5 %S/../Inputs/lazy_typecheck.code -module-name lazy_typecheck -typecheck -emit-module-interface-path %t/lazy/lazy_typecheck.codeinterface -enable-library-evolution -parse-as-library -package-name Package -DFLAG -debug-forbid-typecheck-prefix NoTypecheck -experimental-lazy-typecheck
+// RUN: rm -rf %t/lazy/*.codemodule
+// RUN: %target-language-frontend -package-name ClientPackage -typecheck -verify %S/../Inputs/lazy_typecheck_client.code -I %t/lazy
+// RUN: diff -u %t/baseline/lazy_typecheck.codeinterface %t/lazy/lazy_typecheck.codeinterface
+
+// (3) Same as (2), but with -experimental-skip-all-function-bodies added.
+// RUN: %target-language-frontend -language-version 5 %S/../Inputs/lazy_typecheck.code -module-name lazy_typecheck -typecheck -emit-module-interface-path %t/lazy-skip-all/lazy_typecheck.codeinterface -enable-library-evolution -parse-as-library -package-name Package -DFLAG -debug-forbid-typecheck-prefix NoTypecheck -experimental-lazy-typecheck -experimental-skip-non-exportable-decls -experimental-skip-all-function-bodies
+// RUN: rm -rf %t/lazy-skip-all/*.codemodule
+// RUN: %target-language-frontend -package-name ClientPackage -typecheck -verify %S/../Inputs/lazy_typecheck_client.code -I %t/lazy-skip-all
+// RUN: diff -u %t/baseline/lazy_typecheck.codeinterface %t/lazy-skip-all/lazy_typecheck.codeinterface
+
+// (4) Same as (2), but with -experimental-skip-non-inlinable-function-bodies added.
+// RUN: %target-language-frontend -language-version 5 %S/../Inputs/lazy_typecheck.code -module-name lazy_typecheck -typecheck -emit-module-interface-path %t/lazy-skip-non-inlinable/lazy_typecheck.codeinterface -enable-library-evolution -parse-as-library -package-name Package -DFLAG -debug-forbid-typecheck-prefix NoTypecheck -experimental-lazy-typecheck -experimental-skip-non-inlinable-function-bodies
+// RUN: rm -rf %t/lazy-skip-non-inlinable/*.codemodule
+// RUN: %target-language-frontend -package-name ClientPackage -typecheck -verify %S/../Inputs/lazy_typecheck_client.code -I %t/lazy-skip-non-inlinable
+// RUN: diff -u %t/baseline/lazy_typecheck.codeinterface %t/lazy-skip-non-inlinable/lazy_typecheck.codeinterface

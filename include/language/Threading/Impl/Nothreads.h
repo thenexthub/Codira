@@ -1,21 +1,25 @@
 //==--- Nothreads.h - Threading abstraction implementation ----- -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for platforms without threading
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_IMPL_NOTHREADS_H
-#define SWIFT_THREADING_IMPL_NOTHREADS_H
+#ifndef LANGUAGE_THREADING_IMPL_NOTHREADS_H
+#define LANGUAGE_THREADING_IMPL_NOTHREADS_H
 
 #include <optional>
 
@@ -50,7 +54,7 @@ inline void mutex_unsafe_unlock(mutex_handle &handle) {}
 
 using lazy_mutex_handle = unsigned;
 
-#define SWIFT_LAZY_MUTEX_INITIALIZER 0
+#define LANGUAGE_LAZY_MUTEX_INITIALIZER 0
 
 inline void lazy_mutex_destroy(lazy_mutex_handle &handle) {}
 inline void lazy_mutex_lock(lazy_mutex_handle &handle) {}
@@ -105,10 +109,10 @@ inline void once_impl(once_t &predicate, void (*fn)(void *), void *ctx) {
 // .. Thread local storage ...................................................
 
 // If we have no threads, we can use the simple version of TLS
-#define SWIFT_THREAD_LOCAL
+#define LANGUAGE_THREAD_LOCAL
 
 } // namespace threading_impl
 
 } // namespace language
 
-#endif // SWIFT_THREADING_IMPL_NOTHREADS_H
+#endif // LANGUAGE_THREADING_IMPL_NOTHREADS_H

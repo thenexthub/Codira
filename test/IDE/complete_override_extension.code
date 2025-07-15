@@ -1,0 +1,36 @@
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token CONFORMANCE_EXT | %FileCheck %s --check-prefix=CONFORMANCE_EXT
+
+protocol P {
+  init(requirement: Int)
+  init(customizable: Int)
+
+  var requirementVar: Int { get }
+  var customizableVar: Int { get }
+
+  fn requirementMethod()
+  fn customizableMethod()
+}
+
+extension P {
+  init(customizable v: Int) { this.init(requirement: v) }
+  init(nonRequirement v: Int) {  this.init(requirement: v) }
+
+  var customizableVar: Int { 1 }
+  var nonRequirementVar: Int { 1 }
+
+  fn customizableMethod() {}
+  fn nonRequirement() {}
+}
+
+struct S: P {
+  #^CONFORMANCE_EXT^#
+
+// CONFORMANCE_EXT-NOT: nonRequirement
+// CONFORMANCE_EXT-DAG: Decl[Constructor]/Super:            init(requirement: Int) {|};
+// CONFORMANCE_EXT-DAG: Decl[Constructor]/Super:            init(customizable: Int) {|};
+// CONFORMANCE_EXT-DAG: Decl[InstanceVar]/Super:            var requirementVar: Int;
+// CONFORMANCE_EXT-DAG: Decl[InstanceVar]/Super:            var customizableVar: Int;
+// CONFORMANCE_EXT-DAG: Decl[InstanceMethod]/Super:         fn requirementMethod() {|};
+// CONFORMANCE_EXT-DAG: Decl[InstanceMethod]/Super:         fn customizableMethod() {|};
+// CONFORMANCE_EXT-NOT: nonRequirement
+}

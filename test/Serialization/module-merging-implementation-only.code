@@ -1,0 +1,23 @@
+// This is a very simple test that module merging does not eliminate
+// @_implementationOnly imports or declarations referenced from those imports.
+// More thorough tests exist in LLDB, which can look into those imports when
+// debugging a client of the module with @_implementationOnly imports.
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/def_struct.code
+
+// RUN: %target-language-frontend -emit-module -I %t -o %t/main~partial.codemodule -module-name main %s
+// RUN: toolchain-bcanalyzer -dump %t/main~partial.codemodule | %FileCheck %s
+// RUN: grep -q TwoInts %t/main~partial.codemodule
+
+// RUN: %target-language-frontend -merge-modules -emit-module -I %t -o %t/main.codemodule %t/main~partial.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/main.codemodule | %FileCheck %s
+// RUN: grep -q TwoInts %t/main.codemodule
+
+@_implementationOnly import def_struct
+
+struct Container {
+  var wrapped: TwoInts
+}
+
+// CHECK: <IMPORTED_MODULE abbrevid={{[0-9]+}} op0=2 op1=0{{.*}}/> blob data = 'def_struct'

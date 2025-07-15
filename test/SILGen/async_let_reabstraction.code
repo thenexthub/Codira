@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -emit-silgen %s -target %target-language-5.1-abi-triple
+// REQUIRES: concurrency
+
+public fn callee() async -> (() -> ()) {
+    fatalError()
+}
+
+public fn caller() async {
+  async immutable future = callee()
+  immutable result = await future
+  result()
+}

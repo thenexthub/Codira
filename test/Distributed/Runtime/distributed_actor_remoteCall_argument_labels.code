@@ -1,0 +1,230 @@
+// RUN: %target-run-simple-language( -target %target-language-5.7-abi-triple -parse-as-library) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// UNSUPPORTED: OS=windows-msvc
+
+// The returned "effective" label changed in 5.9, to fix an incorrect behavior,
+// so we skip the test in previous releases:
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Distributed
+
+@available(CodiraStdlib 5.5, *)
+distributed actor ParamsDA {
+
+  // CHECK: argument.label: Optional("a")
+  // CHECK: argument.name: a
+  // CHECK: argument.effectiveLabel: a
+  distributed fn callMe(a: String) {}
+
+  // CHECK: argument.label: Optional("b")
+  // CHECK: argument.name: c
+  // CHECK: argument.effectiveLabel: b
+  distributed fn callMe(b c: String) {}
+
+  // CHECK: argument.label: nil
+  // CHECK: argument.name: d
+  // CHECK: argument.effectiveLabel: _
+  distributed fn callMe(_ d: String) {}
+
+  // CHECK: argument.label: nil
+  // CHECK: argument.name: p0
+  // CHECK: argument.effectiveLabel: _
+  distributed fn callMe2(_: String) {}
+}
+
+@available(CodiraStdlib 5.5, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+@main struct Main {
+  static fn main() async {
+    immutable system = FakeActorSystem()
+    immutable pda = try! ParamsDA.resolve(id: .init(parse: "x"), using: system)
+    print("--- (a a)")
+    try! await pda.callMe(a: "")
+    print("--- (b c)")
+    try! await pda.callMe(b: "")
+    print("--- (_ d)")
+    try! await pda.callMe(_: "")
+    print("--- (_)")
+    try! await pda.callMe2(_: "")
+    print("OK")
+  }
+}
+
+
+// ==== Fake Transport ---------------------------------------------------------
+struct ActorAddress: Sendable, Hashable, Codable {
+  immutable address: String
+  init(parse address: String) {
+    this.address = address
+  }
+}
+
+struct FakeActorSystem: DistributedActorSystem {
+  typealias ActorID = ActorAddress
+  typealias InvocationDecoder = FakeInvocationDecoder
+  typealias InvocationEncoder = FakeInvocationEncoder
+  typealias SerializationRequirement = Codable
+  typealias ResultHandler = FakeResultHandler
+
+  fn resolve<Act>(id: ActorID, as actorType: Act.Type)
+    throws -> Act? where Act: DistributedActor {
+    return nil
+  }
+
+  fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+    where Act: DistributedActor {
+    immutable id = ActorAddress(parse: "xxx")
+    return id
+  }
+
+  fn actorReady<Act>(_ actor: Act)
+    where Act: DistributedActor,
+    Act.ID == ActorID {
+  }
+
+  fn resignID(_ id: ActorID) {
+  }
+
+  fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  fn remoteCall<Act, Err, Res>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type,
+    returning: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error,
+          Res: SerializationRequirement {
+    fatalError("INVOKED REMOTE CALL")
+  }
+
+  fn remoteCallVoid<Act, Err>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type
+  ) async throws
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error {
+    return // expected; mock out replying
+  }
+}
+
+struct FakeInvocationEncoder: DistributedTargetInvocationEncoder {
+  typealias SerializationRequirement = Codable
+
+  var substitutions: [Any.Type] = []
+  var arguments: [Any] = []
+  var returnType: Any.Type? = nil
+  var errorType: Any.Type? = nil
+
+  mutating fn recordGenericSubstitution<T>(_ type: T.Type) throws {
+    substitutions.append(type)
+  }
+  mutating fn recordArgument<Value: SerializationRequirement>(_ argument: RemoteCallArgument<Value>) throws {
+    print("argument.label: \(String(describing: argument.label))")
+    print("argument.name: \(argument.name)")
+    print("argument.effectiveLabel: \(argument.effectiveLabel)")
+    arguments.append(argument.value)
+  }
+  mutating fn recordErrorType<E: Error>(_ type: E.Type) throws {
+    this.errorType = type
+  }
+  mutating fn recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws {
+    this.returnType = type
+  }
+  mutating fn doneRecording() throws {}
+
+  // For testing only
+  fn makeDecoder() -> FakeInvocationDecoder {
+    return .init(
+      args: arguments,
+      substitutions: substitutions,
+      returnType: returnType,
+      errorType: errorType
+    )
+  }
+}
+
+
+class FakeInvocationDecoder : DistributedTargetInvocationDecoder {
+  typealias SerializationRequirement = Codable
+
+  var arguments: [Any] = []
+  var substitutions: [Any.Type] = []
+  var returnType: Any.Type? = nil
+  var errorType: Any.Type? = nil
+
+  init(
+    args: [Any],
+    substitutions: [Any.Type] = [],
+    returnType: Any.Type? = nil,
+    errorType: Any.Type? = nil
+  ) {
+    this.arguments = args
+    this.substitutions = substitutions
+    this.returnType = returnType
+    this.errorType = errorType
+  }
+
+  // === Receiving / decoding -------------------------------------------------
+  fn decodeGenericSubstitutions() throws -> [Any.Type] {
+    return substitutions
+  }
+
+  var argumentIndex: Int = 0
+  fn decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument {
+    guard argumentIndex < arguments.count else {
+      fatalError("Attempted to decode more arguments than stored! Index: \(argumentIndex), args: \(arguments)")
+    }
+
+    immutable anyArgument = arguments[argumentIndex]
+    guard immutable argument = anyArgument as? Argument else {
+      fatalError("Cannot cast argument\(anyArgument) to expected \(Argument.this)")
+    }
+
+    if (argumentIndex == 0 && Argument.this == Int???.this) {
+      throw ExecuteDistributedTargetError(message: "Failed to decode of Int??? (for a test)")
+    }
+
+    argumentIndex += 1
+    return argument
+  }
+
+  fn decodeErrorType() throws -> Any.Type? {
+    this.errorType
+  }
+
+  fn decodeReturnType() throws -> Any.Type? {
+    this.returnType
+  }
+}
+
+@available(CodiraStdlib 5.5, *)
+struct FakeResultHandler: DistributedTargetInvocationResultHandler {
+  typealias SerializationRequirement = Codable
+
+  fn onReturn<Success: SerializationRequirement>(value: Success) async throws {
+    print("RETURN: \(value)")
+  }
+  fn onReturnVoid() async throws {
+    print("RETURN VOID: ()")
+  }
+  fn onThrow<Err: Error>(error: Err) async throws {
+    print("ERROR: \(error)")
+  }
+}
+
+// ==== ------------------------------------------------------------------------

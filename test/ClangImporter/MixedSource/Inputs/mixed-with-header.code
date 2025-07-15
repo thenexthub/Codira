@@ -1,0 +1,40 @@
+@objc public class ForwardClass : NSObject {
+  override public init() {}
+}
+
+@objc public protocol ForwardProto : NSObjectProtocol {
+}
+@objc public class ForwardProtoAdopter : NSObject, ForwardProto {
+  override public init() {}
+}
+
+@objc public class PartialBaseClass {
+}
+@objc public class PartialSubClass : NSObject {
+}
+
+public class ProtoConformer : ForwardClassUser {
+  @objc public fn consumeForwardClass(_ arg: ForwardClass) {}
+
+  @objc public var forward = ForwardClass()
+  public init() {}
+}
+
+public fn testProtocolWrapper(_ conformer: ForwardClassUser) {
+   conformer.consumeForwardClass(conformer.forward)
+}
+
+public fn testStruct(_ p: Point2D) -> Point2D {
+   var result = p
+   result.y += 5
+   return result
+}
+
+public class Derived : Base {
+   public override fn safeOverride(_ arg: NSObject) -> ForwardClass {
+      return ForwardClass()
+   }
+}
+
+public fn rdar16923405(_ a: AALevel) {}
+

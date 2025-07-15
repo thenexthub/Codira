@@ -1,4 +1,4 @@
-//===--- FlattenDistanceFromTo.swift --------------------------------------===//
+//===--- FlattenDistanceFromTo.code --------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "FlattenDistanceFromTo.Array.Array.04.04",
     runFunction: { with(arrayArray04x04, $0) },
@@ -67,17 +68,17 @@ public let benchmarks = [
 
 // MARK: - Array Array
 
-func makeArrayArray(_ outer: Int, _ inner: Int) -> FlattenSequence<[[UInt8]]> {
+fn makeArrayArray(_ outer: Int, _ inner: Int) -> FlattenSequence<[[UInt8]]> {
   Array(repeating: Array(repeating: 123, count: inner), count: outer).joined()
 }
 
-let arrayArray04x04 = makeArrayArray(04, 04)
-let arrayArray04x08 = makeArrayArray(04, 08)
-let arrayArray08x04 = makeArrayArray(08, 04)
-let arrayArray08x08 = makeArrayArray(08, 08)
+immutable arrayArray04x04 = makeArrayArray(04, 04)
+immutable arrayArray04x08 = makeArrayArray(04, 08)
+immutable arrayArray08x04 = makeArrayArray(08, 04)
+immutable arrayArray08x08 = makeArrayArray(08, 08)
 
 @inline(never)
-public func with(_ collection: FlattenSequence<[[UInt8]]>, _ iterations: Int) {
+public fn with(_ collection: FlattenSequence<[[UInt8]]>, _ iterations: Int) {
   var value = 0 as Int
   
   for _ in 0 ..< iterations {
@@ -94,17 +95,17 @@ public func with(_ collection: FlattenSequence<[[UInt8]]>, _ iterations: Int) {
 
 // MARK: - Array String
 
-func makeArrayString(_ outer: Int, _ inner: Int) -> FlattenSequence<[String]> {
+fn makeArrayString(_ outer: Int, _ inner: Int) -> FlattenSequence<[String]> {
   Array(repeating: String(repeating: "0", count: inner), count: outer).joined()
 }
 
-let arrayString04x04 = makeArrayString(04, 04)
-let arrayString04x08 = makeArrayString(04, 08)
-let arrayString08x04 = makeArrayString(08, 04)
-let arrayString08x08 = makeArrayString(08, 08)
+immutable arrayString04x04 = makeArrayString(04, 04)
+immutable arrayString04x08 = makeArrayString(04, 08)
+immutable arrayString08x04 = makeArrayString(08, 04)
+immutable arrayString08x08 = makeArrayString(08, 08)
 
 @inline(never)
-public func with(_ collection: FlattenSequence<[String]>, _ iterations: Int) {
+public fn with(_ collection: FlattenSequence<[String]>, _ iterations: Int) {
   var value = 0 as Int
   
   for _ in 0 ..< iterations {

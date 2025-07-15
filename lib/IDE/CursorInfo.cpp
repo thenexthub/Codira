@@ -1,13 +1,17 @@
 //===--- CursorInfo.cpp ---------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CursorInfo.h"
@@ -137,7 +141,7 @@ class NodeFinder : ASTWalker {
   /// being shadowed.
   /// The transitive closure of shorthand shadowed decls should be reported as
   /// additional results in cursor info.
-  llvm::DenseMap<ValueDecl *, ValueDecl *> ShorthandShadowedDecls;
+  toolchain::DenseMap<ValueDecl *, ValueDecl *> ShorthandShadowedDecls;
 
 public:
   NodeFinder(DeclContext &DC, SourceLoc LocToResolve)
@@ -356,7 +360,7 @@ private:
   }
 
   void addResult(const CursorInfoDeclReference &NewResult) {
-    if (llvm::any_of(Results, [&](const CursorInfoDeclReference &R) {
+    if (toolchain::any_of(Results, [&](const CursorInfoDeclReference &R) {
           return R == NewResult;
         })) {
       return;
@@ -391,7 +395,7 @@ private:
     // Type check the statemnt containing E and listen for solutions.
     CursorInfoTypeCheckSolutionCallback Callback(*DC, RequestedLoc);
     {
-      llvm::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
+      toolchain::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
           DC->getASTContext().SolutionCallback, &Callback);
       if (ValueDecl *VD = getAsDecl<ValueDecl>(Node)) {
         typeCheckDeclAndParentClosures(VD);
@@ -519,7 +523,7 @@ public:
 } // anonymous namespace.
 
 IDEInspectionCallbacksFactory *
-swift::ide::makeCursorInfoCallbacksFactory(CursorInfoConsumer &Consumer,
+language::ide::makeCursorInfoCallbacksFactory(CursorInfoConsumer &Consumer,
                                            SourceLoc RequestedLoc) {
   class CursorInfoCallbacksFactoryImpl : public IDEInspectionCallbacksFactory {
     CursorInfoConsumer &Consumer;

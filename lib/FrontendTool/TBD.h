@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTENDTOOL_TBD_H
-#define SWIFT_FRONTENDTOOL_TBD_H
+#ifndef LANGUAGE_FRONTENDTOOL_TBD_H
+#define LANGUAGE_FRONTENDTOOL_TBD_H
 
 #include "language/Frontend/FrontendOptions.h"
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
 class Module;
 namespace vfs {
@@ -32,13 +33,13 @@ class FrontendOptions;
 struct TBDGenOptions;
 
 bool writeTBD(ModuleDecl *M, StringRef OutputFilename,
-              llvm::vfs::OutputBackend &Backend, const TBDGenOptions &Opts);
+              toolchain::vfs::OutputBackend &Backend, const TBDGenOptions &Opts);
 bool validateTBD(ModuleDecl *M,
-                 const llvm::Module &IRModule,
+                 const toolchain::Module &IRModule,
                  const TBDGenOptions &opts,
                  bool diagnoseExtraSymbolsInTBD);
 bool validateTBD(FileUnit *M,
-                 const llvm::Module &IRModule,
+                 const toolchain::Module &IRModule,
                  const TBDGenOptions &opts,
                  bool diagnoseExtraSymbolsInTBD);
 }

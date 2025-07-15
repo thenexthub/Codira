@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -48,54 +49,54 @@
 #include "language/Strings.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/FormattedStream.h"
+#include "toolchain/ADT/APFloat.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/FormattedStream.h"
 #include <set>
 
 using namespace language;
 using ID = SILPrintContext::ID;
 
-llvm::cl::opt<bool>
-SILPrintNoColor("sil-print-no-color", llvm::cl::init(""),
-                llvm::cl::desc("Don't use color when printing SIL"));
+toolchain::cl::opt<bool>
+SILPrintNoColor("sil-print-no-color", toolchain::cl::init(""),
+                toolchain::cl::desc("Don't use color when printing SIL"));
 
-llvm::cl::opt<bool>
-SILFullDemangle("sil-full-demangle", llvm::cl::init(false),
-                llvm::cl::desc("Fully demangle symbol names in SIL output"));
+toolchain::cl::opt<bool>
+SILFullDemangle("sil-full-demangle", toolchain::cl::init(false),
+                toolchain::cl::desc("Fully demangle symbol names in SIL output"));
 
-llvm::cl::opt<bool>
-SILPrintDebugInfo("sil-print-debuginfo", llvm::cl::init(false),
-                llvm::cl::desc("Include debug info in SIL output"));
+toolchain::cl::opt<bool>
+SILPrintDebugInfo("sil-print-debuginfo", toolchain::cl::init(false),
+                toolchain::cl::desc("Include debug info in SIL output"));
 
-llvm::cl::opt<bool>
+toolchain::cl::opt<bool>
     SILPrintDebugInfoVerbose("sil-print-debuginfo-verbose",
-                             llvm::cl::init(false),
-                             llvm::cl::desc("Print verbose debug info output"));
+                             toolchain::cl::init(false),
+                             toolchain::cl::desc("Print verbose debug info output"));
 
-llvm::cl::opt<bool>
-SILPrintSourceInfo("sil-print-sourceinfo", llvm::cl::init(false),
-                   llvm::cl::desc("Include source annotation in SIL output"));
+toolchain::cl::opt<bool>
+SILPrintSourceInfo("sil-print-sourceinfo", toolchain::cl::init(false),
+                   toolchain::cl::desc("Include source annotation in SIL output"));
 
-llvm::cl::opt<bool>
-SILPrintTypes("sil-print-types", llvm::cl::init(false),
-                   llvm::cl::desc("always print type annotations for instruction operands in SIL output"));
+toolchain::cl::opt<bool>
+SILPrintTypes("sil-print-types", toolchain::cl::init(false),
+                   toolchain::cl::desc("always print type annotations for instruction operands in SIL output"));
 
-llvm::cl::opt<bool>
-SILPrintNoUses("sil-print-no-uses", llvm::cl::init(false),
-                   llvm::cl::desc("omit use comments in SIL output"));
+toolchain::cl::opt<bool>
+SILPrintNoUses("sil-print-no-uses", toolchain::cl::init(false),
+                   toolchain::cl::desc("omit use comments in SIL output"));
 
-llvm::cl::opt<bool> SILPrintGenericSpecializationInfo(
-    "sil-print-generic-specialization-info", llvm::cl::init(false),
-    llvm::cl::desc("Include generic specialization"
+toolchain::cl::opt<bool> SILPrintGenericSpecializationInfo(
+    "sil-print-generic-specialization-info", toolchain::cl::init(false),
+    toolchain::cl::desc("Include generic specialization"
                    "information info in SIL output"));
 
 static std::string demangleSymbol(StringRef Name) {
@@ -216,7 +217,7 @@ static void printFullContext(const DeclContext *Context, raw_ostream &Buffer) {
   if (!Context)
     return;
   switch (Context->getContextKind()) {
-  case swift::DeclContextKind::Package:
+  case language::DeclContextKind::Package:
     return;
   case DeclContextKind::Module:
     if (Context == cast<ModuleDecl>(Context)->getASTContext().TheBuiltinModule)
@@ -277,7 +278,7 @@ static void printFullContext(const DeclContext *Context, raw_ostream &Buffer) {
     Buffer << "<enum element>";
     return;
   }
-  llvm_unreachable("bad decl context");
+  toolchain_unreachable("bad decl context");
 }
 
 static void printValueDecl(ValueDecl *Decl, raw_ostream &OS) {
@@ -289,7 +290,7 @@ static void printValueDecl(ValueDecl *Decl, raw_ostream &OS) {
     OS << '"' << Decl->getBaseName() << '"';
   } else {
     bool isKeyword =
-        llvm::StringSwitch<bool>(Decl->getBaseName().userFacingName())
+        toolchain::StringSwitch<bool>(Decl->getBaseName().userFacingName())
             // FIXME: Represent "init" by a special name and remove this case
             .Case("init", false)
 #define KEYWORD(kw) \
@@ -335,11 +336,27 @@ void SILDeclRef::print(raw_ostream &OS) const {
     auto *accessor = dyn_cast<AccessorDecl>(getDecl());
     if (!accessor) {
       printValueDecl(getDecl(), OS);
+      if (isDistributed()) {
+        OS << "!distributed";
+        OS << "(" << getDecl() << ")";
+      }
+      if (isDistributedThunk()) {
+        OS << "!distributed_thunk";
+        OS << "(" << getDecl() << ")";
+      }
       isDot = false;
       break;
     }
 
     printValueDecl(accessor->getStorage(), OS);
+    if (isDistributed()) {
+      OS << "!distributed";
+      OS << "(" << getDecl() << ")";
+    }
+    if (isDistributedThunk()) {
+      OS << "!distributed_thunk";
+      OS << "(" << getDecl() << ")";
+    }
     switch (accessor->getAccessorKind()) {
     case AccessorKind::WillSet:
       OS << "!willSet";
@@ -450,8 +467,8 @@ void SILDeclRef::print(raw_ostream &OS) const {
 }
 
 void SILDeclRef::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 /// Pretty-print the generic specialization information.
@@ -502,7 +519,7 @@ static void print(raw_ostream &OS, SILValueCategory category) {
   case SILValueCategory::Object: return;
   case SILValueCategory::Address: OS << '*'; return;
   }
-  llvm_unreachable("bad value category!");
+  toolchain_unreachable("bad value category!");
 }
 
 static StringRef getCastConsumptionKindName(CastConsumptionKind kind) {
@@ -512,7 +529,7 @@ static StringRef getCastConsumptionKindName(CastConsumptionKind kind) {
   case CastConsumptionKind::CopyOnSuccess: return "copy_on_success";
   case CastConsumptionKind::BorrowAlways: return "borrow_always";
   }
-  llvm_unreachable("bad cast consumption kind");
+  toolchain_unreachable("bad cast consumption kind");
 }
 
 static void printSILTypeColorAndSigil(raw_ostream &OS, SILType t) {
@@ -526,7 +543,7 @@ static void printSILTypeColorAndSigil(raw_ostream &OS, SILType t) {
 void SILType::print(raw_ostream &OS, const PrintOptions &PO) const {
   printSILTypeColorAndSigil(OS, *this);
 
-  // Print other types as their Swift representation.
+  // Print other types as their Codira representation.
   //
   // NOTE: We always print the Raw AST type so we don't look through
   // move-onlyness.
@@ -534,16 +551,16 @@ void SILType::print(raw_ostream &OS, const PrintOptions &PO) const {
 }
 
 void SILType::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 /// Prints the name and type of the given SIL function with the given
 /// `PrintOptions`. Computes mapping for sugared type names and stores the
 /// result in `sugaredTypeNames`.
 static void printSILFunctionNameAndType(
-    llvm::raw_ostream &OS, const SILFunction *function,
-    llvm::DenseMap<CanType, Identifier> &sugaredTypeNames,
+    toolchain::raw_ostream &OS, const SILFunction *function,
+    toolchain::DenseMap<CanType, Identifier> &sugaredTypeNames,
     const SILPrintContext *silPrintContext = nullptr) {
   function->printName(OS);
   OS << " : $";
@@ -555,8 +572,8 @@ static void printSILFunctionNameAndType(
   if (genEnv) {
     genSig = genEnv->getGenericSignature();
 
-    llvm::DenseSet<Identifier> usedNames;
-    llvm::SmallString<16> disambiguatedNameBuf;
+    toolchain::DenseSet<Identifier> usedNames;
+    toolchain::SmallString<16> disambiguatedNameBuf;
     unsigned disambiguatedNameCounter = 1;
     for (auto *paramTy : genSig.getGenericParams()) {
       // Get a uniqued sugared name for the generic parameter type.
@@ -571,7 +588,7 @@ static void printSILFunctionNameAndType(
       while (!usedNames.insert(name).second) {
         disambiguatedNameBuf.clear();
         {
-          llvm::raw_svector_ostream names(disambiguatedNameBuf);
+          toolchain::raw_svector_ostream names(disambiguatedNameBuf);
           names << sugaredTy->getName() << disambiguatedNameCounter++;
         }
         name = function->getASTContext().getIdentifier(disambiguatedNameBuf);
@@ -595,9 +612,9 @@ static void printSILFunctionNameAndType(
 }
 
 /// Prints the name and type of the given SIL function.
-static void printSILFunctionNameAndType(llvm::raw_ostream &OS,
+static void printSILFunctionNameAndType(toolchain::raw_ostream &OS,
                                         const SILFunction *function) {
-  llvm::DenseMap<CanType, Identifier> sugaredTypeNames;
+  toolchain::DenseMap<CanType, Identifier> sugaredTypeNames;
   printSILFunctionNameAndType(OS, function, sugaredTypeNames);
 }
 
@@ -608,15 +625,15 @@ namespace {
 // 3. Emit each comment section: lineComments.delim()
 // 4. End emitting comments: LineComments::end()
 class LineComments : public raw_ostream {
-  llvm::formatted_raw_ostream &os;
+  toolchain::formatted_raw_ostream &os;
   // Opcode-specific comments to be printed at the end of the current line.
   std::string opcodeCommentString;
-  llvm::raw_string_ostream opcodeCommentStream;
+  toolchain::raw_string_ostream opcodeCommentStream;
   bool emitting = false;
   bool printedSlashes = false;
 
 public:
-  LineComments(llvm::formatted_raw_ostream &os)
+  LineComments(toolchain::formatted_raw_ostream &os)
       : os(os), opcodeCommentStream(opcodeCommentString) {
     SetUnbuffered(); // pass through to the underlying stream
   }
@@ -675,12 +692,12 @@ namespace language {
 class SILPrinter : public SILInstructionVisitor<SILPrinter> {
   SILPrintContext &Ctx;
   struct {
-    llvm::formatted_raw_ostream OS;
+    toolchain::formatted_raw_ostream OS;
     PrintOptions ASTOptions;
   } PrintState;
   LineComments lineComments;
   unsigned LastBufferID;
-  llvm::DenseSet<const SILBasicBlock *> printedBlocks;
+  toolchain::DenseSet<const SILBasicBlock *> printedBlocks;
 
   // Printers for the underlying stream.
 #define SIMPLE_PRINTER(TYPE) \
@@ -777,7 +794,7 @@ class SILPrinter : public SILInstructionVisitor<SILPrinter> {
 public:
   SILPrinter(
       SILPrintContext &PrintCtx,
-      llvm::DenseMap<CanType, Identifier> *AlternativeTypeNames = nullptr)
+      toolchain::DenseMap<CanType, Identifier> *AlternativeTypeNames = nullptr)
       : Ctx(PrintCtx), PrintState{{PrintCtx.OS()},
                                   PrintOptions::printSIL(&PrintCtx)},
         lineComments(PrintState.OS), LastBufferID(0) {
@@ -874,7 +891,7 @@ public:
           *this << 's';
         *this << ": ";
 
-        llvm::SmallVector<ID, 32> UserIDs;
+        toolchain::SmallVector<ID, 32> UserIDs;
         for (auto *Op : arg->getUses())
           UserIDs.push_back(Ctx.getID(Op->getUser()));
 
@@ -886,7 +903,7 @@ public:
           std::sort(UserIDs.begin(), UserIDs.end());
         }
 
-        llvm::interleave(
+        toolchain::interleave(
             UserIDs.begin(), UserIDs.end(), [&](ID id) { *this << id; },
             [&] { *this << ", "; });
       }
@@ -971,7 +988,7 @@ public:
       
       *this << "// Preds:";
 
-      llvm::SmallVector<ID, 32> PredIDs;
+      toolchain::SmallVector<ID, 32> PredIDs;
       for (auto *BBI : BB->getPredecessorBlocks())
         PredIDs.push_back(Ctx.getID(BBI));
 
@@ -1027,8 +1044,8 @@ public:
 
   //===--------------------------------------------------------------------===//
   // SILInstruction Printing Logic
-  void printCastingIsolatedConformancesIfNeeded(CastingIsolatedConformances flag) {
-    switch (flag) {
+  void printCheckedCastInstOptions(CheckedCastInstOptions options) {
+    switch (options.isolatedConformances()) {
     case CastingIsolatedConformances::Allow:
       break;
 
@@ -1059,8 +1076,8 @@ public:
   }
 
   void printUsersOfInstruction(const SILInstruction *inst) {
-    llvm::SmallVector<SILValue, 8> values;
-    llvm::copy(inst->getResults(), std::back_inserter(values));
+    toolchain::SmallVector<SILValue, 8> values;
+    toolchain::copy(inst->getResults(), std::back_inserter(values));
     printUserList(values, inst);
     printBranchTargets(inst);
   }
@@ -1087,7 +1104,7 @@ public:
       return;
     }
 
-    llvm::SmallVector<ID, 32> UserIDs;
+    toolchain::SmallVector<ID, 32> UserIDs;
     for (auto value : values)
       for (auto *Op : value->getUses())
         UserIDs.push_back(Ctx.getID(Op->getUser()));
@@ -1104,7 +1121,7 @@ public:
       std::sort(UserIDs.begin(), UserIDs.end());
     }
 
-    llvm::interleave(
+    toolchain::interleave(
         UserIDs.begin(), UserIDs.end(), [&](ID id) { *this << id; },
         [&] { *this << ", "; });
   }
@@ -1373,7 +1390,7 @@ public:
           cast<MultipleValueInstructionResult>(node));
       return;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   void printSILArgument(const SILArgument *arg) {
@@ -1397,7 +1414,7 @@ public:
       *this << "**" << Ctx.getID(result) << "**";
     } else {
       *this << '(';
-      llvm::interleave(
+      toolchain::interleave(
           result->getParent()->getResults(),
           [&](SILValue value) {
             if (value == SILValue(result)) {
@@ -1474,7 +1491,7 @@ public:
         *this << ":";
         switch (Arg.getKind()) {
         case SILDIExprElement::OperatorKind:
-          llvm_unreachable("Cannot use operator as argument");
+          toolchain_unreachable("Cannot use operator as argument");
           break;
         case SILDIExprElement::DeclKind: {
           const Decl *D = Arg.getAsDecl();
@@ -1634,7 +1651,7 @@ public:
     printSubstitutions(AI->getSubstitutionMap(),
                        AI->getOrigCalleeType()->getInvocationGenericSignature());
     *this << '(';
-    llvm::interleave(
+    toolchain::interleave(
         AI->getArguments(),
         [&](const SILValue &arg) { *this << Ctx.getID(arg); },
         [&] { *this << ", "; });
@@ -1705,7 +1722,7 @@ public:
     case ParameterConvention::Pack_Guaranteed:
     case ParameterConvention::Pack_Owned:
     case ParameterConvention::Pack_Inout:
-      llvm_unreachable("unexpected callee convention!");
+      toolchain_unreachable("unexpected callee convention!");
     }
     switch (fnType->getIsolation().getKind()) {
     case SILFunctionTypeIsolation::Unknown:
@@ -1746,7 +1763,7 @@ public:
     printSubstitutions(BI->getSubstitutions());
     *this << "(";
     
-    llvm::interleave(BI->getArguments(), [&](SILValue v) {
+    toolchain::interleave(BI->getArguments(), [&](SILValue v) {
       *this << getIDAndType(v);
     }, [&]{
       *this << ", ";
@@ -1757,7 +1774,7 @@ public:
   }
 
   void visitMergeIsolationRegionInst(MergeIsolationRegionInst *mir) {
-    llvm::interleave(
+    toolchain::interleave(
         mir->getArguments(), [&](SILValue v) { *this << getIDAndType(v); },
         [&] { *this << ", "; });
   }
@@ -1798,12 +1815,12 @@ public:
     *this << ILI->getType() << ", " << lit;
   }
   void visitFloatLiteralInst(FloatLiteralInst *FLI) {
-    llvm::SmallString<12> hex;
-    llvm::SmallString<12> decimal;
+    toolchain::SmallString<12> hex;
+    toolchain::SmallString<12> decimal;
     FLI->getBits().toString(hex, 16, /*Signed*/ false);
     FLI->getValue().toString(decimal);
     *this << FLI->getType()
-          << (llvm::Twine(", 0x") + hex + " // " + decimal).str();
+          << (toolchain::Twine(", 0x") + hex + " // " + decimal).str();
   }
   static StringRef getStringEncodingName(StringLiteralInst::Encoding kind) {
     switch (kind) {
@@ -1812,7 +1829,7 @@ public:
     case StringLiteralInst::Encoding::UTF8_OSLOG: return "oslog ";
     case StringLiteralInst::Encoding::ObjCSelector: return "objc_selector ";
     }
-    llvm_unreachable("bad string literal encoding");
+    toolchain_unreachable("bad string literal encoding");
   }
 
   void visitStringLiteralInst(StringLiteralInst *SLI) {
@@ -1826,7 +1843,7 @@ public:
     }
 
     // "Bytes" are always output in a hexadecimal form.
-    *this << '"' << llvm::toHex(SLI->getValue()) << '"';
+    *this << '"' << toolchain::toHex(SLI->getValue()) << '"';
   }
 
   void printLoadOwnershipQualifier(LoadOwnershipQualifier Qualifier) {
@@ -2023,7 +2040,7 @@ public:
   }
 
   void visitMarkFunctionEscapeInst(MarkFunctionEscapeInst *MFE) {
-    llvm::interleave(
+    toolchain::interleave(
         MFE->getElements(), [&](SILValue Var) { *this << getIDAndType(Var); },
         [&] { *this << ", "; });
   }
@@ -2094,13 +2111,13 @@ public:
   }
 
   void visitUnconditionalCheckedCastInst(UnconditionalCheckedCastInst *CI) {
-    printCastingIsolatedConformancesIfNeeded(CI->getIsolatedConformances());
+    printCheckedCastInstOptions(CI->getCheckedCastOptions());
     *this << getIDAndType(CI->getOperand()) << " to " << CI->getTargetFormalType();
     printForwardingOwnershipKind(CI, CI->getOperand());
   }
   
   void visitCheckedCastBranchInst(CheckedCastBranchInst *CI) {
-    printCastingIsolatedConformancesIfNeeded(CI->getIsolatedConformances());
+    printCheckedCastInstOptions(CI->getCheckedCastOptions());
     if (CI->isExact())
       *this << "[exact] ";
     *this << CI->getSourceFormalType() << " in ";
@@ -2115,14 +2132,14 @@ public:
   }
 
   void visitUnconditionalCheckedCastAddrInst(UnconditionalCheckedCastAddrInst *CI) {
-    printCastingIsolatedConformancesIfNeeded(CI->getIsolatedConformances());
+    printCheckedCastInstOptions(CI->getCheckedCastOptions());
     *this << CI->getSourceFormalType() << " in " << getIDAndType(CI->getSrc())
           << " to " << CI->getTargetFormalType() << " in "
           << getIDAndType(CI->getDest());
   }
 
   void visitCheckedCastAddrBranchInst(CheckedCastAddrBranchInst *CI) {
-    printCastingIsolatedConformancesIfNeeded(CI->getIsolatedConformances());
+    printCheckedCastInstOptions(CI->getCheckedCastOptions());
     *this << getCastConsumptionKindName(CI->getConsumptionKind()) << ' '
           << CI->getSourceFormalType() << " in " << getIDAndType(CI->getSrc())
           << " to " << CI->getTargetFormalType() << " in "
@@ -2160,7 +2177,7 @@ public:
   void visitThunkInst(ThunkInst *ti) {
     switch (ti->getThunkKind()) {
     case ThunkInst::Kind::Invalid:
-      llvm_unreachable("Cannot print invalid?!");
+      toolchain_unreachable("Cannot print invalid?!");
       break;
     case ThunkInst::Kind::Identity:
       *this << "[identity] ";
@@ -2295,7 +2312,7 @@ public:
     }
     switch (I->getCheckKind()) {
     case CheckKind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case CheckKind::ConsumableAndAssignable:
       *this << "[consumable_and_assignable] ";
       break;
@@ -2317,7 +2334,7 @@ public:
     using Kind = MarkUnresolvedReferenceBindingInst::Kind;
     switch (I->getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::InOut:
       *this << "[inout] ";
       break;
@@ -2375,7 +2392,7 @@ public:
 
   void visitStructInst(StructInst *SI) {
     *this << SI->getType() << " (";
-    llvm::interleave(
+    toolchain::interleave(
         SI->getElements(), [&](const SILValue &V) { *this << getIDAndType(V); },
         [&] { *this << ", "; });
     *this << ')';
@@ -2383,13 +2400,13 @@ public:
 
   void visitObjectInst(ObjectInst *OI) {
     *this << OI->getType() << " (";
-    llvm::interleave(
+    toolchain::interleave(
         OI->getBaseElements(),
         [&](const SILValue &V) { *this << getIDAndType(V); },
         [&] { *this << ", "; });
     if (!OI->getTailElements().empty()) {
       *this << ", [tail_elems] ";
-      llvm::interleave(
+      toolchain::interleave(
           OI->getTailElements(),
           [&](const SILValue &V) { *this << getIDAndType(V); },
           [&] { *this << ", "; });
@@ -2399,7 +2416,7 @@ public:
 
   void visitVectorInst(VectorInst *vi) {
     *this << "(";
-    llvm::interleave(
+    toolchain::interleave(
         vi->getElements(),
         [&](const SILValue &V) { *this << getIDAndType(V); },
         [&] { *this << ", "; });
@@ -2421,7 +2438,7 @@ public:
     // If the type is simple, just print the tuple elements.
     if (SimpleType) {
       *this << '(';
-      llvm::interleave(
+      toolchain::interleave(
           TI->getElements(),
           [&](const SILValue &V) { *this << getIDAndType(V); },
           [&] { *this << ", "; });
@@ -2429,7 +2446,7 @@ public:
     } else {
       // Otherwise, print the type, then each value.
       *this << TI->getType() << " (";
-      llvm::interleave(
+      toolchain::interleave(
           TI->getElements(), [&](const SILValue &V) { *this << Ctx.getID(V); },
           [&] { *this << ", "; });
       *this << ')';
@@ -2447,7 +2464,7 @@ public:
 
     *this << " with (";
 
-    llvm::interleave(
+    toolchain::interleave(
         TI->getElements(), [&](const SILValue &V) { *this << getIDAndType(V); },
         [&] { *this << ", "; });
 
@@ -2503,6 +2520,9 @@ public:
     printFullContext(EI->getField()->getDeclContext(), PrintState.OS);
     *this << EI->getField()->getName().get();
   }
+  void visitVectorBaseAddrInst(VectorBaseAddrInst *vbai) {
+    *this << getIDAndType(vbai->getVector());
+  }
   void visitRefElementAddrInst(RefElementAddrInst *EI) {
     *this << (EI->isImmutable() ? "[immutable] " : "")
           << getIDAndType(EI->getOperand()) << ", #";
@@ -2556,7 +2576,7 @@ public:
   void visitWitnessMethodInst(WitnessMethodInst *WMI) {
     PrintOptions QualifiedSILTypeOptions =
         PrintOptions::printQualifiedSILType();
-    QualifiedSILTypeOptions.CurrentModule = WMI->getModule().getSwiftModule();
+    QualifiedSILTypeOptions.CurrentModule = WMI->getModule().getCodiraModule();
     auto lookupType = WMI->getLookupType();
     *this << "$" << lookupType << ", " << WMI->getMember() << " : ";
     WMI->getMember().getDecl()->getInterfaceType().print(
@@ -2766,6 +2786,9 @@ public:
       *this << "[keep_unique] ";
     *this << getIDAndType(ECMI->getOperand());
   }
+  void visitEndCOWMutationAddrInst(EndCOWMutationAddrInst *ECMI) {
+    *this << getIDAndType(ECMI->getOperand());
+  }
   void visitEndInitLetRefInst(EndInitLetRefInst *I) {
     *this << getIDAndType(I->getOperand());
   }
@@ -2904,7 +2927,7 @@ public:
   void visitYieldInst(YieldInst *YI) {
     auto values = YI->getYieldedValues();
     if (values.size() != 1) *this << '(';
-    llvm::interleave(
+    toolchain::interleave(
         values, [&](SILValue value) { *this << getIDAndType(value); },
         [&] { *this << ", "; });
     if (values.size() != 1) *this << ')';
@@ -3032,7 +3055,7 @@ public:
     if (args.empty()) return;
 
     *this << '(';
-    llvm::interleave(
+    toolchain::interleave(
         args, [&](SILValue v) { *this << getIDAndType(v); },
         [&] { *this << ", "; });
     *this << ')';
@@ -3196,7 +3219,7 @@ public:
         *this << "optional_force : $";
         break;
       default:
-        llvm_unreachable("out of sync");
+        toolchain_unreachable("out of sync");
       }
       *this << component.getComponentType();
       break;
@@ -3306,7 +3329,7 @@ public:
       *this << "linear";
       break;
     case DifferentiabilityKind::NonDifferentiable:
-      llvm_unreachable("Impossible case");
+      toolchain_unreachable("Impossible case");
     }
     *this << "] [parameters";
     for (auto i : witness->getParameterIndices()->getIndices())
@@ -3350,7 +3373,7 @@ void SILBasicBlock::printAsOperand(raw_ostream &OS, bool PrintType) {
 //===----------------------------------------------------------------------===//
 
 void SILNode::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 void SILNode::print(raw_ostream &OS) const {
@@ -3359,11 +3382,11 @@ void SILNode::print(raw_ostream &OS) const {
 }
 
 void SILInstruction::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 void SILInstruction::dump(bool DebugInfo) const {
-  SILPrintContext Ctx(llvm::errs(), /*Verbose*/ false, /*SortedSIL*/ false,
+  SILPrintContext Ctx(toolchain::errs(), /*Verbose*/ false, /*SortedSIL*/ false,
                       DebugInfo, /*PrintFullConvention*/ false);
   SILPrinter(Ctx).print(this);
 }
@@ -3383,12 +3406,12 @@ void NonSingleValueInstruction::dump() const {
 
 /// Pretty-print the SILBasicBlock to errs.
 void SILBasicBlock::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 /// Pretty-print the SILBasicBlock to errs with Debug Info.
 void SILBasicBlock::dump(bool DebugInfo) const {
-  SILPrintContext Ctx(llvm::errs(), /*Verbose*/ false, /*SortedSIL*/ false,
+  SILPrintContext Ctx(toolchain::errs(), /*Verbose*/ false, /*SortedSIL*/ false,
                       DebugInfo, /*PrintFullConvention*/ false);
   SILPrinter(Ctx).print(this);
 }
@@ -3413,18 +3436,18 @@ void SILBasicBlock::print(SILPrintContext &Ctx) const {
 
 void SILBasicBlock::dumpID(bool newline) const {
 #ifndef NDEBUG
-  printID(llvm::errs(), newline);
+  printID(toolchain::errs(), newline);
 #else
-  llvm::errs() << "NOASSERTS" << (newline ? "\n" : "");
+  toolchain::errs() << "NOASSERTS" << (newline ? "\n" : "");
 #endif
 }
 
-void SILBasicBlock::printID(llvm::raw_ostream &OS, bool newline) const {
+void SILBasicBlock::printID(toolchain::raw_ostream &OS, bool newline) const {
 #ifndef NDEBUG
   SILPrintContext Ctx(OS);
   printID(Ctx, newline);
 #else
-  llvm::errs() << "NOASSERTS" << (newline ? "\n" : "");
+  toolchain::errs() << "NOASSERTS" << (newline ? "\n" : "");
 #endif
 }
 
@@ -3432,13 +3455,13 @@ void SILBasicBlock::printID(SILPrintContext &Ctx, bool newline) const {
 #ifndef NDEBUG
   SILPrinter(Ctx).printID(this, newline);
 #else
-  llvm::errs() << "NOASSERTS" << (newline ? "\n" : "");
+  toolchain::errs() << "NOASSERTS" << (newline ? "\n" : "");
 #endif
 }
 
 /// Pretty-print the SILFunction to errs.
 void SILFunction::dump(bool Verbose) const {
-  SILPrintContext Ctx(llvm::errs(), Verbose);
+  SILPrintContext Ctx(toolchain::errs(), Verbose);
   print(Ctx);
 }
 
@@ -3449,14 +3472,14 @@ void SILFunction::dump() const {
 
 /// Pretty-print the SILFunction to errs.
 void SILFunction::dump(bool Verbose, bool DebugInfo) const {
-  SILPrintContext Ctx(llvm::errs(), Verbose, /*SortedSIL*/ false, DebugInfo,
+  SILPrintContext Ctx(toolchain::errs(), Verbose, /*SortedSIL*/ false, DebugInfo,
                       /*PrintFullConvention*/ false);
   print(Ctx);
 }
 
 void SILFunction::dump(const char *FileName) const {
   std::error_code EC;
-  llvm::raw_fd_ostream os(FileName, EC, llvm::sys::fs::OpenFlags::OF_None);
+  toolchain::raw_fd_ostream os(FileName, EC, toolchain::sys::fs::OpenFlags::OF_None);
   print(os);
 }
 
@@ -3473,10 +3496,10 @@ static StringRef getLinkageString(SILLinkage linkage) {
   case SILLinkage::PackageExternal: return "package_external ";
   case SILLinkage::HiddenExternal: return "hidden_external ";
   }
-  llvm_unreachable("bad linkage");
+  toolchain_unreachable("bad linkage");
 }
 
-static void printLinkage(llvm::raw_ostream &OS, SILLinkage linkage,
+static void printLinkage(toolchain::raw_ostream &OS, SILLinkage linkage,
                          bool isDefinition) {
   if ((isDefinition && linkage == SILLinkage::DefaultForDefinition) ||
       (!isDefinition && linkage == SILLinkage::DefaultForDeclaration))
@@ -3486,7 +3509,7 @@ static void printLinkage(llvm::raw_ostream &OS, SILLinkage linkage,
 }
 
 
-static void printSerializedKind(llvm::raw_ostream &OS, SerializedKind_t kind) {
+static void printSerializedKind(toolchain::raw_ostream &OS, SerializedKind_t kind) {
   switch (kind) {
   case IsNotSerialized:
     break;
@@ -3499,7 +3522,7 @@ static void printSerializedKind(llvm::raw_ostream &OS, SerializedKind_t kind) {
   }
 }
 
-static void printClangQualifiedNameCommentIfPresent(llvm::raw_ostream &OS,
+static void printClangQualifiedNameCommentIfPresent(toolchain::raw_ostream &OS,
                                                     const clang::Decl *decl) {
   if (decl) {
     if (auto namedDecl = dyn_cast_or_null<clang::NamedDecl>(decl)) {
@@ -3512,7 +3535,7 @@ static void printClangQualifiedNameCommentIfPresent(llvm::raw_ostream &OS,
 
 /// Pretty-print the SILFunction to the designated stream.
 void SILFunction::print(SILPrintContext &PrintCtx) const {
-  llvm::raw_ostream &OS = PrintCtx.OS();
+  toolchain::raw_ostream &OS = PrintCtx.OS();
   if (PrintCtx.printDebugInfo()) {
     auto &SM = getModule().getASTContext().SourceMgr;
     for (auto &BB : *this)
@@ -3701,7 +3724,7 @@ void SILFunction::print(SILPrintContext &PrintCtx) const {
   if (needsStackProtection())
     OS << "[stack_protection] ";
 
-  llvm::DenseMap<CanType, Identifier> sugaredTypeNames;
+  toolchain::DenseMap<CanType, Identifier> sugaredTypeNames;
   printSILFunctionNameAndType(OS, this, sugaredTypeNames, &PrintCtx);
 
   if (!isExternalDeclaration()) {
@@ -3729,7 +3752,7 @@ void SILFunction::print(SILPrintContext &PrintCtx) const {
 void SILFunction::printName(raw_ostream &OS) const { OS << "@" << Name; }
 
 /// Pretty-print a global variable to the designated stream.
-void SILGlobalVariable::print(llvm::raw_ostream &OS, bool Verbose) const {
+void SILGlobalVariable::print(toolchain::raw_ostream &OS, bool Verbose) const {
   OS << "// " << demangleSymbol(getName()) << '\n';
   printClangQualifiedNameCommentIfPresent(OS, getClangDecl());
 
@@ -3762,7 +3785,7 @@ void SILGlobalVariable::print(llvm::raw_ostream &OS, bool Verbose) const {
 }
 
 void SILGlobalVariable::dump(bool Verbose) const {
-  print(llvm::errs(), Verbose);
+  print(toolchain::errs(), Verbose);
 }
 void SILGlobalVariable::dump() const {
    dump(false);
@@ -3774,13 +3797,13 @@ void SILGlobalVariable::printName(raw_ostream &OS) const {
       
 /// Pretty-print the SILModule to errs.
 void SILModule::dump(bool Verbose) const {
-  SILPrintContext Ctx(llvm::errs(), Verbose);
+  SILPrintContext Ctx(toolchain::errs(), Verbose);
   print(Ctx);
 }
 
 /// Pretty-print the SILModule to errs with DebugInfo.
 void SILModule::dump(bool Verbose, bool DebugInfo) const {
-  SILPrintContext Ctx(llvm::errs(), Verbose, /*SortedSIL*/ false, DebugInfo,
+  SILPrintContext Ctx(toolchain::errs(), Verbose, /*SortedSIL*/ false, DebugInfo,
                       /*PrintFullConvention*/ false);
   print(Ctx);
 }
@@ -3788,9 +3811,9 @@ void SILModule::dump(bool Verbose, bool DebugInfo) const {
 void SILModule::dump(const char *FileName, bool Verbose,
                      bool PrintASTDecls) const {
   std::error_code EC;
-  llvm::raw_fd_ostream os(FileName, EC, llvm::sys::fs::OpenFlags::OF_None);
+  toolchain::raw_fd_ostream os(FileName, EC, toolchain::sys::fs::OpenFlags::OF_None);
   SILPrintContext Ctx(os, Verbose);
-  print(Ctx, getSwiftModule(), PrintASTDecls);
+  print(Ctx, getCodiraModule(), PrintASTDecls);
 }
 
 static void printSILGlobals(SILPrintContext &Ctx,
@@ -4026,7 +4049,7 @@ printSILCoverageMaps(SILPrintContext &Ctx,
     M->print(Ctx);
 }
 
-using FileIDMap = llvm::StringMap<std::pair<std::string, /*isWinner=*/bool>>;
+using FileIDMap = toolchain::StringMap<std::pair<std::string, /*isWinner=*/bool>>;
 
 static void printFileIDMapEntry(SILPrintContext &Ctx,
                                 const FileIDMap::MapEntryTy &entry) {
@@ -4047,10 +4070,10 @@ static void printFileIDMap(SILPrintContext &Ctx, const FileIDMap map) {
   Ctx.OS() << "\n\n// Mappings from '#fileID' to '#filePath':\n";
 
   if (Ctx.sortSIL()) {
-    llvm::SmallVector<llvm::StringRef, 16> keys;
-    llvm::copy(map.keys(), std::back_inserter(keys));
+    toolchain::SmallVector<toolchain::StringRef, 16> keys;
+    toolchain::copy(map.keys(), std::back_inserter(keys));
 
-    llvm::sort(keys, [&](StringRef leftKey, StringRef rightKey) -> bool {
+    toolchain::sort(keys, [&](StringRef leftKey, StringRef rightKey) -> bool {
       const auto &leftValue = map.find(leftKey)->second;
       const auto &rightValue = map.find(rightKey)->second;
 
@@ -4095,7 +4118,7 @@ void SILProperty::print(SILPrintContext &Ctx) const {
 }
 
 void SILProperty::dump() const {
-  SILPrintContext context(llvm::errs());
+  SILPrintContext context(toolchain::errs());
   print(context);
 }
 
@@ -4121,7 +4144,7 @@ static void printExternallyVisibleDecls(SILPrintContext &Ctx,
 /// Pretty-print the SILModule to the designated stream.
 void SILModule::print(SILPrintContext &PrintCtx, ModuleDecl *M,
                       bool PrintASTDecls) const {
-  llvm::raw_ostream &OS = PrintCtx.OS();
+  toolchain::raw_ostream &OS = PrintCtx.OS();
   OS << "sil_stage ";
   switch (Stage) {
   case SILStage::Raw:
@@ -4137,7 +4160,7 @@ void SILModule::print(SILPrintContext &PrintCtx, ModuleDecl *M,
   
   OS << "\n\nimport " << BUILTIN_NAME
      << "\nimport " << STDLIB_NAME
-     << "\nimport " << SWIFT_SHIMS_NAME << "\n\n";
+     << "\nimport " << LANGUAGE_SHIMS_NAME << "\n\n";
 
   // Print the declarations and types from the associated context (origin module or
   // current file).
@@ -4168,7 +4191,7 @@ void SILModule::print(SILPrintContext &PrintCtx, ModuleDecl *M,
           StringRef importName = importDecl->getModule()->getName().str();
           if (importName == BUILTIN_NAME ||
               importName == STDLIB_NAME ||
-              importName == SWIFT_SHIMS_NAME)
+              importName == LANGUAGE_SHIMS_NAME)
             continue;
         }
         D->print(OS, Options);
@@ -4180,7 +4203,7 @@ void SILModule::print(SILPrintContext &PrintCtx, ModuleDecl *M,
   printSILGlobals(PrintCtx, getSILGlobalList());
   printSILDifferentiabilityWitnesses(PrintCtx,
                                      getDifferentiabilityWitnessList());
-  printSILLinearMapTypes(PrintCtx, getSwiftModule());
+  printSILLinearMapTypes(PrintCtx, getCodiraModule());
   printSILFunctions(PrintCtx, getFunctionList());
   printSILVTables(PrintCtx, getVTables());
   printSILWitnessTables(PrintCtx, getWitnessTableList());
@@ -4199,22 +4222,22 @@ void SILModule::print(SILPrintContext &PrintCtx, ModuleDecl *M,
 }
 
 void SILNode::dumpInContext() const {
-  printInContext(llvm::errs());
+  printInContext(toolchain::errs());
 }
-void SILNode::printInContext(llvm::raw_ostream &OS) const {
+void SILNode::printInContext(toolchain::raw_ostream &OS) const {
   SILPrintContext Ctx(OS);
   SILPrinter(Ctx).printInContext(this);
 }
 
 void SILInstruction::dumpInContext() const {
-  printInContext(llvm::errs());
+  printInContext(toolchain::errs());
 }
-void SILInstruction::printInContext(llvm::raw_ostream &OS) const {
+void SILInstruction::printInContext(toolchain::raw_ostream &OS) const {
   SILPrintContext Ctx(OS);
   SILPrinter(Ctx).printInContext(asSILNode());
 }
 
-void SILVTableEntry::print(llvm::raw_ostream &OS) const {
+void SILVTableEntry::print(toolchain::raw_ostream &OS) const {
   getMethod().print(OS);
   OS << ": ";
 
@@ -4256,7 +4279,7 @@ void SILVTableEntry::print(llvm::raw_ostream &OS) const {
   OS << "\t// " << demangleSymbol(getImplementation()->getName());
 }
 
-void SILVTable::print(llvm::raw_ostream &OS, bool Verbose) const {
+void SILVTable::print(toolchain::raw_ostream &OS, bool Verbose) const {
   OS << "sil_vtable ";
   printSerializedKind(OS, getSerializedKind());
   
@@ -4275,9 +4298,9 @@ void SILVTable::print(llvm::raw_ostream &OS, bool Verbose) const {
   OS << "}\n\n";
 }
 
-void SILVTable::dump() const { print(llvm::errs()); }
+void SILVTable::dump() const { print(toolchain::errs()); }
 
-void SILMoveOnlyDeinit::print(llvm::raw_ostream &OS, bool verbose) const {
+void SILMoveOnlyDeinit::print(toolchain::raw_ostream &OS, bool verbose) const {
   OS << "sil_moveonlydeinit ";
   printSerializedKind(OS, getSerializedKind());
   OS << getNominalDecl()->getName() << " {\n";
@@ -4287,10 +4310,10 @@ void SILMoveOnlyDeinit::print(llvm::raw_ostream &OS, bool verbose) const {
   OS << "}\n\n";
 }
 
-void SILMoveOnlyDeinit::dump() const { print(llvm::errs(), false); }
+void SILMoveOnlyDeinit::dump() const { print(toolchain::errs(), false); }
 
 /// Returns true if anything was printed.
-static bool printAssociatedTypePath(llvm::raw_ostream &OS, CanType path) {
+static bool printAssociatedTypePath(toolchain::raw_ostream &OS, CanType path) {
   if (auto memberType = dyn_cast<DependentMemberType>(path)) {
     if (printAssociatedTypePath(OS, memberType.getBase()))
       OS << '.';
@@ -4302,7 +4325,7 @@ static bool printAssociatedTypePath(llvm::raw_ostream &OS, CanType path) {
   }
 }
 
-void SILWitnessTable::Entry::print(llvm::raw_ostream &out, bool verbose,
+void SILWitnessTable::Entry::print(toolchain::raw_ostream &out, bool verbose,
                                    const PrintOptions &options) const {
   PrintOptions QualifiedSILTypeOptions = PrintOptions::printQualifiedSILType();
   out << "  ";
@@ -4369,7 +4392,7 @@ void SILWitnessTable::Entry::print(llvm::raw_ostream &out, bool verbose,
   out << '\n';
 }
 
-void SILWitnessTable::print(llvm::raw_ostream &OS, bool Verbose) const {
+void SILWitnessTable::print(toolchain::raw_ostream &OS, bool Verbose) const {
   PrintOptions Options = PrintOptions::printSIL();
   PrintOptions QualifiedSILTypeOptions = PrintOptions::printQualifiedSILType();
   OS << "sil_witness_table ";
@@ -4422,10 +4445,10 @@ void SILWitnessTable::print(llvm::raw_ostream &OS, bool Verbose) const {
 }
 
 void SILWitnessTable::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
-void SILDefaultWitnessTable::print(llvm::raw_ostream &OS, bool Verbose) const {
+void SILDefaultWitnessTable::print(toolchain::raw_ostream &OS, bool Verbose) const {
   // sil_default_witness_table [<Linkage>] <Protocol> <MinSize>
   PrintOptions QualifiedSILTypeOptions = PrintOptions::printQualifiedSILType();
   OS << "sil_default_witness_table ";
@@ -4443,10 +4466,10 @@ void SILDefaultWitnessTable::print(llvm::raw_ostream &OS, bool Verbose) const {
 }
 
 void SILDefaultWitnessTable::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
-void SILDefaultOverrideTable::Entry::print(llvm::raw_ostream &out,
+void SILDefaultOverrideTable::Entry::print(toolchain::raw_ostream &out,
                                            bool verbose) const {
   PrintOptions QualifiedSILTypeOptions = PrintOptions::printQualifiedSILType();
   out << "  ";
@@ -4467,10 +4490,10 @@ void SILDefaultOverrideTable::Entry::print(llvm::raw_ostream &out,
 }
 
 void SILDefaultOverrideTable::Entry::dump() const {
-  print(llvm::errs(), /*verbose=*/false);
+  print(toolchain::errs(), /*verbose=*/false);
 }
 
-void SILDefaultOverrideTable::print(llvm::raw_ostream &OS, bool Verbose) const {
+void SILDefaultOverrideTable::print(toolchain::raw_ostream &OS, bool Verbose) const {
   // sil_default_override_table [<Linkage>] <Protocol> <MinSize>
   PrintOptions QualifiedSILTypeOptions = PrintOptions::printQualifiedSILType();
   OS << "sil_default_override_table ";
@@ -4487,9 +4510,9 @@ void SILDefaultOverrideTable::print(llvm::raw_ostream &OS, bool Verbose) const {
   OS << "}\n\n";
 }
 
-void SILDefaultOverrideTable::dump() const { print(llvm::errs()); }
+void SILDefaultOverrideTable::dump() const { print(toolchain::errs()); }
 
-void SILDifferentiabilityWitness::print(llvm::raw_ostream &OS,
+void SILDifferentiabilityWitness::print(toolchain::raw_ostream &OS,
                                         bool verbose) const {
   OS << "// differentiability witness for "
      << demangleSymbol(getOriginalFunction()->getName()) << '\n';
@@ -4516,7 +4539,7 @@ void SILDifferentiabilityWitness::print(llvm::raw_ostream &OS,
     OS << "linear";
     break;
   case DifferentiabilityKind::NonDifferentiable:
-    llvm_unreachable("Impossible case");
+    toolchain_unreachable("Impossible case");
   }
   // [parameters ...]
   OS << "] [parameters ";
@@ -4563,11 +4586,11 @@ void SILDifferentiabilityWitness::print(llvm::raw_ostream &OS,
 }
 
 void SILDifferentiabilityWitness::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 void SILCoverageMap::print(SILPrintContext &PrintCtx) const {
-  llvm::raw_ostream &OS = PrintCtx.OS();
+  toolchain::raw_ostream &OS = PrintCtx.OS();
   OS << "sil_coverage_map " << QuotedString(getFilename()) << " "
      << QuotedString(getName()) << " " << QuotedString(getPGOFuncName()) << " "
      << getHash() << " {\t// " << demangleSymbol(getName()) << "\n";
@@ -4594,17 +4617,17 @@ void SILCoverageMap::print(SILPrintContext &PrintCtx) const {
 }
 
 void SILCoverageMap::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 #ifndef NDEBUG
 // Disable the "for use only in debugger" warning.
-#if SWIFT_COMPILER_IS_MSVC
+#if LANGUAGE_COMPILER_IS_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4996)
 #endif
 
-void SILDebugScope::print(SourceManager &SM, llvm::raw_ostream &OS,
+void SILDebugScope::print(SourceManager &SM, toolchain::raw_ostream &OS,
                          unsigned Indent) const {
   OS << "{\n";
   OS.indent(Indent);
@@ -4633,20 +4656,20 @@ void SILDebugScope::print(SourceManager &SM, llvm::raw_ostream &OS,
 }
 
 void SILDebugScope::print(SILModule &Mod) const {
-  // We just use the default indent and llvm::errs().
+  // We just use the default indent and toolchain::errs().
   print(Mod.getASTContext().SourceMgr);
 }
 
-#if SWIFT_COMPILER_IS_MSVC
+#if LANGUAGE_COMPILER_IS_MSVC
 #pragma warning(pop)
 #endif
 
 #endif
 
-void SILSpecializeAttr::print(llvm::raw_ostream &OS) const {
+void SILSpecializeAttr::print(toolchain::raw_ostream &OS) const {
   SILPrintContext Ctx(OS);
-  // Print other types as their Swift representation.
-  PrintOptions SubPrinter = PrintOptions::printSIL();
+  // Print other types as their Codira representation.
+  PrintOptions options = PrintOptions::printSIL();
   auto exported = isExported() ? "true" : "false";
   auto kind = isPartialSpecialization() ? "partial" : "full";
 
@@ -4680,7 +4703,7 @@ void SILSpecializeAttr::print(llvm::raw_ostream &OS) const {
         requirements,
         [&](Requirement req) {
           if (!genericSig) {
-            req.print(OS, SubPrinter);
+            req.print(OS, options);
             return;
           }
 
@@ -4698,13 +4721,15 @@ void SILSpecializeAttr::print(llvm::raw_ostream &OS) const {
           if (req.getKind() != RequirementKind::Layout) {
             auto SecondTy = genericSig->getSugaredType(req.getSecondType());
             Requirement ReqWithDecls(req.getKind(), FirstTy, SecondTy);
-            ReqWithDecls.print(OS, SubPrinter);
+            ReqWithDecls.print(OS, options);
           } else {
             Requirement ReqWithDecls(req.getKind(), FirstTy,
                                      req.getLayoutConstraint());
-            auto SubPrinterCopy = SubPrinter;
-            SubPrinterCopy.PrintInternalLayoutName = erased;
-            ReqWithDecls.print(OS, SubPrinterCopy);
+
+            PrintOptions::OverrideScope scope(options);
+            OVERRIDE_PRINT_OPTION(scope, PrintInternalLayoutName, erased);
+
+            ReqWithDecls.print(OS, options);
           }
         },
         [&] { OS << ", "; });
@@ -4720,18 +4745,18 @@ void KeyPathPatternComponent::print(SILPrintContext &ctxt) const {
 // SILPrintContext members
 //===----------------------------------------------------------------------===//
 
-SILPrintContext::SILPrintContext(llvm::raw_ostream &OS, bool Verbose,
+SILPrintContext::SILPrintContext(toolchain::raw_ostream &OS, bool Verbose,
                                  bool SortedSIL, bool PrintFullConvention)
     : OutStream(OS), Verbose(Verbose), SortedSIL(SortedSIL),
       DebugInfo(SILPrintDebugInfo), PrintFullConvention(PrintFullConvention) {}
 
-SILPrintContext::SILPrintContext(llvm::raw_ostream &OS, const SILOptions &Opts)
+SILPrintContext::SILPrintContext(toolchain::raw_ostream &OS, const SILOptions &Opts)
     : OutStream(OS), Verbose(Opts.EmitVerboseSIL),
       SortedSIL(Opts.EmitSortedSIL),
       DebugInfo(Opts.PrintDebugInfo || SILPrintDebugInfo),
       PrintFullConvention(Opts.PrintFullConvention) {}
 
-SILPrintContext::SILPrintContext(llvm::raw_ostream &OS, bool Verbose,
+SILPrintContext::SILPrintContext(toolchain::raw_ostream &OS, bool Verbose,
                                  bool SortedSIL, bool DebugInfo,
                                  bool PrintFullConvention)
     : OutStream(OS), Verbose(Verbose), SortedSIL(SortedSIL),

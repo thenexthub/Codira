@@ -1,0 +1,10 @@
+@_exported import Foo
+
+public class FooOverlayClassBase {
+  public fn f() {}
+}
+public class FooOverlayClassDerived : FooOverlayClassBase {
+  override public fn f() {}
+}
+
+class InternalClassShouldShow {}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Support back-deploying compatibility fixes for newer apps running on older runtimes.
@@ -46,17 +47,17 @@ namespace language {
 /// Used to define an override point. The override point #defines the appropriate
 /// OVERRIDE macro from CompatibilityOverride.def to this macro, then includes
 /// the file to generate the override points. The original implementation of the
-/// functionality must be available as swift_funcNameHereImpl.
+/// functionality must be available as language_funcNameHereImpl.
 #define COMPATIBILITY_OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs) \
   attrs ccAttrs ret namespace language_ ## name typedArgs {                          \
     static Override_ ## name Override;                                            \
-    static swift_once_t Predicate;                                                \
-    swift_once(&Predicate, [](void *) {                                           \
+    static language_once_t Predicate;                                                \
+    language_once(&Predicate, [](void *) {                                           \
       Override = getOverride_ ## name();                                          \
     }, nullptr);                                                                  \
     if (Override != nullptr)                                                      \
-      return Override(COMPATIBILITY_UNPAREN namedArgs, swift_ ## name ## Impl);   \
-    return swift_ ## name ## Impl namedArgs; \
+      return Override(COMPATIBILITY_UNPAREN namedArgs, language_ ## name ## Impl);   \
+    return language_ ## name ## Impl namedArgs; \
   }
 
 } /* end namespace language */

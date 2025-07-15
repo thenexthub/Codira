@@ -1,0 +1,5 @@
+// {"signature":"language::NominalTypeDecl::lookupConformance(language::ProtocolDecl*, toolchain::SmallVectorImpl<language::ProtocolConformance*>&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+@objc protocol a{a} extension a {
+  a class b : a

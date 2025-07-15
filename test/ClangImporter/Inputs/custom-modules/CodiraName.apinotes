@@ -1,0 +1,10 @@
+---
+Name: CodiraName
+Enumerators:
+- Name: HomeworkExcuseTooHard
+  CodiraName: challenging
+Functions:
+- Name: spuriousAPINotedCodiraName
+  CodiraName: spuriousAPINotedCodiraName(_:)
+- Name: poorlyNamedFunction
+  CodiraName: nicelyRenamedFunction(_:)

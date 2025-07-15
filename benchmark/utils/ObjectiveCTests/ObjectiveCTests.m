@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #import "ObjectiveCTests.h"
@@ -205,7 +206,7 @@
   }
 }
 
-- (void)testIsEqualToStringAllSwift {
+- (void)testIsEqualToStringAllCodira {
   for (NSString *str1 in bridgedStrings) {
     for (NSString *str2 in bridgedStrings) {
       @autoreleasepool {

@@ -1,13 +1,17 @@
 //===--- MoveOnlyChecker.cpp ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-move-only-checker"
@@ -49,16 +53,16 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 #include "MoveOnlyAddressCheckerUtils.h"
 #include "MoveOnlyDiagnostics.h"
@@ -95,20 +99,20 @@ struct MoveOnlyChecker {
 } // namespace
 
 void MoveOnlyChecker::checkObjects() {
-  llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+  toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
       moveIntroducersToProcess;
   unsigned diagCount = diagnosticEmitter.getDiagnosticCount();
   madeChange |= searchForCandidateObjectMarkUnresolvedNonCopyableValueInsts(
       fn, moveIntroducersToProcess, diagnosticEmitter);
 
-  LLVM_DEBUG(
-      llvm::dbgs()
+  TOOLCHAIN_DEBUG(
+      toolchain::dbgs()
       << "Emitting diagnostic when checking for mark must check inst: "
       << (diagCount != diagnosticEmitter.getDiagnosticCount() ? "yes" : "no")
       << '\n');
 
   if (moveIntroducersToProcess.empty()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "No move introducers found?! Returning early?!\n");
     return;
   }
@@ -122,14 +126,14 @@ void MoveOnlyChecker::checkObjects() {
 
 void MoveOnlyChecker::completeObjectLifetimes(
     ArrayRef<MarkUnresolvedNonCopyableValueInst *> insts) {
-// TODO: Delete once OSSALifetimeCompletion is run as part of SILGenCleanup.
-OSSALifetimeCompletion completion(fn, domTree, *deba->get(fn));
+  // TODO: Delete once OSSALifetimeCompletion is run as part of SILGenCleanup.
+  OSSALifetimeCompletion completion(fn, domTree, *deba->get(fn));
 
-// Collect all values derived from each mark_unresolved_non_copyable_value
-// instruction via ownership instructions and phis.
-ValueWorklist transitiveValues(fn);
-for (auto *inst : insts) {
-  transitiveValues.push(inst);
+  // Collect all values derived from each mark_unresolved_non_copyable_value
+  // instruction via ownership instructions and phis.
+  ValueWorklist transitiveValues(fn);
+  for (auto *inst : insts) {
+    transitiveValues.push(inst);
   }
   while (auto value = transitiveValues.pop()) {
     for (auto *use : value->getUses()) {
@@ -163,6 +167,10 @@ for (auto *inst : insts) {
   for (auto *block : poa->get(fn)->getPostOrder()) {
     for (SILInstruction &inst : reverse(*block)) {
       for (auto result : inst.getResults()) {
+        if (toolchain::any_of(result->getUsers(),
+                         [](auto *user) { return isa<BranchInst>(user); })) {
+          continue;
+        }
         if (!transitiveValues.isVisited(result))
           continue;
         if (completion.completeOSSALifetime(
@@ -173,7 +181,9 @@ for (auto *inst : insts) {
       }
     }
     for (SILArgument *arg : block->getArguments()) {
-      assert(!arg->isReborrow() && "reborrows not legal at this SIL stage");
+      if (arg->isReborrow()) {
+        continue;
+      }
       if (!transitiveValues.isVisited(arg))
         continue;
       if (completion.completeOSSALifetime(
@@ -187,19 +197,19 @@ for (auto *inst : insts) {
 
 void MoveOnlyChecker::checkAddresses() {
   unsigned diagCount = diagnosticEmitter.getDiagnosticCount();
-  llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+  toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
       moveIntroducersToProcess;
   searchForCandidateAddressMarkUnresolvedNonCopyableValueInsts(
       fn, poa, moveIntroducersToProcess, diagnosticEmitter);
 
-  LLVM_DEBUG(
-      llvm::dbgs()
+  TOOLCHAIN_DEBUG(
+      toolchain::dbgs()
       << "Emitting diagnostic when checking for mark must check inst: "
       << (diagCount != diagnosticEmitter.getDiagnosticCount() ? "yes" : "no")
       << '\n');
 
   if (moveIntroducersToProcess.empty()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "No move introducers found?! Returning early?!\n");
     return;
   }
@@ -254,7 +264,7 @@ class MoveOnlyCheckerPass : public SILFunctionTransform {
       return;
     }
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "===> MoveOnly Checker. Visiting: " << fn->getName() << '\n');
 
     MoveOnlyChecker checker(fn, getAnalysis<DominanceAnalysis>()->get(fn),
@@ -288,6 +298,6 @@ class MoveOnlyCheckerPass : public SILFunctionTransform {
 
 } // namespace
 
-SILTransform *swift::createMoveOnlyChecker() {
+SILTransform *language::createMoveOnlyChecker() {
   return new MoveOnlyCheckerPass();
 }

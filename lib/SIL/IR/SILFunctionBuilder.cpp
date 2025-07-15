@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILFunctionBuilder.h"
@@ -38,7 +39,7 @@ SILFunction *SILFunctionBuilder::getOrCreateFunction(
   if (auto fn = mod.lookUpFunction(name)) {
     assert(fn->getLoweredFunctionType() == type);
     assert(stripExternalFromLinkage(fn->getLinkage()) ==
-           stripExternalFromLinkage(linkage) || mod.getOptions().EmbeddedSwift);
+           stripExternalFromLinkage(linkage) || mod.getOptions().EmbeddedCodira);
     return fn;
   }
 
@@ -53,7 +54,7 @@ SILFunction *SILFunctionBuilder::getOrCreateFunction(
 
 void SILFunctionBuilder::addFunctionAttributes(
     SILFunction *F, DeclAttributes &Attrs, SILModule &M,
-    llvm::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
+    toolchain::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
         getOrCreateDeclaration,
     SILDeclRef constant) {
 
@@ -68,8 +69,8 @@ void SILFunctionBuilder::addFunctionAttributes(
     F->addSemanticsAttr(semantics::FORCE_EMIT_OPT_REMARK_PREFIX);
 
   // Propagate @_specialize.
-  for (auto *A : Attrs.getAttributes<SpecializeAttr>()) {
-    auto *SA = cast<SpecializeAttr>(A);
+  for (auto *A : Attrs.getAttributes<AbstractSpecializeAttr>()) {
+    auto *SA = cast<AbstractSpecializeAttr>(A);
     auto kind =
         SA->getSpecializationKind() == SpecializeAttr::SpecializationKind::Full
             ? SILSpecializeAttr::SpecializationKind::Full
@@ -82,8 +83,8 @@ void SILFunctionBuilder::addFunctionAttributes(
     auto spiGroups = SA->getSPIGroups();
     bool hasSPI = !spiGroups.empty();
     if (hasSPI) {
-      if (attributedFuncDecl->getModuleContext() != M.getSwiftModule() &&
-          !M.getSwiftModule()->isImportedAsSPI(SA, attributedFuncDecl)) {
+      if (attributedFuncDecl->getModuleContext() != M.getCodiraModule() &&
+          !M.getCodiraModule()->isImportedAsSPI(SA, attributedFuncDecl)) {
         continue;
       }
     }
@@ -93,7 +94,7 @@ void SILFunctionBuilder::addFunctionAttributes(
       spiGroupIdent = spiGroups[0];
     }
     auto availability = AvailabilityInference::annotatedAvailableRangeForAttr(
-        attributedFuncDecl, SA, M.getSwiftModule()->getASTContext());
+        attributedFuncDecl, SA, M.getCodiraModule()->getASTContext());
     auto specializedSignature = SA->getSpecializedSignature(attributedFuncDecl);
     if (targetFunctionDecl) {
       SILDeclRef declRef(targetFunctionDecl, constant.kind, false);
@@ -110,7 +111,7 @@ void SILFunctionBuilder::addFunctionAttributes(
     }
   }
 
-  llvm::SmallVector<const EffectsAttr *, 8> customEffects;
+  toolchain::SmallVector<const EffectsAttr *, 8> customEffects;
   if (constant) {
     for (auto *attr : Attrs.getAttributes<EffectsAttr>()) {
       auto *effectsAttr = cast<EffectsAttr>(attr);
@@ -130,7 +131,7 @@ void SILFunctionBuilder::addFunctionAttributes(
   }
 
   if (!customEffects.empty()) {
-    llvm::SmallVector<StringRef, 8> paramNames;
+    toolchain::SmallVector<StringRef, 8> paramNames;
     auto *fnDecl = cast<AbstractFunctionDecl>(constant.getDecl());
     if (ParameterList *paramList = fnDecl->getParameters()) {
       for (ParamDecl *pd : *paramList) {
@@ -148,7 +149,7 @@ void SILFunctionBuilder::addFunctionAttributes(
           paramNames.push_back(name);
       }
     }
-    for (const EffectsAttr *effectsAttr : llvm::reverse(customEffects)) {
+    for (const EffectsAttr *effectsAttr : toolchain::reverse(customEffects)) {
       auto error = F->parseArgumentEffectsFromSource(
                                 effectsAttr->getCustomString(), paramNames);
       if (error.first) {
@@ -260,7 +261,7 @@ void SILFunctionBuilder::addFunctionAttributes(
   if (auto *replacedDecl = dyn_cast_or_null<AbstractFunctionDecl>(origDecl)) {
     // For @objc method replacement we normally use categories to perform the
     // replacement. Except for methods in generic class where we can't. Instead,
-    // we special case this and use the native swift replacement mechanism.
+    // we special case this and use the native language replacement mechanism.
     if (decl->isObjC() && !decl->isNativeMethodReplacement()) {
       F->setObjCReplacement(replacedDecl);
       return;
@@ -291,7 +292,7 @@ void SILFunctionBuilder::addFunctionAttributes(
 
 SILFunction *SILFunctionBuilder::getOrCreateFunction(
     SILLocation loc, SILDeclRef constant, ForDefinition_t forDefinition,
-    llvm::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
+    toolchain::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
         getOrCreateDeclaration,
     ProfileCounter entryCount) {
   auto nameTmp = constant.mangle();

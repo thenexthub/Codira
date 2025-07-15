@@ -1,10 +1,10 @@
 """
-LLDB Helpers for working with the swift compiler.
+LLDB Helpers for working with the language compiler.
 
 Load into LLDB with 'command script import /path/to/lldbToolBox.py'
 
-This will also import LLVM data formatters as well, assuming that llvm is next
-to the swift checkout.
+This will also import LLVM data formatters as well, assuming that toolchain is next
+to the language checkout.
 """
 import argparse
 import os
@@ -17,34 +17,34 @@ import lldb
 
 REPO_BASE = os.path.abspath(os.path.join(__file__, os.pardir, os.pardir,
                                          os.pardir, os.pardir))
-SWIFT_REPO = os.path.join(REPO_BASE, "swift")
-LLVM_REPO = os.path.join(REPO_BASE, "llvm-project")
-LLVM_DATAFORMATTER_PATH = os.path.join(LLVM_REPO, "llvm", "utils",
+LANGUAGE_REPO = os.path.join(REPO_BASE, "language")
+TOOLCHAIN_REPO = os.path.join(REPO_BASE, "toolchain-project")
+TOOLCHAIN_DATAFORMATTER_PATH = os.path.join(TOOLCHAIN_REPO, "toolchain", "utils",
                                        "lldbDataFormatters.py")
-SWIFT_DATAFORMATTER_PATH = os.path.join(SWIFT_REPO, "utils",
-                                        "lldb", "lldbSwiftDataFormatters.py")
+LANGUAGE_DATAFORMATTER_PATH = os.path.join(LANGUAGE_REPO, "utils",
+                                        "lldb", "lldbCodiraDataFormatters.py")
 
 
-def import_llvm_dataformatters(debugger):
-    if not os.access(LLVM_DATAFORMATTER_PATH, os.F_OK):
+def import_toolchain_dataformatters(debugger):
+    if not os.access(TOOLCHAIN_DATAFORMATTER_PATH, os.F_OK):
         print("WARNING! Could not find LLVM data formatters!")
         return
-    cmd = 'command script import {}'.format(LLVM_DATAFORMATTER_PATH)
+    cmd = 'command script import {}'.format(TOOLCHAIN_DATAFORMATTER_PATH)
     debugger.HandleCommand(cmd)
     print("Loaded LLVM data formatters.")
 
 
-def import_swift_dataformatters(debugger):
-    if not os.access(SWIFT_DATAFORMATTER_PATH, os.F_OK):
-        print("WARNING! Could not find Swift data formatters!")
+def import_language_dataformatters(debugger):
+    if not os.access(LANGUAGE_DATAFORMATTER_PATH, os.F_OK):
+        print("WARNING! Could not find Codira data formatters!")
         return
-    cmd = 'command script import {}'.format(SWIFT_DATAFORMATTER_PATH)
+    cmd = 'command script import {}'.format(LANGUAGE_DATAFORMATTER_PATH)
     debugger.HandleCommand(cmd)
-    print("Loaded Swift data formatters.")
+    print("Loaded Codira data formatters.")
 
 
-VIEWCFG_PATH = os.path.join(SWIFT_REPO, "utils", "viewcfg")
-BLOCKIFYASM_PATH = os.path.join(SWIFT_REPO, "utils", "dev-scripts",
+VIEWCFG_PATH = os.path.join(LANGUAGE_REPO, "utils", "viewcfg")
+BLOCKIFYASM_PATH = os.path.join(LANGUAGE_REPO, "utils", "dev-scripts",
                                 "blockifyasm")
 
 
@@ -130,8 +130,8 @@ def sequence(debugger, command, exec_ctx, result, internal_dict):
 
 
 def __lldb_init_module(debugger, internal_dict):
-    import_llvm_dataformatters(debugger)
-    import_swift_dataformatters(debugger)
+    import_toolchain_dataformatters(debugger)
+    import_language_dataformatters(debugger)
     debugger.HandleCommand('command script add disassemble-asm-cfg '
                            '-f lldbToolBox.disassemble_asm_cfg')
     debugger.HandleCommand('command script add disassemble-to-file '

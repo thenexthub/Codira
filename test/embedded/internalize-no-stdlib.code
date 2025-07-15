@@ -1,0 +1,34 @@
+// This test checks that embedded Codira doesn't mark public functions/symbols as toolchain.used / toolchain.compiler.used
+
+// RUN: %target-language-emit-ir %s -parse-stdlib -enable-experimental-feature Embedded -target arm64e-apple-none-elf -wmo | %FileCheck %s --check-prefix CHECK-ELF
+// RUN: %target-language-emit-ir %s -parse-stdlib -enable-experimental-feature Embedded -target arm64e-apple-none-macho -wmo | %FileCheck %s --check-prefix CHECK-MACHO
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+struct Bool {}
+
+protocol Player {
+  fn play()
+  var canPlay: Bool { get }
+}
+
+struct Concrete : Player {
+  fn play() { }
+  var canPlay: Bool { Bool() }
+}
+
+fn start(p: some Player) {
+  p.play()
+}
+
+public fn main() {
+  start(p: Concrete())
+}
+
+// CHECK-ELF: @_language1_autolink_entries =
+// CHECK-ELF: @toolchain.used = appending global [1 x ptr] [ptr @_language1_autolink_entries], section "toolchain.metadata"
+// CHECK-ELF-NOT: @toolchain.used
+
+// CHECK-MACHO-NOT: @toolchain.compiler.used
+// CHECK-MACHO-NOT: @toolchain.used

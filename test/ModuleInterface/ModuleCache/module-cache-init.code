@@ -1,0 +1,72 @@
+// RUN: %empty-directory(%t)
+//
+// Test will build a module TestModule that depends on OtherModule and LeafModule (built from other.code and leaf.code).
+//
+// RUN: echo 'public fn LeafFunc() -> Int { return 10; }' >%t/leaf.code
+//
+// RUN: echo 'import LeafModule' >%t/other.code
+// RUN: echo 'public fn OtherFunc() -> Int { return LeafFunc(); }' >>%t/other.code
+//
+// Phase 1: build LeafModule into a .codeinterface file:
+//
+// RUN: %target-language-frontend -I %t -emit-module-interface-path %t/LeafModule.codeinterface -module-name LeafModule %t/leaf.code -emit-module -o /dev/null
+// RUN: test -f %t/LeafModule.codeinterface
+// RUN: %FileCheck %s -check-prefix=CHECK-LEAFINTERFACE <%t/LeafModule.codeinterface
+// CHECK-LEAFINTERFACE: LeafFunc
+//
+//
+// Phase 2: build OtherModule into a .codeinterface _using_ LeafModule via LeafModule.codeinterface, creating LeafModule-*.codemodule along the way.
+//
+// RUN: %target-language-frontend -I %t -module-cache-path %t/modulecache -emit-module-interface-path %t/OtherModule.codeinterface -module-name OtherModule %t/other.code -emit-module -o /dev/null
+// RUN: test -f %t/OtherModule.codeinterface
+// RUN: %FileCheck %s -check-prefix=CHECK-OTHERINTERFACE <%t/OtherModule.codeinterface
+// CHECK-OTHERINTERFACE: OtherFunc
+// RUN: test -f %t/modulecache/LeafModule-*.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/modulecache/LeafModule-*.codemodule | %FileCheck %s -check-prefix=CHECK-LEAFMODULE
+// CHECK-LEAFMODULE: {{MODULE_NAME.*blob data = 'LeafModule'}}
+// CHECK-LEAFMODULE: {{FILE_DEPENDENCY.*LeafModule.codeinterface'}}
+// CHECK-LEAFMODULE: FUNC_DECL
+// RUN: toolchain-bcanalyzer -dump %t/modulecache/LeafModule-*.codemodule | %FileCheck %s -check-prefix=CHECK-LEAFMODULE-NEGATIVE
+// CHECK-LEAFMODULE-NEGATIVE-NOT: {{FILE_DEPENDENCY.*Codira.codemodule([/\\].+[.]languagemodule)?'}}
+//
+//
+// Phase 3: build TestModule into a .codemodule explicitly us OtherModule via OtherModule.codeinterface, creating OtherModule-*.codemodule along the way.
+//
+// RUN: %target-language-frontend -I %t -module-cache-path %t/modulecache -emit-module -emit-dependencies -emit-dependencies-path %t/TestModule.d -o %t/TestModule.codemodule -module-name TestModule %s
+// RUN: test -f %t/TestModule.codemodule
+// RUN: test -f %t/modulecache/OtherModule-*.codemodule
+// RUN: test -f %t/TestModule.d
+// RUN: toolchain-bcanalyzer -dump %t/modulecache/OtherModule-*.codemodule | %FileCheck %s -check-prefix=CHECK-OTHERMODULE
+// CHECK-OTHERMODULE: {{MODULE_NAME.*blob data = 'OtherModule'}}
+// CHECK-OTHERMODULE-NOT: {{FILE_DEPENDENCY.*Codira.codemodule([/\\].+[.]languagemodule)?'}}
+// CHECK-OTHERMODULE: {{FILE_DEPENDENCY.*LeafModule.codeinterface'}}
+// CHECK-OTHERMODULE: {{FILE_DEPENDENCY.*OtherModule.codeinterface'}}
+// CHECK-OTHERMODULE: FUNC_DECL
+//
+// Quirk: because the cached .codemodules have a hash name component that
+// integrates target, and we sort the contents of lines in a .d file by the
+// dependency's reverse-name (for reasons), the order in which the cached
+// .codemodules are listed in the .d file will vary _by target_.
+//
+// So we cannot write a single set of CHECK-SAME lines here that will work
+// for all targets: some will have LeafModule first, some OtherModule
+// first. So instead we just use CHECK-DAG.
+//
+// RUN: %FileCheck %s -check-prefix=CHECK-DEPENDS <%t/TestModule.d
+//
+// CHECK-DEPENDS: TestModule.codemodule :
+// CHECK-DEPENDS-DAG: LeafModule.codeinterface
+// CHECK-DEPENDS-DAG: OtherModule.codeinterface
+// CHECK-DEPENDS-DAG: Codira.codemodule
+// CHECK-DEPENDS-DAG: CodiraOnoneSupport.codemodule
+//
+// RUN: %FileCheck %s -check-prefix=CHECK-DEPENDS-NEGATIVE <%t/TestModule.d
+//
+// CHECK-DEPENDS-NEGATIVE-NOT: {{LeafModule-[^ ]+.codemodule}}
+// CHECK-DEPENDS-NEGATIVE-NOT: {{OtherModule-[^ ]+.codemodule}}
+
+import OtherModule
+
+public fn TestFunc() {
+    print(OtherFunc())
+}

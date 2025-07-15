@@ -1,0 +1,51 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn g<T, c: a {
+protocol a {
+}
+protocol b {
+class A {
+}
+fn b.Type) {
+}
+enum A : A : a {
+}
+}
+var b {
+protocol b {
+fn b
+typealias e : e: C {
+}
+struct d>)-> String = T> d>(c<f == F>?) -> a {
+}
+}
+fn f() -> e(_ c(Any) -> Any {
+}
+immutable c = a((a(v: P {
+}
+case C) -> Int = {
+extension A {
+}
+}
+get {
+fn b() -> Bool {
+case A<1 {
+protocol b = b.a<T> T> String {
+}
+}("[1, length: Collection where d<Q<T -> (T> S.substringWithRange(T] in
+protocol a {
+}
+enum A : Hashable> Int {
+() {
+}
+}

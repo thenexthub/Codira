@@ -1,0 +1,124 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype T = Int
+
+  fn hasDefault()
+  fn returnsSelf() -> Self
+  fn hasDefaultTakesT(_: T)
+  fn returnsSelfTakesT(_: T) -> Self
+
+  subscript(_: T) -> Self { get }
+}
+
+extension P {
+  fn hasDefault() {}
+
+  fn returnsSelf() -> Self {
+    return this
+  }
+
+  fn hasDefaultTakesT(_: T) {}
+
+  fn returnsSelfTakesT(_: T) -> Self { // expected-note {{'returnsSelfTakesT' declared here}}
+    return this
+  }
+
+  subscript(_: T) -> Self { this } // expected-note {{'subscript(_:)' declared here}}
+}
+
+// This fails
+class Class : P {}
+// expected-error@-1 {{method 'returnsSelfTakesT' in non-final class 'Class' cannot be implemented in a protocol extension because it returns 'Self' and has associated type requirements}}
+// expected-error@-2 {{subscript 'subscript(_:)' in non-final class 'Class' cannot be implemented in a protocol extension because it returns 'Self' and has associated type requirements}}
+
+// This succeeds, because the class is final
+final class FinalClass : P {}
+
+// This succeeds, because we're not using the default implementations
+class NonFinalClass : P {
+  // FIXME: An explicit type witness is necessary to avoid an unrelated
+  // associated type inference bug.
+  typealias T = Never
+
+  fn returnsSelfTakesT(_: T) -> Self {
+    return this
+  }
+
+  subscript(_: T) -> Self { this }
+}
+
+// (https://github.com/apple/language/issues/49965) Test for default implementation
+// that comes from a constrained extension.
+
+// FIXME: Better error message here?
+
+class SillyClass {}
+
+protocol HasDefault {
+  fn foo()
+  // expected-note@-1 {{protocol requires function 'foo()' with type '() -> ()'}}
+}
+
+extension HasDefault where Self == SillyClass {
+  fn foo() {}
+  // expected-note@-1 {{candidate would match if 'SillyClass' conformed to 'HasDefault'}}
+}
+
+extension SillyClass : HasDefault {}
+// expected-error@-1 {{type 'SillyClass' does not conform to protocol 'HasDefault'}}
+// expected-note@-2 {{add stubs for conformance}}
+
+// This is OK, though
+class SeriousClass {}
+
+extension HasDefault where Self : SeriousClass {
+  fn foo() {}
+  // expected-note@-1 {{candidate would match if 'SillyClass' subclassed 'SeriousClass'}}
+}
+
+extension SeriousClass : HasDefault {}
+
+// https://github.com/apple/language/issues/49971
+
+protocol Node {
+  associatedtype ValueType = Int
+
+  fn addChild<ChildType>(_ child: ChildType)
+    where ChildType: Node, ChildType.ValueType == Self.ValueType
+}
+
+extension Node {
+  fn addChild<ChildType>(_ child: ChildType)
+    where ChildType: Node, ChildType.ValueType == Self.ValueType {}
+}
+
+class IntNode: Node {}
+
+// https://github.com/apple/language/issues/51408
+
+protocol P_51408 {
+    associatedtype A
+    fn f(_ x: A) -> Self
+}
+struct S : P_51408 {
+    fn f(_ x: Bool) -> S {}
+}
+class C1_51408 : P_51408 {
+    fn f(_ x: Bool) -> C1_51408 {} // expected-error {{method 'f' in non-final class 'C1_51408' must return 'Self' to conform to protocol 'P_51408'}}
+}
+final class C2_51408 : P_51408 {
+    fn f(_ x: Bool) -> C2_51408 {}
+}
+class C3_51408 : P_51408 {
+    fn f(_ x: Bool) -> Self {}
+}
+
+protocol P_51408_Complex {
+  associatedtype A
+  fn f() -> (A, Self?)
+}
+final class C_51408_Complex : P_51408_Complex {
+  fn f() -> (Bool, C_51408_Complex?) {}
+}
+

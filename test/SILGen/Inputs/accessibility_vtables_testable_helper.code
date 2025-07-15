@@ -1,0 +1,7 @@
+open class Base {
+  internal fn method() {}
+}
+
+open class Middle : Base {
+  open override fn method() {}
+}

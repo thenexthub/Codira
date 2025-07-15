@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -22,40 +22,40 @@ import sys
 from pathlib import Path
 
 
-_SWIFT_PATH = Path(__file__).resolve().parents[1]
+_LANGUAGE_PATH = Path(__file__).resolve().parents[1]
 
 _KNOWN_SCRIPT_PATHS = [
-    _SWIFT_PATH / "benchmark/scripts/Benchmark_Driver",
-    _SWIFT_PATH / "benchmark/scripts/Benchmark_DTrace.in",
-    _SWIFT_PATH / "benchmark/scripts/Benchmark_GuardMalloc.in",
-    _SWIFT_PATH / "benchmark/scripts/Benchmark_QuickCheck.in",
-    _SWIFT_PATH / "benchmark/scripts/Benchmark_RuntimeLeaksRunner.in",
-    _SWIFT_PATH / "benchmark/scripts/run_smoke_bench",
-    _SWIFT_PATH / "docs/scripts/ns-html2rst",
-    _SWIFT_PATH / "test/Driver/Inputs/fake-toolchain/ld",
-    _SWIFT_PATH / "utils/80+-check",
-    _SWIFT_PATH / "utils/backtrace-check",
-    _SWIFT_PATH / "utils/build-script",
-    _SWIFT_PATH / "utils/check-incremental",
-    _SWIFT_PATH / "utils/coverage/coverage-build-db",
-    _SWIFT_PATH / "utils/coverage/coverage-generate-data",
-    _SWIFT_PATH / "utils/coverage/coverage-query-db",
-    _SWIFT_PATH / "utils/coverage/coverage-touch-tests",
-    _SWIFT_PATH / "utils/dev-scripts/blockifyasm",
-    _SWIFT_PATH / "utils/dev-scripts/split-cmdline",
-    _SWIFT_PATH / "utils/gyb",
-    _SWIFT_PATH / "utils/line-directive",
-    _SWIFT_PATH / "utils/PathSanitizingFileCheck",
-    _SWIFT_PATH / "utils/recursive-lipo",
-    _SWIFT_PATH / "utils/round-trip-syntax-test",
-    _SWIFT_PATH / "utils/rth",
-    _SWIFT_PATH / "utils/run-test",
-    _SWIFT_PATH / "utils/scale-test",
-    _SWIFT_PATH / "utils/submit-benchmark-results",
-    _SWIFT_PATH / "utils/swift_build_support/tests/mock-distcc",
-    _SWIFT_PATH / "utils/symbolicate-linux-fatal",
-    _SWIFT_PATH / "utils/update-checkout",
-    _SWIFT_PATH / "utils/viewcfg",
+    _LANGUAGE_PATH / "benchmark/scripts/Benchmark_Driver",
+    _LANGUAGE_PATH / "benchmark/scripts/Benchmark_DTrace.in",
+    _LANGUAGE_PATH / "benchmark/scripts/Benchmark_GuardMalloc.in",
+    _LANGUAGE_PATH / "benchmark/scripts/Benchmark_QuickCheck.in",
+    _LANGUAGE_PATH / "benchmark/scripts/Benchmark_RuntimeLeaksRunner.in",
+    _LANGUAGE_PATH / "benchmark/scripts/run_smoke_bench",
+    _LANGUAGE_PATH / "docs/scripts/ns-html2rst",
+    _LANGUAGE_PATH / "test/Driver/Inputs/fake-toolchain/ld",
+    _LANGUAGE_PATH / "utils/80+-check",
+    _LANGUAGE_PATH / "utils/backtrace-check",
+    _LANGUAGE_PATH / "utils/build-script",
+    _LANGUAGE_PATH / "utils/check-incremental",
+    _LANGUAGE_PATH / "utils/coverage/coverage-build-db",
+    _LANGUAGE_PATH / "utils/coverage/coverage-generate-data",
+    _LANGUAGE_PATH / "utils/coverage/coverage-query-db",
+    _LANGUAGE_PATH / "utils/coverage/coverage-touch-tests",
+    _LANGUAGE_PATH / "utils/dev-scripts/blockifyasm",
+    _LANGUAGE_PATH / "utils/dev-scripts/split-cmdline",
+    _LANGUAGE_PATH / "utils/gyb",
+    _LANGUAGE_PATH / "utils/line-directive",
+    _LANGUAGE_PATH / "utils/PathSanitizingFileCheck",
+    _LANGUAGE_PATH / "utils/recursive-lipo",
+    _LANGUAGE_PATH / "utils/round-trip-syntax-test",
+    _LANGUAGE_PATH / "utils/rth",
+    _LANGUAGE_PATH / "utils/run-test",
+    _LANGUAGE_PATH / "utils/scale-test",
+    _LANGUAGE_PATH / "utils/submit-benchmark-results",
+    _LANGUAGE_PATH / "utils/language_build_support/tests/mock-distcc",
+    _LANGUAGE_PATH / "utils/symbolicate-linux-fatal",
+    _LANGUAGE_PATH / "utils/update-checkout",
+    _LANGUAGE_PATH / "utils/viewcfg",
 ]
 
 
@@ -72,11 +72,11 @@ For more help, see https://black.readthedocs.io.
 
 
 def _get_python_sources():
-    """Returns a list of path objects for all known Python sources in the Swift
+    """Returns a list of path objects for all known Python sources in the Codira
     project.
     """
 
-    return list(_SWIFT_PATH.rglob("*.py")) + _KNOWN_SCRIPT_PATHS
+    return list(_LANGUAGE_PATH.rglob("*.py")) + _KNOWN_SCRIPT_PATHS
 
 
 def _is_package_installed(name):

@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -emit-module -module-name tf1202 -emit-module-path %t/tf1202.codemodule %S/Inputs/tf1202-differentiability-witness-dead-function-elimination.code
+// RUN: %target-build-language -I%t -emit-module -O %s
+
+// TF-1202: test bug where DeadFunctionElimination eliminated the
+// SILFunction for `fn identity<T>` even though a differentiability witness for it
+// exists. This causes deserialization of this module to crash when
+// trying to deserialize the differentiability witness because it can't find
+// the original function `fn identity<T>`.
+
+// TF-1239: Test `SynthesizedFileUnit` serialization.
+
+import tf1202
+
+fn callit() -> Float {
+  return foo()
+}

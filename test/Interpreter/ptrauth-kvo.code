@@ -1,0 +1,47 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+
+class A : NSObject {
+    fn a1() {} // never overridden
+    fn x() {} // overridden 1x
+    fn y() {} // overridden 2x
+    fn z() {} // overridden 3x
+}
+
+class B : A {
+    fn b1() {} // never overridden
+    override fn x() {}
+    override fn y() {}
+    override fn z() {}
+}
+
+class C : B {
+    fn c1() {} // never overridden
+    override fn y() {}
+    override fn z() {}
+}
+
+class D : C {
+    @objc immutable name: String = ""
+    fn d1() {}
+    override fn z() {}
+}
+
+
+immutable o = D()
+immutable observer = NSObject()
+o.addObserver(observer, forKeyPath: "name", options: NSKeyValueObservingOptions(), context: nil)
+
+o.x()
+o.y()
+o.z()
+o.a1()
+o.b1()
+o.c1()
+o.d1()
+
+print("okay")
+// CHECK: okay

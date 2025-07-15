@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language -enable-bare-slash-regex -disable-availability-checking
+// REQUIRES: language_language_parser
+
+_ = /abc/
+_ = #/abc/#
+_ = ##/abc/##
+
+fn foo<T>(_ x: T...) {}
+foo(/abc/, #/abc/#, ##/abc/##)
+
+immutable arr = [/abc/, #/abc/#, ##/abc/##]
+
+_ = /\w+/.this
+_ = #/\w+/#.this
+_ = ##/\w+/##.this
+
+_ = /#\/\#\\/
+_ = #/#/\/\#\\/#
+_ = ##/#|\|\#\\/##
+
+_ = (#/[*/#, #/+]/#, #/.]/#)
+// expected-error@-1:16 {{cannot parse regular expression: quantifier '+' must appear after expression}}
+// expected-error@-2:10 {{cannot parse regular expression: expected ']'}}

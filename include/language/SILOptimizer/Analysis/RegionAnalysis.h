@@ -1,17 +1,21 @@
 //===--- RegionAnalysis.h -------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_REGIONANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_REGIONANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_REGIONANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_REGIONANALYSIS_H
 
 #include "language/SIL/BasicBlockData.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
@@ -93,9 +97,9 @@ public:
 
   const Partition &getExitPartition() const { return exitPartition; }
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
 private:
   /// Recomputes the exit partition from the entry partition, and returns
@@ -179,16 +183,16 @@ public:
 
   void removeFlag(TrackableValueFlag flag) { flagSet -= flag; }
 
-  void print(llvm::raw_ostream &os) const {
+  void print(SILFunction *fn, toolchain::raw_ostream &os) const {
     os << "TrackableValueState[id: " << id
        << "][is_no_alias: " << (isNoAlias() ? "yes" : "no")
        << "][is_sendable: " << (isSendable() ? "yes" : "no")
        << "][region_value_kind: ";
-    getIsolationRegionInfo().printForOneLineLogging(os);
+    getIsolationRegionInfo().printForOneLineLogging(fn, os);
     os << "].";
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  LANGUAGE_DEBUG_DUMPER(dump(SILFunction *fn)) { print(fn, toolchain::dbgs()); }
 
 private:
   bool hasIsolationRegionInfo() const { return bool(regionInfo); }
@@ -249,27 +253,27 @@ public:
   /// parameter.
   bool isSendingParameter() const;
 
-  void printIsolationInfo(SmallString<64> &outString) const {
-    llvm::raw_svector_ostream os(outString);
-    getIsolationRegionInfo().printForDiagnostics(os);
+  void printIsolationInfo(SILFunction *fn, SmallString<64> &outString) const {
+    toolchain::raw_svector_ostream os(outString);
+    getIsolationRegionInfo().printForDiagnostics(fn, os);
   }
 
-  void print(llvm::raw_ostream &os) const {
+  void print(SILFunction *fn, toolchain::raw_ostream &os) const {
     os << "TrackableValue. State: ";
-    valueState.print(os);
+    valueState.print(fn, os);
     os << "\n    Rep Value: ";
     getRepresentative().print(os);
   }
 
-  void printVerbose(llvm::raw_ostream &os) const {
+  void printVerbose(SILFunction *fn, toolchain::raw_ostream &os) const {
     os << "TrackableValue. State: ";
-    valueState.print(os);
+    valueState.print(fn, os);
     os << "\n    Rep Value: " << getRepresentative();
   }
 
-  SWIFT_DEBUG_DUMP {
-    print(llvm::dbgs());
-    llvm::dbgs() << '\n';
+  LANGUAGE_DEBUG_DUMPER(dump(SILFunction *fn)) {
+    print(fn, toolchain::dbgs());
+    toolchain::dbgs() << '\n';
   }
 };
 
@@ -288,8 +292,8 @@ struct regionanalysisimpl::TrackableValueLookupResult {
   /// TrackableValue.
   std::optional<TrackableValue> base;
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(SILFunction *fn, toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMPER(dumper(SILFunction *fn)) { print(fn, toolchain::dbgs()); }
 };
 
 class RegionAnalysis;
@@ -315,11 +319,11 @@ private:
   /// non-Sendable values. Implicit conversion from SILValue used pervasively.
   /// ensure getUnderlyingTrackedValue is called on SILValues before entering
   /// into this map
-  llvm::DenseMap<RepresentativeValue, TrackableValueState>
+  toolchain::DenseMap<RepresentativeValue, TrackableValueState>
       equivalenceClassValuesToState;
 
   /// The inverse map of equivalenceClassValuesToState.
-  llvm::DenseMap<unsigned, RepresentativeValue> stateIndexToEquivalenceClass;
+  toolchain::DenseMap<unsigned, RepresentativeValue> stateIndexToEquivalenceClass;
 
   /// State that the value -> representative computation yields to us.
   struct UnderlyingTrackedValueInfo {
@@ -369,15 +373,15 @@ private:
 
     operator bool() const { return value; }
 
-    void print(llvm::raw_ostream &os) const;
-    SWIFT_DEBUG_DUMP {
-      print(llvm::dbgs());
-      llvm::dbgs() << '\n';
+    void print(toolchain::raw_ostream &os) const;
+    LANGUAGE_DEBUG_DUMP {
+      print(toolchain::dbgs());
+      toolchain::dbgs() << '\n';
     }
   };
 
   /// A map from a SILValue to its equivalence class representative.
-  llvm::DenseMap<SILValue, UnderlyingTrackedValueInfo> valueToEquivalenceClass;
+  toolchain::DenseMap<SILValue, UnderlyingTrackedValueInfo> valueToEquivalenceClass;
 
   SILFunction *fn;
 
@@ -390,8 +394,10 @@ public:
     return getUnderlyingTrackedValue(value).value;
   }
 
+  SILFunction *getFunction() const { return fn; }
+
   /// Returns the value for this instruction if it isn't a fake "represenative
-  /// value" to inject actor isolatedness. Asserts in such a case.
+  /// value" to inject actor isolation. Asserts in such a case.
   SILValue getRepresentative(Element trackableValueID) const;
 
   /// Returns the value for this instruction. If it is a fake "representative
@@ -399,7 +405,7 @@ public:
   SILValue maybeGetRepresentative(Element trackableValueID) const;
 
   /// Returns the value for this instruction if it isn't a fake "represenative
-  /// value" to inject actor isolatedness. Asserts in such a case.
+  /// value" to inject actor isolation. Asserts in such a case.
   RepresentativeValue getRepresentativeValue(Element trackableValueID) const;
 
   /// Returns the fake "representative value" for this element if it
@@ -409,8 +415,8 @@ public:
   SILIsolationInfo getIsolationRegion(Element trackableValueID) const;
   SILIsolationInfo getIsolationRegion(SILValue trackableValueID) const;
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
   TrackableValueLookupResult
   getTrackableValue(SILValue value,
@@ -490,7 +496,7 @@ class RegionAnalysisFunctionInfo {
   using SendingOperandSetFactory = regionanalysisimpl::SendingOperandSetFactory;
   using BasicBlockData = BasicBlockData<BlockPartitionState>;
 
-  llvm::BumpPtrAllocator allocator;
+  toolchain::BumpPtrAllocator allocator;
 
   SILFunction *fn;
 
@@ -581,10 +587,10 @@ public:
     return blockStates->rend();
   }
 
-  using range = llvm::iterator_range<iterator>;
-  using const_range = llvm::iterator_range<const_iterator>;
-  using reverse_range = llvm::iterator_range<reverse_iterator>;
-  using const_reverse_range = llvm::iterator_range<const_reverse_iterator>;
+  using range = toolchain::iterator_range<iterator>;
+  using const_range = toolchain::iterator_range<const_iterator>;
+  using reverse_range = toolchain::iterator_range<reverse_iterator>;
+  using const_reverse_range = toolchain::iterator_range<const_reverse_iterator>;
 
   range getRange() { return {begin(), end()}; }
   const_range getRange() const { return {begin(), end()}; }

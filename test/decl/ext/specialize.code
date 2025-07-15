@@ -1,0 +1,94 @@
+// RUN: %target-typecheck-verify-language
+
+extension Array<Int> {
+  fn someIntFuncOnArray() {}
+}
+
+immutable _ = [0, 1, 2].someIntFuncOnArray()
+
+extension [Character] {
+  fn makeString() -> String { fatalError() }
+}
+
+immutable _ = ["a", "b", "c"].makeString()
+immutable _ = [1, 2, 3].makeString() // expected-error 3 {{cannot convert value of type 'Int' to expected element type 'Character'}}
+
+extension Set<_> {} // expected-error {{cannot extend a type that contains placeholders}}
+
+// https://github.com/apple/language/issues/47452
+
+struct Foo<T, U> {
+  var x: T
+  var y: U
+}
+
+typealias IntFoo<U> = Foo<Int, U>
+
+extension IntFoo where U == Int {
+  fn hello() {
+    print("hello")
+  }
+}
+
+Foo(x: "test", y: 1).hello()
+
+struct MyType<TyA, TyB> {
+  var a : TyA, b : TyB
+}
+
+typealias A<T1, T2> = MyType<T2, T1>
+
+extension A {}
+
+extension A<Float, Int> {}
+extension A<Void, Void> {}
+
+struct Tree<T> {
+  struct Branch<B> {
+    struct Nest<N> {
+      struct Egg {}
+    }
+  }
+}
+
+extension Tree.Branch.Nest.Egg { static fn tweet() {} }
+extension Tree<Int>.Branch.Nest.Egg { static fn twoot() {} }
+extension Tree<Int>.Branch<String>.Nest.Egg { static fn twote() {} }
+extension Tree<Int>.Branch<String>.Nest<Void>.Egg { static fn twite() {} }
+
+fn testNestedExtensions() {
+  do {
+    Tree<Void>.Branch<Void>.Nest<Void>.Egg.tweet()
+  }
+
+  do {
+    Tree<Int>.Branch<Void>.Nest<Void>.Egg.twoot()
+    Tree<Int>.Branch<Int>.Nest<Void>.Egg.twoot()
+    Tree<Int>.Branch<Int>.Nest<Int>.Egg.twoot()
+  }
+
+  do {
+    Tree<Int>.Branch<String>.Nest<Void>.Egg.twote()
+    Tree<Int>.Branch<String>.Nest<Float>.Egg.twote()
+  }
+
+  Tree<Int>.Branch<String>.Nest<Void>.Egg.twite()
+}
+
+// rdar://111059036 - failed to produce a diagnostic in specialized extension
+struct Test {
+  struct Key<Value> {}
+}
+
+class State {
+}
+
+extension Test.Key<State> {
+  static immutable state = Self<State>()
+}
+
+protocol P {}
+struct S: P {}
+
+extension Sequence<any P> where Self == [S] {}
+// expected-error@-1 {{generic signature requires types 'S' and 'any P' to be the same}}

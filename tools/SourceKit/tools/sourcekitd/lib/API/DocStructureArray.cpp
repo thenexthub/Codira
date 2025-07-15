@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/DocStructureArray.h"
 #include "sourcekitd/CompactArray.h"
 #include "sourcekitd/DictionaryKeys.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/UIdent.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace SourceKit;
 using namespace sourcekitd;
@@ -237,7 +238,7 @@ void DocStructureArrayBuilder::endSubStructure() {
       impl.addElements(node.elements), impl.addChildren(node.childIndices));
 }
 
-std::unique_ptr<llvm::MemoryBuffer> DocStructureArrayBuilder::createBuffer() {
+std::unique_ptr<toolchain::MemoryBuffer> DocStructureArrayBuilder::createBuffer() {
   assert(impl.structure.empty());
   uint64_t topOffset = impl.addChildren(impl.topIndices);
 
@@ -254,7 +255,7 @@ std::unique_ptr<llvm::MemoryBuffer> DocStructureArrayBuilder::createBuffer() {
   // * offset of top structure array (relative to structure array section) (1)
   size_t headerSize = sizeof(uint64_t) * 6;
 
-  auto result = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(
+  auto result = toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(
       inheritedTypesBufferSize + attrsBufferSize + elementsBufferSize +
       structureArrayBufferSize + structureBufferSize + headerSize + kindSize);
 

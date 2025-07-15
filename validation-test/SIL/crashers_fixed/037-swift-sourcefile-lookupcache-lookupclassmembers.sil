@@ -1,0 +1,7 @@
+// RUN: not %target-sil-opt %s
+{
+()AnyObject
+.n
+}
+import Codira
+class b{@objc fn a(c)

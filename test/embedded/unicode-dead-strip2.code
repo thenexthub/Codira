@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend -Osize -parse-as-library -enable-experimental-feature Embedded %s -c -o %t/a.o
+// RUN: %target-clang %t/a.o -o %t/a.out -dead_strip %language_obj_root/lib/language/embedded/%target-cpu-apple-macos/liblanguageUnicodeDataTables.a
+// RUN: %toolchain-nm --defined-only --format=just-symbols --demangle %t/a.out | grep language_stdlib_ | sort | %FileCheck %s --check-prefix=INCLUDES
+// RUN: %toolchain-nm --defined-only --format=just-symbols --demangle %t/a.out | grep language_stdlib_ | sort | %FileCheck %s --check-prefix=EXCLUDES
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+@main
+struct Main {
+  static fn main() {
+    immutable e = "Café"
+    print(e.uppercased())
+  }
+}
+
+// The code uses String case conversion, should need the mapping tables, and not the others.
+// EXCLUDES-NOT: language_stdlib_case
+// EXCLUDES-NOT: language_stdlib_graphemeBreakProperties
+// INCLUDES:     language_stdlib_mappings
+// EXCLUDES-NOT: language_stdlib_names
+// EXCLUDES-NOT: language_stdlib_nfc
+// EXCLUDES-NOT: language_stdlib_nfd
+// EXCLUDES-NOT: language_stdlib_normData
+// EXCLUDES-NOT: language_stdlib_scripts
+// INCLUDES:     language_stdlib_special_mappings
+// EXCLUDES-NOT: language_stdlib_words

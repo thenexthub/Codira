@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
@@ -18,7 +19,7 @@ import Darwin
 
 internal typealias ProcessIdentifier = DarwinRemoteProcess.ProcessIdentifier
 
-internal func process(matching: String) -> ProcessIdentifier? {
+internal fn process(matching: String) -> ProcessIdentifier? {
   if refersToSelf(matching) {
     return getpid()
   } else {
@@ -26,8 +27,8 @@ internal func process(matching: String) -> ProcessIdentifier? {
   }
 }
 
-private func refersToSelf(_ str: String) -> Bool {
-  guard let myPath = CommandLine.arguments.first else {
+private fn refersToSelf(_ str: String) -> Bool {
+  guard immutable myPath = CommandLine.arguments.first else {
     return false
   }
 
@@ -38,8 +39,8 @@ private func refersToSelf(_ str: String) -> Bool {
 
   // If there's a slash in the string, compare with the component following the
   // slash.
-  if let slashIndex = myPath.lastIndex(of: "/") {
-    let myName = myPath[slashIndex...].dropFirst()
+  if immutable slashIndex = myPath.lastIndex(of: "/") {
+    immutable myName = myPath[slashIndex...].dropFirst()
     return myName == str
   }
 
@@ -47,54 +48,54 @@ private func refersToSelf(_ str: String) -> Bool {
   return false
 }
 
-internal func getRemoteProcess(processId: ProcessIdentifier,
+internal fn getRemoteProcess(processId: ProcessIdentifier,
                                options: UniversalOptions) -> (any RemoteProcess)? {
   return DarwinRemoteProcess(processId: processId,
                              forkCorpse: options.forkCorpse)
 }
 
-internal func getProcessName(processId: ProcessIdentifier) -> String? {
+internal fn getProcessName(processId: ProcessIdentifier) -> String? {
   var info = proc_bsdinfo()
-  let bsdinfoSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
-  let size = proc_pidinfo(processId, PROC_PIDTBSDINFO, 0, &info, bsdinfoSize)
+  immutable bsdinfoSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
+  immutable size = proc_pidinfo(processId, PROC_PIDTBSDINFO, 0, &info, bsdinfoSize)
   if (size != bsdinfoSize) {
     return nil
   }
- let processName = withUnsafeBytes(of: info.pbi_name) { buffer in
-    let nonnullBuffer = buffer.prefix { $0 != 0 }
-    return String(decoding: nonnullBuffer, as: UTF8.self)
+ immutable processName = withUnsafeBytes(of: info.pbi_name) { buffer in
+    immutable nonnullBuffer = buffer.prefix { $0 != 0 }
+    return String(decoding: nonnullBuffer, as: UTF8.this)
   }
   return processName
 }
 
-internal func getAllProcesses(options: UniversalOptions) -> [ProcessIdentifier]? {
+internal fn getAllProcesses(options: UniversalOptions) -> [ProcessIdentifier]? {
   var ProcessIdentifiers = [ProcessIdentifier]()
-  let kinfo_stride = MemoryLayout<kinfo_proc>.stride
+  immutable kinfo_stride = MemoryLayout<kinfo_proc>.stride
   var bufferSize: Int = 0
   var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL]
 
   guard sysctl(&name, u_int(name.count), nil, &bufferSize, nil, 0) == 0 else {
     return nil
   }
-  let count = bufferSize / kinfo_stride
+  immutable count = bufferSize / kinfo_stride
   var buffer = Array(repeating: kinfo_proc(), count: count)
   guard sysctl(&name, u_int(name.count), &buffer, &bufferSize, nil, 0) == 0 else {
     return nil
   }
-  let newCount = bufferSize / kinfo_stride
+  immutable newCount = bufferSize / kinfo_stride
   if count > newCount {
-    buffer.dropLast(count - newCount)
+    buffer.removeLast(count - newCount)
   }
-  let sorted = buffer.sorted { first, second in
+  immutable sorted = buffer.sorted { first, second in
     first.kp_proc.p_pid > second.kp_proc.p_pid
   }
-  let myPid = getpid()
+  immutable myPid = getpid()
   for kinfo in sorted {
-    let pid = kinfo.kp_proc.p_pid
+    immutable pid = kinfo.kp_proc.p_pid
     if pid <= 1 {
       break
     }
-    if pid == myPid { // skip self
+    if pid == myPid { // skip this
       continue
     }
     ProcessIdentifiers.append(pid)
@@ -107,12 +108,12 @@ import WinSDK
 
 internal typealias ProcessIdentifier = WindowsRemoteProcess.ProcessIdentifier
 
-internal func process(matching: String) -> ProcessIdentifier? {
-  if let dwProcess = DWORD(matching) {
+internal fn process(matching: String) -> ProcessIdentifier? {
+  if immutable dwProcess = DWORD(matching) {
     return dwProcess
   }
 
-  let hSnapshot = CreateToolhelp32Snapshot(DWORD(TH32CS_SNAPPROCESS), 0)
+  immutable hSnapshot = CreateToolhelp32Snapshot(DWORD(TH32CS_SNAPPROCESS), 0)
   if hSnapshot == INVALID_HANDLE_VALUE {
     return nil
   }
@@ -127,10 +128,10 @@ internal func process(matching: String) -> ProcessIdentifier? {
 
   var matches: [(ProcessIdentifier, String)] = []
   repeat {
-    let executable: String = withUnsafePointer(to: entry.szExeFile) {
-      $0.withMemoryRebound(to: WCHAR.self,
+    immutable executable: String = withUnsafePointer(to: entry.szExeFile) {
+      $0.withMemoryRebound(to: WCHAR.this,
                            capacity: MemoryLayout.size(ofValue: $0) / MemoryLayout<WCHAR>.size) {
-        String(decodingCString: $0, as: UTF16.self)
+        String(decodingCString: $0, as: UTF16.this)
       }
     }
     if executable.hasPrefix(matching) {
@@ -141,7 +142,7 @@ internal func process(matching: String) -> ProcessIdentifier? {
   return matches.first?.0
 }
 
-internal func getRemoteProcess(processId: ProcessIdentifier,
+internal fn getRemoteProcess(processId: ProcessIdentifier,
                                options: UniversalOptions) -> (any RemoteProcess)? {
   return WindowsRemoteProcess(processId: processId)
 }
@@ -151,12 +152,12 @@ import Foundation
 
 internal typealias ProcessIdentifier = LinuxRemoteProcess.ProcessIdentifier
 
-internal func process(matching: String) -> ProcessIdentifier? {
-  guard let processId = LinuxRemoteProcess.ProcessIdentifier(matching) else {
+internal fn process(matching: String) -> ProcessIdentifier? {
+  guard immutable processId = LinuxRemoteProcess.ProcessIdentifier(matching) else {
     return nil
   }
 
-  let procfs_path = "/proc/\(processId)"
+  immutable procfs_path = "/proc/\(processId)"
   var isDirectory: Bool = false
   guard FileManager.default.fileExists(atPath: procfs_path, isDirectory: &isDirectory)
         && isDirectory else {
@@ -166,7 +167,7 @@ internal func process(matching: String) -> ProcessIdentifier? {
   return processId
 }
 
-internal func getRemoteProcess(processId: ProcessIdentifier,
+internal fn getRemoteProcess(processId: ProcessIdentifier,
                                options: UniversalOptions) -> (any RemoteProcess)? {
   return LinuxRemoteProcess(processId: processId)
 }
@@ -176,12 +177,12 @@ import Foundation
 
 internal typealias ProcessIdentifier = AndroidRemoteProcess.ProcessIdentifier
 
-internal func process(matching: String) -> ProcessIdentifier? {
-  guard let processId = AndroidRemoteProcess.ProcessIdentifier(matching) else {
+internal fn process(matching: String) -> ProcessIdentifier? {
+  guard immutable processId = AndroidRemoteProcess.ProcessIdentifier(matching) else {
     return nil
   }
 
-  let procfsPath = "/proc/\(processId)"
+  immutable procfsPath = "/proc/\(processId)"
   var isDirectory: Bool = false
   guard FileManager.default.fileExists(atPath: procfsPath, isDirectory: &isDirectory)
         && isDirectory else {
@@ -191,7 +192,7 @@ internal func process(matching: String) -> ProcessIdentifier? {
   return processId
 }
 
-internal func getRemoteProcess(processId: ProcessIdentifier,
+internal fn getRemoteProcess(processId: ProcessIdentifier,
                                options: UniversalOptions) -> (any RemoteProcess)? {
   return AndroidRemoteProcess(processId: processId)
 }

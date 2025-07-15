@@ -1,16 +1,16 @@
 ///===--- Actor.cpp - Standard actor implementation ------------------------===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===----------------------------------------------------------------------===///
 ///
-/// The default actor implementation for Swift actors, plus related
+/// The default actor implementation for Codira actors, plus related
 /// routines such as generic executor enqueuing and switching.
 ///
 ///===----------------------------------------------------------------------===///
@@ -41,28 +41,28 @@
 #include "language/Threading/Once.h"
 #include "language/Threading/Thread.h"
 #include "language/Threading/ThreadLocalStorage.h"
-#ifdef SWIFT_CONCURRENCY_BACK_DEPLOYMENT
+#ifdef LANGUAGE_CONCURRENCY_BACK_DEPLOYMENT
 // All platforms where we care about back deployment have a known
 // configurations.
 #define HAVE_PTHREAD_H 1
-#define SWIFT_OBJC_INTEROP 1
+#define LANGUAGE_OBJC_INTEROP 1
 #endif
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 #include "TaskPrivate.h"
 #include "VoucherSupport.h"
 
-#if SWIFT_CONCURRENCY_ENABLE_DISPATCH
+#if LANGUAGE_CONCURRENCY_ENABLE_DISPATCH
 #include <dispatch/dispatch.h>
 #endif
 
-#if SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL
-#define SWIFT_CONCURRENCY_ACTORS_AS_LOCKS 1
+#if LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL
+#define LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS 1
 #else
-#define SWIFT_CONCURRENCY_ACTORS_AS_LOCKS 0
+#define LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS 0
 #endif
 
-#if SWIFT_STDLIB_HAS_ASL
+#if LANGUAGE_STDLIB_HAS_ASL
 #include <asl.h>
 #elif defined(__ANDROID__)
 #include <android/log.h>
@@ -80,7 +80,7 @@
 #include <io.h>
 #endif
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 extern "C" void *objc_autoreleasePoolPush();
 extern "C" void objc_autoreleasePoolPop(void *);
 #endif
@@ -89,7 +89,7 @@ using namespace language;
 
 /// Should we yield the thread?
 static bool shouldYieldThread() {
-  // return dispatch_swift_job_should_yield();
+  // return dispatch_language_job_should_yield();
   return false;
 }
 
@@ -123,7 +123,7 @@ class ExecutorTrackingInfo {
   /// the right executor. It would make sense for that to be a
   /// separate thread-local variable (or whatever is most efficient
   /// on the target platform).
-  static SWIFT_THREAD_LOCAL_TYPE(Pointer<ExecutorTrackingInfo>,
+  static LANGUAGE_THREAD_LOCAL_TYPE(Pointer<ExecutorTrackingInfo>,
                                  tls_key::concurrency_executor_tracking_info)
       ActiveInfoInThread;
 
@@ -136,7 +136,7 @@ class ExecutorTrackingInfo {
   TaskExecutorRef TaskExecutor = TaskExecutorRef::undefined();
 
   /// Whether this context allows switching.  Some contexts do not;
-  /// for example, we do not allow switching from swift_job_run
+  /// for example, we do not allow switching from language_job_run
   /// unless the passed-in executor is generic.
   bool AllowsSwitching = true;
 
@@ -200,7 +200,7 @@ public:
 class ActiveTask {
   /// A thread-local variable pointing to the active tracking
   /// information about the current thread, if any.
-  static SWIFT_THREAD_LOCAL_TYPE(Pointer<AsyncTask>,
+  static LANGUAGE_THREAD_LOCAL_TYPE(Pointer<AsyncTask>,
                                  tls_key::concurrency_task) Value;
 
 public:
@@ -212,20 +212,20 @@ public:
 };
 
 /// Define the thread-locals.
-SWIFT_THREAD_LOCAL_TYPE(Pointer<AsyncTask>, tls_key::concurrency_task)
+LANGUAGE_THREAD_LOCAL_TYPE(Pointer<AsyncTask>, tls_key::concurrency_task)
 ActiveTask::Value;
 
-SWIFT_THREAD_LOCAL_TYPE(Pointer<ExecutorTrackingInfo>,
+LANGUAGE_THREAD_LOCAL_TYPE(Pointer<ExecutorTrackingInfo>,
                         tls_key::concurrency_executor_tracking_info)
 ExecutorTrackingInfo::ActiveInfoInThread;
 
 } // end anonymous namespace
 
-void swift::runJobInEstablishedExecutorContext(Job *job) {
-  _swift_tsan_acquire(job);
-  SWIFT_TASK_DEBUG_LOG("Run job in established context %p", job);
+void language::runJobInEstablishedExecutorContext(Job *job) {
+  _language_tsan_acquire(job);
+  LANGUAGE_TASK_DEBUG_LOG("Run job in established context %p", job);
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   auto pool = objc_autoreleasePoolPush();
 #endif
 
@@ -253,47 +253,45 @@ void swift::runJobInEstablishedExecutorContext(Job *job) {
     job->runSimpleInFullyEstablishedContext();
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   objc_autoreleasePoolPop(pool);
 #endif
-
-  _swift_tsan_release(job);
 }
 
-void swift::adoptTaskVoucher(AsyncTask *task) {
+void language::adoptTaskVoucher(AsyncTask *task) {
   ExecutorTrackingInfo::current()->swapToJob(task);
 }
 
-void swift::restoreTaskVoucher(AsyncTask *task) {
+void language::restoreTaskVoucher(AsyncTask *task) {
   ExecutorTrackingInfo::current()->restoreVoucher(task);
 }
 
-SWIFT_CC(swift)
-AsyncTask *swift::swift_task_getCurrent() {
+LANGUAGE_CC(language)
+AsyncTask *language::language_task_getCurrent() {
   return ActiveTask::get();
 }
 
-AsyncTask *swift::_swift_task_clearCurrent() {
+AsyncTask *language::_language_task_clearCurrent() {
   return ActiveTask::swap(nullptr);
 }
 
-AsyncTask *swift::_swift_task_setCurrent(AsyncTask *new_task) {
+AsyncTask *language::_language_task_setCurrent(AsyncTask *new_task) {
   return ActiveTask::swap(new_task);
 }
 
-SWIFT_CC(swift)
-static SerialExecutorRef swift_task_getCurrentExecutorImpl() {
+LANGUAGE_CC(language)
+static SerialExecutorRef language_task_getCurrentExecutorImpl() {
   auto currentTracking = ExecutorTrackingInfo::current();
   auto result = (currentTracking ? currentTracking->getActiveExecutor()
                                  : SerialExecutorRef::generic());
-  SWIFT_TASK_DEBUG_LOG("getting current executor %p", result.getIdentity());
+  LANGUAGE_TASK_DEBUG_LOG("getting current executor %p", result.getIdentity());
   return result;
 }
 
 /// Determine whether we are currently executing on the main thread
 /// independently of whether we know that we are on the main actor.
 static bool isExecutingOnMainThread() {
-#if SWIFT_STDLIB_SINGLE_THREADED_CONCURRENCY
+#if LANGUAGE_STDLIB_SINGLE_THREADED_CONCURRENCY
   return true;
 #else
   return Thread::onMainThread();
@@ -303,8 +301,8 @@ static bool isExecutingOnMainThread() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
-extern "C" SWIFT_CC(swift)
-SerialExecutorRef _swift_getActiveExecutor() {
+extern "C" LANGUAGE_CC(language)
+SerialExecutorRef _language_getActiveExecutor() {
   auto currentTracking = ExecutorTrackingInfo::current();
   if (currentTracking) {
     SerialExecutorRef executor = currentTracking->getActiveExecutor();
@@ -317,22 +315,22 @@ SerialExecutorRef _swift_getActiveExecutor() {
   // If there's no tracking and we're on the main thread, then the main
   // executor is notionally active.
   if (isExecutingOnMainThread())
-    return swift_getMainExecutor();
+    return language_getMainExecutor();
 
   return SerialExecutorRef::generic();
 }
 
-extern "C" SWIFT_CC(swift)
-TaskExecutorRef _swift_getCurrentTaskExecutor() {
+extern "C" LANGUAGE_CC(language)
+TaskExecutorRef _language_getCurrentTaskExecutor() {
   auto currentTracking = ExecutorTrackingInfo::current();
   if (currentTracking)
     return currentTracking->getTaskExecutor();
   return TaskExecutorRef::undefined();
 }
 
-extern "C" SWIFT_CC(swift)
-TaskExecutorRef _swift_getPreferredTaskExecutor() {
-  AsyncTask *task = swift_task_getCurrent();
+extern "C" LANGUAGE_CC(language)
+TaskExecutorRef _language_getPreferredTaskExecutor() {
+  AsyncTask *task = language_task_getCurrent();
   if (!task)
     return TaskExecutorRef::undefined();
   return task->getPreferredTaskExecutor();
@@ -340,12 +338,12 @@ TaskExecutorRef _swift_getPreferredTaskExecutor() {
 
 #pragma clang diagnostic pop
 
-JobPriority swift::swift_task_getCurrentThreadPriority() {
-#if SWIFT_STDLIB_SINGLE_THREADED_CONCURRENCY
+JobPriority language::language_task_getCurrentThreadPriority() {
+#if LANGUAGE_STDLIB_SINGLE_THREADED_CONCURRENCY
   return JobPriority::UserInitiated;
-#elif SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL
+#elif LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL
   return JobPriority::Unspecified;
-#elif defined(__APPLE__) && SWIFT_CONCURRENCY_ENABLE_DISPATCH
+#elif defined(__APPLE__) && LANGUAGE_CONCURRENCY_ENABLE_DISPATCH
   return static_cast<JobPriority>(qos_class_self());
 #else
   if (isExecutingOnMainThread())
@@ -355,22 +353,22 @@ JobPriority swift::swift_task_getCurrentThreadPriority() {
 #endif
 }
 
-const char *swift_task_getTaskName(AsyncTask *task) {
+const char *language_task_getTaskName(AsyncTask *task) {
   if (!task) {
     return nullptr;
   }
   return task->getTaskName();
 }
 
-const char *swift::swift_task_getCurrentTaskName() {
-  auto task = swift_task_getCurrent();
-  return swift_task_getTaskName(task);
+const char *language::language_task_getCurrentTaskName() {
+  auto task = language_task_getCurrent();
+  return language_task_getTaskName(task);
 }
 
-// Implemented in Swift to avoid some annoying hard-coding about
+// Implemented in Codira to avoid some annoying hard-coding about
 // SerialExecutor's protocol witness table.  We could inline this
 // with effort, though.
-extern "C" SWIFT_CC(swift)
+extern "C" LANGUAGE_CC(language)
 bool _task_serialExecutor_isSameExclusiveExecutionContext(
     HeapObject *currentExecutor, HeapObject *executor,
     const Metadata *selfType,
@@ -378,12 +376,12 @@ bool _task_serialExecutor_isSameExclusiveExecutionContext(
 
 // We currently still support "legacy mode" in which isCurrentExecutor is NOT
 // allowed to crash, because it is used to power "log warnings" data race
-// detector. This mode is going away in Swift 6, but until then we allow this.
+// detector. This mode is going away in Codira 6, but until then we allow this.
 // This override exists primarily to be able to test both code-paths.
 enum IsCurrentExecutorCheckMode : unsigned {
   /// The default mode when an app was compiled against "new" enough SDK.
   /// It allows crashing in isCurrentExecutor, and calls into `checkIsolated`.
-  Swift6_UseCheckIsolated_AllowCrash,
+  Codira6_UseCheckIsolated_AllowCrash,
   /// Legacy mode; Primarily to support old applications which used data race
   /// detector with "warning" mode, which is no longer supported. When such app
   /// is re-compiled against a new SDK, it will see crashes in what was
@@ -393,50 +391,47 @@ enum IsCurrentExecutorCheckMode : unsigned {
 };
 
 namespace {
-using SwiftTaskIsCurrentExecutorOptions =
-    OptionSet<swift_task_is_current_executor_flag>;
+using CodiraTaskIsCurrentExecutorOptions =
+    OptionSet<language_task_is_current_executor_flag>;
 }
 
-static void _swift_task_debug_dumpIsCurrentExecutorFlags(
+static void _language_task_debug_dumpIsCurrentExecutorFlags(
     const char *hint,
-    swift_task_is_current_executor_flag flags) {
-  if (flags == swift_task_is_current_executor_flag::None) {
-    SWIFT_TASK_DEBUG_LOG("%s swift_task_is_current_executor_flag::%s",
+    language_task_is_current_executor_flag flags) {
+  if (flags == language_task_is_current_executor_flag::None) {
+    LANGUAGE_TASK_DEBUG_LOG("%s language_task_is_current_executor_flag::%s",
                          hint, "None");
     return;
   }
 
-  auto options = SwiftTaskIsCurrentExecutorOptions(flags);
-  if (options.contains(swift_task_is_current_executor_flag::Assert))
-    SWIFT_TASK_DEBUG_LOG("%s swift_task_is_current_executor_flag::%s",
+  auto options = CodiraTaskIsCurrentExecutorOptions(flags);
+  if (options.contains(language_task_is_current_executor_flag::Assert))
+    LANGUAGE_TASK_DEBUG_LOG("%s language_task_is_current_executor_flag::%s",
                          hint, "Assert");
-  if (options.contains(swift_task_is_current_executor_flag::UseIsIsolatingCurrentContext))
-    SWIFT_TASK_DEBUG_LOG("%s swift_task_is_current_executor_flag::%s",
-                         hint, "UseIsIsolatingCurrentContext");
 }
 
-// Shimming call to Swift runtime because Swift Embedded does not have
+// Shimming call to Codira runtime because Codira Embedded does not have
 // these symbols defined.
-swift_task_is_current_executor_flag
-__swift_bincompat_useLegacyNonCrashingExecutorChecks() {
-  swift_task_is_current_executor_flag options = swift_task_is_current_executor_flag::None;
-#if !SWIFT_CONCURRENCY_EMBEDDED
-  if (!swift::runtime::bincompat::
-      swift_bincompat_useLegacyNonCrashingExecutorChecks()) {
-    options = swift_task_is_current_executor_flag(
-        options | swift_task_is_current_executor_flag::Assert);
+language_task_is_current_executor_flag
+__language_bincompat_useLegacyNonCrashingExecutorChecks() {
+  language_task_is_current_executor_flag options = language_task_is_current_executor_flag::None;
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
+  if (!language::runtime::bincompat::
+      language_bincompat_useLegacyNonCrashingExecutorChecks()) {
+    options = language_task_is_current_executor_flag(
+        options | language_task_is_current_executor_flag::Assert);
   }
 #endif
-  _swift_task_debug_dumpIsCurrentExecutorFlags("runtime linking determined default mode", options);
+  _language_task_debug_dumpIsCurrentExecutorFlags("runtime linking determined default mode", options);
   return options;
 }
 
-// Shimming call to Swift runtime because Swift Embedded does not have
+// Shimming call to Codira runtime because Codira Embedded does not have
 // these symbols defined.
-const char *__swift_runtime_env_useLegacyNonCrashingExecutorChecks() {
+const char *__language_runtime_env_useLegacyNonCrashingExecutorChecks() {
   // Potentially, override the platform detected mode, primarily used in tests.
-#if SWIFT_STDLIB_HAS_ENVIRON && !SWIFT_CONCURRENCY_EMBEDDED
-  return swift::runtime::environment::
+#if LANGUAGE_STDLIB_HAS_ENVIRON && !LANGUAGE_CONCURRENCY_EMBEDDED
+  return language::runtime::environment::
       concurrencyIsCurrentExecutorLegacyModeOverride();
 #else
   return nullptr;
@@ -448,19 +443,19 @@ const char *__swift_runtime_env_useLegacyNonCrashingExecutorChecks() {
 
 // Done this way because of the interaction with the initial value of
 // 'unexpectedExecutorLogLevel'.
-swift_task_is_current_executor_flag swift_bincompat_selectDefaultIsCurrentExecutorCheckingMode() {
+language_task_is_current_executor_flag language_bincompat_selectDefaultIsCurrentExecutorCheckingMode() {
   // Default options as determined by linked runtime,
   // i.e. very old runtimes were not allowed to crash but then we introduced 'checkIsolated'
   // which was allowed to crash;
-  swift_task_is_current_executor_flag options =
-      __swift_bincompat_useLegacyNonCrashingExecutorChecks();
+  language_task_is_current_executor_flag options =
+      __language_bincompat_useLegacyNonCrashingExecutorChecks();
 
   // Potentially, override the platform detected mode, primarily used in tests.
   if (const char *modeStr =
-          __swift_runtime_env_useLegacyNonCrashingExecutorChecks()) {
+          __language_runtime_env_useLegacyNonCrashingExecutorChecks()) {
 
     if (strlen(modeStr) == 0) {
-      _swift_task_debug_dumpIsCurrentExecutorFlags("mode override is empty", options);
+      _language_task_debug_dumpIsCurrentExecutorFlags("mode override is empty", options);
       return options;
     }
 
@@ -468,138 +463,111 @@ swift_task_is_current_executor_flag swift_bincompat_selectDefaultIsCurrentExecut
         strcmp(modeStr, "legacy") == 0) {
       // Since we're in nocrash/legacy mode:
       // Remove the assert option which is what would cause the "crash" mode
-      options = swift_task_is_current_executor_flag(
-        options & ~swift_task_is_current_executor_flag::Assert);
-    } else if (strcmp(modeStr, "isIsolatingCurrentContext") == 0) {
-      options = swift_task_is_current_executor_flag(
-        options | swift_task_is_current_executor_flag::UseIsIsolatingCurrentContext);
-      // When we're using the isIsolatingCurrentContext we don't want to use crashing APIs,
-      // so disable it explicitly.
-      options = swift_task_is_current_executor_flag(
-        options & ~swift_task_is_current_executor_flag::Assert);
+      options = language_task_is_current_executor_flag(
+        options & ~language_task_is_current_executor_flag::Assert);
     } else if (strcmp(modeStr, "crash") == 0 ||
-               strcmp(modeStr, "swift6") == 0) {
-      options = swift_task_is_current_executor_flag(
-        options | swift_task_is_current_executor_flag::Assert);
+               strcmp(modeStr, "language6") == 0) {
+      options = language_task_is_current_executor_flag(
+        options | language_task_is_current_executor_flag::Assert);
     } // else, just use the platform detected mode
   } // no override, use the default mode
 
   return options;
 }
 
-// Implemented in Swift to avoid some annoying hard-coding about
+// Implemented in Codira to avoid some annoying hard-coding about
 // TaskExecutor's protocol witness table.  We could inline this
 // with effort, though.
-extern "C" SWIFT_CC(swift) void _swift_task_enqueueOnTaskExecutor(
+extern "C" LANGUAGE_CC(language) void _language_task_enqueueOnTaskExecutor(
     Job *job, HeapObject *executor, const Metadata *selfType,
     const TaskExecutorWitnessTable *wtable);
 
-// Implemented in Swift to avoid some annoying hard-coding about
+// Implemented in Codira to avoid some annoying hard-coding about
 // SerialExecutor's protocol witness table.  We could inline this
 // with effort, though.
-extern "C" SWIFT_CC(swift) void _swift_task_enqueueOnExecutor(
+extern "C" LANGUAGE_CC(language) void _language_task_enqueueOnExecutor(
     Job *job, HeapObject *executor, const Metadata *executorType,
     const SerialExecutorWitnessTable *wtable);
 
-/// Check the executor's witness table for specific information about e.g.
-/// being able ignore `checkIsolated` and only call `isIsolatingCurrentContext`.
-static swift_task_is_current_executor_flag
-_getIsolationCheckingOptionsFromExecutorWitnessTable(const SerialExecutorWitnessTable *_wtable) {
-  const WitnessTable* wtable = reinterpret_cast<const WitnessTable*>(_wtable);
-#if SWIFT_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
-  auto description = lookThroughOptionalConditionalWitnessTable(
-    reinterpret_cast<const RelativeWitnessTable*>(wtable))
-    ->getDescription();
-#else
-  auto description = wtable->getDescription();
-#endif
-  if (!description) {
-    return swift_task_is_current_executor_flag::None;
-  }
-
-  if (description->hasNonDefaultSerialExecutorIsIsolatingCurrentContext()) {
-    // The specific executor has implemented `isIsolatingCurrentContext` and
-    // we do not have to call `checkIsolated`.
-    return swift_task_is_current_executor_flag::UseIsIsolatingCurrentContext;
-  }
-
-  // No changes to the checking mode.
-  return swift_task_is_current_executor_flag::None;
-}
-
-SWIFT_CC(swift)
-static bool swift_task_isCurrentExecutorWithFlagsImpl(
+LANGUAGE_CC(language)
+static bool language_task_isCurrentExecutorWithFlagsImpl(
     SerialExecutorRef expectedExecutor,
-    swift_task_is_current_executor_flag flags) {
+    language_task_is_current_executor_flag flags) {
   auto current = ExecutorTrackingInfo::current();
-  if (expectedExecutor.getIdentity() && expectedExecutor.hasSerialExecutorWitnessTable()) {
-    if (auto *wtable = expectedExecutor.getSerialExecutorWitnessTable()) {
-      auto executorSpecificMode = _getIsolationCheckingOptionsFromExecutorWitnessTable(wtable);
-      flags = swift_task_is_current_executor_flag(flags | executorSpecificMode);
-    }
-  }
 
-  auto options = SwiftTaskIsCurrentExecutorOptions(flags);
-  _swift_task_debug_dumpIsCurrentExecutorFlags(__FUNCTION__, flags);
+  auto options = CodiraTaskIsCurrentExecutorOptions(flags);
+  _language_task_debug_dumpIsCurrentExecutorFlags(__FUNCTION__, flags);
 
   if (!current) {
-    // We have no current executor, i.e. we are running "outside" of Swift
+    // We have no current executor, i.e. we are running "outside" of Codira
     // Concurrency. We could still be running on a thread/queue owned by
     // the expected executor however, so we need to try a bit harder before
     // we fail.
 
     // Special handling the main executor by detecting the main thread.
     if (expectedExecutor.isMainExecutor() && isExecutingOnMainThread()) {
-      SWIFT_TASK_DEBUG_LOG("executor checking: expected is main executor & current thread is main thread => pass", nullptr);
+      LANGUAGE_TASK_DEBUG_LOG("executor checking: expected is main executor & current thread is main thread => pass", nullptr);
       return true;
     }
 
     // We cannot use 'complexEquality' as it requires two executor instances,
     // and we do not have a 'current' executor here.
 
-    if (options.contains(swift_task_is_current_executor_flag::UseIsIsolatingCurrentContext)) {
-      SWIFT_TASK_DEBUG_LOG("executor checking mode option: UseIsIsolatingCurrentContext; invoke (%p).isIsolatingCurrentContext",
-                           expectedExecutor.getIdentity());
-      // The executor has the most recent 'isIsolatingCurrentContext' API
-      // so available so we prefer calling that to 'checkIsolated'.
-      auto result = swift_task_isIsolatingCurrentContext(expectedExecutor);
+    // Invoke the 'isIsolatingCurrentContext', if "undecided" (i.e. nil), we need to make further calls
+    LANGUAGE_TASK_DEBUG_LOG("executor checking, invoke (%p).isIsolatingCurrentContext",
+                         expectedExecutor.getIdentity());
+    // The executor has the most recent 'isIsolatingCurrentContext' API
+    // so available so we prefer calling that to 'checkIsolated'.
+    auto isIsolatingCurrentContextDecision =
+        getIsIsolatingCurrentContextDecisionFromInt(
+            language_task_isIsolatingCurrentContext(expectedExecutor));
 
-      SWIFT_TASK_DEBUG_LOG("executor checking mode option: UseIsIsolatingCurrentContext; invoke (%p).isIsolatingCurrentContext => %s",
-                     expectedExecutor.getIdentity(), result ? "pass" : "fail");
-      return result;
+    LANGUAGE_TASK_DEBUG_LOG("executor checking mode option: UseIsIsolatingCurrentContext; invoke (%p).isIsolatingCurrentContext => %s",
+                   expectedExecutor.getIdentity(), getIsIsolatingCurrentContextDecisionNameStr(isIsolatingCurrentContextDecision));
+    switch (isIsolatingCurrentContextDecision) {
+      case IsIsolatingCurrentContextDecision::Isolated:
+        // We know for sure that this serial executor is isolating this context, return the decision.
+        return true;
+      case IsIsolatingCurrentContextDecision::NotIsolated:
+        // We know for sure that this serial executor is NOT isolating this context, return this decision.
+        return false;
+      case IsIsolatingCurrentContextDecision::Unknown:
+        // We don't know, so we have to continue trying to check using other methods.
+        // This most frequently would happen if a serial executor did not implement isIsolatingCurrentContext.
+        break;
     }
 
     // Otherwise, as last resort, let the expected executor check using
     // external means, as it may "know" this thread is managed by it etc.
-    if (options.contains(swift_task_is_current_executor_flag::Assert)) {
-      SWIFT_TASK_DEBUG_LOG("executor checking mode option: Assert; invoke (%p).expectedExecutor",
+    if (options.contains(language_task_is_current_executor_flag::Assert)) {
+      LANGUAGE_TASK_DEBUG_LOG("executor checking mode option: Assert; invoke (%p).expectedExecutor",
                            expectedExecutor.getIdentity());
-      swift_task_checkIsolated(expectedExecutor); // will crash if not same context
+      language_task_checkIsolated(expectedExecutor); // will crash if not same context
 
       // checkIsolated did not crash, so we are on the right executor, after all!
       return true;
     }
 
-    assert(!options.contains(swift_task_is_current_executor_flag::Assert));
+    assert(!options.contains(language_task_is_current_executor_flag::Assert));
     return false;
   }
 
   SerialExecutorRef currentExecutor = current->getActiveExecutor();
-  SWIFT_TASK_DEBUG_LOG("executor checking: current executor %p %s",
+  LANGUAGE_TASK_DEBUG_LOG("executor checking: current executor %p %s",
                        currentExecutor.getIdentity(), currentExecutor.getIdentityDebugName());
 
   // Fast-path: the executor is exactly the same memory address;
   // We assume executors do not come-and-go appearing under the same address,
   // and treat pointer equality of executors as good enough to assume the executor.
   if (currentExecutor == expectedExecutor) {
-    SWIFT_TASK_DEBUG_LOG("executor checking: current executor %p, equal to expected executor => pass",
+    LANGUAGE_TASK_DEBUG_LOG("executor checking: current executor %p, equal to expected executor => pass",
                          currentExecutor.getIdentity());
     return true;
   }
 
   // Fast-path, specialize the common case of comparing two main executors.
   if (currentExecutor.isMainExecutor() && expectedExecutor.isMainExecutor()) {
-    SWIFT_TASK_DEBUG_LOG("executor checking: current executor %p is main executor, and expected executor (%p) is main executor => pass",
+    LANGUAGE_TASK_DEBUG_LOG("executor checking: current executor %p is main executor, and expected executor (%p) is main executor => pass",
                      currentExecutor.getIdentity(),
                      expectedExecutor.getIdentity());
     return true;
@@ -612,21 +580,21 @@ static bool swift_task_isCurrentExecutorWithFlagsImpl(
   // are "on the same queue". There exists no non-crashing API to check this,
   // so we PESSIMISTICALLY return false here.
   //
-  // In Swift6 mode:
+  // In Codira6 mode:
   // We don't do this naive check, because we'll fall back to
   // `expected.checkIsolated()` which, if it is the main executor, will invoke
   // the crashing 'dispatch_assert_queue(main queue)' which will either crash
   // or confirm we actually are on the main queue; or the custom expected
   // executor has a chance to implement a similar queue check.
-  if (!options.contains(swift_task_is_current_executor_flag::Assert)) {
+  if (!options.contains(language_task_is_current_executor_flag::Assert)) {
     if ((expectedExecutor.isMainExecutor() && !currentExecutor.isMainExecutor())) {
-      SWIFT_TASK_DEBUG_LOG("executor checking: expected executor %p%s is main executor, and current executor %p%s is NOT => fail",
+      LANGUAGE_TASK_DEBUG_LOG("executor checking: expected executor %p%s is main executor, and current executor %p%s is NOT => fail",
                  expectedExecutor.getIdentity(), expectedExecutor.getIdentityDebugName(),
                  currentExecutor.getIdentity(), currentExecutor.getIdentityDebugName());
       return false;
     }
     if ((!expectedExecutor.isMainExecutor() && currentExecutor.isMainExecutor())) {
-      SWIFT_TASK_DEBUG_LOG("executor checking: expected executor %p%s is NOT main executor, and current executor %p%s is => fail",
+      LANGUAGE_TASK_DEBUG_LOG("executor checking: expected executor %p%s is NOT main executor, and current executor %p%s is => fail",
            expectedExecutor.getIdentity(), expectedExecutor.getIdentityDebugName(),
            currentExecutor.getIdentity(), currentExecutor.getIdentityDebugName());
       return false;
@@ -642,31 +610,31 @@ static bool swift_task_isCurrentExecutorWithFlagsImpl(
   // We may be able to prove we're on the same executor as expected by
   // using 'checkIsolated' later on though.
   if (expectedExecutor.isComplexEquality()) {
-    SWIFT_TASK_DEBUG_LOG("executor checking: expectedExecutor is complex equality (%p)",
+    LANGUAGE_TASK_DEBUG_LOG("executor checking: expectedExecutor is complex equality (%p)",
                          expectedExecutor.getIdentity());
     if (currentExecutor.getIdentity() &&
         currentExecutor.hasSerialExecutorWitnessTable() &&
         expectedExecutor.getIdentity() &&
         expectedExecutor.hasSerialExecutorWitnessTable() &&
-        swift_compareWitnessTables(
+        language_compareWitnessTables(
             reinterpret_cast<const WitnessTable *>(
                 currentExecutor.getSerialExecutorWitnessTable()),
             reinterpret_cast<const WitnessTable *>(
                 expectedExecutor.getSerialExecutorWitnessTable()))) {
-      SWIFT_TASK_DEBUG_LOG("executor checking: can check isComplexEquality (%p, and %p)",
+      LANGUAGE_TASK_DEBUG_LOG("executor checking: can check isComplexEquality (%p, and %p)",
            expectedExecutor.getIdentity(), currentExecutor.getIdentity());
 
       auto isSameExclusiveExecutionContextResult =
           _task_serialExecutor_isSameExclusiveExecutionContext(
               currentExecutor.getIdentity(), expectedExecutor.getIdentity(),
-              swift_getObjectType(currentExecutor.getIdentity()),
+              language_getObjectType(currentExecutor.getIdentity()),
               expectedExecutor.getSerialExecutorWitnessTable());
 
       // if the 'isSameExclusiveExecutionContext' returned true we trust
       // it and return; if it was false, we need to give checkIsolated another
       // chance to check.
       if (isSameExclusiveExecutionContextResult) {
-        SWIFT_TASK_DEBUG_LOG("executor checking: isComplexEquality (%p, and %p) is true => pass",
+        LANGUAGE_TASK_DEBUG_LOG("executor checking: isComplexEquality (%p, and %p) is true => pass",
              expectedExecutor.getIdentity(), currentExecutor.getIdentity());
         return true;
       } // else, we must give 'checkIsolated' a last chance to verify isolation
@@ -675,32 +643,35 @@ static bool swift_task_isCurrentExecutorWithFlagsImpl(
 
   // Invoke the 'isIsolatingCurrentContext' function if we can; If so, we can
   // avoid calling the `checkIsolated` because their result will be the same.
-  if (options.contains(swift_task_is_current_executor_flag::UseIsIsolatingCurrentContext)) {
-    SWIFT_TASK_DEBUG_LOG("executor checking: can call (%p).isIsolatingCurrentContext",
-      expectedExecutor.getIdentity());
+  LANGUAGE_TASK_DEBUG_LOG("executor checking: call (%p).isIsolatingCurrentContext",
+    expectedExecutor.getIdentity());
 
-    bool checkResult = swift_task_isIsolatingCurrentContext(expectedExecutor);
+  const auto isIsolatingCurrentContextDecision =
+    getIsIsolatingCurrentContextDecisionFromInt(language_task_isIsolatingCurrentContext(expectedExecutor));
 
-    SWIFT_TASK_DEBUG_LOG("executor checking: can call (%p).isIsolatingCurrentContext => %p",
-      expectedExecutor.getIdentity(), checkResult ? "pass" : "fail");
-    return checkResult;
-  } else {
-    SWIFT_TASK_DEBUG_LOG("executor checking: can NOT call (%p).isIsolatingCurrentContext",
-                         expectedExecutor.getIdentity());
+  LANGUAGE_TASK_DEBUG_LOG("executor checking: can call (%p).isIsolatingCurrentContext => %p",
+    expectedExecutor.getIdentity(), getIsIsolatingCurrentContextDecisionNameStr(isIsolatingCurrentContextDecision));
+  switch (isIsolatingCurrentContextDecision) {
+  case IsIsolatingCurrentContextDecision::Isolated:
+    return true;
+  case IsIsolatingCurrentContextDecision::NotIsolated:
+    return false;
+  case IsIsolatingCurrentContextDecision::Unknown:
+    break;
   }
 
   // This provides a last-resort check by giving the expected SerialExecutor the
   // chance to perform a check using some external knowledge if perhaps we are,
-  // after all, on this executor, but the Swift concurrency runtime was just not
+  // after all, on this executor, but the Codira concurrency runtime was just not
   // aware.
   //
-  // Unless handled in `swift_task_checkIsolated` directly, this should call
+  // Unless handled in `language_task_checkIsolated` directly, this should call
   // through to the executor's `SerialExecutor.checkIsolated`.
   //
   // This call is expected to CRASH, unless it has some way of proving that
   // we're actually indeed running on this executor.
   //
-  // For example, when running outside of Swift concurrency tasks, but trying to
+  // For example, when running outside of Codira concurrency tasks, but trying to
   // `MainActor.assumeIsolated` while executing DIRECTLY on the main dispatch
   // queue, this allows Dispatch to check for this using its own tracking
   // mechanism, and thus allow the assumeIsolated to work correctly, even though
@@ -709,42 +680,42 @@ static bool swift_task_isCurrentExecutorWithFlagsImpl(
   // Note that this only works because the closure in assumeIsolated is
   // synchronous, and will not cause suspensions, as that would require the
   // presence of a Task.
-  if (options.contains(swift_task_is_current_executor_flag::Assert)) {
-    SWIFT_TASK_DEBUG_LOG("executor checking: call (%p).checkIsolated",
+  if (options.contains(language_task_is_current_executor_flag::Assert)) {
+    LANGUAGE_TASK_DEBUG_LOG("executor checking: call (%p).checkIsolated",
       expectedExecutor.getIdentity());
-    swift_task_checkIsolated(expectedExecutor); // will crash if not same context
+    language_task_checkIsolated(expectedExecutor); // will crash if not same context
 
     // The checkIsolated call did not crash, so we are on the right executor.
-    SWIFT_TASK_DEBUG_LOG("executor checking: call (%p).checkIsolated passed => pass",
+    LANGUAGE_TASK_DEBUG_LOG("executor checking: call (%p).checkIsolated passed => pass",
       expectedExecutor.getIdentity());
     return true;
   } else {
-    SWIFT_TASK_DEBUG_LOG("executor checking: can NOT call (%p).checkIsolated",
+    LANGUAGE_TASK_DEBUG_LOG("executor checking: can NOT call (%p).checkIsolated",
                          expectedExecutor.getIdentity());
   }
 
   // In the end, since 'checkIsolated' could not be used, so we must assume
   // that the executors are not the same context.
-  assert(!options.contains(swift_task_is_current_executor_flag::Assert));
+  assert(!options.contains(language_task_is_current_executor_flag::Assert));
   return false;
 }
 
 // Check override of executor checking mode.
-static void swift_task_setDefaultExecutorCheckingFlags(void *context) {
-  auto *options = static_cast<swift_task_is_current_executor_flag *>(context);
+static void language_task_setDefaultExecutorCheckingFlags(void *context) {
+  auto *options = static_cast<language_task_is_current_executor_flag *>(context);
 
-  auto modeOverride = swift_bincompat_selectDefaultIsCurrentExecutorCheckingMode();
-  if (modeOverride != swift_task_is_current_executor_flag::None) {
+  auto modeOverride = language_bincompat_selectDefaultIsCurrentExecutorCheckingMode();
+  if (modeOverride != language_task_is_current_executor_flag::None) {
     *options = modeOverride;
   }
 
-  SWIFT_TASK_DEBUG_LOG("executor checking: resulting options = %d", *options);
-  _swift_task_debug_dumpIsCurrentExecutorFlags(__FUNCTION__, *options);
+  LANGUAGE_TASK_DEBUG_LOG("executor checking: resulting options = %d", *options);
+  _language_task_debug_dumpIsCurrentExecutorFlags(__FUNCTION__, *options);
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static bool
-swift_task_isCurrentExecutorImpl(SerialExecutorRef expectedExecutor) {
+language_task_isCurrentExecutorImpl(SerialExecutorRef expectedExecutor) {
   // To support old applications on apple platforms which assumed this call
   // does not crash, try to use a more compatible mode for those apps.
   //
@@ -753,41 +724,41 @@ swift_task_isCurrentExecutorImpl(SerialExecutorRef expectedExecutor) {
   // instead must call into 'checkIsolated' or crash directly.
   //
   // Whenever we confirm an executor equality, we can return true, in any mode.
-  static swift_task_is_current_executor_flag isCurrentExecutorFlag;
-  static swift::once_t isCurrentExecutorFlagToken;
-  swift::once(isCurrentExecutorFlagToken,
-              swift_task_setDefaultExecutorCheckingFlags,
+  static language_task_is_current_executor_flag isCurrentExecutorFlag;
+  static language::once_t isCurrentExecutorFlagToken;
+  language::once(isCurrentExecutorFlagToken,
+              language_task_setDefaultExecutorCheckingFlags,
               &isCurrentExecutorFlag);
 
-  return swift_task_isCurrentExecutorWithFlags(expectedExecutor,
+  return language_task_isCurrentExecutorWithFlags(expectedExecutor,
                                                isCurrentExecutorFlag);
 }
 
 /// Logging level for unexpected executors:
-/// 0 - no logging -- will be IGNORED when Swift6 mode of isCurrentExecutor is used
-/// 1 - warn on each instance -- will be IGNORED when Swift6 mode of isCurrentExecutor is used
+/// 0 - no logging -- will be IGNORED when Codira6 mode of isCurrentExecutor is used
+/// 1 - warn on each instance -- will be IGNORED when Codira6 mode of isCurrentExecutor is used
 /// 2 - fatal error
 ///
 /// NOTE: The default behavior on Apple platforms depends on the SDK version
-/// an application was linked to. Since Swift 6 the default is to crash,
+/// an application was linked to. Since Codira 6 the default is to crash,
 /// and the logging behavior is no longer available.
 static unsigned unexpectedExecutorLogLevel =
-    (swift_bincompat_selectDefaultIsCurrentExecutorCheckingMode() == swift_task_is_current_executor_flag::None)
+    (language_bincompat_selectDefaultIsCurrentExecutorCheckingMode() == language_task_is_current_executor_flag::None)
         ? 1 // legacy apps default to the logging mode, and cannot use `checkIsolated`
         : 2; // new apps will only crash upon concurrency violations, and will call into `checkIsolated`
 
 static void checkUnexpectedExecutorLogLevel(void *context) {
-#if SWIFT_STDLIB_HAS_ENVIRON
-  const char *levelStr = getenv("SWIFT_UNEXPECTED_EXECUTOR_LOG_LEVEL");
+#if LANGUAGE_STDLIB_HAS_ENVIRON
+  const char *levelStr = getenv("LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL");
   if (!levelStr)
     return;
 
   long level = strtol(levelStr, nullptr, 0);
   if (level >= 0 && level < 3) {
-    auto options = SwiftTaskIsCurrentExecutorOptions(
-        swift_bincompat_selectDefaultIsCurrentExecutorCheckingMode());
-    if (options.contains(swift_task_is_current_executor_flag::Assert)) {
-      // We are in swift6/crash mode of isCurrentExecutor which means that
+    auto options = CodiraTaskIsCurrentExecutorOptions(
+        language_bincompat_selectDefaultIsCurrentExecutorCheckingMode());
+    if (options.contains(language_task_is_current_executor_flag::Assert)) {
+      // We are in language6/crash mode of isCurrentExecutor which means that
       // rather than returning false, that method will always CRASH when an
       // executor mismatch is discovered.
       //
@@ -796,26 +767,26 @@ static void checkUnexpectedExecutorLogLevel(void *context) {
       // the crash would happen before logging or "ignoring", but this should
       // help avoid confusing situations like "I thought it should log" when
       // debugging the runtime.
-      SWIFT_TASK_DEBUG_LOG("executor checking: crash mode, unexpectedExecutorLogLevel = %d", level);
+      LANGUAGE_TASK_DEBUG_LOG("executor checking: crash mode, unexpectedExecutorLogLevel = %d", level);
       unexpectedExecutorLogLevel = 2;
     } else {
       // legacy mode permits doing nothing or just logging, since the method
       // used to perform the check itself is not going to crash:
-      SWIFT_TASK_DEBUG_LOG("executor checking: legacy mode, unexpectedExecutorLogLevel = %d", level);
+      LANGUAGE_TASK_DEBUG_LOG("executor checking: legacy mode, unexpectedExecutorLogLevel = %d", level);
       unexpectedExecutorLogLevel = level;
     }
   }
-#endif // SWIFT_STDLIB_HAS_ENVIRON
+#endif // LANGUAGE_STDLIB_HAS_ENVIRON
 }
 
-SWIFT_CC(swift)
-void swift::swift_task_reportUnexpectedExecutor(
+LANGUAGE_CC(language)
+void language::language_task_reportUnexpectedExecutor(
     const unsigned char *file, uintptr_t fileLength, bool fileIsASCII,
     uintptr_t line, SerialExecutorRef executor) {
-  SWIFT_TASK_DEBUG_LOG("CHECKING swift_task_reportUnexpectedExecutor %s", "");
+  LANGUAGE_TASK_DEBUG_LOG("CHECKING language_task_reportUnexpectedExecutor %s", "");
   // Make sure we have an appropriate log level.
-  static swift::once_t logLevelToken;
-  swift::once(logLevelToken, checkUnexpectedExecutorLogLevel, nullptr);
+  static language::once_t logLevelToken;
+  language::once(logLevelToken, checkUnexpectedExecutorLogLevel, nullptr);
 
   bool isFatalError = false;
   switch (unexpectedExecutorLogLevel) {
@@ -842,13 +813,13 @@ void swift::swift_task_reportUnexpectedExecutor(
   }
 
   char *message;
-  swift_asprintf(
+  language_asprintf(
       &message,
       "%s: data race detected: %s at %.*s:%d was not called on %s\n",
       isFatalError ? "error" : "warning", functionIsolation,
       (int)fileLength, file, (int)line, whereExpected);
 
-  if (_swift_shouldReportFatalErrorsToDebugger()) {
+  if (_language_shouldReportFatalErrorsToDebugger()) {
     RuntimeErrorDetails details = {
         .version = RuntimeErrorDetails::currentVersion,
         .errorType = "actor-isolation-violation",
@@ -862,27 +833,27 @@ void swift::swift_task_reportUnexpectedExecutor(
         .numNotes = 0,
         .notes = nullptr,
     };
-    _swift_reportToDebugger(
+    _language_reportToDebugger(
         isFatalError ? RuntimeErrorFlagFatal : RuntimeErrorFlagNone, message,
         &details);
   }
 
-#if defined(_WIN32) && !SWIFT_CONCURRENCY_EMBEDDED
+#if defined(_WIN32) && !LANGUAGE_CONCURRENCY_EMBEDDED
 #define STDERR_FILENO 2
   _write(STDERR_FILENO, message, strlen(message));
-#elif !SWIFT_CONCURRENCY_EMBEDDED
+#elif !LANGUAGE_CONCURRENCY_EMBEDDED
   fputs(message, stderr);
   fflush(stderr);
 #else
   puts(message);
 #endif
-#if SWIFT_STDLIB_HAS_ASL
+#if LANGUAGE_STDLIB_HAS_ASL
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   asl_log(nullptr, nullptr, ASL_LEVEL_ERR, "%s", message);
 #pragma clang diagnostic pop
 #elif defined(__ANDROID__)
-  __android_log_print(ANDROID_LOG_FATAL, "SwiftRuntime", "%s", message);
+  __android_log_print(ANDROID_LOG_FATAL, "CodiraRuntime", "%s", message);
 #endif
 
   free(message);
@@ -899,7 +870,7 @@ namespace {
 
 class DefaultActorImpl;
 
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
 /// A job to process a default actor that's allocated separately from
 /// the actor.
 class ProcessOutOfLineJob : public Job {
@@ -909,7 +880,7 @@ public:
     : Job({JobKind::DefaultActorSeparate, priority}, &process),
       Actor(actor) {}
 
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   static void process(Job *job);
 
   static bool classof(const Job *job) {
@@ -935,7 +906,7 @@ public:
 ///
 /// In order to provide priority escalation support with actors, deeper
 /// integration is required with the OS in order to have the intended side
-/// effects. On Darwin, Swift Concurrency Tasks runs on dispatch's queues. As
+/// effects. On Darwin, Codira Concurrency Tasks runs on dispatch's queues. As
 /// such, we need to use an encoding of thread identity vended by libdispatch
 /// called dispatch_lock_t, and a futex-style dispatch API in order to escalate
 /// the priority of a thread. Henceforth, the dispatch_lock_t tracked in the
@@ -953,38 +924,38 @@ public:
 /// operations. The ActiveActorStatus's layout has thus been changed to have the
 /// following layout depending on the system configuration supported:
 ///
-/// 32 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
+/// 32 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
 ///
 ///          Flags               Drain Lock               Unused Job*
 /// |----------------------|----------------------|----------------------|-------------------|
 ///          32 bits                32 bits                32 bits              32 bits
 ///
-/// 64 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
+/// 64 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
 ///
 ///         Flags                Drain Lock             Job*
 /// |----------------------|-------------------|----------------------|
 ///          32 bits                32 bits             64 bits
 ///
-/// 32 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
+/// 32 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
 ///
 ///          Flags                  Job*
 /// |----------------------|----------------------|
 ///          32 bits                32 bits
 //
-/// 64 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
+/// 64 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
 ///
 ///         Flags                  Unused                 Job*
 /// |----------------------|----------------------|---------------------|
 ///         32 bits                 32 bits               64 bits
 ///
 /// Size requirements:
-///     On 64 bit systems or if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
+///     On 64 bit systems or if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
 ///     the field is 16 bytes long.
 ///
 ///     Otherwise, it is 8 bytes long.
 ///
 /// Alignment requirements:
-///     On 64 bit systems or if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
+///     On 64 bit systems or if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
 ///     this 16-byte field needs to be 16 byte aligned to be able to do aligned
 ///     atomic stores field.
 ///
@@ -993,27 +964,27 @@ public:
 ///
 ///     As a result of varying alignment needs, we've marked the class as
 ///     needing 2-word alignment but on arm64_32 with
-///     SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1, 16 byte alignment is
+///     LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1, 16 byte alignment is
 ///     achieved through careful arrangement of the storage for this in the
 ///     DefaultActorImpl. The additional alignment requirements are
 ///     enforced by static asserts below.
 class alignas(sizeof(void *) * 2) ActiveActorStatus {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
   uint32_t Flags;
   dispatch_lock_t DrainLock;
-  LLVM_ATTRIBUTE_UNUSED uint32_t Unused = {};
-#elif SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_8_BYTES
+  TOOLCHAIN_ATTRIBUTE_UNUSED uint32_t Unused = {};
+#elif LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_8_BYTES
   uint32_t Flags;
   dispatch_lock_t DrainLock;
-#elif !SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#elif !LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
   uint32_t Flags;
-#else /* !SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_8_BYTES */
+#else /* !LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_8_BYTES */
   uint32_t Flags;
-  LLVM_ATTRIBUTE_UNUSED uint32_t Unused = {};
+  TOOLCHAIN_ATTRIBUTE_UNUSED uint32_t Unused = {};
 #endif
   Job *FirstJob;
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   ActiveActorStatus(uint32_t flags, dispatch_lock_t drainLockValue, Job *job)
       : Flags(flags), DrainLock(drainLockValue), FirstJob(job) {}
 #else
@@ -1029,14 +1000,14 @@ class alignas(sizeof(void *) * 2) ActiveActorStatus {
 
 public:
   bool operator==(ActiveActorStatus other) const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return (Flags == other.Flags) && (DrainLock == other.DrainLock) && (FirstJob == other.FirstJob);
 #else
     return (Flags == other.Flags) && (FirstJob == other.FirstJob);
 #endif
   }
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   constexpr ActiveActorStatus()
       : Flags(), DrainLock(DLOCK_OWNER_NULL), FirstJob(nullptr) {}
 #else
@@ -1051,7 +1022,7 @@ public:
     return isIdle;
   }
   ActiveActorStatus withIdle() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(
         setActorState(concurrency::ActorFlagConstants::Idle), DLOCK_OWNER_NULL,
         FirstJob);
@@ -1071,7 +1042,7 @@ public:
     return getActorState() == concurrency::ActorFlagConstants::Running;
   }
   ActiveActorStatus withRunning() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(
         setActorState(concurrency::ActorFlagConstants::Running),
         dispatch_lock_value_for_self(), FirstJob);
@@ -1086,7 +1057,7 @@ public:
   }
 
   ActiveActorStatus withScheduled() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(
         setActorState(concurrency::ActorFlagConstants::Scheduled),
         DLOCK_OWNER_NULL, FirstJob);
@@ -1101,7 +1072,7 @@ public:
            concurrency::ActorFlagConstants::Zombie_ReadyForDeallocation;
   }
   ActiveActorStatus withZombie_ReadyForDeallocation() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     assert(dispatch_lock_owner(DrainLock) != DLOCK_OWNER_NULL);
     return ActiveActorStatus(
         setActorState(
@@ -1125,7 +1096,7 @@ public:
         Flags & ~concurrency::ActorFlagConstants::PriorityAndOverrideMask;
     flags |=
         (uint32_t(priority) << concurrency::ActorFlagConstants::PriorityShift);
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(flags, DrainLock, FirstJob);
 #else
     return ActiveActorStatus(flags, FirstJob);
@@ -1149,14 +1120,14 @@ public:
         (Flags & ~concurrency::ActorFlagConstants::PriorityMask) |
         (uint32_t(priority) << concurrency::ActorFlagConstants::PriorityShift);
     flags |= concurrency::ActorFlagConstants::IsPriorityEscalated;
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(flags, DrainLock, FirstJob);
 #else
     return ActiveActorStatus(flags, FirstJob);
 #endif
   }
   ActiveActorStatus withoutEscalatedPriority() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(
         Flags & ~concurrency::ActorFlagConstants::IsPriorityEscalated,
         DrainLock, FirstJob);
@@ -1169,7 +1140,7 @@ public:
 
   Job *getFirstUnprioritizedJob() const { return FirstJob; }
   ActiveActorStatus withFirstUnprioritizedJob(Job *firstJob) const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveActorStatus(Flags, DrainLock, firstJob);
 #else
     return ActiveActorStatus(Flags, firstJob);
@@ -1181,14 +1152,14 @@ public:
   }
 
   uint32_t currentDrainer() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return dispatch_lock_owner(DrainLock);
 #else
     return 0;
 #endif
   }
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   static size_t drainLockOffset() {
     return offsetof(ActiveActorStatus, DrainLock);
   }
@@ -1218,7 +1189,7 @@ public:
   }
 };
 
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
 
 /// Given that a job is enqueued normally on a default actor, get/set
 /// the next job in the actor's queue.
@@ -1241,20 +1212,20 @@ struct JobQueueTraits {
 
 #endif
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
 #define ACTIVE_ACTOR_STATUS_SIZE (4 * (sizeof(uintptr_t)))
 #else
 #define ACTIVE_ACTOR_STATUS_SIZE (2 * (sizeof(uintptr_t)))
 #endif
 static_assert(sizeof(ActiveActorStatus) == ACTIVE_ACTOR_STATUS_SIZE,
   "ActiveActorStatus is of incorrect size");
-#endif /* !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS */
+#endif /* !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS */
 
 class DefaultActorImplHeader : public HeapObject {
 protected:
   // TODO (rokhinip): Make this a flagset
   bool isDistributedRemoteActor;
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   // If actors are locks, we don't need to maintain any extra bookkeeping in the
   // ActiveActorStatus since all threads which are contending will block
   // synchronously, no job queue is needed and the lock will handle all priority
@@ -1279,8 +1250,8 @@ protected:
 // the actor, which are all accessed only by the current processing thread.
 class DefaultActorImplFooter {
 protected:
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
-  using PriorityQueue = swift::PriorityQueue<Job *, JobQueueTraits>;
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
+  using PriorityQueue = language::PriorityQueue<Job *, JobQueueTraits>;
 
   // When enqueued, jobs are atomically added to a linked list with the head
   // stored inside ActiveActorStatus. This list contains jobs in the LIFO order
@@ -1359,14 +1330,14 @@ public:
   /// Properly construct an actor, except for the heap header.
   void initialize(bool isDistributedRemote = false) {
     this->isDistributedRemoteActor = isDistributedRemote;
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
     new (&this->drainLock) Mutex();
     lockReferenceCount = 1;
 #else
    _status().store(ActiveActorStatus(), std::memory_order_relaxed);
    new (&this->prioritizedJobs) PriorityQueue();
 #endif
-    SWIFT_TASK_DEBUG_LOG("Creating default actor %p", this);
+    LANGUAGE_TASK_DEBUG_LOG("Creating default actor %p", this);
     concurrency::trace::actor_create(this);
   }
 
@@ -1384,12 +1355,12 @@ public:
   /// Unlock an actor
   bool unlock(bool forceUnlock);
 
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   void retainLock();
   void releaseLock();
 #endif
 
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   /// Enqueue a job onto the actor.
   void enqueue(Job *job, JobPriority priority);
 
@@ -1412,13 +1383,13 @@ public:
   /// ordinary default (local) actor, and no special handling is needed for them.
   bool isDistributedRemote();
 
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
-  swift::atomic<ActiveActorStatus> &_status() {
-    return reinterpret_cast<swift::atomic<ActiveActorStatus> &>(this->StatusStorage);
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
+  language::atomic<ActiveActorStatus> &_status() {
+    return reinterpret_cast<language::atomic<ActiveActorStatus> &>(this->StatusStorage);
   }
 
-  const swift::atomic<ActiveActorStatus> &_status() const {
-    return reinterpret_cast<const swift::atomic<ActiveActorStatus> &>(this->StatusStorage);
+  const language::atomic<ActiveActorStatus> &_status() const {
+    return reinterpret_cast<const language::atomic<ActiveActorStatus> &>(this->StatusStorage);
   }
 
   // Only for static assert use below, not for actual use otherwise
@@ -1428,11 +1399,11 @@ public:
     return offsetof(DefaultActorImpl, StatusStorage);
 #pragma clang diagnostic pop
   }
-#endif /* !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS */
+#endif /* !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS */
 
 private:
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   dispatch_lock_t *drainLockAddr();
 #endif
   /// Schedule a processing job.
@@ -1447,7 +1418,7 @@ private:
   /// Incoming jobs are of mixed priorities and in LIFO order.
   /// Called with actor lock held on current thread.
   void handleUnprioritizedJobs(Job *head);
-#endif /* !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS */
+#endif /* !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS */
 
   void deallocateUnconditional();
 };
@@ -1460,7 +1431,7 @@ public:
   /// Properly construct an actor, except for the heap header.
   void initialize(bool isDistributedRemote = false) {
     this->isDistributedRemoteActor = isDistributedRemote;
-    SWIFT_TASK_DEBUG_LOG("Creating non-default distributed actor %p", this);
+    LANGUAGE_TASK_DEBUG_LOG("Creating non-default distributed actor %p", this);
     concurrency::trace::actor_create(this);
   }
 
@@ -1491,7 +1462,7 @@ static_assert(size_without_trailing_padding<DefaultActorImpl>::value <=
                       DefaultActorSize &&
                   alignof(DefaultActorImpl) <= alignof(DefaultActor),
               "DefaultActorImpl doesn't fit in DefaultActor");
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
 static_assert(DefaultActorImpl::offsetOfActiveActorStatus() % ACTIVE_ACTOR_STATUS_SIZE == 0,
               "ActiveActorStatus is aligned to the right size");
 #endif
@@ -1525,63 +1496,63 @@ TaskExecutorRef TaskExecutorRef::fromTaskExecutorPreference(Job *job) {
   return TaskExecutorRef::undefined();
 }
 
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
 
 static void traceJobQueue(DefaultActorImpl *actor, Job *first) {
   concurrency::trace::actor_note_job_queue(
       actor, first, [](Job *job) { return getNextJob(job); });
 }
 
-static SWIFT_ATTRIBUTE_ALWAYS_INLINE void traceActorStateTransition(DefaultActorImpl *actor,
+static LANGUAGE_ATTRIBUTE_ALWAYS_INLINE void traceActorStateTransition(DefaultActorImpl *actor,
     ActiveActorStatus oldState, ActiveActorStatus newState, bool distributedActorIsRemote) {
 
-  SWIFT_TASK_DEBUG_LOG("Actor %p transitioned from %#x to %#x (%s)", actor,
+  LANGUAGE_TASK_DEBUG_LOG("Actor %p transitioned from %#x to %#x (%s)", actor,
                        oldState.getOpaqueFlags(), newState.getOpaqueFlags(),
                        __FUNCTION__);
   newState.traceStateChanged(actor, distributedActorIsRemote);
 }
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
 dispatch_lock_t *DefaultActorImpl::drainLockAddr() {
   ActiveActorStatus *actorStatus = (ActiveActorStatus *) &this->StatusStorage;
   return (dispatch_lock_t *) (((char *) actorStatus) + ActiveActorStatus::drainLockOffset());
 }
-#endif /* SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
+#endif /* LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
 
 void DefaultActorImpl::scheduleActorProcessJob(
     JobPriority priority, TaskExecutorRef taskExecutor) {
-  Job *job = swift_cxx_newObject<ProcessOutOfLineJob>(this, priority);
-  SWIFT_TASK_DEBUG_LOG(
+  Job *job = language_cxx_newObject<ProcessOutOfLineJob>(this, priority);
+  LANGUAGE_TASK_DEBUG_LOG(
       "Scheduling processing job %p for actor %p at priority %#zx, with taskExecutor %p", job, this,
       priority, taskExecutor.getIdentity());
 
   if (taskExecutor.isDefined()) {
-#if SWIFT_CONCURRENCY_EMBEDDED
-    swift_unreachable("task executors not supported in embedded Swift");
+#if LANGUAGE_CONCURRENCY_EMBEDDED
+    language_unreachable("task executors not supported in embedded Codira");
 #else
     auto taskExecutorIdentity = taskExecutor.getIdentity();
-    auto taskExecutorType = swift_getObjectType(taskExecutorIdentity);
+    auto taskExecutorType = language_getObjectType(taskExecutorIdentity);
     auto taskExecutorWtable = taskExecutor.getTaskExecutorWitnessTable();
 
-    return _swift_task_enqueueOnTaskExecutor(
+    return _language_task_enqueueOnTaskExecutor(
         job, taskExecutorIdentity, taskExecutorType, taskExecutorWtable);
 #endif
   }
 
-  swift_task_enqueueGlobal(job);
+  language_task_enqueueGlobal(job);
 }
 
 void DefaultActorImpl::enqueue(Job *job, JobPriority priority) {
   // We can do relaxed loads here, we are just using the current head in the
   // atomic state and linking that into the new job we are inserting, we don't
   // need acquires
-  SWIFT_TASK_DEBUG_LOG("Enqueueing job %p onto actor %p at priority %#zx", job,
+  LANGUAGE_TASK_DEBUG_LOG("Enqueueing job %p onto actor %p at priority %#zx", job,
                        this, priority);
   concurrency::trace::actor_enqueue(this, job);
-  bool distributedActorIsRemote = swift_distributed_actor_is_remote(this);
+  bool distributedActorIsRemote = language_distributed_actor_is_remote(this);
 
   auto oldState = _status().load(std::memory_order_relaxed);
-  SwiftDefensiveRetainRAII thisRetainHelper{this};
+  CodiraDefensiveRetainRAII thisRetainHelper{this};
   while (true) {
     auto newState = oldState;
 
@@ -1642,16 +1613,16 @@ void DefaultActorImpl::enqueue(Job *job, JobPriority priority) {
         return scheduleActorProcessJob(newState.getMaxPriority(), taskExecutor);
       }
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       if (oldState.getMaxPriority() != newState.getMaxPriority()) {
         // We still need `this`, assert that we did a defensive retain.
         assert(thisRetainHelper.isRetained());
 
         if (newState.isRunning()) {
           // Actor is running on a thread, escalate the thread running it
-          SWIFT_TASK_DEBUG_LOG("[Override] Escalating actor %p which is running on %#x to %#x priority", this, newState.currentDrainer(), priority);
+          LANGUAGE_TASK_DEBUG_LOG("[Override] Escalating actor %p which is running on %#x to %#x priority", this, newState.currentDrainer(), priority);
           dispatch_lock_t *lockAddr = this->drainLockAddr();
-          swift_dispatch_lock_override_start_with_debounce(lockAddr, newState.currentDrainer(),
+          language_dispatch_lock_override_start_with_debounce(lockAddr, newState.currentDrainer(),
                          (qos_class_t) priority);
         } else {
           // We are scheduling a stealer for an actor due to priority override.
@@ -1659,7 +1630,7 @@ void DefaultActorImpl::enqueue(Job *job, JobPriority priority) {
           // ownership rule (2). That means that we need to retain `this`, which
           // we'll take from the retain helper.
           thisRetainHelper.takeRetain();
-          SWIFT_TASK_DEBUG_LOG(
+          LANGUAGE_TASK_DEBUG_LOG(
               "[Override] Scheduling a stealer for actor %p at %#x priority",
               this, newState.getMaxPriority());
 
@@ -1680,9 +1651,9 @@ void DefaultActorImpl::enqueue(Job *job, JobPriority priority) {
 // TaskDependencyStatusRecord.
 void DefaultActorImpl::enqueueStealer(Job *job, JobPriority priority) {
 
-  SWIFT_TASK_DEBUG_LOG("[Override] Escalating an actor %p due to job that is enqueued being escalated", this);
+  LANGUAGE_TASK_DEBUG_LOG("[Override] Escalating an actor %p due to job that is enqueued being escalated", this);
 
-  bool distributedActorIsRemote = swift_distributed_actor_is_remote(this);
+  bool distributedActorIsRemote = language_distributed_actor_is_remote(this);
   auto oldState = _status().load(std::memory_order_relaxed);
   while (true) {
     // Until we figure out how to safely enqueue a stealer and rendevouz with
@@ -1732,22 +1703,22 @@ void DefaultActorImpl::enqueueStealer(Job *job, JobPriority priority) {
       // and destroy it now that it's enqueued.
 
       traceActorStateTransition(this, oldState, newState, distributedActorIsRemote);
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       if (newState.isRunning()) {
         // Actor is running on a thread, escalate the thread running it
-        SWIFT_TASK_DEBUG_LOG("[Override] Escalating actor %p which is running on %#x to %#x priority", this, newState.currentDrainer(), priority);
+        LANGUAGE_TASK_DEBUG_LOG("[Override] Escalating actor %p which is running on %#x to %#x priority", this, newState.currentDrainer(), priority);
         dispatch_lock_t *lockAddr = this->drainLockAddr();
-        swift_dispatch_lock_override_start_with_debounce(lockAddr, newState.currentDrainer(),
+        language_dispatch_lock_override_start_with_debounce(lockAddr, newState.currentDrainer(),
                        (qos_class_t) priority);
 
       } else if (newState.isScheduled()) {
         // We are scheduling a stealer for an actor due to priority override.
         // This extra processing job has a reference on the actor. See
         // ownership rule (2).
-        SWIFT_TASK_DEBUG_LOG(
+        LANGUAGE_TASK_DEBUG_LOG(
             "[Override] Scheduling a stealer for actor %p at %#x priority",
             this, newState.getMaxPriority());
-        swift_retain(this);
+        language_retain(this);
         scheduleActorProcessJob(newState.getMaxPriority(), taskExecutor);
       }
 #endif
@@ -1758,9 +1729,9 @@ void DefaultActorImpl::enqueueStealer(Job *job, JobPriority priority) {
 
 void DefaultActorImpl::processIncomingQueue() {
   // Pairs with the store release in DefaultActorImpl::enqueue
-  bool distributedActorIsRemote = swift_distributed_actor_is_remote(this);
-  auto oldState = _status().load(SWIFT_MEMORY_ORDER_CONSUME);
-  _swift_tsan_consume(this);
+  bool distributedActorIsRemote = language_distributed_actor_is_remote(this);
+  auto oldState = _status().load(LANGUAGE_MEMORY_ORDER_CONSUME);
+  _language_tsan_consume(this);
 
   // We must ensure that any jobs not seen by collectJobs() don't have any
   // dangling references to the jobs that have been collected. For that we must
@@ -1781,7 +1752,7 @@ void DefaultActorImpl::processIncomingQueue() {
             oldState, newState,
             /* success */ std::memory_order_relaxed,
             /* failure */ std::memory_order_relaxed)) {
-      SWIFT_TASK_DEBUG_LOG("Collected some jobs from actor %p", this);
+      LANGUAGE_TASK_DEBUG_LOG("Collected some jobs from actor %p", this);
       traceActorStateTransition(this, oldState, newState,
                                 distributedActorIsRemote);
       break;
@@ -1806,21 +1777,21 @@ void DefaultActorImpl::handleUnprioritizedJobs(Job *head) {
 
 // Called with actor lock held on current thread
 Job *DefaultActorImpl::drainOne() {
-  SWIFT_TASK_DEBUG_LOG("Draining one job from default actor %p", this);
+  LANGUAGE_TASK_DEBUG_LOG("Draining one job from default actor %p", this);
 
   traceJobQueue(this, prioritizedJobs.peek());
   auto firstJob = prioritizedJobs.dequeue();
   if (!firstJob) {
-    SWIFT_TASK_DEBUG_LOG("No jobs to drain on actor %p", this);
+    LANGUAGE_TASK_DEBUG_LOG("No jobs to drain on actor %p", this);
   } else {
-    SWIFT_TASK_DEBUG_LOG("Drained first job %p from actor %p", firstJob, this);
+    LANGUAGE_TASK_DEBUG_LOG("Drained first job %p from actor %p", firstJob, this);
     concurrency::trace::actor_dequeue(this, firstJob);
   }
   return firstJob;
 }
 
 // Called from processing jobs which are created to drain an actor. We need to
-// reason about this function together with swift_task_switch because threads
+// reason about this function together with language_task_switch because threads
 // can switch from "following actors" to "following tasks" and vice versa.
 //
 // The way this function works is as following:
@@ -1833,8 +1804,8 @@ Job *DefaultActorImpl::drainOne() {
 // 3. When the thread needs to hop off the actor, it is done deep in the
 // callstack of this function with an indirection through user code:
 // defaultActorDrain -> runJobInEstablishedExecutorContext ->  user
-// code -> a call to swift_task_switch to hop out of actor
-// 4. This call to swift_task_switch() will attempt to hop off the existing
+// code -> a call to language_task_switch to hop out of actor
+// 4. This call to language_task_switch() will attempt to hop off the existing
 // actor and jump to the new one. There are 2 possible outcomes at that point:
 //   (a) We were able to hop to the new actor and so thread continues executing
 //   task. We then schedule a job for the old actor to continue if it has
@@ -1842,18 +1813,18 @@ Job *DefaultActorImpl::drainOne() {
 //   (b) We were not able to take the fast path to the new actor, the task gets
 //   enqueued onto the new actor it is going to, and the thread now follows the
 //   actor we were trying to hop off. At this point, note that we don't give up
-//   the actor lock in `swift_task_switchImpl` so we will come back to
+//   the actor lock in `language_task_switchImpl` so we will come back to
 //   defaultActorDrain with the actor lock still held.
 //
 // At the point of return from the job execution, we may not be holding the lock
 // of the same actor that we had started off with, so we need to reevaluate what
 // the current actor is
 static void defaultActorDrain(DefaultActorImpl *actor) {
-  SWIFT_TASK_DEBUG_LOG("Draining default actor %p", actor);
+  LANGUAGE_TASK_DEBUG_LOG("Draining default actor %p", actor);
   DefaultActorImpl *currentActor = actor;
 
   bool actorLockAcquired = actor->tryLock(true);
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   if (!actorLockAcquired) {
     // tryLock may fail when we compete with other stealers for the actor.
     goto done;
@@ -1910,34 +1881,34 @@ static void defaultActorDrain(DefaultActorImpl *actor) {
   // Leave the tracking info.
   trackingInfo.leave();
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
 done:
   ; // Suppress a -Wc++23-extensions warning
 #endif
 }
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 void ProcessOutOfLineJob::process(Job *job) {
   auto self = cast<ProcessOutOfLineJob>(job);
   DefaultActorImpl *actor = self->Actor;
 
-  swift_cxx_deleteObject(self);
+  language_cxx_deleteObject(self);
   return defaultActorDrain(actor); // 'return' forces tail call
 }
 
-#endif /* !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS */
+#endif /* !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS */
 
 void DefaultActorImpl::destroy() {
-#if SWIFT_CONCURRENCY_EMBEDDED
+#if LANGUAGE_CONCURRENCY_EMBEDDED
   // Embedded runtime does not track the refcount inside deinit
-  // See swift_release_n_(object:,n:) in EmbeddedRuntime.swift
+  // See language_release_n_(object:,n:) in EmbeddedRuntime.code
 #else
   HeapObject *object = asAbstract(this);
-  size_t retainCount = swift_retainCount(object);
-  if (SWIFT_UNLIKELY(retainCount > 1)) {
+  size_t retainCount = language_retainCount(object);
+  if (LANGUAGE_UNLIKELY(retainCount > 1)) {
     auto descriptor = object->metadata->getTypeContextDescriptor();
 
-    swift_Concurrency_fatalError(0,
+    language_Concurrency_fatalError(0,
                       "Object %p of class %s deallocated with non-zero retain "
                       "count %zd. This object's deinit, or something called "
                       "from it, may have created a strong reference to self "
@@ -1949,7 +1920,7 @@ void DefaultActorImpl::destroy() {
   }
 #endif
 
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   // TODO (rokhinip): Do something to assert that the lock is unowned
 #else
   auto oldState = _status().load(std::memory_order_acquire);
@@ -1968,7 +1939,7 @@ void DefaultActorImpl::destroy() {
 }
 
 void DefaultActorImpl::deallocate() {
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   releaseLock();
 #else
   // If we're running, mark ourselves as ready for deallocation but don't
@@ -1993,46 +1964,46 @@ void DefaultActorImpl::deallocate() {
 void DefaultActorImpl::deallocateUnconditional() {
   concurrency::trace::actor_deallocate(this);
 
-#if !SWIFT_CONCURRENCY_EMBEDDED
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
   auto metadata = cast<ClassMetadata>(this->metadata);
-  swift_deallocClassInstance(this, metadata->getInstanceSize(),
+  language_deallocClassInstance(this, metadata->getInstanceSize(),
                              metadata->getInstanceAlignMask());
 #else
-  // Embedded Swift's runtime doesn't actually use the size/mask values.
-  swift_deallocClassInstance(this, 0, 0);
+  // Embedded Codira's runtime doesn't actually use the size/mask values.
+  language_deallocClassInstance(this, 0, 0);
 #endif
 }
 
 bool DefaultActorImpl::tryLock(bool asDrainer) {
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   retainLock();
   this->drainLock.lock();
   return true;
-#else /* SWIFT_CONCURRENCY_ACTORS_AS_LOCKS */
+#else /* LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS */
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
-  SWIFT_TASK_DEBUG_LOG("Thread %#x attempting to jump onto %p, as drainer = %d", dispatch_lock_value_for_self(), this, asDrainer);
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+  LANGUAGE_TASK_DEBUG_LOG("Thread %#x attempting to jump onto %p, as drainer = %d", dispatch_lock_value_for_self(), this, asDrainer);
   dispatch_thread_override_info_s threadOverrideInfo;
-  threadOverrideInfo = swift_dispatch_thread_get_current_override_qos_floor();
+  threadOverrideInfo = language_dispatch_thread_get_current_override_qos_floor();
   qos_class_t overrideFloor = threadOverrideInfo.override_qos_floor;
 retry:;
 #else
-  SWIFT_TASK_DEBUG_LOG("Thread attempting to jump onto %p, as drainer = %d", this, asDrainer);
+  LANGUAGE_TASK_DEBUG_LOG("Thread attempting to jump onto %p, as drainer = %d", this, asDrainer);
 #endif
 
-  bool distributedActorIsRemote = swift_distributed_actor_is_remote(this);
+  bool distributedActorIsRemote = language_distributed_actor_is_remote(this);
   auto oldState = _status().load(std::memory_order_relaxed);
   while (true) {
     bool assertNoJobs = false;
     if (asDrainer) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       if (!oldState.isScheduled()) {
         // Some other actor stealer won the race and started running the actor
         // and potentially be done with it if state is observed as idle here.
 
         // This extra processing jobs releases its reference. See ownership rule
         // (4).
-        swift_release(this);
+        language_release(this);
 
         return false;
       }
@@ -2041,7 +2012,7 @@ retry:;
       // We are still in the race with other stealers to take over the actor.
       assert(oldState.isScheduled());
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       // We only want to self override a thread if we are taking the actor lock
       // as a drainer because there might have been higher priority work
       // enqueued that might have escalated the max priority of the actor to be
@@ -2049,17 +2020,17 @@ retry:;
       qos_class_t maxActorPriority = (qos_class_t) oldState.getMaxPriority();
 
       if (threadOverrideInfo.can_override && (maxActorPriority > overrideFloor)) {
-        SWIFT_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match max actor %p's priority %#x", overrideFloor, this, maxActorPriority);
+        LANGUAGE_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match max actor %p's priority %#x", overrideFloor, this, maxActorPriority);
 
-        (void) swift_dispatch_thread_override_self(maxActorPriority);
+        (void) language_dispatch_thread_override_self(maxActorPriority);
         overrideFloor = maxActorPriority;
         goto retry;
       }
-#endif /* SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
+#endif /* LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
     } else {
       // We're trying to take the lock in an uncontended manner
       if (oldState.isRunning() || oldState.isScheduled()) {
-        SWIFT_TASK_DEBUG_LOG("Failed to jump to %p in fast path", this);
+        LANGUAGE_TASK_DEBUG_LOG("Failed to jump to %p in fast path", this);
         return false;
       }
 
@@ -2090,7 +2061,7 @@ retry:;
     if (_status().compare_exchange_weak(oldState, newState,
                                  std::memory_order_acquire,
                                  std::memory_order_relaxed)) {
-      _swift_tsan_acquire(this);
+      _language_tsan_acquire(this);
       if (assertNoJobs) {
         assert(prioritizedJobs.empty());
       }
@@ -2101,7 +2072,7 @@ retry:;
       return true;
     }
   }
-#endif /* SWIFT_CONCURRENCY_ACTORS_AS_LOCKS */
+#endif /* LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS */
 }
 
 /* This can be called in 2 ways:
@@ -2116,32 +2087,32 @@ retry:;
  */
 bool DefaultActorImpl::unlock(bool forceUnlock)
 {
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   this->drainLock.unlock();
   releaseLock();
   return true;
 #else
-  bool distributedActorIsRemote = swift_distributed_actor_is_remote(this);
+  bool distributedActorIsRemote = language_distributed_actor_is_remote(this);
   auto oldState = _status().load(std::memory_order_relaxed);
-  SWIFT_TASK_DEBUG_LOG("Try unlock-ing actor %p with forceUnlock = %d", this, forceUnlock);
+  LANGUAGE_TASK_DEBUG_LOG("Try unlock-ing actor %p with forceUnlock = %d", this, forceUnlock);
 
-  _swift_tsan_release(this);
+  _language_tsan_release(this);
   while (true) {
     assert(oldState.isAnyRunning());
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     assert(dispatch_lock_is_locked_by_self(*(this->drainLockAddr())));
 #endif
 
     if (oldState.isZombie_ReadyForDeallocation()) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       // Reset any override on this thread as a result of this thread running
       // the actor
       if (oldState.isMaxPriorityEscalated()) {
-        swift_dispatch_lock_override_end((qos_class_t)oldState.getMaxPriority());
+        language_dispatch_lock_override_end((qos_class_t)oldState.getMaxPriority());
       }
 #endif
       deallocateUnconditional();
-      SWIFT_TASK_DEBUG_LOG("Unlock-ing actor %p succeeded with full deallocation", this);
+      LANGUAGE_TASK_DEBUG_LOG("Unlock-ing actor %p succeeded with full deallocation", this);
       return true;
     }
 
@@ -2150,7 +2121,7 @@ bool DefaultActorImpl::unlock(bool forceUnlock)
     if (!prioritizedJobs.empty() || oldState.getFirstUnprioritizedJob()) {
       // There is work left to do, don't unlock the actor
       if (!forceUnlock) {
-        SWIFT_TASK_DEBUG_LOG("Unlock-ing actor %p failed", this);
+        LANGUAGE_TASK_DEBUG_LOG("Unlock-ing actor %p failed", this);
         return false;
       }
       // We need to schedule the actor - remove any escalation bits since we'll
@@ -2180,7 +2151,7 @@ bool DefaultActorImpl::unlock(bool forceUnlock)
     if (_status().compare_exchange_weak(oldState, newState,
                       /* success */ std::memory_order_release,
                       /* failure */ std::memory_order_relaxed)) {
-      _swift_tsan_release(this);
+      _language_tsan_release(this);
       traceActorStateTransition(this, oldState, newState, distributedActorIsRemote);
 
       if (newState.isScheduled()) {
@@ -2189,17 +2160,17 @@ bool DefaultActorImpl::unlock(bool forceUnlock)
         scheduleActorProcessJob(newState.getMaxPriority(), TaskExecutorRef::undefined());
       } else {
         // See ownership rule (5) in DefaultActorImpl
-        SWIFT_TASK_DEBUG_LOG("Actor %p is idle now", this);
+        LANGUAGE_TASK_DEBUG_LOG("Actor %p is idle now", this);
       }
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       // Reset any asynchronous escalations we may have gotten on this thread
       // after taking the drain lock.
       //
       // Only do this after we have reenqueued the actor so that we don't lose
       // any "mojo" prior to the enqueue.
       if (oldState.isMaxPriorityEscalated()) {
-        swift_dispatch_lock_override_end((qos_class_t) oldState.getMaxPriority());
+        language_dispatch_lock_override_end((qos_class_t) oldState.getMaxPriority());
       }
 #endif
       return true;
@@ -2208,7 +2179,7 @@ bool DefaultActorImpl::unlock(bool forceUnlock)
 #endif
 }
 
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
 void DefaultActorImpl::retainLock() {
   lockReferenceCount.fetch_add(1, std::memory_order_acquire);
 }
@@ -2220,11 +2191,11 @@ void DefaultActorImpl::releaseLock() {
 }
 #endif
 
-SWIFT_CC(swift)
-static void swift_job_runImpl(Job *job, SerialExecutorRef executor) {
+LANGUAGE_CC(language)
+static void language_job_runImpl(Job *job, SerialExecutorRef executor) {
   ExecutorTrackingInfo trackingInfo;
 
-  // swift_job_run is a primary entrypoint for executors telling us to
+  // language_job_run is a primary entrypoint for executors telling us to
   // run jobs.  Actor executors won't expect us to switch off them
   // during this operation.  But do allow switching if the executor
   // is generic.
@@ -2238,7 +2209,7 @@ static void swift_job_runImpl(Job *job, SerialExecutorRef executor) {
 
   trackingInfo.enterAndShadow(executor, taskExecutor);
 
-  SWIFT_TASK_DEBUG_LOG("job %p", job);
+  LANGUAGE_TASK_DEBUG_LOG("job %p", job);
   runJobInEstablishedExecutorContext(job);
 
   trackingInfo.leave();
@@ -2252,19 +2223,19 @@ static void swift_job_runImpl(Job *job, SerialExecutorRef executor) {
   }
 }
 
-SWIFT_CC(swift)
-static void swift_job_run_on_serial_and_task_executorImpl(Job *job,
+LANGUAGE_CC(language)
+static void language_job_run_on_serial_and_task_executorImpl(Job *job,
                                              SerialExecutorRef serialExecutor,
                                              TaskExecutorRef taskExecutor) {
   ExecutorTrackingInfo trackingInfo;
-  SWIFT_TASK_DEBUG_LOG("Run job %p on serial executor %p task executor %p", job,
+  LANGUAGE_TASK_DEBUG_LOG("Run job %p on serial executor %p task executor %p", job,
                        serialExecutor.getIdentity(), taskExecutor.getIdentity());
 
   // TODO: we don't allow switching
   trackingInfo.disallowSwitching();
   trackingInfo.enterAndShadow(serialExecutor, taskExecutor);
 
-  SWIFT_TASK_DEBUG_LOG("job %p", job);
+  LANGUAGE_TASK_DEBUG_LOG("job %p", job);
   runJobInEstablishedExecutorContext(job);
 
   trackingInfo.leave();
@@ -2278,30 +2249,30 @@ static void swift_job_run_on_serial_and_task_executorImpl(Job *job,
   }
 }
 
-SWIFT_CC(swift)
-static void swift_job_run_on_task_executorImpl(Job *job,
+LANGUAGE_CC(language)
+static void language_job_run_on_task_executorImpl(Job *job,
                                                TaskExecutorRef taskExecutor) {
-  swift_job_run_on_serial_and_task_executor(
+  language_job_run_on_serial_and_task_executor(
       job, SerialExecutorRef::generic(), taskExecutor);
 }
 
-void swift::swift_defaultActor_initialize(DefaultActor *_actor) {
+void language::language_defaultActor_initialize(DefaultActor *_actor) {
   asImpl(_actor)->initialize();
 }
 
-void swift::swift_defaultActor_destroy(DefaultActor *_actor) {
+void language::language_defaultActor_destroy(DefaultActor *_actor) {
   asImpl(_actor)->destroy();
 }
 
-void swift::swift_defaultActor_enqueue(Job *job, DefaultActor *_actor) {
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+void language::language_defaultActor_enqueue(Job *job, DefaultActor *_actor) {
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   assert(false && "Should not enqueue onto default actor in actor as locks model");
 #else
   asImpl(_actor)->enqueue(job, job->getPriority());
 #endif
 }
 
-void swift::swift_defaultActor_deallocate(DefaultActor *_actor) {
+void language::language_defaultActor_deallocate(DefaultActor *_actor) {
   asImpl(_actor)->deallocate();
 }
 
@@ -2317,23 +2288,23 @@ static bool isDefaultActorClass(const ClassMetadata *metadata) {
     // Go to the superclass.
     metadata = metadata->Superclass;
 
-    // If we run out of Swift classes, it's not a default actor.
+    // If we run out of Codira classes, it's not a default actor.
     if (!metadata || !metadata->isTypeMetadata()) {
       return false;
     }
   }
 }
 
-void swift::swift_defaultActor_deallocateResilient(HeapObject *actor) {
-#if !SWIFT_CONCURRENCY_EMBEDDED
+void language::language_defaultActor_deallocateResilient(HeapObject *actor) {
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
   auto metadata = cast<ClassMetadata>(actor->metadata);
   if (isDefaultActorClass(metadata))
-    return swift_defaultActor_deallocate(static_cast<DefaultActor*>(actor));
+    return language_defaultActor_deallocate(static_cast<DefaultActor*>(actor));
 
-  swift_deallocObject(actor, metadata->getInstanceSize(),
+  language_deallocObject(actor, metadata->getInstanceSize(),
                       metadata->getInstanceAlignMask());
 #else
-  return swift_defaultActor_deallocate(static_cast<DefaultActor*>(actor));
+  return language_defaultActor_deallocate(static_cast<DefaultActor*>(actor));
 #endif
 }
 
@@ -2381,7 +2352,7 @@ static bool canGiveUpThreadForSwitch(ExecutorTrackingInfo *trackingInfo,
 /// do that in runOnAssumedThread.
 static void giveUpThreadForSwitch(SerialExecutorRef currentExecutor) {
   if (currentExecutor.isGeneric()) {
-    SWIFT_TASK_DEBUG_LOG("Giving up current generic executor %p",
+    LANGUAGE_TASK_DEBUG_LOG("Giving up current generic executor %p",
                          currentExecutor.getIdentity());
     return;
   }
@@ -2431,7 +2402,7 @@ static bool mustSwitchToRun(SerialExecutorRef currentSerialExecutor,
 
 /// Given that we've assumed control of an executor on this thread,
 /// continue to run the given task on it.
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static void runOnAssumedThread(AsyncTask *task, SerialExecutorRef executor,
                                ExecutorTrackingInfo *oldTracking) {
   // Note that this doesn't change the active task and so doesn't
@@ -2463,18 +2434,18 @@ static void runOnAssumedThread(AsyncTask *task, SerialExecutorRef executor,
   executor = trackingInfo.getActiveExecutor();
   trackingInfo.leave();
 
-  SWIFT_TASK_DEBUG_LOG("leaving assumed thread, current executor is %p",
+  LANGUAGE_TASK_DEBUG_LOG("leaving assumed thread, current executor is %p",
                        executor.getIdentity());
 
   if (executor.isDefaultActor())
     asImpl(executor.getDefaultActor())->unlock(true);
 }
 
-SWIFT_CC(swiftasync)
-static void swift_task_switchImpl(SWIFT_ASYNC_CONTEXT AsyncContext *resumeContext,
+LANGUAGE_CC(languageasync)
+static void language_task_switchImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *resumeContext,
                                   TaskContinuationFunction *resumeFunction,
                                   SerialExecutorRef newExecutor) {
-  auto task = swift_task_getCurrent();
+  auto task = language_task_getCurrent();
   assert(task && "no current task!");
 
   auto trackingInfo = ExecutorTrackingInfo::current();
@@ -2484,7 +2455,7 @@ static void swift_task_switchImpl(SWIFT_ASYNC_CONTEXT AsyncContext *resumeContex
   auto currentTaskExecutor = (trackingInfo ? trackingInfo->getTaskExecutor()
                                            : TaskExecutorRef::undefined());
   auto newTaskExecutor = task->getPreferredTaskExecutor();
-  SWIFT_TASK_DEBUG_LOG("Task %p trying to switch executors: executor %p%s to "
+  LANGUAGE_TASK_DEBUG_LOG("Task %p trying to switch executors: executor %p%s to "
                        "new serial executor: %p%s; task executor: from %p%s to %p%s",
                        task,
                        currentExecutor.getIdentity(),
@@ -2501,7 +2472,7 @@ static void swift_task_switchImpl(SWIFT_ASYNC_CONTEXT AsyncContext *resumeContex
   // we were passed in.
   if (!mustSwitchToRun(currentExecutor, newExecutor, currentTaskExecutor,
                        newTaskExecutor)) {
-    SWIFT_TASK_DEBUG_LOG("Task %p run inline", task);
+    LANGUAGE_TASK_DEBUG_LOG("Task %p run inline", task);
     return resumeFunction(resumeContext); // 'return' forces tail call
   }
 
@@ -2513,12 +2484,12 @@ static void swift_task_switchImpl(SWIFT_ASYNC_CONTEXT AsyncContext *resumeContex
   // If the current executor can give up its thread, and the new executor
   // can take over a thread, try to do so; but don't do this if we've
   // been asked to yield the thread.
-  SWIFT_TASK_DEBUG_LOG("Task %p can give up thread?", task);
+  LANGUAGE_TASK_DEBUG_LOG("Task %p can give up thread?", task);
   if (currentTaskExecutor.isUndefined() &&
       canGiveUpThreadForSwitch(trackingInfo, currentExecutor) &&
       !shouldYieldThread() &&
       tryAssumeThreadForSwitch(newExecutor, newTaskExecutor)) {
-    SWIFT_TASK_DEBUG_LOG(
+    LANGUAGE_TASK_DEBUG_LOG(
         "switch succeeded, task %p assumed thread for executor %p", task,
         newExecutor.getIdentity());
     giveUpThreadForSwitch(currentExecutor);
@@ -2528,19 +2499,19 @@ static void swift_task_switchImpl(SWIFT_ASYNC_CONTEXT AsyncContext *resumeContex
 
   // Otherwise, just asynchronously enqueue the task on the given
   // executor.
-  SWIFT_TASK_DEBUG_LOG(
+  LANGUAGE_TASK_DEBUG_LOG(
       "switch failed, task %p enqueued on executor %p (task executor: %p)",
       task, newExecutor.getIdentity(), currentTaskExecutor.getIdentity());
 
-  _swift_task_clearCurrent();
+  _language_task_clearCurrent();
   task->flagAsAndEnqueueOnExecutor(newExecutor);
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static void
-swift_task_startSynchronouslyImpl(AsyncTask *task,
-                                  SerialExecutorRef targetExecutor) {
-  swift_retain(task);
+language_task_immediateImpl(AsyncTask *task,
+                         SerialExecutorRef targetExecutor) {
+  language_retain(task);
   if (targetExecutor.isGeneric()) {
   // If the target is generic, it means that the closure did not specify
   // an isolation explicitly. According to the "start synchronously" rules,
@@ -2549,31 +2520,31 @@ swift_task_startSynchronouslyImpl(AsyncTask *task,
   SerialExecutorRef executor = SerialExecutorRef::forSynchronousStart();
 
   auto originalTask = ActiveTask::swap(task);
-  swift_job_run(task, executor);
-  _swift_task_setCurrent(originalTask);
+  language_job_run(task, executor);
+  _language_task_setCurrent(originalTask);
   } else {
-    assert(swift_task_isCurrentExecutor(targetExecutor) &&
-           "startSynchronously must only be invoked when it is correctly in "
+    assert(language_task_isCurrentExecutor(targetExecutor) &&
+           "'immediate' must only be invoked when it is correctly in "
            "the same isolation already, but wasn't!");
 
     // We can run synchronously, we're on the expected executor so running in
     // the caller context is going to be in the same context as the requested
     // "caller" context.
-    AsyncTask *originalTask = _swift_task_clearCurrent();
+    AsyncTask *originalTask = _language_task_clearCurrent();
 
-    swift_job_run(task, targetExecutor);
-    _swift_task_setCurrent(originalTask);
+    language_job_run(task, targetExecutor);
+    _language_task_setCurrent(originalTask);
   }
 }
 
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
 namespace {
 /// Job that allows to use executor API to schedule a block of task-less
 /// synchronous code.
 class IsolatedDeinitJob : public Job {
 private:
   void *Object;
-  DeinitWorkFunction *__ptrauth_swift_deinit_work_function Work;
+  DeinitWorkFunction *__ptrauth_language_deinit_work_function Work;
 
 public:
   IsolatedDeinitJob(JobPriority priority, void *object,
@@ -2581,12 +2552,12 @@ public:
       : Job({JobKind::IsolatedDeinit, priority}, &process), Object(object),
         Work(work) {}
 
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   static void process(Job *_job) {
     auto *job = cast<IsolatedDeinitJob>(_job);
     void *object = job->Object;
     DeinitWorkFunction *work = job->Work;
-    swift_cxx_deleteObject(job);
+    language_cxx_deleteObject(job);
     return work(object);
   }
 
@@ -2597,13 +2568,13 @@ public:
 } // namespace
 #endif
 
-SWIFT_CC(swift)
-static void swift_task_deinitOnExecutorImpl(void *object,
+LANGUAGE_CC(language)
+static void language_task_deinitOnExecutorImpl(void *object,
                                             DeinitWorkFunction *work,
                                             SerialExecutorRef newExecutor,
                                             size_t rawFlags) {
   // Sign the function pointer
-  work = swift_auth_code_function(
+  work = language_auth_code(
       work, SpecialPointerAuthDiscriminators::DeinitWorkFunction);
   // If the current executor is compatible with running the new executor,
   // we can just immediately continue running with the resume function
@@ -2611,13 +2582,13 @@ static void swift_task_deinitOnExecutorImpl(void *object,
   //
   // Note that isCurrentExecutor() returns true for @MainActor
   // when running on the main thread without any executor.
-  if (swift_task_isCurrentExecutorWithFlags(
-          newExecutor, swift_task_is_current_executor_flag::None)) {
+  if (language_task_isCurrentExecutorWithFlags(
+          newExecutor, language_task_is_current_executor_flag::None)) {
     TaskLocal::StopLookupScope scope;
     return work(object);
   }
 
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   // In this mode taking actor lock is the only possible implementation
 #else
   // Otherwise, it is an optimisation applied when deinitializing default actors
@@ -2640,7 +2611,7 @@ static void swift_task_deinitOnExecutorImpl(void *object,
       ExecutorTrackingInfo trackingInfo;
 
       // The only place where ExecutorTrackingInfo::getTaskExecutor() is
-      // called is in swift_task_switch(), but swift_task_switch() cannot be
+      // called is in language_task_switch(), but language_task_switch() cannot be
       // called from the synchronous code. So it does not really matter what is
       // set in the ExecutorTrackingInfo::ActiveExecutor for the duration of the
       // isolated deinit - it is unobservable anyway.
@@ -2653,7 +2624,7 @@ static void swift_task_deinitOnExecutorImpl(void *object,
         work(object);
       }
 
-      // `work` is a synchronous function, it cannot call swift_task_switch()
+      // `work` is a synchronous function, it cannot call language_task_switch()
       // If it calls any synchronous API that may change executor inside
       // tracking info, that API is also responsible for changing it back.
       assert(newExecutor == trackingInfo.getActiveExecutor());
@@ -2666,18 +2637,18 @@ static void swift_task_deinitOnExecutorImpl(void *object,
       asImpl(newExecutor.getDefaultActor())->unlock(true);
       return;
     } else {
-#if SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
       assert(false && "Should not enqueue onto default actor in actor as locks model");
 #endif
     }
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   }
-  auto currentTask = swift_task_getCurrent();
-  auto priority = currentTask ? swift_task_currentPriority(currentTask)
-                              : swift_task_getCurrentThreadPriority();
+  auto currentTask = language_task_getCurrent();
+  auto priority = currentTask ? language_task_currentPriority(currentTask)
+                              : language_task_getCurrentThreadPriority();
 
-  auto job = swift_cxx_newObject<IsolatedDeinitJob>(priority, object, work);
-  swift_task_enqueue(job, newExecutor);
+  auto job = language_cxx_newObject<IsolatedDeinitJob>(priority, object, work);
+  language_task_enqueue(job, newExecutor);
 #endif
 }
 
@@ -2685,18 +2656,18 @@ static void swift_task_deinitOnExecutorImpl(void *object,
 /************************* GENERIC ACTOR INTERFACES **************************/
 /*****************************************************************************/
 
-extern "C" SWIFT_CC(swift) void _swift_task_makeAnyTaskExecutor(
+extern "C" LANGUAGE_CC(language) void _language_task_makeAnyTaskExecutor(
     HeapObject *executor, const Metadata *selfType,
     const TaskExecutorWitnessTable *wtable);
 
-SWIFT_CC(swift)
-static void swift_task_enqueueImpl(Job *job, SerialExecutorRef serialExecutorRef) {
+LANGUAGE_CC(language)
+static void language_task_enqueueImpl(Job *job, SerialExecutorRef serialExecutorRef) {
 #ifndef NDEBUG
   auto _taskExecutorRef = TaskExecutorRef::undefined();
   if (auto task = dyn_cast<AsyncTask>(job)) {
     _taskExecutorRef = task->getPreferredTaskExecutor();
   }
-  SWIFT_TASK_DEBUG_LOG("enqueue job %p on serial serialExecutor %p, taskExecutor = %p", job,
+  LANGUAGE_TASK_DEBUG_LOG("enqueue job %p on serial serialExecutor %p, taskExecutor = %p", job,
                        serialExecutorRef.getIdentity(),
                        _taskExecutorRef.getIdentity());
 #endif
@@ -2705,53 +2676,53 @@ static void swift_task_enqueueImpl(Job *job, SerialExecutorRef serialExecutorRef
   job->SchedulerPrivate[0] = NULL;
   job->SchedulerPrivate[1] = NULL;
 
-  _swift_tsan_release(job);
+  _language_tsan_release(job);
 
   if (serialExecutorRef.isGeneric()) {
     if (auto task = dyn_cast<AsyncTask>(job)) {
       auto taskExecutorRef = task->getPreferredTaskExecutor();
       if (taskExecutorRef.isDefined()) {
-#if SWIFT_CONCURRENCY_EMBEDDED
-        swift_unreachable("task executors not supported in embedded Swift");
+#if LANGUAGE_CONCURRENCY_EMBEDDED
+        language_unreachable("task executors not supported in embedded Codira");
 #else
         auto taskExecutorIdentity = taskExecutorRef.getIdentity();
-        auto taskExecutorType = swift_getObjectType(taskExecutorIdentity);
+        auto taskExecutorType = language_getObjectType(taskExecutorIdentity);
         auto taskExecutorWtable = taskExecutorRef.getTaskExecutorWitnessTable();
 
-        return _swift_task_enqueueOnTaskExecutor(
+        return _language_task_enqueueOnTaskExecutor(
             job,
             taskExecutorIdentity, taskExecutorType, taskExecutorWtable);
-#endif // SWIFT_CONCURRENCY_EMBEDDED
+#endif // LANGUAGE_CONCURRENCY_EMBEDDED
       } // else, fall-through to the default global enqueue
     }
-    return swift_task_enqueueGlobal(job);
+    return language_task_enqueueGlobal(job);
   }
 
   if (serialExecutorRef.isDefaultActor()) {
-    return swift_defaultActor_enqueue(job, serialExecutorRef.getDefaultActor());
+    return language_defaultActor_enqueue(job, serialExecutorRef.getDefaultActor());
   }
 
-#if SWIFT_CONCURRENCY_EMBEDDED
-  swift_unreachable("custom executors not supported in embedded Swift");
+#if LANGUAGE_CONCURRENCY_EMBEDDED
+  language_unreachable("custom executors not supported in embedded Codira");
 #else
   // For main actor or actors with custom executors
   auto serialExecutorIdentity = serialExecutorRef.getIdentity();
-  auto serialExecutorType = swift_getObjectType(serialExecutorIdentity);
+  auto serialExecutorType = language_getObjectType(serialExecutorIdentity);
   auto serialExecutorWtable = serialExecutorRef.getSerialExecutorWitnessTable();
-  _swift_task_enqueueOnExecutor(job, serialExecutorIdentity, serialExecutorType,
+  _language_task_enqueueOnExecutor(job, serialExecutorIdentity, serialExecutorType,
                                 serialExecutorWtable);
-#endif // SWIFT_CONCURRENCY_EMBEDDED
+#endif // LANGUAGE_CONCURRENCY_EMBEDDED
 }
 
 static void
-swift_actor_escalate(DefaultActorImpl *actor, AsyncTask *task, JobPriority newPriority) {
-#if !SWIFT_CONCURRENCY_ACTORS_AS_LOCKS
+language_actor_escalate(DefaultActorImpl *actor, AsyncTask *task, JobPriority newPriority) {
+#if !LANGUAGE_CONCURRENCY_ACTORS_AS_LOCKS
   return actor->enqueueStealer(task, newPriority);
 #endif
 }
 
-SWIFT_CC(swift)
-void swift::swift_executor_escalate(SerialExecutorRef executor, AsyncTask *task,
+LANGUAGE_CC(language)
+void language::language_executor_escalate(SerialExecutorRef executor, AsyncTask *task,
   JobPriority newPriority) {
   if (executor.isGeneric()) {
     // TODO (rokhinip): We'd push a stealer job for the task on the executor.
@@ -2759,7 +2730,7 @@ void swift::swift_executor_escalate(SerialExecutorRef executor, AsyncTask *task,
   }
 
   if (executor.isDefaultActor()) {
-    return swift_actor_escalate(asImpl(executor.getDefaultActor()), task, newPriority);
+    return language_actor_escalate(asImpl(executor.getDefaultActor()), task, newPriority);
   }
 
   // TODO (rokhinip): This is either the main actor or an actor with a custom
@@ -2775,17 +2746,17 @@ void swift::swift_executor_escalate(SerialExecutorRef executor, AsyncTask *task,
 /***************************** DISTRIBUTED ACTOR *****************************/
 /*****************************************************************************/
 
-void swift::swift_nonDefaultDistributedActor_initialize(NonDefaultDistributedActor *_actor) {
+void language::language_nonDefaultDistributedActor_initialize(NonDefaultDistributedActor *_actor) {
   asImpl(_actor)->initialize();
 }
 
 OpaqueValue*
-swift::swift_distributedActor_remote_initialize(const Metadata *actorType) {
+language::language_distributedActor_remote_initialize(const Metadata *actorType) {
   const ClassMetadata *metadata = actorType->getClassObject();
 
   // TODO(distributed): make this allocation smaller
   // ==== Allocate the memory for the remote instance
-  HeapObject *alloc = swift_allocObject(metadata,
+  HeapObject *alloc = language_allocObject(metadata,
                                         metadata->getInstanceSize(),
                                         metadata->getInstanceAlignMask());
 
@@ -2802,18 +2773,18 @@ swift::swift_distributedActor_remote_initialize(const Metadata *actorType) {
   if (isDefaultActorClass(metadata)) {
     auto actor = asImpl(reinterpret_cast<DefaultActor *>(alloc));
     actor->initialize(/*remote*/true);
-    assert(swift_distributed_actor_is_remote(alloc));
+    assert(language_distributed_actor_is_remote(alloc));
     return reinterpret_cast<OpaqueValue*>(actor);
   } else {
     auto actor = asImpl(reinterpret_cast<NonDefaultDistributedActor *>(alloc));
     actor->initialize(/*remote*/true);
-    assert(swift_distributed_actor_is_remote(alloc));
+    assert(language_distributed_actor_is_remote(alloc));
     return reinterpret_cast<OpaqueValue*>(actor);
   }
 }
 
-bool swift::swift_distributed_actor_is_remote(HeapObject *_actor) {
-#if !SWIFT_CONCURRENCY_EMBEDDED
+bool language::language_distributed_actor_is_remote(HeapObject *_actor) {
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
   const ClassMetadata *metadata = cast<ClassMetadata>(_actor->metadata);
   if (isDefaultActorClass(metadata)) {
     return asImpl(reinterpret_cast<DefaultActor *>(_actor))->isDistributedRemote();

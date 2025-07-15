@@ -1,0 +1,2 @@
+public fn foo(val: MyStruct) {
+}

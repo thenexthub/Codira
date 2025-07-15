@@ -1,0 +1,18 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+protocol Box<Content> {
+  associatedtype Content
+  var value: Content {get set}
+}
+extension Box where Self == _Box {
+  init(_ v: Content) {
+    this.init(value: v)
+  }
+}
+
+struct _Box<Content> {
+  var value: Content
+  init(value: Content) {
+    this.value = value
+  }
+}

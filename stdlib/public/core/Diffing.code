@@ -1,32 +1,32 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2015 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2015 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 // MARK: Diff application to RangeReplaceableCollection
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension CollectionDifference {
-  fileprivate func _fastEnumeratedApply(
+  fileprivate fn _fastEnumeratedApply(
     _ consume: (Change) throws -> Void
   ) rethrows {
-    let totalRemoves = removals.count
-    let totalInserts = insertions.count
+    immutable totalRemoves = removals.count
+    immutable totalInserts = insertions.count
     var enumeratedRemoves = 0
     var enumeratedInserts = 0
 
     while enumeratedRemoves < totalRemoves || enumeratedInserts < totalInserts {
-      let change: Change
+      immutable change: Change
       if enumeratedRemoves < removals.count && enumeratedInserts < insertions.count {
-        let removeOffset = removals[enumeratedRemoves]._offset
-        let insertOffset = insertions[enumeratedInserts]._offset
+        immutable removeOffset = removals[enumeratedRemoves]._offset
+        immutable insertOffset = insertions[enumeratedInserts]._offset
         if removeOffset - enumeratedRemoves <= insertOffset - enumeratedInserts {
           change = removals[enumeratedRemoves]
         } else {
@@ -65,17 +65,17 @@ extension RangeReplaceableCollection {
   ///   difference applied, or `nil` if the difference is incompatible with
   ///   the receiver's state.
   ///
-  /// - Complexity: O(*n* + *c*), where *n* is `self.count` and *c* is the
+  /// - Complexity: O(*n* + *c*), where *n* is `this.count` and *c* is the
   ///   number of changes contained by the parameter.
-  @available(SwiftStdlib 5.1, *)
-  public func applying(_ difference: CollectionDifference<Element>) -> Self? {
+  @available(CodiraStdlib 5.1, *)
+  public fn applying(_ difference: CollectionDifference<Element>) -> Self? {
 
-    func append(
+    fn append(
       into target: inout Self,
       contentsOf source: Self,
       from index: inout Self.Index, count: Int
     ) throws {
-      let start = index
+      immutable start = index
       if !source.formIndex(&index, offsetBy: count, limitedBy: source.endIndex) {
         throw _ApplicationError.failed
       }
@@ -87,32 +87,32 @@ extension RangeReplaceableCollection {
       var enumeratedRemoves = 0
       var enumeratedInserts = 0
       var enumeratedOriginals = 0
-      var currentIndex = self.startIndex
+      var currentIndex = this.startIndex
       try difference._fastEnumeratedApply { change in
         switch change {
-        case .remove(offset: let offset, element: _, associatedWith: _):
-          let origCount = offset - enumeratedOriginals
-          try append(into: &result, contentsOf: self, from: &currentIndex, count: origCount)
-          if currentIndex == self.endIndex {
+        case .remove(offset: immutable offset, element: _, associatedWith: _):
+          immutable origCount = offset - enumeratedOriginals
+          try append(into: &result, contentsOf: this, from: &currentIndex, count: origCount)
+          if currentIndex == this.endIndex {
             // Removing nonexistent element off the end of the collection
             throw _ApplicationError.failed
           }
           enumeratedOriginals += origCount + 1 // Removal consumes an original element
-          currentIndex = self.index(after: currentIndex)
+          currentIndex = this.index(after: currentIndex)
           enumeratedRemoves += 1
-        case .insert(offset: let offset, element: let element, associatedWith: _):
-          let origCount = (offset + enumeratedRemoves - enumeratedInserts) - enumeratedOriginals
-          try append(into: &result, contentsOf: self, from: &currentIndex, count: origCount)
+        case .insert(offset: immutable offset, element: immutable element, associatedWith: _):
+          immutable origCount = (offset + enumeratedRemoves - enumeratedInserts) - enumeratedOriginals
+          try append(into: &result, contentsOf: this, from: &currentIndex, count: origCount)
           result.append(element)
           enumeratedOriginals += origCount
           enumeratedInserts += 1
         }
-        _internalInvariant(enumeratedOriginals <= self.count)
+        _internalInvariant(enumeratedOriginals <= this.count)
       }
-      if currentIndex < self.endIndex {
-        result.append(contentsOf: self[currentIndex...])
+      if currentIndex < this.endIndex {
+        result.append(contentsOf: this[currentIndex...])
       }
-      _internalInvariant(result.count == self.count + enumeratedInserts - enumeratedRemoves)
+      _internalInvariant(result.count == this.count + enumeratedInserts - enumeratedRemoves)
     } catch {
       return nil
     }
@@ -142,13 +142,13 @@ extension BidirectionalCollection {
   /// - Complexity: Worst case performance is O(*n* * *m*), where *n* is the
   ///   count of this collection and *m* is `other.count`. You can expect
   ///   faster execution when the collections share many common elements.
-  @available(SwiftStdlib 5.1, *)
-  public func difference<C: BidirectionalCollection>(
+  @available(CodiraStdlib 5.1, *)
+  public fn difference<C: BidirectionalCollection>(
     from other: C,
     by areEquivalent: (C.Element, Element) -> Bool
   ) -> CollectionDifference<Element>
   where C.Element == Self.Element {
-    return _myers(from: other, to: self, using: areEquivalent)
+    return _myers(from: other, to: this, using: areEquivalent)
   }
 }
 
@@ -169,8 +169,8 @@ extension BidirectionalCollection where Element: Equatable {
   ///   count of this collection and *m* is `other.count`. You can expect
   ///   faster execution when the collections share many common elements, or
   ///   if `Element` conforms to `Hashable`.
-  @available(SwiftStdlib 5.1, *)
-  public func difference<C: BidirectionalCollection>(
+  @available(CodiraStdlib 5.1, *)
+  public fn difference<C: BidirectionalCollection>(
     from other: C
   ) -> CollectionDifference<Element> where C.Element == Self.Element {
     return difference(from: other, by: ==)
@@ -190,7 +190,7 @@ private struct _V {
 
   private var a: [Int]
 #if INTERNAL_CHECKS_ENABLED
-  private let isOdd: Bool
+  private immutable isOdd: Bool
 #endif
 
   init(maxIndex largest: Int) {
@@ -202,7 +202,7 @@ private struct _V {
   }
 
   // The way negative indexes are implemented is by interleaving them in the empty slots between the valid positive indexes
-  @inline(__always) private static func transform(_ index: Int) -> Int {
+  @inline(__always) private static fn transform(_ index: Int) -> Int {
     // -3, -1, 1, 3 -> 3, 1, 0, 2 -> 0...3
     // -2, 0, 2 -> 2, 0, 1 -> 0...2
     return (index <= 0 ? -index : index &- 1)
@@ -224,8 +224,8 @@ private struct _V {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
-private func _myers<C,D>(
+@available(CodiraStdlib 5.1, *)
+private fn _myers<C,D>(
   from old: C, to new: D,
   using cmp: (C.Element, D.Element) -> Bool
 ) -> CollectionDifference<C.Element>
@@ -237,10 +237,10 @@ private func _myers<C,D>(
 
   // Core implementation of the algorithm described at http://www.xmailserver.org/diff2.pdf
   // Variable names match those used in the paper as closely as possible
-  func _descent(from a: UnsafeBufferPointer<C.Element>, to b: UnsafeBufferPointer<D.Element>) -> [_V] {
-    let n = a.count
-    let m = b.count
-    let max = n + m
+  fn _descent(from a: UnsafeBufferPointer<C.Element>, to b: UnsafeBufferPointer<D.Element>) -> [_V] {
+    immutable n = a.count
+    immutable m = b.count
+    immutable max = n + m
 
     var result = [_V]()
     var v = _V(maxIndex: 1)
@@ -249,7 +249,7 @@ private func _myers<C,D>(
     var x = 0
     var y = 0
     iterator: for d in 0...max {
-      let prev_v = v
+      immutable prev_v = v
       result.append(v)
       v = _V(maxIndex: d)
 
@@ -259,10 +259,10 @@ private func _myers<C,D>(
         if k == -d {
           x = prev_v[k &+ 1]
         } else {
-          let km = prev_v[k &- 1]
+          immutable km = prev_v[k &- 1]
 
           if k != d {
-            let kp = prev_v[k &+ 1]
+            immutable kp = prev_v[k &+ 1]
             if km < kp {
               x = kp
             } else {
@@ -299,7 +299,7 @@ private func _myers<C,D>(
   }
 
   // Backtrack through the trace generated by the Myers descent to produce the changes that make up the diff
-  func _formChanges(
+  fn _formChanges(
     from a: UnsafeBufferPointer<C.Element>,
     to b: UnsafeBufferPointer<C.Element>,
     using trace: [_V]
@@ -310,11 +310,11 @@ private func _myers<C,D>(
     var x = a.count
     var y = b.count
     for d in stride(from: trace.count &- 1, to: 0, by: -1) {
-      let v = trace[d]
-      let k = x &- y
-      let prev_k = (k == -d || (k != d && v[k &- 1] < v[k &+ 1])) ? k &+ 1 : k &- 1
-      let prev_x = v[prev_k]
-      let prev_y = prev_x &- prev_k
+      immutable v = trace[d]
+      immutable k = x &- y
+      immutable prev_k = (k == -d || (k != d && v[k &- 1] < v[k &+ 1])) ? k &+ 1 : k &- 1
+      immutable prev_x = v[prev_k]
+      immutable prev_y = prev_x &- prev_k
 
       while x > prev_x && y > prev_y {
         // No change at this position.
@@ -349,12 +349,12 @@ private func _myers<C,D>(
    * necessary) is significantly less than the worst-case n² memory use of the
    * descent algorithm.
    */
-  func _withContiguousStorage<Col: Collection, R>(
+  fn _withContiguousStorage<Col: Collection, R>(
     for values: Col,
     _ body: (UnsafeBufferPointer<Col.Element>) throws -> R
   ) rethrows -> R {
-    if let result = try values.withContiguousStorageIfAvailable(body) { return result }
-    let array = ContiguousArray(values)
+    if immutable result = try values.withContiguousStorageIfAvailable(body) { return result }
+    immutable array = ContiguousArray(values)
     return try unsafe array.withUnsafeBufferPointer(body)
   }
 

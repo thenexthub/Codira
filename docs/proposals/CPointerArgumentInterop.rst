@@ -6,8 +6,8 @@ Summary
 Pointer arguments are a fact of life in C and Cocoa, and there's no way we're
 going to realistically annotate or wrap every API safely. However, there are
 plenty of well-behaved APIs that use pointer arguments in well-behaved ways
-that map naturally to Swift argument conventions, and we should interact with
-those APIs in a natural, Swift-ish way. To do so, I propose adding language
+that map naturally to Codira argument conventions, and we should interact with
+those APIs in a natural, Codira-ish way. To do so, I propose adding language
 and library facilities that enable the following uses of pointer
 arguments:
 
@@ -47,7 +47,7 @@ Arrays
 
 Const pointer arguments are frequently used in both C and Objective-C to take
 an array of arguments effectively by value. To support this use case, we should
-support passing a Swift ``Array`` value to a const pointer argument. An
+support passing a Codira ``Array`` value to a const pointer argument. An
 example from Core Foundation is ``CGColorCreate``, which takes a
 ``CGFloat`` array of color space-specific components::
 
@@ -140,7 +140,7 @@ For array parameters, the exact point of mutation inside the callee cannot be
 known, so a copy-on-write array buffer must be eagerly uniqued prior to the
 address of the array being taken::
 
-  func loadFloatsFromData(_ data: NSData) {
+  fn loadFloatsFromData(_ data: NSData) {
     var a: [Float] = [0.0, 0.0, 0.0, 0.0]
     var b = a
 
@@ -155,14 +155,14 @@ ObjC Types
 ARC semantics treat an ``NSFoo**`` type as a pointer to an ``__autoreleasing``
 ``NSFoo*``. Although in theory these interfaces could receive arrays of object
 pointers in Objective-C, that use case doesn't come up in Cocoa, and we can't
-reliably bridge such APIs into Swift. We only need to bridge ObjC mutable pointer
+reliably bridge such APIs into Codira. We only need to bridge ObjC mutable pointer
 types to accept a scalar ``inout`` object reference or ``nil``.
 
 Pointer Return Values
 ---------------------
 
 This proposal does not address the handling of return values, which should still
-be imported into Swift as ``UnsafeMutablePointer`` values.
+be imported into Codira as ``UnsafeMutablePointer`` values.
 
 
 Library Features
@@ -212,13 +212,13 @@ conversions are considered for ``inout`` parameters::
 
   extension Array {
     @unsafe_interior_pointer_conversion
-    func convertToConstPointer()
+    fn convertToConstPointer()
     -> (CConstPointer<T>, ArrayBuffer<T>) {
       return (CConstPointer(self.base), self.owner)
     }
 
     @unsafe_interior_pointer_conversion
-    mutating func convertToMutablePointer()
+    mutating fn convertToMutablePointer()
     -> (CMutablePointer<T>, ArrayBuffer<T>) {
       // Make the backing buffer unique before handing out a mutable pointer.
       self.makeUnique()
@@ -249,7 +249,7 @@ inout reference. The protocol is defined as follows::
 
     /// Create a value of the conforming type using the address of an inout
     /// argument.
-    class func _convertFromInOutAddress(_ p: Builtin.RawPointer) -> Self
+    class fn _convertFromInOutAddress(_ p: Builtin.RawPointer) -> Self
   }
 
 An example of a conformance for ``CMutablePointer``::
@@ -260,13 +260,13 @@ An example of a conformance for ``CMutablePointer``::
     typealias InOutType = T
 
     @_transparent
-    static func _convertFromInOutAddress(_ p: Builtin.RawPointer)
+    static fn _convertFromInOutAddress(_ p: Builtin.RawPointer)
     -> CMutablePointer {
       return CMutablePointer(p)
     }
   }
 
-  func foo(_ p: CMutablePointer<Int>) { }
+  fn foo(_ p: CMutablePointer<Int>) { }
 
   var i = 0
   foo(&i)
@@ -297,14 +297,14 @@ taken::
 
     /// Get the initial value the writeback temporary should have on entry to
     /// the call.
-    class func _createWriteback(inout InOutType) -> WritebackType
+    class fn _createWriteback(inout InOutType) -> WritebackType
 
     /// Create a value of the conforming type using the address of the writeback
     /// temporary.
-    class func _convertFromWritebackAddress(_ p: Builtin.RawPointer) -> Self
+    class fn _convertFromWritebackAddress(_ p: Builtin.RawPointer) -> Self
 
     /// Write the writeback temporary back to the original value.
-    class func _commitWriteback(inout InOutType, WritebackType)
+    class fn _commitWriteback(inout InOutType, WritebackType)
   }
 
 An example of a conformance for ``ObjCInOut``::
@@ -316,7 +316,7 @@ An example of a conformance for ``ObjCInOut``::
     typealias WritebackType = Builtin.RawPointer
 
     @_transparent
-    static func _createWriteback(ref: inout T!)
+    static fn _createWriteback(ref: inout T!)
     -> Builtin.RawPointer {
       // The initial object reference is passed into the callee effectively
       // __unsafe_unretained, so pass it as a RawPointer.
@@ -324,7 +324,7 @@ An example of a conformance for ``ObjCInOut``::
     }
 
     @_transparent
-    static func _commitWriteback(ref: inout T!,
+    static fn _commitWriteback(ref: inout T!,
                                  value: Builtin.RawPointer) {
       // The reference is autoreleased on return from the caller, so retain it
       // by loading it back as a T?.
@@ -332,7 +332,7 @@ An example of a conformance for ``ObjCInOut``::
     }
 
     @_transparent
-    static func _convertFromWritebackAddress(_ value: Builtin.RawPointer) {
+    static fn _convertFromWritebackAddress(_ value: Builtin.RawPointer) {
       return ObjCInOut(value)
     }
   }

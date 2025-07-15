@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/44070
+
+class X {}
+fn foo() {}
+
+immutable a:[X]()  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= = }}
+immutable b: [X]()  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+immutable c :[X]()  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{7-8== }}
+immutable d : [X]()  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{7-8==}}
+
+immutable e: X(), ee: Int  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+
+immutable f:/*comment*/[X]()  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= = }}
+
+var _1 = 1, _2 = 2
+
+// paren follows the type, but it's part of a separate (valid) expression
+immutable ff: X
+(_1, _2) = (_2, _1)
+immutable fff: X
+ (_1, _2) = (_2, _1)
+
+immutable g: X(x)  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+immutable h: X(x, y)  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+immutable i: X() { foo() }  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+immutable j: X(x) { foo() }  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+immutable k: X(x, y) { foo() }  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{6-7= =}}
+
+fn nonTopLevel() {
+  immutable a:[X]()   // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{8-9= = }}
+  immutable i: X() { foo() }  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{8-9= =}}
+  immutable j: X(x) { foo() }  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{8-9= =}}
+  immutable k: X(x, y) { foo() }  // expected-error{{unexpected initializer in pattern; did you mean to use '='?}} {{8-9= =}}
+  _ = (a, i, j, k)
+}

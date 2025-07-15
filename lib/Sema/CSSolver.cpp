@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the constraint solver used in the type checker.
@@ -25,14 +26,15 @@
 #include "language/Basic/Defer.h"
 #include "language/Sema/ConstraintGraph.h"
 #include "language/Sema/ConstraintSystem.h"
+#include "language/Sema/PreparedOverload.h"
 #include "language/Sema/SolutionResult.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <memory>
 #include <tuple>
@@ -61,11 +63,17 @@ STATISTIC(LargestSolutionAttemptNumber, "# of the largest solution attempt");
 
 TypeVariableType *ConstraintSystem::createTypeVariable(
                                      ConstraintLocator *locator,
-                                     unsigned options) {
+                                     unsigned options,
+                                     PreparedOverloadBuilder *preparedOverload) {
   ++TotalNumTypeVariables;
   auto tv = TypeVariableType::getNew(getASTContext(), assignTypeVariableID(),
                                      locator, options);
-  addTypeVariable(tv);
+  if (preparedOverload) {
+    ASSERT(PreparingOverload);
+    preparedOverload->addedTypeVariable(tv);
+  } else {
+    addTypeVariable(tv);
+  }
   return tv;
 }
 
@@ -76,9 +84,7 @@ Solution ConstraintSystem::finalize() {
   Solution solution(*this, CurrentScore);
 
   // Update the best score we've seen so far.
-  auto &ctx = getASTContext();
-  assert(ctx.TypeCheckerOpts.DisableConstraintSolverPerformanceHacks ||
-         !solverState->BestScore || CurrentScore <= *solverState->BestScore);
+  assert(!solverState->BestScore || CurrentScore <= *solverState->BestScore);
 
   if (!solverState->BestScore || CurrentScore <= *solverState->BestScore) {
     solverState->BestScore = CurrentScore;
@@ -90,13 +96,9 @@ Solution ConstraintSystem::finalize() {
 
     switch (solverState->AllowFreeTypeVariables) {
     case FreeTypeVariableBinding::Disallow:
-      llvm_unreachable("Solver left free type variables");
+      toolchain_unreachable("Solver left free type variables");
 
     case FreeTypeVariableBinding::Allow:
-      break;
-
-    case FreeTypeVariableBinding::UnresolvedType:
-      assignFixedType(tv, ctx.TheUnresolvedType);
       break;
     }
   }
@@ -145,7 +147,7 @@ Solution ConstraintSystem::finalize() {
   unsigned firstFixIndex =
       (solverState ? solverState->numPartialSolutionFixes : 0);
   for (const auto &fix :
-       llvm::make_range(Fixes.begin() + firstFixIndex, Fixes.end()))
+       toolchain::make_range(Fixes.begin() + firstFixIndex, Fixes.end()))
     solution.Fixes.push_back(fix);
 
   for (const auto &fix : FixedRequirements) {
@@ -493,7 +495,7 @@ bool ConstraintSystem::simplify() {
         constraint->getKind() != ConstraintKind::Conjunction;
 
     if (isDebugMode()) {
-      auto &log = llvm::errs();
+      auto &log = toolchain::errs();
       log.indent(solverState->getCurrentIndent());
       log << "(considering: ";
       constraint->print(log, &getASTContext().SourceMgr,
@@ -513,7 +515,7 @@ bool ConstraintSystem::simplify() {
     case SolutionKind::Error:
       retireFailedConstraint(constraint);
       if (isDebugMode()) {
-        auto &log = llvm::errs();
+        auto &log = toolchain::errs();
         if (isSimplifiable) {
           log.indent(solverState->getCurrentIndent() + 2) << ")\n";
         }
@@ -526,7 +528,7 @@ bool ConstraintSystem::simplify() {
         ++solverState->NumSimplifiedConstraints;
       retireConstraint(constraint);
       if (isDebugMode()) {
-        auto &log = llvm::errs();
+        auto &log = toolchain::errs();
         if (isSimplifiable) {
           log.indent(solverState->getCurrentIndent() + 2) << ")\n";
         }
@@ -539,7 +541,7 @@ bool ConstraintSystem::simplify() {
       if (solverState)
         ++solverState->NumUnsimplifiedConstraints;
       if (isDebugMode()) {
-        auto &log = llvm::errs();
+        auto &log = toolchain::errs();
         if (isSimplifiable) {
           log.indent(solverState->getCurrentIndent() + 2) << ")\n";
         }
@@ -550,7 +552,7 @@ bool ConstraintSystem::simplify() {
     }
 
     if (isDebugMode()) {
-      auto &log = llvm::errs();
+      auto &log = toolchain::errs();
       log.indent(solverState->getCurrentIndent()) << ")\n";
     }
 
@@ -585,28 +587,28 @@ void truncate(SmallVectorImpl<T> &vec, unsigned newSize) {
 }
 
 template<typename T, unsigned N>
-void truncate(llvm::SmallSetVector<T, N> &vec, unsigned newSize) {
+void truncate(toolchain::SmallSetVector<T, N> &vec, unsigned newSize) {
   assert(newSize <= vec.size() && "Not a truncation!");
   for (unsigned i = 0, n = vec.size() - newSize; i != n; ++i)
     vec.pop_back();
 }
 
 template <typename K, typename V>
-void truncate(llvm::MapVector<K, V> &map, unsigned newSize) {
+void truncate(toolchain::MapVector<K, V> &map, unsigned newSize) {
   assert(newSize <= map.size() && "Not a truncation!");
   for (unsigned i = 0, n = map.size() - newSize; i != n; ++i)
     map.pop_back();
 }
 
 template <typename K, typename V, unsigned N>
-void truncate(llvm::SmallMapVector<K, V, N> &map, unsigned newSize) {
+void truncate(toolchain::SmallMapVector<K, V, N> &map, unsigned newSize) {
   assert(newSize <= map.size() && "Not a truncation!");
   for (unsigned i = 0, n = map.size() - newSize; i != n; ++i)
     map.pop_back();
 }
 
 template <typename V>
-void truncate(llvm::SetVector<V> &vector, unsigned newSize) {
+void truncate(toolchain::SetVector<V> &vector, unsigned newSize) {
   while (vector.size() > newSize)
     vector.pop_back();
 }
@@ -634,9 +636,9 @@ ConstraintSystem::SolverState::SolverState(
   if (tyOpts.DebugConstraintSolverAttempt &&
       tyOpts.DebugConstraintSolverAttempt == SolutionAttempt) {
     CS.Options |= ConstraintSystemFlags::DebugConstraints;
-    llvm::errs().indent(CS.solverState->getCurrentIndent())
+    toolchain::errs().indent(CS.solverState->getCurrentIndent())
         << "---Constraint system #" << SolutionAttempt << "---\n";
-    CS.print(llvm::errs());
+    CS.print(toolchain::errs());
   }
 }
 
@@ -660,7 +662,7 @@ ConstraintSystem::SolverState::~SolverState() {
 #ifndef NDEBUG
     // Make sure that constraint is present in the "inactive" set
     // before transferring it to "active".
-    auto existing = llvm::find_if(CS.InactiveConstraints,
+    auto existing = toolchain::find_if(CS.InactiveConstraints,
                                   [&constraint](const Constraint &inactive) {
                                     return &inactive == constraint;
                                   });
@@ -689,7 +691,7 @@ ConstraintSystem::SolverState::~SolverState() {
   #define CS_STATISTIC(Name, Description) JOIN2(Overall,Name) += Name;
   #include "language/Sema/ConstraintSolverStats.def"
 
-#if LLVM_ENABLE_STATS
+#if TOOLCHAIN_ENABLE_STATS
   // Update the "largest" statistics if this system is larger than the
   // previous one.  
   // FIXME: This is not at all thread-safe.
@@ -804,7 +806,7 @@ ConstraintSystem::solveSingle(FreeTypeVariableBinding allowFreeTypeVariables,
 }
 
 bool ConstraintSystem::Candidate::solve(
-    llvm::SmallSetVector<OverloadSetRefExpr *, 4> &shrunkExprs) {
+    toolchain::SmallSetVector<OverloadSetRefExpr *, 4> &shrunkExprs) {
   // Don't attempt to solve candidate if there is closure
   // expression involved, because it's handled specially
   // by parent constraint system (e.g. parameter lists).
@@ -852,7 +854,7 @@ bool ConstraintSystem::Candidate::solve(
 
   auto &ctx = cs.getASTContext();
   if (cs.isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     auto indent = cs.solverState ? cs.solverState->getCurrentIndent() : 0;
     log.indent(indent) << "--- Solving candidate for shrinking at ";
     auto R = E->getSourceRange();
@@ -881,7 +883,7 @@ bool ConstraintSystem::Candidate::solve(
   }
 
   // Try to solve the system and record all available solutions.
-  llvm::SmallVector<Solution, 2> solutions;
+  toolchain::SmallVector<Solution, 2> solutions;
   {
     SolverState state(cs, FreeTypeVariableBinding::Allow);
 
@@ -891,7 +893,7 @@ bool ConstraintSystem::Candidate::solve(
   }
 
   if (cs.isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     auto indent = cs.solverState ? cs.solverState->getCurrentIndent() : 0;
     if (solutions.empty()) {
       log << "\n";
@@ -921,12 +923,12 @@ bool ConstraintSystem::Candidate::solve(
 }
 
 void ConstraintSystem::Candidate::applySolutions(
-    llvm::SmallVectorImpl<Solution> &solutions,
-    llvm::SmallSetVector<OverloadSetRefExpr *, 4> &shrunkExprs) const {
+    toolchain::SmallVectorImpl<Solution> &solutions,
+    toolchain::SmallSetVector<OverloadSetRefExpr *, 4> &shrunkExprs) const {
   // A collection of OSRs with their newly reduced domains,
   // it's domains are sets because multiple solutions can have the same
   // choice for one of the type variables, and we want no duplication.
-  llvm::SmallDenseMap<OverloadSetRefExpr *, llvm::SmallSetVector<ValueDecl *, 2>>
+  toolchain::SmallDenseMap<OverloadSetRefExpr *, toolchain::SmallSetVector<ValueDecl *, 2>>
     domains;
   for (auto &solution : solutions) {
     auto &score = solution.getFixedScore();
@@ -986,10 +988,10 @@ void ConstraintSystem::Candidate::applySolutions(
 }
 
 void ConstraintSystem::shrink(Expr *expr) {
-  if (getASTContext().TypeCheckerOpts.SolverDisableShrink)
+  if (!performanceHacksEnabled())
     return;
 
-  using DomainMap = llvm::SmallDenseMap<Expr *, ArrayRef<ValueDecl *>>;
+  using DomainMap = toolchain::SmallDenseMap<Expr *, ArrayRef<ValueDecl *>>;
 
   // A collection of original domains of all of the expressions,
   // so they can be restored in case of failure.
@@ -1004,11 +1006,11 @@ void ConstraintSystem::shrink(Expr *expr) {
     // All of the sub-expressions which are suitable to be solved
     // separately from the main system e.g. binary expressions, collections,
     // function calls, coercions etc.
-    llvm::SmallVector<Candidate, 4> Candidates;
+    toolchain::SmallVector<Candidate, 4> Candidates;
 
     // Counts the number of overload sets present in the tree so far.
     // Note that the traversal is depth-first.
-    llvm::SmallVector<std::pair<Expr *, unsigned>, 4> ApplyExprs;
+    toolchain::SmallVector<std::pair<Expr *, unsigned>, 4> ApplyExprs;
 
     // A collection of original domains of all of the expressions,
     // so they can be restored in case of failure.
@@ -1062,11 +1064,11 @@ void ConstraintSystem::shrink(Expr *expr) {
       }
 
       if (auto applyExpr = dyn_cast<ApplyExpr>(expr)) {
-        auto func = applyExpr->getFn();
+        auto fn = applyExpr->getFn();
         // Let's record this function application for post-processing
         // as well as if it contains overload set, see walkToExprPost.
         ApplyExprs.push_back(
-            {applyExpr, isa<OverloadSetRefExpr>(func) || isa<TypeExpr>(func)});
+            {applyExpr, isa<OverloadSetRefExpr>(fn) || isa<TypeExpr>(fn)});
       }
 
       return Action::Continue(expr);
@@ -1189,7 +1191,7 @@ void ConstraintSystem::shrink(Expr *expr) {
         if (boundGeneric->getDecl() == ctx.getInlineArrayDecl())
           return Type();
 
-        llvm::SmallVector<TupleTypeElt, 2> params;
+        toolchain::SmallVector<TupleTypeElt, 2> params;
         for (auto &type : boundGeneric->getGenericArgs()) {
           // One of the generic arguments in invalid or unresolved.
           if (isInvalidType(type))
@@ -1322,7 +1324,7 @@ void ConstraintSystem::shrink(Expr *expr) {
   // so we can start solving them separately.
   expr->walk(collector);
 
-  llvm::SmallSetVector<OverloadSetRefExpr *, 4> shrunkExprs;
+  toolchain::SmallSetVector<OverloadSetRefExpr *, 4> shrunkExprs;
   for (auto &candidate : collector.Candidates) {
     // If there are no results, let's forget everything we know about the
     // system so far. This actually is ok, because some of the expressions
@@ -1387,7 +1389,7 @@ bool constraints::debugConstraintSolverForTarget(
   // Check if `lines` contains at least one line `L` where
   // `startLine <= L <= endLine`. If it does, `lower_bound(startLine)` and
   // `upper_bound(endLine)` will be different.
-  auto startBound = llvm::lower_bound(lines, startLine);
+  auto startBound = toolchain::lower_bound(lines, startLine);
   auto endBound = std::upper_bound(startBound, lines.end(), endLine);
 
   return startBound != endBound;
@@ -1396,7 +1398,7 @@ bool constraints::debugConstraintSolverForTarget(
 std::optional<std::vector<Solution>>
 ConstraintSystem::solve(SyntacticElementTarget &target,
                         FreeTypeVariableBinding allowFreeTypeVariables) {
-  llvm::SaveAndRestore<ConstraintSystemOptions> debugForExpr(Options);
+  toolchain::SaveAndRestore<ConstraintSystemOptions> debugForExpr(Options);
   if (debugConstraintSolverForTarget(getASTContext(), target)) {
     Options |= ConstraintSystemFlags::DebugConstraints;
   }
@@ -1405,18 +1407,18 @@ ConstraintSystem::solve(SyntacticElementTarget &target,
   auto dumpSolutions = [&](const SolutionResult &result) {
     // Debug-print the set of solutions.
     if (isDebugMode()) {
-      auto &log = llvm::errs();
+      auto &log = toolchain::errs();
       auto indent = solverState ? solverState->getCurrentIndent() : 0;
       if (result.getKind() == SolutionResult::Success) {
         log << "\n";
         log.indent(indent) << "---Solution---\n";
-        result.getSolution().dump(llvm::errs(), indent);
+        result.getSolution().dump(toolchain::errs(), indent);
       } else if (result.getKind() == SolutionResult::Ambiguous) {
         auto solutions = result.getAmbiguousSolutions();
         for (unsigned i : indices(solutions)) {
           log << "\n";
           log.indent(indent) << "--- Solution #" << i << " ---\n";
-          solutions[i].dump(llvm::errs(), indent);
+          solutions[i].dump(toolchain::errs(), indent);
         }
       }
     }
@@ -1500,7 +1502,7 @@ ConstraintSystem::solve(SyntacticElementTarget &target,
         return std::move(result);
       }
 
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
     case SolutionResult::UndiagnosedError:
       if (stage == 1) {
@@ -1516,14 +1518,14 @@ ConstraintSystem::solve(SyntacticElementTarget &target,
     }
   }
 
-  llvm_unreachable("Loop always returns");
+  toolchain_unreachable("Loop always returns");
 }
 
 SolutionResult
 ConstraintSystem::solveImpl(SyntacticElementTarget &target,
                             FreeTypeVariableBinding allowFreeTypeVariables) {
   if (isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     log << "\n---Constraint solving at ";
     auto R = target.getSourceRange();
     if (R.isValid()) {
@@ -1571,7 +1573,7 @@ bool ConstraintSystem::solve(SmallVectorImpl<Solution> &solutions,
   solveImpl(solutions);
 
   if (isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     log << "\n---Solver statistics---\n";
     log << "Total number of scopes explored: " << solverState->NumSolverScopes << "\n";
     log << "Total number of trail steps: " << solverState->NumTrailSteps << "\n";
@@ -1597,7 +1599,7 @@ void ConstraintSystem::solveImpl(SmallVectorImpl<Solution> &solutions) {
 
   setPhase(ConstraintSystemPhase::Solving);
 
-  SWIFT_DEFER { setPhase(ConstraintSystemPhase::Finalization); };
+  LANGUAGE_DEFER { setPhase(ConstraintSystemPhase::Finalization); };
 
   // If constraint system failed while trying to
   // genenerate constraints, let's stop right here.
@@ -1665,7 +1667,7 @@ void ConstraintSystem::solveImpl(SmallVectorImpl<Solution> &solutions) {
       // It was impossible to solve this step, let's note that
       // for followup steps, to propagate the error.
       case SolutionKind::Error:
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
 
       // Step has been solved successfully by either
       // producing a partial solution, or more steps
@@ -1704,7 +1706,7 @@ void ConstraintSystem::solveForCodeCompletion(
   }
 
   if (isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     auto indent = solverState ? solverState->getCurrentIndent() : 0;
     log.indent(indent) << "--- Discovered " << solutions.size()
                        << " solutions ---\n";
@@ -1730,7 +1732,7 @@ bool ConstraintSystem::solveForCodeCompletion(
   }
 
   if (isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     log.indent(solverState ? solverState->getCurrentIndent() : 0)
         << "--- Code Completion ---\n";
   }
@@ -1753,7 +1755,7 @@ void ConstraintSystem::collectDisjunctions(
 ConstraintSystem::SolutionKind
 ConstraintSystem::filterDisjunction(
     Constraint *disjunction, bool restoreOnFail,
-    llvm::function_ref<bool(Constraint *)> pred) {
+    toolchain::function_ref<bool(Constraint *)> pred) {
   assert(disjunction->getKind() == ConstraintKind::Disjunction);
 
   SmallVector<Constraint *, 4> constraintsToRestoreOnFail;
@@ -1777,9 +1779,9 @@ ConstraintSystem::filterDisjunction(
 
     if (isDebugMode()) {
       auto indent = (solverState ? solverState->getCurrentIndent() : 0) + 4;
-      llvm::errs().indent(indent) << "(disabled disjunction term ";
-      constraint->print(llvm::errs(), &ctx.SourceMgr, indent);
-      llvm::errs().indent(indent) << ")\n";
+      toolchain::errs().indent(indent) << "(disabled disjunction term ";
+      constraint->print(toolchain::errs(), &ctx.SourceMgr, indent);
+      toolchain::errs().indent(indent) << ")\n";
     }
 
     if (!constraint->isDisabled()) {
@@ -1845,10 +1847,10 @@ ConstraintSystem::filterDisjunction(
 
     if (isDebugMode()) {
       auto indent = (solverState ? solverState->getCurrentIndent() : 0) + 4;
-      llvm::errs().indent(indent)
+      toolchain::errs().indent(indent)
           << "(introducing single enabled disjunction term ";
-      choice->print(llvm::errs(), &ctx.SourceMgr, indent);
-      llvm::errs().indent(indent) << ")\n";
+      choice->print(toolchain::errs(), &ctx.SourceMgr, indent);
+      toolchain::errs().indent(indent) << ")\n";
     }
 
     simplifyDisjunctionChoice(choice);
@@ -1919,7 +1921,7 @@ static Constraint *selectBestBindingDisjunction(
 std::optional<std::pair<Constraint *, unsigned>>
 ConstraintSystem::findConstraintThroughOptionals(
     TypeVariableType *typeVar, OptionalWrappingDirection optionalDirection,
-    llvm::function_ref<bool(Constraint *, TypeVariableType *)> predicate) {
+    toolchain::function_ref<bool(Constraint *, TypeVariableType *)> predicate) {
   unsigned numOptionals = 0;
   auto *rep = getRepresentative(typeVar);
 
@@ -2020,7 +2022,30 @@ tryOptimizeGenericDisjunction(ConstraintSystem &cs, Constraint *disjunction,
       return nullptr;
   }
 
-  llvm::SmallVector<Constraint *, 4> choices;
+  if (!cs.performanceHacksEnabled()) {
+    // Don't attempt this optimization if call has number literals.
+    // This is intended to narrowly fix situations like:
+    //
+    // fn test<T: FloatingPoint>(_: T) { ... }
+    // fn test<T: Numeric>(_: T) { ... }
+    //
+    // test(42)
+    //
+    // The call should use `<T: Numeric>` overload even though the
+    // `<T: FloatingPoint>` is a more specialized version because
+    // selecting `<T: Numeric>` doesn't introduce non-default literal
+    // types.
+    if (auto *argFnType = cs.getAppliedDisjunctionArgumentFunction(disjunction)) {
+      if (toolchain::any_of(
+              argFnType->getParams(), [](const AnyFunctionType::Param &param) {
+                auto *typeVar = param.getPlainType()->getAs<TypeVariableType>();
+                return typeVar && typeVar->getImpl().isNumberLiteralType();
+              }))
+        return nullptr;
+    }
+  }
+
+  toolchain::SmallVector<Constraint *, 4> choices;
   for (auto *choice : constraints) {
     if (choices.size() > 2)
       return nullptr;
@@ -2084,7 +2109,7 @@ tryOptimizeGenericDisjunction(ConstraintSystem &cs, Constraint *disjunction,
   case Comparison::Unordered:
     return nullptr;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Populates the \c found vector with the indices of the given constraints
@@ -2204,7 +2229,7 @@ void DisjunctionChoiceProducer::partitionGenericOperators(
   }
 
   auto sortPartition = [&](SmallVectorImpl<unsigned> &partition) {
-    llvm::sort(partition, [&](unsigned lhs, unsigned rhs) -> bool {
+    toolchain::sort(partition, [&](unsigned lhs, unsigned rhs) -> bool {
       auto *declA =
           dyn_cast<ValueDecl>(Choices[lhs]->getOverloadChoice().getDecl());
       auto *declB =
@@ -2296,6 +2321,8 @@ void DisjunctionChoiceProducer::partitionDisjunction(
   // end of the partitioning.
   SmallVector<unsigned, 4> favored;
   SmallVector<unsigned, 4> everythingElse;
+  // Disfavored choices are part of `everythingElse` but introduced at the end.
+  SmallVector<unsigned, 4> disfavored;
   SmallVector<unsigned, 4> simdOperators;
   SmallVector<unsigned, 4> disabled;
   SmallVector<unsigned, 4> unavailable;
@@ -2326,6 +2353,11 @@ void DisjunctionChoiceProducer::partitionDisjunction(
     if (auto *decl = getOverloadChoiceDecl(constraint)) {
       if (isa<VarDecl>(decl)) {
         everythingElse.push_back(index);
+        return true;
+      }
+
+      if (decl->getAttrs().hasAttribute<DisfavoredOverloadAttr>()) {
+        disfavored.push_back(index);
         return true;
       }
     }
@@ -2371,6 +2403,9 @@ void DisjunctionChoiceProducer::partitionDisjunction(
     return true;
   });
 
+  // Introduce disfavored choices at the end.
+  everythingElse.append(disfavored);
+
   // Local function to create the next partition based on the options
   // passed in.
   PartitionAppendCallback appendPartition =
@@ -2390,7 +2425,7 @@ void DisjunctionChoiceProducer::partitionDisjunction(
   assert(Ordering.size() == Choices.size());
 }
 
-Constraint *ConstraintSystem::selectDisjunction() {
+Constraint *ConstraintSystem::selectDisjunctionWithHacks() {
   SmallVector<Constraint *, 4> disjunctions;
 
   collectDisjunctions(disjunctions);
@@ -2512,8 +2547,8 @@ bool DisjunctionChoice::isSymmetricOperator() const {
   if (!decl)
     return false;
 
-  auto func = dyn_cast<FuncDecl>(decl);
-  auto paramList = func->getParameters();
+  auto fn = dyn_cast<FuncDecl>(decl);
+  auto paramList = fn->getParameters();
   if (paramList->size() != 2)
     return true;
 
@@ -2527,8 +2562,8 @@ bool DisjunctionChoice::isUnaryOperator() const {
   if (!decl)
     return false;
 
-  auto func = cast<FuncDecl>(decl);
-  return func->getParameters()->size() == 1;
+  auto fn = cast<FuncDecl>(decl);
+  return fn->getParameters()->size() == 1;
 }
 
 void DisjunctionChoice::propagateConversionInfo(ConstraintSystem &cs) const {
@@ -2595,12 +2630,12 @@ void DisjunctionChoice::propagateConversionInfo(ConstraintSystem &cs) const {
 bool ConjunctionElement::attempt(ConstraintSystem &cs) const {
   // First, let's bring all referenced variables into scope.
   {
-    llvm::SmallPtrSet<TypeVariableType *, 4> referencedVars;
+    toolchain::SmallPtrSet<TypeVariableType *, 4> referencedVars;
     findReferencedVariables(cs, referencedVars);
 
     if (cs.isDebugMode()) {
       auto indent = cs.solverState->getCurrentIndent();
-      auto &log = llvm::errs().indent(indent);
+      auto &log = toolchain::errs().indent(indent);
       log << "(Element type variables in scope: ";
       interleave(
         referencedVars,

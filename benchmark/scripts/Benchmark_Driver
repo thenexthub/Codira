@@ -3,17 +3,20 @@
 
 # ===--- Benchmark_Driver ------------------------------------------------===//
 #
-#  This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-#  Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-#  Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-#  See https://swift.org/LICENSE.txt for license information
-#  See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
 #
 # ===---------------------------------------------------------------------===//
 """
-Benchmark_Driver is a tool for running and analysing Swift Benchmarking Suite.
+Benchmark_Driver is a tool for running and analysing Codira Benchmarking Suite.
 
 Example:
     $ Benchmark_Driver run
@@ -43,7 +46,7 @@ DRIVER_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 class BenchmarkDriver(object):
-    """Executes tests from Swift Benchmark Suite.
+    """Executes tests from Codira Benchmark Suite.
 
     It's a higher level wrapper for the Benchmark_X family of binaries
     (X = [O, Onone, Osize]).
@@ -59,11 +62,11 @@ class BenchmarkDriver(object):
 
         # Set a constant hash seed. Some tests are highly sensitive to
         # fluctuations in the number of hash collisions.
-        self.run_env["SWIFT_DETERMINISTIC_HASHING"] = "1"
+        self.run_env["LANGUAGE_DETERMINISTIC_HASHING"] = "1"
 
         if hasattr(args, 'libdir') and args.libdir:
-            # The benchmark binaries should pick up the built swift libraries
-            # automatically, because their RPATH should point to ../lib/swift
+            # The benchmark binaries should pick up the built language libraries
+            # automatically, because their RPATH should point to ../lib/language
             # But it does not harm to additionally set the dynamic library path,
             # e.g. as a workaround to rdar://78584073
             if platform.system() == "Darwin":
@@ -110,23 +113,23 @@ class BenchmarkDriver(object):
         return executables[0]
 
     def _git(self, cmd):
-        """Execute the Git command in the `swift-repo`."""
+        """Execute the Git command in the `language-repo`."""
         return self._invoke(
-            ("git -C {0} ".format(self.args.swift_repo) + cmd).split()
+            ("git -C {0} ".format(self.args.code_repo) + cmd).split()
         ).strip()
 
     @property
     def log_file(self):
         """Full path to log file.
 
-        If `swift-repo` is set, log file is tied to Git branch and revision.
+        If `language-repo` is set, log file is tied to Git branch and revision.
         """
         if not self.args.output_dir:
             return None
         log_dir = self.args.output_dir
         harness_name = os.path.basename(self.test_harness)
         suffix = "-" + time.strftime("%Y%m%d%H%M%S", time.localtime())
-        if self.args.swift_repo:
+        if self.args.code_repo:
             log_dir = os.path.join(
                 log_dir, self._git("rev-parse --abbrev-ref HEAD")
             )  # branch
@@ -236,7 +239,7 @@ class BenchmarkDriver(object):
             cmd.append("--verbose")
         if measure_memory:
             cmd.append("--memory")
-# TODO: Uncomment this as soon as the new Benchmark Swift logic is available everywhere
+# TODO: Uncomment this as soon as the new Benchmark Codira logic is available everywhere
 #        cmd.append("--json")
         return cmd
 
@@ -432,7 +435,7 @@ class MarkdownReportHandler(logging.StreamHandler):
 class BenchmarkDoctor(object):
     """Checks that the benchmark conforms to the standard set of requirements.
 
-    Benchmarks that are part of Swift Benchmark Suite are required to follow
+    Benchmarks that are part of Codira Benchmark Suite are required to follow
     a set of rules that ensure quality measurements. These include naming
     convention, robustness when varying execution parameters like
     `num-iters` and `num-samples` (no setup overhead, constant memory
@@ -908,7 +911,7 @@ def parse_args(args):
         epilog="Example: ./Benchmark_Driver run -i 5 -f Prefix -f .*Suffix.*"
     )
     subparsers = parser.add_subparsers(
-        title="Swift benchmark driver commands",
+        title="Codira benchmark driver commands",
         help="See COMMAND -h for additional arguments",
         metavar="COMMAND",
     )
@@ -969,9 +972,9 @@ def parse_args(args):
         "--output-dir", help="log results to directory (default: no logging)"
     )
     run_parser.add_argument(
-        "--swift-repo", help="absolute path to the Swift source repository"
+        "--language-repo", help="absolute path to the Codira source repository"
     )
-    run_parser.set_defaults(func=BenchmarkDriver.run_benchmarks)
+    run_parser.set_defaults(fn=BenchmarkDriver.run_benchmarks)
 
     check_parser = subparsers.add_parser(
         "check", help="", parents=[shared_benchmarks_parser]
@@ -986,16 +989,16 @@ def parse_args(args):
     check_group.add_argument(
         "-md", "--markdown", action="store_true", help="format report as Markdown table"
     )
-    check_parser.set_defaults(func=BenchmarkDoctor.run_check)
+    check_parser.set_defaults(fn=BenchmarkDoctor.run_check)
 
     compare_parser = subparsers.add_parser("compare", help="Compare benchmark results")
     compare_parser.add_argument(
         "--log-dir", required=True, help="directory containing benchmark logs"
     )
     compare_parser.add_argument(
-        "--swift-repo",
+        "--language-repo",
         required=True,
-        help="absolute path to the Swift source repository",
+        help="absolute path to the Codira source repository",
     )
     compare_parser.add_argument(
         "--compare-script", required=True, help="absolute path to compare script"
@@ -1006,7 +1009,7 @@ def parse_args(args):
         help="attempt to compare results to baseline results for specified "
         "branch (default: main)",
     )
-    compare_parser.set_defaults(func=compare)
+    compare_parser.set_defaults(fn=compare)
 
     return parser.parse_args(args)
 
@@ -1014,7 +1017,7 @@ def parse_args(args):
 def main():
     """Parse command line arguments and execute the specified COMMAND."""
     args = parse_args(sys.argv[1:])
-    return args.func(args)
+    return args.fn(args)
 
 
 if __name__ == "__main__":

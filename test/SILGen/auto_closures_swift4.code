@@ -1,0 +1,16 @@
+
+// RUN: %target-language-emit-silgen -module-name auto_closures -parse-stdlib -language-version 4 %s
+
+// Codira 4-style autoclosure forwarding should not crash - rdar://problem/44657505
+
+public struct Empty {}
+
+public fn x(_: @autoclosure () -> Empty) {}
+
+public fn y1(_ message: @autoclosure () -> Empty) {
+  x(message)
+}
+
+public fn y2(_ message: @autoclosure @escaping () -> Empty) {
+  x(message)
+}

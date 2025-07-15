@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the \c ConstraintLocator class and its related types,
@@ -26,13 +27,13 @@
 #include "language/Sema/Constraint.h"
 #include "language/Sema/ConstraintLocator.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace constraints;
 
-void ConstraintLocator::Profile(llvm::FoldingSetNodeID &id, ASTNode anchor,
+void ConstraintLocator::Profile(toolchain::FoldingSetNodeID &id, ASTNode anchor,
                                 ArrayRef<PathElement> path) {
   id.AddPointer(anchor.getOpaqueValue());
   id.AddInteger(path.size());
@@ -128,7 +129,7 @@ unsigned LocatorPathElt::getNewSummaryFlags() const {
   }
   }
 
-  llvm_unreachable("Unhandled PathElementKind in switch.");
+  toolchain_unreachable("Unhandled PathElementKind in switch.");
 }
 
 void LocatorPathElt::dump(raw_ostream &out) const {
@@ -185,8 +186,8 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::ApplyArgToParam: {
     auto argElt = elt.castTo<LocatorPathElt::ApplyArgToParam>();
-    out << "comparing call argument #" << llvm::utostr(argElt.getArgIdx())
-        << " to parameter #" << llvm::utostr(argElt.getParamIdx());
+    out << "comparing call argument #" << toolchain::utostr(argElt.getArgIdx())
+        << " to parameter #" << toolchain::utostr(argElt.getParamIdx());
     if (argElt.getParameterFlags().isNonEphemeral())
       out << " (non-ephemeral)";
     break;
@@ -233,7 +234,7 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::GenericArgument: {
     auto genericElt = elt.castTo<LocatorPathElt::GenericArgument>();
-    out << "generic argument #" << llvm::utostr(genericElt.getIndex());
+    out << "generic argument #" << toolchain::utostr(genericElt.getIndex());
     break;
   }
   case ConstraintLocator::InstanceType:
@@ -266,7 +267,7 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::NamedTupleElement: {
     auto tupleElt = elt.castTo<LocatorPathElt::NamedTupleElement>();
-    out << "named tuple element #" << llvm::utostr(tupleElt.getIndex());
+    out << "named tuple element #" << toolchain::utostr(tupleElt.getIndex());
     break;
   }
   case ConstraintLocator::UnresolvedMember:
@@ -283,7 +284,7 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::ProtocolCompositionMemberType: {
     auto memberElt = elt.castTo<LocatorPathElt::ProtocolCompositionMemberType>();
-    out << "protocol composition member " << llvm::utostr(memberElt.getIndex());
+    out << "protocol composition member " << toolchain::utostr(memberElt.getIndex());
     break;
   }
 
@@ -301,12 +302,12 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::TupleElement: {
     auto tupleElt = elt.castTo<LocatorPathElt::TupleElement>();
-    out << "tuple element #" << llvm::utostr(tupleElt.getIndex());
+    out << "tuple element #" << toolchain::utostr(tupleElt.getIndex());
     break;
   }
   case ConstraintLocator::KeyPathComponent: {
     auto kpElt = elt.castTo<LocatorPathElt::KeyPathComponent>();
-    out << "key path component #" << llvm::utostr(kpElt.getIndex());
+    out << "key path component #" << toolchain::utostr(kpElt.getIndex());
     break;
   }
   case ConstraintLocator::ProtocolRequirement: {
@@ -329,13 +330,13 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::ConditionalRequirement: {
     auto reqElt = elt.castTo<LocatorPathElt::ConditionalRequirement>();
-    out << "conditional requirement #" << llvm::utostr(reqElt.getIndex());
+    out << "conditional requirement #" << toolchain::utostr(reqElt.getIndex());
     dumpReqKind(reqElt.getRequirementKind());
     break;
   }
   case ConstraintLocator::TypeParameterRequirement: {
     auto reqElt = elt.castTo<LocatorPathElt::TypeParameterRequirement>();
-    out << "type parameter requirement #" << llvm::utostr(reqElt.getIndex());
+    out << "type parameter requirement #" << toolchain::utostr(reqElt.getIndex());
     dumpReqKind(reqElt.getRequirementKind());
     break;
   }
@@ -363,7 +364,7 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::SynthesizedArgument: {
     auto argElt = elt.castTo<LocatorPathElt::SynthesizedArgument>();
-    out << "synthesized argument #" << llvm::utostr(argElt.getIndex());
+    out << "synthesized argument #" << toolchain::utostr(argElt.getIndex());
     break;
   }
   case ConstraintLocator::KeyPathDynamicMember:
@@ -479,7 +480,7 @@ void LocatorPathElt::dump(raw_ostream &out) const {
 
   case ConstraintLocator::PackElement: {
     auto packElt = elt.castTo<LocatorPathElt::PackElement>();
-    out << "pack element #" << llvm::utostr(packElt.getIndex());
+    out << "pack element #" << toolchain::utostr(packElt.getIndex());
     break;
   }
 
@@ -497,7 +498,7 @@ void LocatorPathElt::dump(raw_ostream &out) const {
     auto patternBindingElt =
         elt.castTo<LocatorPathElt::PatternBindingElement>();
     out << "pattern binding element #"
-        << llvm::utostr(patternBindingElt.getIndex());
+        << toolchain::utostr(patternBindingElt.getIndex());
     break;
   }
 
@@ -586,7 +587,7 @@ bool ConstraintLocator::isKeyPathValue() const {
 }
 
 bool ConstraintLocator::isResultOfKeyPathDynamicMemberLookup() const {
-  return llvm::any_of(getPath(), [](const LocatorPathElt &elt) {
+  return toolchain::any_of(getPath(), [](const LocatorPathElt &elt) {
     return elt.isKeyPathDynamicMember();
   });
 }
@@ -598,7 +599,7 @@ bool ConstraintLocator::isKeyPathSubscriptComponent() const {
     return false;
 
   using ComponentKind = KeyPathExpr::Component::Kind;
-  return llvm::any_of(getPath(), [&](const LocatorPathElt &elt) {
+  return toolchain::any_of(getPath(), [&](const LocatorPathElt &elt) {
     auto keyPathElt = elt.getAs<LocatorPathElt::KeyPathComponent>();
     if (!keyPathElt)
       return false;
@@ -617,7 +618,7 @@ bool ConstraintLocator::isKeyPathMemberComponent() const {
     return false;
 
   using ComponentKind = KeyPathExpr::Component::Kind;
-  return llvm::any_of(getPath(), [&](const LocatorPathElt &elt) {
+  return toolchain::any_of(getPath(), [&](const LocatorPathElt &elt) {
     auto keyPathElt = elt.getAs<LocatorPathElt::KeyPathComponent>();
     if (!keyPathElt)
       return false;
@@ -635,7 +636,7 @@ bool ConstraintLocator::isForKeyPathDynamicMemberLookup() const {
 }
 
 bool ConstraintLocator::isInKeyPathComponent() const {
-  return llvm::any_of(getPath(), [&](const LocatorPathElt &elt) {
+  return toolchain::any_of(getPath(), [&](const LocatorPathElt &elt) {
     return elt.isKeyPathComponent();
   });
 }
@@ -795,13 +796,13 @@ Type ConstraintLocator::getWrappedValue() const {
 }
 
 void ConstraintLocator::dump(SourceManager *sm) const {
-  dump(sm, llvm::errs());
-  llvm::errs() << "\n";
+  dump(sm, toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 void ConstraintLocator::dump(ConstraintSystem *CS) const {
-  dump(&CS->getASTContext().SourceMgr, llvm::errs());
-  llvm::errs() << "\n";
+  dump(&CS->getASTContext().SourceMgr, toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 
@@ -822,16 +823,16 @@ void ConstraintLocator::dump(SourceManager *sm, raw_ostream &out) const {
 
 
 void ConstraintLocatorBuilder::dump(SourceManager *sm) const {
-  dump(sm, llvm::errs());
-  llvm::errs() << "\n";
+  dump(sm, toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 void ConstraintLocatorBuilder::dump(ConstraintSystem *CS) const {
-  dump(&CS->getASTContext().SourceMgr, llvm::errs());
-  llvm::errs() << "\n";
+  dump(&CS->getASTContext().SourceMgr, toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
-void ConstraintLocatorBuilder::dump(SourceManager *SM, llvm::raw_ostream &out) const {
+void ConstraintLocatorBuilder::dump(SourceManager *SM, toolchain::raw_ostream &out) const {
   if (auto prev = previous.dyn_cast<ConstraintLocator *>()) {
     prev->dump(SM, out);
   } else if (auto prev = previous.dyn_cast<ConstraintLocatorBuilder *>()) {

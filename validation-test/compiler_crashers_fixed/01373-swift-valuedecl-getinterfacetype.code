@@ -1,0 +1,27 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+import Foundation
+extension NSData {
+var d = c
+immutable c(n: d {
+override init(a(this)] == a")
+fn i> : a: k.C) -> {
+public class A<H : Sequence where T>() {
+}
+}
+protocol A {
+}
+protocol a {
+typealias A : A, T : d where T : (c: e = Codira.f = B
+fn f<f = .Element>(2, ((x(")() -> T: AnyObject> Any in
+fn b, le

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/NameLookupRequests.h"
@@ -32,11 +33,11 @@ using namespace language;
 
 namespace language {
 // Implement the name lookup type zone.
-#define SWIFT_TYPEID_ZONE NameLookup
-#define SWIFT_TYPEID_HEADER "swift/AST/NameLookupTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE NameLookup
+#define LANGUAGE_TYPEID_HEADER "language/AST/NameLookupTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 }
 
 //----------------------------------------------------------------------------//
@@ -191,7 +192,7 @@ HasMissingDesignatedInitializersRequest::evaluate(Evaluator &evaluator,
       {});
 
   auto constructors = subject->lookupDirect(DeclBaseName::createConstructor());
-  return llvm::any_of(constructors, [&](ValueDecl *decl) {
+  return toolchain::any_of(constructors, [&](ValueDecl *decl) {
     auto init = cast<ConstructorDecl>(decl);
     if (!init->isDesignatedInit())
       return false;
@@ -295,7 +296,7 @@ void GenericParamListRequest::cacheResult(GenericParamList *params) const {
 // UnqualifiedLookupRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const UnqualifiedLookupDescriptor &desc) {
   out << "looking up ";
   simple_display(out, desc.Name);
@@ -306,7 +307,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(const UnqualifiedLookupDescriptor &desc) {
+language::extractNearestSourceLoc(const UnqualifiedLookupDescriptor &desc) {
   return extractNearestSourceLoc(desc.DC);
 }
 
@@ -314,7 +315,7 @@ swift::extractNearestSourceLoc(const UnqualifiedLookupDescriptor &desc) {
 // DirectLookupRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const DirectLookupDescriptor &desc) {
   out << "directly looking up ";
   simple_display(out, desc.Name);
@@ -324,7 +325,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   simple_display(out, desc.Options);
 }
 
-SourceLoc swift::extractNearestSourceLoc(const DirectLookupDescriptor &desc) {
+SourceLoc language::extractNearestSourceLoc(const DirectLookupDescriptor &desc) {
   return extractNearestSourceLoc(desc.DC);
 }
 
@@ -348,10 +349,10 @@ ArrayRef<FileUnit *> OperatorLookupDescriptor::getFiles() const {
     return module->getFiles();
 
   // Return an ArrayRef pointing to the FileUnit in the union.
-  return llvm::ArrayRef(*fileOrModule.getAddrOfPtr1());
+  return toolchain::ArrayRef(*fileOrModule.getAddrOfPtr1());
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const OperatorLookupDescriptor &desc) {
   out << "looking up operator ";
   simple_display(out, desc.name);
@@ -359,7 +360,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   simple_display(out, desc.fileOrModule);
 }
 
-SourceLoc swift::extractNearestSourceLoc(const OperatorLookupDescriptor &desc) {
+SourceLoc language::extractNearestSourceLoc(const OperatorLookupDescriptor &desc) {
   return extractNearestSourceLoc(desc.fileOrModule);
 }
 
@@ -395,7 +396,7 @@ void LookupInModuleRequest::writeDependencySink(
   }
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const LookupConformanceDescriptor &desc) {
   out << "looking up conformance to ";
   simple_display(out, desc.PD);
@@ -415,7 +416,7 @@ void AnyObjectLookupRequest::writeDependencySink(
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(const LookupConformanceDescriptor &desc) {
+language::extractNearestSourceLoc(const LookupConformanceDescriptor &desc) {
   return SourceLoc();
 }
 
@@ -475,7 +476,7 @@ void UnqualifiedLookupRequest::writeDependencySink(
 // SPIGroupsRequest computation.
 //----------------------------------------------------------------------------//
 
-std::optional<llvm::ArrayRef<Identifier>> SPIGroupsRequest::getCachedResult() const {
+std::optional<toolchain::ArrayRef<Identifier>> SPIGroupsRequest::getCachedResult() const {
   auto *decl = std::get<0>(getStorage());
   if (decl->hasNoSPIGroups())
     return ArrayRef<Identifier>();
@@ -483,7 +484,7 @@ std::optional<llvm::ArrayRef<Identifier>> SPIGroupsRequest::getCachedResult() co
   return decl->getASTContext().evaluator.getCachedNonEmptyOutput(*this);
 }
 
-void SPIGroupsRequest::cacheResult(llvm::ArrayRef<Identifier> result) const {
+void SPIGroupsRequest::cacheResult(toolchain::ArrayRef<Identifier> result) const {
   auto *decl = std::get<0>(getStorage());
   if (result.empty()) {
     const_cast<Decl *>(decl)->setHasNoSPIGroups();
@@ -501,7 +502,7 @@ void SPIGroupsRequest::cacheResult(llvm::ArrayRef<Identifier> result) const {
 // ClangDirectLookupRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const ClangDirectLookupDescriptor &desc) {
   out << "Looking up ";
   simple_display(out, desc.name);
@@ -510,7 +511,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(const ClangDirectLookupDescriptor &desc) {
+language::extractNearestSourceLoc(const ClangDirectLookupDescriptor &desc) {
   return extractNearestSourceLoc(desc.decl);
 }
 
@@ -518,7 +519,7 @@ swift::extractNearestSourceLoc(const ClangDirectLookupDescriptor &desc) {
 // CXXNamespaceMemberLookup computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const CXXNamespaceMemberLookupDescriptor &desc) {
   out << "Looking up ";
   simple_display(out, desc.name);
@@ -527,7 +528,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(const CXXNamespaceMemberLookupDescriptor &desc) {
+language::extractNearestSourceLoc(const CXXNamespaceMemberLookupDescriptor &desc) {
   return extractNearestSourceLoc(desc.namespaceDecl);
 }
 
@@ -535,7 +536,7 @@ swift::extractNearestSourceLoc(const CXXNamespaceMemberLookupDescriptor &desc) {
 // ClangRecordMemberLookup computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const ClangRecordMemberLookupDescriptor &desc) {
   out << "Looking up ";
   simple_display(out, desc.name);
@@ -547,7 +548,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(const ClangRecordMemberLookupDescriptor &desc) {
+language::extractNearestSourceLoc(const ClangRecordMemberLookupDescriptor &desc) {
   return extractNearestSourceLoc(desc.recordDecl);
 }
 
@@ -555,7 +556,7 @@ swift::extractNearestSourceLoc(const ClangRecordMemberLookupDescriptor &desc) {
 // CustomRefCountingOperation computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            CustomRefCountingOperationDescriptor desc) {
   out << "Finding custom (foreign reference) reference counting operation '"
       << (desc.kind == CustomRefCountingOperationKind::retain ? "retain"
@@ -564,7 +565,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(CustomRefCountingOperationDescriptor desc) {
+language::extractNearestSourceLoc(CustomRefCountingOperationDescriptor desc) {
   return SourceLoc();
 }
 
@@ -572,7 +573,7 @@ swift::extractNearestSourceLoc(CustomRefCountingOperationDescriptor desc) {
 // Macro-related adjustments to name lookup requests.
 //----------------------------------------------------------------------------//
 //
-// Macros introduced a significant wrinkle into Swift's name lookup mechanism.
+// Macros introduced a significant wrinkle into Codira's name lookup mechanism.
 // Specifically, when resolving names (and, really, anything else) within the
 // arguments to a macro expansion, name lookup must not try to expand any
 // macros, because doing so trivially creates a cyclic dependency amongst the
@@ -667,21 +668,21 @@ DirectLookupRequest::DirectLookupRequest(DirectLookupDescriptor descriptor, Sour
     : SimpleRequest(contextualizeOptions(descriptor, loc)) { }
 
 // Implement the clang importer type zone.
-#define SWIFT_TYPEID_ZONE ClangImporter
-#define SWIFT_TYPEID_HEADER "swift/ClangImporter/ClangImporterTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE ClangImporter
+#define LANGUAGE_TYPEID_HEADER "language/ClangImporter/ClangImporterTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Define request evaluation functions for each of the name lookup requests.
 static AbstractRequestFunction *nameLookupRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/NameLookupTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerNameLookupRequestFunctions(Evaluator &evaluator) {
+void language::registerNameLookupRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::NameLookup,
                                      nameLookupRequestFunctions);
 }

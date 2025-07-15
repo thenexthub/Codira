@@ -1,0 +1,2 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+immutable A{n{fn a<A{struct S<T{fn b{init(={fn a{var f{class B:#^A^#

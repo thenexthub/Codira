@@ -1,4 +1,4 @@
-target_sources(swiftSIL PRIVATE
+target_sources(languageSIL PRIVATE
   BasicBlockUtils.cpp
   BitDataflow.cpp
   CalleeCache.cpp

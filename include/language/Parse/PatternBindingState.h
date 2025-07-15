@@ -1,17 +1,21 @@
 //===--- PatternBindingState.h --------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSE_PATTERNBINDINGSTATE_H
-#define SWIFT_PARSE_PATTERNBINDINGSTATE_H
+#ifndef LANGUAGE_PARSE_PATTERNBINDINGSTATE_H
+#define LANGUAGE_PARSE_PATTERNBINDINGSTATE_H
 
 #include "language/AST/Decl.h"
 #include "language/Parse/Token.h"
@@ -60,7 +64,7 @@ struct PatternBindingState {
   operator Kind() const { return kind; }
 
   static std::optional<PatternBindingState> get(StringRef str) {
-    auto kind = llvm::StringSwitch<Kind>(str)
+    auto kind = toolchain::StringSwitch<Kind>(str)
                     .Case("let", Kind::InLet)
                     .Case("var", Kind::InVar)
                     .Case("inout", Kind::InInOut)

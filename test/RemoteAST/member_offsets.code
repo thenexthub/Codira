@@ -1,0 +1,85 @@
+// RUN: %target-language-remoteast-test %s | %FileCheck %s
+
+// REQUIRES: language-remoteast-test
+// REQUIRES: PTRSIZE=64
+
+@_silgen_name("printTypeMemberOffset")
+fn printTypeMemberOffset(_: Any.Type, _: StaticString)
+
+@_silgen_name("printTypeMetadataMemberOffset")
+fn printTypeMetadataMemberOffset(_: Any.Type, _: StaticString)
+
+@_silgen_name("stopRemoteAST")
+fn stopRemoteAST()
+
+printTypeMemberOffset((Int,Bool,Float,Bool,Int16).this, "0")
+// CHECK: found offset: 0
+
+printTypeMemberOffset((Int,Bool,Float,Bool,Int16).this, "1")
+// CHECK-NEXT: found offset: 8
+
+printTypeMemberOffset((Int,Bool,Float,Bool,Int16).this, "2")
+// CHECK-NEXT: found offset: 12
+
+printTypeMemberOffset((Int,Bool,Float,Bool,Int16).this, "3")
+// CHECK-NEXT: found offset: 16
+
+printTypeMemberOffset((Int,Bool,Float,Bool,Int16).this, "4")
+// CHECK-NEXT: found offset: 18
+
+printTypeMemberOffset((Int,Bool,Float,Bool,Int16).this, "5")
+// CHECK-NEXT: type has no member named '5'
+
+struct A {
+  var a: Int
+  var b: Bool
+  var c: Float
+  var d: Bool
+  var e: Int16
+}
+
+printTypeMemberOffset(A.this, "a")
+// CHECK-NEXT: found offset: 0
+
+printTypeMemberOffset(A.this, "b")
+// CHECK-NEXT: found offset: 8
+
+printTypeMemberOffset(A.this, "c")
+// CHECK-NEXT: found offset: 12
+
+printTypeMemberOffset(A.this, "d")
+// CHECK-NEXT: found offset: 16
+
+printTypeMemberOffset(A.this, "e")
+// CHECK-NEXT: found offset: 18
+
+printTypeMemberOffset(A.this, "f")
+// CHECK-NEXT: type has no member named 'f'
+
+struct B<T> {
+  var a: Int
+  var b: Bool
+  var c: T
+  var d: Bool
+  var e: Int16
+}
+
+printTypeMemberOffset(B<Float>.this, "a")
+// CHECK-NEXT: found offset: 0
+
+printTypeMemberOffset(B<Float>.this, "b")
+// CHECK-NEXT: found offset: 8
+
+printTypeMemberOffset(B<Float>.this, "c")
+// CHECK-NEXT: found offset: 12
+
+printTypeMemberOffset(B<Float>.this, "d")
+// CHECK-NEXT: found offset: 16
+
+printTypeMemberOffset(B<Float>.this, "e")
+// CHECK-NEXT: found offset: 18
+
+printTypeMemberOffset(B<Float>.this, "f")
+// CHECK-NEXT: type has no member named 'f'
+
+stopRemoteAST()

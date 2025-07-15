@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -33,8 +34,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILINSTRUCTIONWORKLIST_H
-#define SWIFT_SIL_SILINSTRUCTIONWORKLIST_H
+#ifndef LANGUAGE_SIL_SILINSTRUCTIONWORKLIST_H
+#define LANGUAGE_SIL_SILINSTRUCTIONWORKLIST_H
 
 #include "language/Basic/BlotSetVector.h"
 #include "language/SIL/SILInstruction.h"
@@ -42,8 +43,8 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -56,17 +57,17 @@ protected:
   // Invokes the provided function with the debug stream and the previously
   // specified logging name.
   //
-  // Note: Because it contains LLVM_DEBUG, the definition is in the .cpp file.
+  // Note: Because it contains TOOLCHAIN_DEBUG, the definition is in the .cpp file.
   //       Consequently, we are relying on LTO to ensure that the calls are
   //       inlined and removed in non-assert builds.
   void withDebugStream(
-      std::function<void(llvm::raw_ostream &stream, const char *loggingName)>
+      std::function<void(toolchain::raw_ostream &stream, const char *loggingName)>
           perform);
 };
 
 /// Manages a list of instructions awaiting visitation.
 template <typename VectorT = std::vector<SILInstruction *>,
-          typename MapT = llvm::DenseMap<SILInstruction *, unsigned>>
+          typename MapT = toolchain::DenseMap<SILInstruction *, unsigned>>
 class SILInstructionWorklist : SILInstructionWorklistBase {
   BlotSetVector<SILInstruction *, VectorT, MapT> worklist;
 
@@ -86,7 +87,7 @@ public:
   /// Add the specified instruction to the worklist if it isn't already in it.
   void add(SILInstruction *instruction) {
     if (worklist.insert(instruction).second) {
-      withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+      withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
         stream << loggingName << ": ADD: " << *instruction << '\n';
       });
     }
@@ -105,7 +106,7 @@ public:
   void addInitialGroup(ArrayRef<SILInstruction *> list) {
     assert(worklist.empty() && "worklist must be empty to add initial group");
     worklist.reserve(list.size() + 16);
-    withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+    withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
       stream << loggingName << ": ADDING: " << list.size()
              << " instrs to worklist\n";
     });
@@ -148,7 +149,7 @@ public:
       for (auto &operand : instruction.getAllOperands()) {
         if (auto *operandInstruction =
                 operand.get()->getDefiningInstruction()) {
-          withDebugStream([&](llvm::raw_ostream &stream,
+          withDebugStream([&](toolchain::raw_ostream &stream,
                               StringRef loggingName) {
             stream << loggingName << ": add op " << *operandInstruction << '\n'
                    << " from erased inst to worklist\n";
@@ -198,7 +199,7 @@ public:
   ) {
     if (result == instruction) {
 #ifndef NDEBUG
-      withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+      withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
         stream << loggingName << ": Mod = " << instructionDescription << '\n'
                << "  "
                << "  New = " << *instruction << '\n';
@@ -219,7 +220,7 @@ public:
     assert(&*std::prev(instruction->getIterator()) == result &&
            "Expected new instruction inserted before existing instruction!");
 
-    withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+    withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
       stream << loggingName << ": Old = " << *instruction << '\n'
              << "  "
              << "  New = " << *result << '\n';
@@ -257,7 +258,7 @@ public:
                            ValueBase *value) {
     addUsersToWorklist(&instruction); // Add all modified instrs to worklist.
 
-    withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+    withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
       stream << loggingName << ": Replacing " << instruction << '\n'
              << "  "
              << "  with " << *value << '\n';
@@ -273,7 +274,7 @@ public:
   void replaceValueUsesWith(SILValue oldValue, SILValue newValue) {
     addUsersToWorklist(oldValue); // Add all modified instrs to worklist.
 
-    withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+    withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
       stream << loggingName << ": Replacing " << oldValue << '\n'
              << "  "
              << "  with " << newValue << '\n';
@@ -283,7 +284,7 @@ public:
   }
 
   void replaceInstUsesPairwiseWith(SILInstruction *oldI, SILInstruction *newI) {
-    withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+    withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
       stream << loggingName << ": Replacing " << *oldI << '\n'
              << "  "
              << "  with " << *newI << '\n';
@@ -305,9 +306,12 @@ public:
   // method to delete the given instruction.
   void eraseInstFromFunction(SILInstruction &instruction,
                              SILBasicBlock::iterator &iterator,
-                             bool addOperandsToWorklist = true) {
-    // Try to salvage debug info first.
-    swift::salvageDebugInfo(&instruction);
+                             bool addOperandsToWorklist = true,
+                             bool salvageDebugInfo = true) {
+    if (salvageDebugInfo) {
+      // Try to salvage debug info first.
+      language::salvageDebugInfo(&instruction);
+    }
     // Then delete old debug users.
     for (auto result : instruction.getResults()) {
       while (!result->use_empty()) {
@@ -326,14 +330,16 @@ public:
   }
 
   void eraseInstFromFunction(SILInstruction &instruction,
-                             bool addOperandsToWorklist = true) {
+                             bool addOperandsToWorklist = true,
+                             bool salvageDebugInfo = true) {
     SILBasicBlock::iterator nullIter;
-    return eraseInstFromFunction(instruction, nullIter, addOperandsToWorklist);
+    return eraseInstFromFunction(instruction, nullIter, addOperandsToWorklist,
+                                 salvageDebugInfo);
   }
 
   void eraseSingleInstFromFunction(SILInstruction &instruction,
                                    bool shouldAddOperandsToWorklist) {
-    withDebugStream([&](llvm::raw_ostream &stream, StringRef loggingName) {
+    withDebugStream([&](toolchain::raw_ostream &stream, StringRef loggingName) {
       stream << loggingName << ": ERASE " << instruction << '\n';
     });
 
@@ -352,20 +358,20 @@ public:
 template <unsigned N>
 class SmallSILInstructionWorklist final
     : public SILInstructionWorklist<
-          llvm::SmallVector<std::optional<SILInstruction *>, N>,
+          toolchain::SmallVector<std::optional<SILInstruction *>, N>,
           // TODO: A DenseMap rather than a SmallDenseMap is used here to avoid
           //       running into an upstream problem with the handling of grow()
           //       when it results in rehashing and tombstone removal:
           //
-          //       https://reviews.llvm.org/D56455
-          llvm::DenseMap<SILInstruction *, unsigned>> {
+          //       https://reviews.toolchain.org/D56455
+          toolchain::DenseMap<SILInstruction *, unsigned>> {
 public:
-  using VectorT = llvm::SmallVector<std::optional<SILInstruction *>, N>;
-  using MapT = llvm::DenseMap<SILInstruction *, unsigned>;
+  using VectorT = toolchain::SmallVector<std::optional<SILInstruction *>, N>;
+  using MapT = toolchain::DenseMap<SILInstruction *, unsigned>;
   SmallSILInstructionWorklist(const char *loggingName = "InstructionWorklist")
       : SILInstructionWorklist<VectorT, MapT>(loggingName) {}
 };
 
 } // end namespace language
 
-#endif // SWIFT_SIL_SILINSTRUCTIONWORKLIST_H
+#endif // LANGUAGE_SIL_SILINSTRUCTIONWORKLIST_H

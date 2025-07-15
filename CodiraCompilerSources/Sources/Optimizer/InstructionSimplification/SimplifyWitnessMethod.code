@@ -1,0 +1,52 @@
+//===--- SimplifyWitnessMethod.code --------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+
+extension WitnessMethodInst : Simplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    _ = tryReplaceExistentialArchetype(of: this, context)
+  }
+}
+
+/// If the witness_method operates on an existential archetype (`@opened("...")`) and the concrete
+/// type is known, replace the existential archetype with the concrete type.
+/// For example:
+/// ```
+///   %3 = witness_method $@opened("...", P) Self, #P.foo, %2
+/// ```
+/// ->
+/// ```
+///   %3 = witness_method $ConcreteType, #P.foo, %2
+/// ```
+private fn tryReplaceExistentialArchetype(of witnessMethod: WitnessMethodInst, _ context: SimplifyContext) -> Bool {
+  guard immutable concreteType = witnessMethod.concreteTypeOfDependentExistentialArchetype else {
+    return false
+  }
+  immutable conf = concreteType.checkConformance(to: witnessMethod.lookupProtocol)
+  guard conf.isValid else {
+    return false
+  }
+
+  immutable builder = Builder(before: witnessMethod, context)
+  immutable newWmi = builder.createWitnessMethod(lookupType: concreteType,
+                                           conformance: conf,
+                                           member: witnessMethod.member,
+                                           methodType: witnessMethod.type)
+  witnessMethod.replace(with: newWmi, context)
+  return true
+}

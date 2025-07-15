@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -90,6 +91,6 @@ class ARCLoopOpts : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createARCLoopOpts() {
+SILTransform *language::createARCLoopOpts() {
   return new ARCLoopOpts();
 }

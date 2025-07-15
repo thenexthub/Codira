@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ASTContext::GlobalCache type. DO NOT include this
@@ -38,7 +39,7 @@ struct WitnessIsolationError {
   /// The witness.
   ValueDecl *witness;
 
-  /// The pre-Swift-6 diagnostic behavior.
+  /// The pre-Codira-6 diagnostic behavior.
   DiagnosticBehavior behavior;
 
   /// Whether the witness is missing "distributed".
@@ -75,7 +76,7 @@ struct ASTContext::GlobalCache {
   /// Mapping from normal protocol conformances to the explicitly-specified
   /// global actor isolations, e.g., when the conformance was spelled
   /// `@MainActor P` or similar.
-  llvm::DenseMap<const NormalProtocolConformance *, TypeExpr *>
+  toolchain::DenseMap<const NormalProtocolConformance *, TypeExpr *>
       conformanceExplicitGlobalActorIsolation;
 
   /// Mapping from normal protocol conformances to the set of actor isolation
@@ -83,7 +84,7 @@ struct ASTContext::GlobalCache {
   ///
   /// This map will be empty for well-formed code, and is used to accumulate
   /// information so that the diagnostics can be coalesced.
-  llvm::DenseMap<
+  toolchain::DenseMap<
     const NormalProtocolConformance *,
     std::vector<ConformanceIsolationError>
   > conformanceIsolationErrors;

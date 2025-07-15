@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language
+
+// Make sure we can recover by ignoring the '}' in the #if.
+struct S {
+  fn foo() {
+#if true
+  } // expected-error {{unexpected '}' in conditional compilation block}}
+#endif
+  }
+  fn bar() {
+#if false
+  } // expected-error {{unexpected '}' in conditional compilation block}}
+#endif
+  }
+  fn baz() {}
+}

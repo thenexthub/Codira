@@ -1,9 +1,10 @@
 add_subdirectory(InternalShims)
 
-gyb_expand(TaskGroup+addTask.swift.gyb TaskGroup+addTask.swift)
-gyb_expand(Task+startSynchronously.swift.gyb Task+startSynchronously.swift)
+gyb_expand(Task+init.code.gyb Task+init.code)
+gyb_expand(TaskGroup+addTask.code.gyb TaskGroup+addTask.code)
+gyb_expand(Task+immediate.code.gyb Task+immediate.code)
 
-add_library(swift_Concurrency
+add_library(language_Concurrency
   Actor.cpp
   AsyncLet.cpp
   AsyncStream.cpp
@@ -25,117 +26,128 @@ add_library(swift_Concurrency
   TracingSignpost.cpp
   "${PROJECT_SOURCE_DIR}/CompatibilityOverride/CompatibilityOverride.cpp"
   "${PROJECT_SOURCE_DIR}/linker-support/magic-symbols-for-install-name.c"
-  Actor.swift
-  AsyncCompactMapSequence.swift
-  AsyncDropFirstSequence.swift
-  AsyncDropWhileSequence.swift
-  AsyncFilterSequence.swift
-  AsyncFlatMapSequence.swift
-  AsyncIteratorProtocol.swift
-  AsyncLet.swift
-  AsyncMapSequence.swift
-  AsyncPrefixSequence.swift
-  AsyncPrefixWhileSequence.swift
-  AsyncSequence.swift
-  AsyncStream.swift
-  AsyncStreamBuffer.swift
-  AsyncThrowingCompactMapSequence.swift
-  AsyncThrowingDropWhileSequence.swift
-  AsyncThrowingFilterSequence.swift
-  AsyncThrowingFlatMapSequence.swift
-  AsyncThrowingMapSequence.swift
-  AsyncThrowingPrefixWhileSequence.swift
-  AsyncThrowingStream.swift
-  CheckedContinuation.swift
-  Clock.swift
-  ContinuousClock.swift
-  CooperativeExecutor.swift
-  Deque/_DequeBuffer.swift
-  Deque/_DequeBufferHeader.swift
-  Deque/_DequeSlot.swift
-  Deque/_UnsafeWrappedBuffer.swift
-  Deque/Compatibility.swift
-  Deque/Deque.swift
-  Deque/Deque+Codable.swift
-  Deque/Deque+Collection.swift
-  Deque/Deque+CustomDebugStringConvertible.swift
-  Deque/Deque+CustomReflectable.swift
-  Deque/Deque+CustomStringConvertible.swift
-  Deque/Deque+Equatable.swift
-  Deque/Deque+ExpressibleByArrayLiteral.swift
-  Deque/Deque+Extras.swift
-  Deque/Deque+Hashable.swift
-  Deque/Deque+Storage.swift
-  Deque/Deque+Testing.swift
-  Deque/Deque+UnsafeHandle.swift
-  Deque/UnsafeMutableBufferPointer+Utilities.swift
-  DiscardingTaskGroup.swift
-  DummyExecutor.swift
-  Errors.swift
-  Executor.swift
-  ExecutorAssertions.swift
-  ExecutorBridge.swift
-  GlobalActor.swift
-  GlobalConcurrentExecutor.swift
-  MainActor.swift
-  PartialAsyncTask.swift
-  PlatformExecutorDarwin.swift
-  PlatformExecutorLinux.swift
-  PlatformExecutorWindows.swift
-  PriorityQueue.swift
-  SourceCompatibilityShims.swift
-  SuspendingClock.swift
-  Task.swift
-  Task+PriorityEscalation.swift
-  Task+TaskExecutor.swift
-  TaskCancellation.swift
-  TaskGroup.swift
-  TaskGroup+Embedded.swift
-  TaskLocal.swift
-  TaskSleep.swift
-  TaskSleepDuration.swift
-  "${CMAKE_CURRENT_BINARY_DIR}/TaskGroup+addTask.swift"
-  "${CMAKE_CURRENT_BINARY_DIR}/Task+startSynchronously.swift")
+  Actor.code
+  AsyncCompactMapSequence.code
+  AsyncDropFirstSequence.code
+  AsyncDropWhileSequence.code
+  AsyncFilterSequence.code
+  AsyncFlatMapSequence.code
+  AsyncIteratorProtocol.code
+  AsyncLet.code
+  AsyncMapSequence.code
+  AsyncPrefixSequence.code
+  AsyncPrefixWhileSequence.code
+  AsyncSequence.code
+  AsyncStream.code
+  AsyncStreamBuffer.code
+  AsyncThrowingCompactMapSequence.code
+  AsyncThrowingDropWhileSequence.code
+  AsyncThrowingFilterSequence.code
+  AsyncThrowingFlatMapSequence.code
+  AsyncThrowingMapSequence.code
+  AsyncThrowingPrefixWhileSequence.code
+  AsyncThrowingStream.code
+  CheckedContinuation.code
+  Clock.code
+  ContinuousClock.code
+  CooperativeExecutor.code
+  Deque/_DequeBuffer.code
+  Deque/_DequeBufferHeader.code
+  Deque/_DequeSlot.code
+  Deque/_UnsafeWrappedBuffer.code
+  Deque/Compatibility.code
+  Deque/Deque.code
+  Deque/Deque+Codable.code
+  Deque/Deque+Collection.code
+  Deque/Deque+CustomDebugStringConvertible.code
+  Deque/Deque+CustomReflectable.code
+  Deque/Deque+CustomStringConvertible.code
+  Deque/Deque+Equatable.code
+  Deque/Deque+ExpressibleByArrayLiteral.code
+  Deque/Deque+Extras.code
+  Deque/Deque+Hashable.code
+  Deque/Deque+Storage.code
+  Deque/Deque+Testing.code
+  Deque/Deque+UnsafeHandle.code
+  Deque/UnsafeMutableBufferPointer+Utilities.code
+  DiscardingTaskGroup.code
+  Errors.code
+  Executor.code
+  ExecutorAssertions.code
+  ExecutorBridge.code
+  GlobalActor.code
+  GlobalConcurrentExecutor.code
+  MainActor.code
+  PartialAsyncTask.code
+  PlatformExecutorDarwin.code
+  PlatformExecutorLinux.code
+  PlatformExecutorFreeBSD.code
+  PlatformExecutorOpenBSD.code
+  PlatformExecutorWindows.code
+  PriorityQueue.code
+  SourceCompatibilityShims.code
+  SuspendingClock.code
+  Task.code
+  Task+PriorityEscalation.code
+  Task+TaskExecutor.code
+  TaskCancellation.code
+  TaskGroup.code
+  TaskLocal.code
+  TaskSleep.code
+  TaskSleepDuration.code
+  UnimplementedExecutor.code
+  "${CMAKE_CURRENT_BINARY_DIR}/Task+init.code"
+  "${CMAKE_CURRENT_BINARY_DIR}/TaskGroup+addTask.code"
+  "${CMAKE_CURRENT_BINARY_DIR}/Task+immediate.code")
 
-include(${SwiftCore_CONCURRENCY_GLOBAL_EXECUTOR}.cmake)
-target_compile_definitions(swift_Concurrency PRIVATE
-  $<$<COMPILE_LANGUAGE:C,CXX>:-DSWIFT_TARGET_LIBRARY_NAME=swift_Concurrency>
+include(${CodiraCore_CONCURRENCY_GLOBAL_EXECUTOR}.cmake)
+target_compile_definitions(language_Concurrency PRIVATE
+  $<$<COMPILE_LANGUAGE:C,CXX>:-DLANGUAGE_RUNTIME>
+  $<$<COMPILE_LANGUAGE:C,CXX>:-DLANGUAGE_TARGET_LIBRARY_NAME=language_Concurrency>
   # NOTE: VS2017 <15.8 would round clamp alignment to alignof(max_align_t) which
   # was non-conformant. Indicate that we wish to use extended alignment.
   $<$<AND:$<PLATFORM_ID:Windows>,$<COMPILE_LANGUAGE:C,CXX>>:-D_ENABLE_EXTENDED_ALIGNED_STORAGE=1>
   $<$<COMPILE_LANGUAGE:C,CXX>:-D__STDC_WANT_LIB_EXT1__=1>)
-target_compile_options(swift_Concurrency PRIVATE
-  $<$<COMPILE_LANGUAGE:Swift>:-parse-stdlib>
+target_compile_options(language_Concurrency PRIVATE
+  $<$<COMPILE_LANGUAGE:Codira>:-parse-stdlib>
   # NOTE: do not remove until `IsolatedAny` is on by default in all supported
   # compilers.
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-enable-experimental-feature IsolatedAny>"
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-enable-experimental-feature IsolatedAny>"
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-enable-experimental-feature Extern>"
   # NOTE: enable the async frame pointer on Darwin to faciliate debugging.
-  $<$<AND:$<PLATFORM_ID:Darwin>,$<COMPILE_LANGUAGE:C,CXX>>:-fswift-async-fp=always>
-  "$<$<AND:$<PLATFORM_ID:Darwin>,$<COMPILE_LANGUAGE:Swift>>:SHELL:-Xfrontend -swift-async-frame-pointer=always>"
-  "$<$<AND:$<BOOL:${BUILD_SHARED_LIBS}>,$<COMPILE_LANGUAGE:Swift>>:SHELL:-Xcc -Dswift_Concurrency_EXPORTS>")
-target_include_directories(swift_Concurrency PRIVATE
-  # FIXME: Use of `swift/Runtime/...`, `swift/ABI/...`, and `swift/Demangling/...`
-  "${SwiftCore_SWIFTC_SOURCE_DIR}/include"
+  $<$<AND:$<PLATFORM_ID:Darwin>,$<COMPILE_LANGUAGE:C,CXX>>:-flanguage-async-fp=always>
+  "$<$<AND:$<PLATFORM_ID:Darwin>,$<COMPILE_LANGUAGE:Codira>>:SHELL:-Xfrontend -language-async-frame-pointer=always>"
+  "$<$<AND:$<BOOL:${BUILD_SHARED_LIBS}>,$<COMPILE_LANGUAGE:Codira>>:SHELL:-Xcc -Dlanguage_Concurrency_EXPORTS>")
+target_include_directories(language_Concurrency PRIVATE
+  # FIXME: Use of `language/Runtime/...`, `language/ABI/...`, and `language/Demangling/...`
+  "${CodiraCore_LANGUAGEC_SOURCE_DIR}/include"
   # FIXME: grant access to `runtime/CMakeConfig.h` which should be available
-  # through the swiftRuntime target.
+  # through the languageRuntime target.
   "${PROJECT_BINARY_DIR}/include")
-target_link_libraries(swift_Concurrency PRIVATE
-  swiftShims
-  swiftConcurrencyInternalShims
-  $<$<BOOL:${BUILD_SHARED_LIBS}>:swiftThreading>
+# FIXME: Why is this not implicitly in the interface flags?
+target_include_directories(language_Concurrency INTERFACE
+  "$<$<COMPILE_LANGUAGE:Codira>:$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CodiraCore_INSTALL_LANGUAGEMODULEDIR}>>")
+target_link_libraries(language_Concurrency PRIVATE
+  languageShims
+  languageConcurrencyInternalShims
+  $<$<BOOL:${BUILD_SHARED_LIBS}>:languageThreading>
   $<$<PLATFORM_ID:Windows>:Synchronization>
   $<$<PLATFORM_ID:Windows>:mincore>
   # Link to the runtime that we are just building.
-  swiftCore)
-set_target_properties(swift_Concurrency PROPERTIES
-  Swift_MODULE_NAME _Concurrency
+  languageCore)
+set_target_properties(language_Concurrency PROPERTIES
+  Codira_MODULE_NAME _Concurrency
   LINKER_LANGUAGE CXX)
+if(NOT BUILD_SHARED_LIBS AND CMAKE_STATIC_LIBRARY_PREFIX_Codira)
+  set_target_properties(language_Concurrency PROPERTIES
+    PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX_Codira})
+endif()
 
-install(TARGETS swift_Concurrency
-  EXPORT SwiftCoreTargets
-  COMPONENT SwiftCore_runtime
-  ARCHIVE DESTINATION "${SwiftCore_INSTALL_LIBDIR}"
-  LIBRARY DESTINATION "${SwiftCore_INSTALL_LIBDIR}"
+install(TARGETS language_Concurrency
+  EXPORT CodiraCoreTargets
+  COMPONENT CodiraCore_runtime
+  ARCHIVE DESTINATION "${CodiraCore_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraCore_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-emit_swift_interface(swift_Concurrency)
-install_swift_interface(swift_Concurrency)
+emit_language_interface(language_Concurrency)
+install_language_interface(language_Concurrency)

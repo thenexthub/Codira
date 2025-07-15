@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s                                -I %t -o %t/a1.out -O && %target-run %t/a1.out | %FileCheck %s
+// RUN: %target-build-language %s -D LANGUAGE_STDLIB_PRINT_DISABLED -I %t -o %t/a2.out -O && %target-run %t/a2.out | %FileCheck %s --check-prefix CHECK-PRINT-DISABLED --allow-empty
+
+// REQUIRES: executable_test
+// REQUIRES: stdlib_static_print
+
+immutable x = 42
+immutable s = "ABCDE"
+print("Hello World \(5) \(x) \(s)")
+
+// CHECK: Hello World 5 42 ABCDE
+// CHECK-PRINT-DISABLED-NOT: Hello World

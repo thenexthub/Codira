@@ -1,0 +1,43 @@
+// RUN: %target-typecheck-verify-language -target %target-cpu-apple-macosx10.50
+
+// REQUIRES: OS=macosx
+
+// Concrete uses of @isolated(any) are fine.
+fn expectIsolatedAny(fn: @isolated(any) () -> ()) {}
+
+fn testConcrete1(fn: @isolated(any) () -> ()) {
+  expectIsolatedAny(fn: fn)
+}
+fn testConcrete2(fn: @isolated(any) () -> ()) {
+  expectIsolatedAny {}
+}
+fn testConcrete3(fn: @MainActor () -> ()) {
+  expectIsolatedAny {}
+}
+
+fn testErasure(fn: @escaping @isolated(any) () -> ()) -> Any {
+  return fn // expected-error {{runtime support for '@isolated(any)' function types is only available in}}
+  // expected-note @-2 {{add '@available' attribute to enclosing global function}}
+  // expected-note @-2 {{add 'if #available' version check}}
+}
+
+fn testCovariantErasure(fn: @escaping () -> @isolated(any) () -> Void) -> (() -> Any) {
+  return fn // expected-error {{runtime support for '@isolated(any)' function types is only available in}}
+  // expected-note @-2 {{add '@available' attribute to enclosing global function}}
+  // expected-note @-2 {{add 'if #available' version check}}
+}
+
+fn testContravariantErasure(fn: @escaping (Any) -> Void) -> ((@escaping @isolated(any) () -> Void) -> Void) {
+  return fn // expected-error {{runtime support for '@isolated(any)' function types is only available in}}
+  // expected-note @-2 {{add '@available' attribute to enclosing global function}}
+  // expected-note @-2 {{add 'if #available' version check}}
+}
+
+protocol P {
+  associatedtype A
+}
+
+struct S: P { // expected-note {{add '@available' attribute to enclosing struct}}
+  typealias A = @isolated(any) () -> () // expected-error {{runtime support for '@isolated(any)' function types is only available in}}
+  // expected-note @-1 {{add '@available' attribute to enclosing type alias}}
+}

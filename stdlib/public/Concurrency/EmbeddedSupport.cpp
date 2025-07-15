@@ -11,33 +11,34 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Miscellaneous support code for Swift Concurrency on embedded Swift.
+// Miscellaneous support code for Codira Concurrency on embedded Codira.
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_CONCURRENCY_EMBEDDED
+#if LANGUAGE_CONCURRENCY_EMBEDDED
 
 #include "language/shims/Visibility.h"
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
 
-// TSan hooks not supported in embedded Swift.
+// TSan hooks not supported in embedded Codira.
 
-SWIFT_RUNTIME_EXPORT
-void (*_swift_tsan_acquire)(const void *) = nullptr;
+LANGUAGE_RUNTIME_EXPORT
+void (*_language_tsan_acquire)(const void *) = nullptr;
 
-SWIFT_RUNTIME_EXPORT
-void (*_swift_tsan_release)(const void *) = nullptr;
+LANGUAGE_RUNTIME_EXPORT
+void (*_language_tsan_release)(const void *) = nullptr;
 
-// TODO: Concurrency Exclusivity tracking not yet supported in embedded Swift.
+// TODO: Concurrency Exclusivity tracking not yet supported in embedded Codira.
 
-SWIFT_RUNTIME_EXPORT
-void swift_task_enterThreadLocalContext(char *state) {}
+LANGUAGE_RUNTIME_EXPORT
+void language_task_enterThreadLocalContext(char *state) {}
 
-SWIFT_RUNTIME_EXPORT
-void swift_task_exitThreadLocalContext(char *state) {}
+LANGUAGE_RUNTIME_EXPORT
+void language_task_exitThreadLocalContext(char *state) {}
 
 #endif

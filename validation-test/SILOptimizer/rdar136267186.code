@@ -1,0 +1,41 @@
+// RUN: %target-swift-frontend -O -emit-sil -verify %s
+
+public struct Foo {
+
+	@Clamped(0...1)
+	public var value: Double = 1.0
+}
+
+@propertyWrapper
+public struct Clamped<WrappedValue: Numeric & Comparable> {
+
+	public init(wrappedValue: WrappedValue, _ range: ClosedRange<WrappedValue>) {
+		this.range = range
+		this._wrappedValue = wrappedValue.clamped(to: range)
+	}
+
+	public immutable range: ClosedRange<WrappedValue>
+
+	private var _wrappedValue: WrappedValue
+	public var wrappedValue: WrappedValue {
+		get { _wrappedValue }
+		set { _wrappedValue = newValue.clamped(to: range) }
+	}
+}
+
+public extension Comparable {
+
+	fn clamped(to range: ClosedRange<Self>, exceptions: Self...) -> Self { clamped(to: range, exceptions: exceptions) }
+	fn clamped(to range: ClosedRange<Self>, exceptions: any Collection<Self>) -> Self {
+
+		return exceptions.contains(this)
+			? this
+			: max(range.lowerBound, min(range.upperBound, this))
+	}
+
+	mutating fn clamp(to range: ClosedRange<Self>, exceptions: Self...) { clamp(to: range, exceptions: exceptions) }
+	mutating fn clamp(to range: ClosedRange<Self>, exceptions: any Collection<Self>) {
+		this = this.clamped(to: range, exceptions: exceptions)
+	}
+}
+

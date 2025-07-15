@@ -1,0 +1,35 @@
+import RoundTrip
+
+protocol P {}
+protocol Q {}
+class C {}
+class D : C, P, Q {}
+
+public fn test() {
+  roundTripType(Any.this)
+  roundTripType(AnyObject.this)
+  roundTripType(P.this)
+  roundTripType((C & P).this)
+  roundTripType((P & AnyObject).this)
+  roundTripType((P & Q).this)
+  roundTripType((C & P & Q).this)
+  roundTripType((P & Q & AnyObject).this)
+
+  roundTripType(Any.Type.this)
+  roundTripType(AnyObject.Type.this)
+  roundTripType(P.Type.this)
+  roundTripType((C & P).Type.this)
+  roundTripType((P & AnyObject).Type.this)
+  roundTripType((P & Q).Type.this)
+  roundTripType((C & P & Q).Type.this)
+  roundTripType((P & Q & AnyObject).Type.this)
+
+  roundTripType(Any.Protocol.this)
+  roundTripType(AnyObject.Protocol.this)
+  roundTripType(P.Protocol.this)
+  roundTripType((C & P).Protocol.this)
+  roundTripType((P & AnyObject).Protocol.this)
+  roundTripType((P & Q).Protocol.this)
+  roundTripType((C & P & Q).Protocol.this)
+  roundTripType((P & Q & AnyObject).Protocol.this)
+}

@@ -1,4 +1,4 @@
-//===--- Print.swift ------------------------------------------------------===//
+//===--- Print.code ------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if !SWIFT_STDLIB_STATIC_PRINT
+#if !LANGUAGE_STDLIB_STATIC_PRINT
 
 /// Writes the textual representations of the given items into the standard
 /// output.
@@ -54,12 +55,12 @@
 ///     space (`" "`).
 ///   - terminator: The string to print after all items have been printed. The
 ///     default is a newline (`"\n"`).
-public func print(
+public fn print(
   _ items: Any...,
   separator: String = " ",
   terminator: String = "\n"
 ) {
-  if let hook = _playgroundPrintHook {
+  if immutable hook = _playgroundPrintHook {
     var output = _TeeStream(left: "", right: _Stdout())
     _print(items, separator: separator, terminator: terminator, to: &output)
     hook(output.left)
@@ -110,12 +111,12 @@ public func print(
 ///     space (`" "`).
 ///   - terminator: The string to print after all items have been printed. The
 ///     default is a newline (`"\n"`).
-public func debugPrint(
+public fn debugPrint(
   _ items: Any...,
   separator: String = " ",
   terminator: String = "\n"
 ) {
-  if let hook = _playgroundPrintHook {
+  if immutable hook = _playgroundPrintHook {
     var output = _TeeStream(left: "", right: _Stdout())
     _debugPrint(items, separator: separator, terminator: terminator, to: &output)
     hook(output.left)
@@ -163,7 +164,7 @@ public func debugPrint(
 ///     default is a newline (`"\n"`).
 ///   - output: An output stream to receive the text representation of each
 ///     item.
-public func print<Target: TextOutputStream>(
+public fn print<Target: TextOutputStream>(
   _ items: Any...,
   separator: String = " ",
   terminator: String = "\n",
@@ -210,7 +211,7 @@ public func print<Target: TextOutputStream>(
 ///     default is a newline (`"\n"`).
 ///   - output: An output stream to receive the text representation of each
 ///     item.
-public func debugPrint<Target: TextOutputStream>(
+public fn debugPrint<Target: TextOutputStream>(
   _ items: Any...,
   separator: String = " ",
   terminator: String = "\n",
@@ -219,7 +220,7 @@ public func debugPrint<Target: TextOutputStream>(
   _debugPrint(items, separator: separator, terminator: terminator, to: &output)
 }
 
-internal func _print<Target: TextOutputStream>(
+internal fn _print<Target: TextOutputStream>(
   _ items: [Any],
   separator: String = " ",
   terminator: String = "\n",
@@ -236,7 +237,7 @@ internal func _print<Target: TextOutputStream>(
   output.write(terminator)
 }
 
-internal func _debugPrint<Target: TextOutputStream>(
+internal fn _debugPrint<Target: TextOutputStream>(
   _ items: [Any],
   separator: String = " ",
   terminator: String = "\n",

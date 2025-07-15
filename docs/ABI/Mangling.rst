@@ -8,17 +8,17 @@ Mangling
 --------
 ::
 
-  mangled-name ::= '$s' global  // Swift stable mangling
-  mangled-name ::= '@__swiftmacro_' global // Swift mangling for filenames
-  mangled-name ::= '_T0' global // Swift 4.0
-  mangled-name ::= '$S' global  // Swift 4.2
-  mangled-name ::= '$e' global  // Embedded Swift (unstable)
+  mangled-name ::= '$s' global  // Codira stable mangling
+  mangled-name ::= '@__languagemacro_' global // Codira mangling for filenames
+  mangled-name ::= '_T0' global // Codira 4.0
+  mangled-name ::= '$S' global  // Codira 4.2
+  mangled-name ::= '$e' global  // Embedded Codira (unstable)
 
-All Swift-mangled names begin with a common prefix. Since Swift 4.0, the
+All Codira-mangled names begin with a common prefix. Since Codira 4.0, the
 compiler has used variations of the mangling described in this document, though
 pre-stable versions may not exactly conform to this description. By using
 distinct prefixes, tools can attempt to accommodate bugs and version variations
-in pre-stable versions of Swift.
+in pre-stable versions of Codira.
 
 The basic mangling scheme is a list of 'operators' where the operators are
 structured in a post-fix order. For example the mangling may start with an
@@ -50,7 +50,7 @@ named with uppercase letters.
 Symbolic references
 ~~~~~~~~~~~~~~~~~~~
 
-The Swift compiler emits mangled names into binary images to encode
+The Codira compiler emits mangled names into binary images to encode
 references to types for runtime instantiation and reflection. In a binary,
 these mangled names may embed pointers to runtime data
 structures in order to more efficiently represent locally-defined types.
@@ -58,7 +58,7 @@ We call these pointers **symbolic references**.
 These references will be introduced by a control character in the range
 `\x01` ... `\x1F`, which indicates the kind of symbolic reference, followed by
 some number of arbitrary bytes *which may include null bytes*. Code that
-processes mangled names out of Swift binaries needs to be aware of symbolic
+processes mangled names out of Codira binaries needs to be aware of symbolic
 references in order to properly terminate strings; a null terminator may be
 part of a symbolic reference.
 
@@ -66,21 +66,21 @@ part of a symbolic reference.
 
   symbolic-reference ::= [\x01-\x17] .{4} // Relative symbolic reference
    #if sizeof(void*) == 8
-     symbolic-reference ::= [\x18-\x1F] .{8} // Absolute symbolic reference
+     symbolic-reference ::= [\x18-\x1F] .{8} // Absolute symbolic reference for 64-bit pointers
    #elif sizeof(void*) == 4
-     symbolic-reference ::= [\x18-\x1F] .{4} // Absolute symbolic reference
+     symbolic-reference ::= [\x18-\x1F] .{4} // Absolute symbolic reference for 32-bit pointers
    #endif
 
 Symbolic references are only valid in compiler-emitted metadata structures
 and must only appear in read-only parts of a binary image. APIs and tools
-that interpret Swift mangled names from potentially uncontrolled inputs must
+that interpret Codira mangled names from potentially uncontrolled inputs must
 refuse to interpret symbolic references.
 
 The following symbolic reference kinds are currently implemented:
 
 ::
 
-   #if SWIFT_RUNTIME_VERSION < 5.1
+   #if LANGUAGE_RUNTIME_VERSION < 5.1
      {any-generic-type, protocol} ::= '\x01' .{4} // Reference points directly to context descriptor
      {any-generic-type, protocol} ::= '\x02' .{4} // Reference points indirectly to context descriptor
    #else
@@ -99,18 +99,18 @@ The following symbolic reference kinds are currently implemented:
    associated-conformance-access-function ::= '\x07' .{4}  // Reference points directly to associated conformance access function relative to the protocol
    associated-conformance-access-function ::= '\x08' .{4}  // Reference points directly to associated conformance access function relative to the conforming type
 
-   // keypaths only in Swift 5.0, generalized in Swift 5.1
-   #if SWIFT_RUNTIME_VERSION >= 5.1
+   // keypaths only in Codira 5.0, generalized in Codira 5.1
+   #if LANGUAGE_RUNTIME_VERSION >= 5.1
      metadata-access-function ::= '\x09' .{4}  // Reference points directly to metadata access function that can be invoked to produce referenced object
    #endif
 
-   #if SWIFT_RUNTIME_VERISON >= 5.7
+   #if LANGUAGE_RUNTIME_VERISON >= 5.7
      symbolic-extended-existential-type-shape ::= '\x0A' .{4} // Reference points directly to an ExtendedExistentialTypeShape
      symbolic-extended-existential-type-shape ::= '\x0B' .{4} // Reference points directly to a NonUniqueExtendedExistentialTypeShape
    #endif
 
-   #if SWIFT_RUNTIME_VERSION >= 5.TBD
-    objective-c-protocol-relative-reference  ::=  `\x0C`  .{4} // Reference points directly to a objective-c protcol reference
+   #if LANGUAGE_RUNTIME_VERSION >= 5.TBD
+    objective-c-protocol-relative-reference  ::=  '\x0C'  .{4} // Reference points directly to a objective-c protcol reference
    #endif
 
 A mangled name may also include ``\xFF`` bytes, which are only used for
@@ -134,8 +134,8 @@ Globals
   global ::= nominal-type 'Ml'           // in-place type initialization cache
   global ::= nominal-type 'Mm'           // class metaclass
   global ::= nominal-type 'Mn'           // nominal type descriptor
-  #if SWIFT_RUNTIME_VERSION >= 5.1
-    global ::= opaque-type-decl-name 'MQ'  // opaque type descriptor -- added in Swift 5.1
+  #if LANGUAGE_RUNTIME_VERSION >= 5.1
+    global ::= opaque-type-decl-name 'MQ'  // opaque type descriptor -- added in Codira 5.1
   #endif
   global ::= nominal-type 'Mu'           // class method lookup function
   global ::= nominal-type 'MU'           // ObjC metadata update callback function
@@ -150,8 +150,8 @@ Globals
 
   global ::= protocol 'Hr'               // protocol descriptor runtime record
   global ::= nominal-type 'Hn'           // nominal type descriptor runtime record
-  #if SWIFT_RUNTIME_VERSION >= 5.1
-    global ::= opaque-type 'Ho'          // opaque type descriptor runtime record
+  #if LANGUAGE_RUNTIME_VERSION >= 5.1
+    global ::= opaque-type-decl-name 'Ho' // opaque type descriptor runtime record
   #endif
   global ::= protocol-conformance 'Hc'   // protocol conformance runtime record
   global ::= global 'HF'                 // accessible function runtime record
@@ -202,7 +202,7 @@ Globals
 
   global ::= global 'Mq'                 // global with a uniquing prefix
 
-  #if SWIFT_RUNTIME_VERSION >= 5.4
+  #if LANGUAGE_RUNTIME_VERSION >= 5.4
     global ::= context (decl-name '_')+ 'WZ' // global variable one-time initialization function
     global ::= context (decl-name '_')+ 'Wz' // global variable one-time initialization token
   #endif
@@ -227,8 +227,8 @@ types where the metadata itself has unknown layout.)
   global ::= global 'Tj'                 // resilient method dispatch thunk
   global ::= global 'Tq'                 // method descriptor
 
-  global ::= global 'TO'                 // ObjC-as-swift thunk
-  global ::= global 'To'                 // swift-as-ObjC thunk
+  global ::= global 'TO'                 // ObjC-as-language thunk
+  global ::= global 'To'                 // language-as-ObjC thunk
   global ::= global 'TD'                 // dynamic dispatch thunk
   global ::= global 'Td'                 // direct method reference thunk
   global ::= global 'TE'                 // distributed actor thunk
@@ -250,14 +250,11 @@ types where the metadata itself has unknown layout.)
   global ::= global specialization       // function specialization
   global ::= global 'Tm'                 // merged function
   global ::= entity                      // some identifiable thing
-  global ::= from-type to-type generic-signature? 'TR'  // reabstraction thunk
-  global ::= impl-function-type type 'Tz' index? // objc-to-swift-async completion handler block implementation
-  global ::= impl-function-type type 'TZ' index? // objc-to-swift-async completion handler block implementation (predefined by runtime)
-  global ::= from-type to-type generic-signature? 'TR'  // reabstraction thunk
-  global ::= impl-function-type type generic-signature? 'Tz'     // objc-to-swift-async completion handler block implementation
-  global ::= impl-function-type type generic-signature? 'TZ'     // objc-to-swift-async completion handler block implementation (predefined by runtime)
-  global ::= from-type to-type self-type generic-signature? 'Ty'  // reabstraction thunk with dynamic 'Self' capture
-  global ::= from-type to-type generic-signature? 'Tr'  // obsolete mangling for reabstraction thunk
+  global ::= type type generic-signature? 'TR'  // reabstraction thunk
+  global ::= impl-function-type type generic-signature? 'Tz' index?    // objc-to-language-async completion handler block implementation
+  global ::= impl-function-type type generic-signature? 'TZ' index?    // objc-to-language-async completion handler block implementation predefined by runtime
+  global ::= type type type generic-signature? 'Ty'  // reabstraction thunk with dynamic 'Self' capture
+  global ::= type type generic-signature? 'Tr'  // obsolete mangling for reabstraction thunk
   global ::= entity generic-signature? type type* 'TK' // key path getter
   global ::= entity generic-signature? type type* 'Tk' // key path setter
   global ::= entity generic-signature? type type* 'Tkmu' // key path unapplied method
@@ -266,9 +263,9 @@ types where the metadata itself has unknown layout.)
   global ::= type generic-signature 'Th' // key path hasher
   global ::= global generic-signature? 'TJ' AUTODIFF-FUNCTION-KIND INDEX-SUBSET 'p' INDEX-SUBSET 'r' // autodiff function
   global ::= global generic-signature? 'TJV' AUTODIFF-FUNCTION-KIND INDEX-SUBSET 'p' INDEX-SUBSET 'r' // autodiff derivative vtable thunk
-  global ::= from-type to-type 'TJO' AUTODIFF-FUNCTION-KIND // autodiff self-reordering reabstraction thunk
-  global ::= from-type 'TJS' AUTODIFF-FUNCTION-KIND INDEX-SUBSET 'p' INDEX-SUBSET 'r' INDEX-SUBSET 'P' // autodiff linear map subset parameters thunk
-  global ::= global to-type 'TJS' AUTODIFF-FUNCTION-KIND INDEX-SUBSET 'p' INDEX-SUBSET 'r' INDEX-SUBSET 'P' // autodiff derivative function subset parameters thunk
+  global ::= type type 'TJO' AUTODIFF-FUNCTION-KIND // autodiff self-reordering reabstraction thunk
+  global ::= type 'TJS' AUTODIFF-FUNCTION-KIND INDEX-SUBSET 'p' INDEX-SUBSET 'r' INDEX-SUBSET 'P' // autodiff linear map subset parameters thunk
+  global ::= global type 'TJS' AUTODIFF-FUNCTION-KIND INDEX-SUBSET 'p' INDEX-SUBSET 'r' INDEX-SUBSET 'P' // autodiff derivative function subset parameters thunk
 
   global ::= protocol 'TL'               // protocol requirements base descriptor
   global ::= assoc-type-name 'Tl'        // associated type descriptor
@@ -280,9 +277,9 @@ types where the metadata itself has unknown layout.)
   REABSTRACT-THUNK-TYPE ::= 'R'          // reabstraction thunk
   REABSTRACT-THUNK-TYPE ::= 'r'          // reabstraction thunk (obsolete)
 
-  global ::= reabstraction-thunk type 'TU' // reabstraction thunk with global actor constraint
+  global ::= global type 'TU' // reabstraction thunk with global actor constraint
 
-The `from-type` and `to-type` in a reabstraction thunk helper function
+All reabstraction thunks have the "from" and "to" types in that order, and
 are always non-polymorphic ``<impl-function-type>`` types.
 
 ::
@@ -331,6 +328,7 @@ with a differentiable function used for differentiable programming.
   global ::= generic-signature? type 'WOe' // Outlined consume
   global ::= generic-signature? type 'WOr' // Outlined retain
   global ::= generic-signature? type 'WOs' // Outlined release
+  global ::= generic-signature? type 'WOB' // Outlined initializeWithTake, not using value witness
   global ::= generic-signature? type 'WOb' // Outlined initializeWithTake
   global ::= generic-signature? type 'WOc' // Outlined initializeWithCopy
   global ::= generic-signature? type 'WOC' // Outlined initializeWithCopy, not using value witness
@@ -340,9 +338,9 @@ with a differentiable function used for differentiable programming.
   global ::= generic-signature? type 'WOF' // Outlined assignWithCopy, not using value witness
   global ::= generic-signature? type 'WOh' // Outlined destroy
   global ::= generic-signature? type 'WOH' // Outlined destroy, not using value witness
-  global ::= generic-signature? type 'WOi` // Outlined store enum tag
-  global ::= generic-signature? type 'WOj` // Outlined enum destructive project
-  global ::= generic-signature? type 'WOg` // Outlined enum get tag
+  global ::= generic-signature? type 'WOi' // Outlined store enum tag
+  global ::= generic-signature? type 'WOj' // Outlined enum destructive project
+  global ::= generic-signature? type 'WOg' // Outlined enum get tag
 
 Entities
 ~~~~~~~~
@@ -356,8 +354,10 @@ Entities
   curry-thunk ::= 'Tc'
 
   label-list ::= empty-list            // represents complete absence of parameter labels
-  label-list ::= ('_' | identifier)*   // '_' is inserted as placeholder for empty label,
+  label-list ::= label*   // '_' is inserted as placeholder for empty label,
                                        // since the number of labels should match the number of parameters
+  label ::= '_'                        // empty label
+  label ::= identifier                 // label
 
   // The leading type is the function type
   entity-spec ::= label-list type file-discriminator? 'fC'      // allocating constructor
@@ -520,20 +520,20 @@ both circumstances. For example:
 ::
 
   struct R<A: ~Copyable> {
-    func f1() {} // uses extension mangling, just like `f3`
+    fn f1() {} // uses extension mangling, just like `f3`
 
-    func f2() where A: Copyable {}
+    fn f2() where A: Copyable {}
   }
 
   extension R where A: ~Copyable {
-    func f3() {}
+    fn f3() {}
 
-    func f4() where A: Copyable {} // uses entity mangling, just like `f2`
+    fn f4() where A: Copyable {} // uses entity mangling, just like `f2`
   }
 
   extension R where A: Copyable {
     // 'f5' is mangled equivalent to 'f2' and 'f4' modulo its identifier.
-    func f5() {}
+    fn f5() {}
   }
 
 For intermediate nested types, i.e., those between the top level and the entity,
@@ -545,19 +545,19 @@ that entity's generic signature:
   struct X<A: ~Copyable> {
     struct Y<B: ~Copyable> {
       // 'g1' uses 'entity' context mangling with and has no mangled signatures.
-      func g1() where A: Copyable, B: Copyable {}
+      fn g1() where A: Copyable, B: Copyable {}
 
       // 'g2' uses 'entity' context mangling. The requirement `B: ~Copyable` is
       //mangled into the generic signature for 'g2'.
-      func g2() where A: Copyable {}
+      fn g2() where A: Copyable {}
 
       // 'g3' uses extension mangling with generic signature 'A: ~Copyable'.
       // The mangled generic signature of 'g3' is empty.
-      func g3() where B: Copyable {}
+      fn g3() where B: Copyable {}
 
       // 'g4' uses extension mangling with generic signature 'A: ~Copyable'.
       // The mangled generic signature of 'g4' contains 'B: ~Copyable'.
-      func g4() {}
+      fn g4() {}
     }
   }
 
@@ -579,7 +579,7 @@ manglings are unstable and may change between runs of the process.
 
 ::
 
-  known-module ::= 's'                       // Swift
+  known-module ::= 's'                       // Codira
   known-module ::= 'SC'                      // Clang-importer-synthesized
   known-module ::= 'So'                      // C and Objective-C
 
@@ -601,95 +601,97 @@ Types
 
   any-generic-type ::= standard-substitutions
 
+  nominal-type ::= any-generic-type              // nominal type
+
   standard-substitutions ::= 'S' KNOWN-TYPE-KIND       // known nominal type substitution
   standard-substitutions ::= 'S' NATURAL KNOWN-TYPE-KIND    // repeated known type substitutions of the same kind
 
-  KNOWN-TYPE-KIND ::= 'A'                    // Swift.AutoreleasingUnsafeMutablePointer
-  KNOWN-TYPE-KIND ::= 'a'                    // Swift.Array
-  KNOWN-TYPE-KIND ::= 'B'                    // Swift.BinaryFloatingPoint
-  KNOWN-TYPE-KIND ::= 'b'                    // Swift.Bool
+  KNOWN-TYPE-KIND ::= 'A'                    // Codira.AutoreleasingUnsafeMutablePointer
+  KNOWN-TYPE-KIND ::= 'a'                    // Codira.Array
+  KNOWN-TYPE-KIND ::= 'B'                    // Codira.BinaryFloatingPoint
+  KNOWN-TYPE-KIND ::= 'b'                    // Codira.Bool
   KNOWN-TYPE-KIND ::= 'c' KNOWN-TYPE-KIND-2  // Second set of standard types
-  KNOWN-TYPE-KIND ::= 'D'                    // Swift.Dictionary
-  KNOWN-TYPE-KIND ::= 'd'                    // Swift.Float64
-  KNOWN-TYPE-KIND ::= 'E'                    // Swift.Encodable
-  KNOWN-TYPE-KIND ::= 'e'                    // Swift.Decodable
-  KNOWN-TYPE-KIND ::= 'F'                    // Swift.FloatingPoint
-  KNOWN-TYPE-KIND ::= 'f'                    // Swift.Float32
-  KNOWN-TYPE-KIND ::= 'G'                    // Swift.RandomNumberGenerator
-  KNOWN-TYPE-KIND ::= 'H'                    // Swift.Hashable
-  KNOWN-TYPE-KIND ::= 'h'                    // Swift.Set
-  KNOWN-TYPE-KIND ::= 'I'                    // Swift.DefaultIndices
-  KNOWN-TYPE-KIND ::= 'i'                    // Swift.Int
-  KNOWN-TYPE-KIND ::= 'J'                    // Swift.Character
-  KNOWN-TYPE-KIND ::= 'j'                    // Swift.Numeric
-  KNOWN-TYPE-KIND ::= 'K'                    // Swift.BidirectionalCollection
-  KNOWN-TYPE-KIND ::= 'k'                    // Swift.RandomAccessCollection
-  KNOWN-TYPE-KIND ::= 'L'                    // Swift.Comparable
-  KNOWN-TYPE-KIND ::= 'l'                    // Swift.Collection
-  KNOWN-TYPE-KIND ::= 'M'                    // Swift.MutableCollection
-  KNOWN-TYPE-KIND ::= 'm'                    // Swift.RangeReplaceableCollection
-  KNOWN-TYPE-KIND ::= 'N'                    // Swift.ClosedRange
-  KNOWN-TYPE-KIND ::= 'n'                    // Swift.Range
-  KNOWN-TYPE-KIND ::= 'O'                    // Swift.ObjectIdentifier
-  KNOWN-TYPE-KIND ::= 'P'                    // Swift.UnsafePointer
-  KNOWN-TYPE-KIND ::= 'p'                    // Swift.UnsafeMutablePointer
-  KNOWN-TYPE-KIND ::= 'Q'                    // Swift.Equatable
-  KNOWN-TYPE-KIND ::= 'q'                    // Swift.Optional
-  KNOWN-TYPE-KIND ::= 'R'                    // Swift.UnsafeBufferPointer
-  KNOWN-TYPE-KIND ::= 'r'                    // Swift.UnsafeMutableBufferPointer
-  KNOWN-TYPE-KIND ::= 'S'                    // Swift.String
-  KNOWN-TYPE-KIND ::= 's'                    // Swift.Substring
-  KNOWN-TYPE-KIND ::= 'T'                    // Swift.Sequence
-  KNOWN-TYPE-KIND ::= 't'                    // Swift.IteratorProtocol
-  KNOWN-TYPE-KIND ::= 'U'                    // Swift.UnsignedInteger
-  KNOWN-TYPE-KIND ::= 'u'                    // Swift.UInt
-  KNOWN-TYPE-KIND ::= 'V'                    // Swift.UnsafeRawPointer
-  KNOWN-TYPE-KIND ::= 'v'                    // Swift.UnsafeMutableRawPointer
-  KNOWN-TYPE-KIND ::= 'W'                    // Swift.UnsafeRawBufferPointer
-  KNOWN-TYPE-KIND ::= 'w'                    // Swift.UnsafeMutableRawBufferPointer
-  KNOWN-TYPE-KIND ::= 'X'                    // Swift.RangeExpression
-  KNOWN-TYPE-KIND ::= 'x'                    // Swift.Strideable
-  KNOWN-TYPE-KIND ::= 'Y'                    // Swift.RawRepresentable
-  KNOWN-TYPE-KIND ::= 'y'                    // Swift.StringProtocol
-  KNOWN-TYPE-KIND ::= 'Z'                    // Swift.SignedInteger
-  KNOWN-TYPE-KIND ::= 'z'                    // Swift.BinaryInteger
+  KNOWN-TYPE-KIND ::= 'D'                    // Codira.Dictionary
+  KNOWN-TYPE-KIND ::= 'd'                    // Codira.Float64
+  KNOWN-TYPE-KIND ::= 'E'                    // Codira.Encodable
+  KNOWN-TYPE-KIND ::= 'e'                    // Codira.Decodable
+  KNOWN-TYPE-KIND ::= 'F'                    // Codira.FloatingPoint
+  KNOWN-TYPE-KIND ::= 'f'                    // Codira.Float32
+  KNOWN-TYPE-KIND ::= 'G'                    // Codira.RandomNumberGenerator
+  KNOWN-TYPE-KIND ::= 'H'                    // Codira.Hashable
+  KNOWN-TYPE-KIND ::= 'h'                    // Codira.Set
+  KNOWN-TYPE-KIND ::= 'I'                    // Codira.DefaultIndices
+  KNOWN-TYPE-KIND ::= 'i'                    // Codira.Int
+  KNOWN-TYPE-KIND ::= 'J'                    // Codira.Character
+  KNOWN-TYPE-KIND ::= 'j'                    // Codira.Numeric
+  KNOWN-TYPE-KIND ::= 'K'                    // Codira.BidirectionalCollection
+  KNOWN-TYPE-KIND ::= 'k'                    // Codira.RandomAccessCollection
+  KNOWN-TYPE-KIND ::= 'L'                    // Codira.Comparable
+  KNOWN-TYPE-KIND ::= 'l'                    // Codira.Collection
+  KNOWN-TYPE-KIND ::= 'M'                    // Codira.MutableCollection
+  KNOWN-TYPE-KIND ::= 'm'                    // Codira.RangeReplaceableCollection
+  KNOWN-TYPE-KIND ::= 'N'                    // Codira.ClosedRange
+  KNOWN-TYPE-KIND ::= 'n'                    // Codira.Range
+  KNOWN-TYPE-KIND ::= 'O'                    // Codira.ObjectIdentifier
+  KNOWN-TYPE-KIND ::= 'P'                    // Codira.UnsafePointer
+  KNOWN-TYPE-KIND ::= 'p'                    // Codira.UnsafeMutablePointer
+  KNOWN-TYPE-KIND ::= 'Q'                    // Codira.Equatable
+  KNOWN-TYPE-KIND ::= 'q'                    // Codira.Optional
+  KNOWN-TYPE-KIND ::= 'R'                    // Codira.UnsafeBufferPointer
+  KNOWN-TYPE-KIND ::= 'r'                    // Codira.UnsafeMutableBufferPointer
+  KNOWN-TYPE-KIND ::= 'S'                    // Codira.String
+  KNOWN-TYPE-KIND ::= 's'                    // Codira.Substring
+  KNOWN-TYPE-KIND ::= 'T'                    // Codira.Sequence
+  KNOWN-TYPE-KIND ::= 't'                    // Codira.IteratorProtocol
+  KNOWN-TYPE-KIND ::= 'U'                    // Codira.UnsignedInteger
+  KNOWN-TYPE-KIND ::= 'u'                    // Codira.UInt
+  KNOWN-TYPE-KIND ::= 'V'                    // Codira.UnsafeRawPointer
+  KNOWN-TYPE-KIND ::= 'v'                    // Codira.UnsafeMutableRawPointer
+  KNOWN-TYPE-KIND ::= 'W'                    // Codira.UnsafeRawBufferPointer
+  KNOWN-TYPE-KIND ::= 'w'                    // Codira.UnsafeMutableRawBufferPointer
+  KNOWN-TYPE-KIND ::= 'X'                    // Codira.RangeExpression
+  KNOWN-TYPE-KIND ::= 'x'                    // Codira.Strideable
+  KNOWN-TYPE-KIND ::= 'Y'                    // Codira.RawRepresentable
+  KNOWN-TYPE-KIND ::= 'y'                    // Codira.StringProtocol
+  KNOWN-TYPE-KIND ::= 'Z'                    // Codira.SignedInteger
+  KNOWN-TYPE-KIND ::= 'z'                    // Codira.BinaryInteger
 
-  KNOWN-TYPE-KIND-2 ::= 'A'        // Swift.Actor
-  KNOWN-TYPE-KIND-2 ::= 'C'        // Swift.CheckedContinuation
-  KNOWN-TYPE-KIND-2 ::= 'c'        // Swift.UnsafeContinuation
-  KNOWN-TYPE-KIND-2 ::= 'E'        // Swift.CancellationError
-  KNOWN-TYPE-KIND-2 ::= 'e'        // Swift.UnownedSerialExecutor
-  KNOWN-TYPE-KIND-2 ::= 'F'        // Swift.Executor
-  KNOWN-TYPE-KIND-2 ::= 'f'        // Swift.SerialExecutor
-  KNOWN-TYPE-KIND-2 ::= 'G'        // Swift.TaskGroup
-  KNOWN-TYPE-KIND-2 ::= 'g'        // Swift.ThrowingTaskGroup
-  KNOWN-TYPE-KIND-2 ::= 'I'        // Swift.AsyncIteratorProtocol
-  KNOWN-TYPE-KIND-2 ::= 'i'        // Swift.AsyncSequence
-  KNOWN-TYPE-KIND-2 ::= 'J'        // Swift.UnownedJob
-  KNOWN-TYPE-KIND-2 ::= 'M'        // Swift.MainActor
-  KNOWN-TYPE-KIND-2 ::= 'P'        // Swift.TaskPriority
-  KNOWN-TYPE-KIND-2 ::= 'S'        // Swift.AsyncStream
-  KNOWN-TYPE-KIND-2 ::= 's'        // Swift.AsyncThrowingStream
-  KNOWN-TYPE-KIND-2 ::= 'T'        // Swift.Task
-  KNOWN-TYPE-KIND-2 ::= 't'        // Swift.UnsafeCurrentTask
+  KNOWN-TYPE-KIND-2 ::= 'A'        // Codira.Actor
+  KNOWN-TYPE-KIND-2 ::= 'C'        // Codira.CheckedContinuation
+  KNOWN-TYPE-KIND-2 ::= 'c'        // Codira.UnsafeContinuation
+  KNOWN-TYPE-KIND-2 ::= 'E'        // Codira.CancellationError
+  KNOWN-TYPE-KIND-2 ::= 'e'        // Codira.UnownedSerialExecutor
+  KNOWN-TYPE-KIND-2 ::= 'F'        // Codira.Executor
+  KNOWN-TYPE-KIND-2 ::= 'f'        // Codira.SerialExecutor
+  KNOWN-TYPE-KIND-2 ::= 'G'        // Codira.TaskGroup
+  KNOWN-TYPE-KIND-2 ::= 'g'        // Codira.ThrowingTaskGroup
+  KNOWN-TYPE-KIND-2 ::= 'I'        // Codira.AsyncIteratorProtocol
+  KNOWN-TYPE-KIND-2 ::= 'i'        // Codira.AsyncSequence
+  KNOWN-TYPE-KIND-2 ::= 'J'        // Codira.UnownedJob
+  KNOWN-TYPE-KIND-2 ::= 'M'        // Codira.MainActor
+  KNOWN-TYPE-KIND-2 ::= 'P'        // Codira.TaskPriority
+  KNOWN-TYPE-KIND-2 ::= 'S'        // Codira.AsyncStream
+  KNOWN-TYPE-KIND-2 ::= 's'        // Codira.AsyncThrowingStream
+  KNOWN-TYPE-KIND-2 ::= 'T'        // Codira.Task
+  KNOWN-TYPE-KIND-2 ::= 't'        // Codira.UnsafeCurrentTask
 
   protocol ::= context decl-name
   protocol ::= standard-substitutions
 
   type ::= 'Bb'                              // Builtin.BridgeObject
   type ::= 'BB'                              // Builtin.UnsafeValueBuffer
-  #if SWIFT_RUNTIME_VERSION >= 5.5
+  #if LANGUAGE_RUNTIME_VERSION >= 5.5
     type ::= 'Bc'                              // Builtin.RawUnsafeContinuation
     type ::= 'BD'                              // Builtin.DefaultActorStorage
     type ::= 'Be'                              // Builtin.Executor
   #endif
-  #if SWIFT_RUNTIME_VERSION >= 5.9
+  #if LANGUAGE_RUNTIME_VERSION >= 5.9
     type ::= 'Bd'                              // Builtin.NonDefaultDistributedActorStorage
   #endif
   type ::= 'Bf' NATURAL '_'                  // Builtin.Float<n>
   type ::= 'Bi' NATURAL '_'                  // Builtin.Int<n>
   type ::= 'BI'                              // Builtin.IntLiteral
-  #if SWIFT_RUNTIME_VERSION >= 5.5
+  #if LANGUAGE_RUNTIME_VERSION >= 5.5
     type ::= 'Bj'                              // Builtin.Job
   #endif
   type ::= 'BP'                              // Builtin.PackIndex
@@ -719,12 +721,13 @@ Types
   type ::= type 'Xm' METATYPE-REPR           // existential metatype with representation
   type ::= 'Xe'                              // error or unresolved type
 
-#if SWIFT_RUNTIME_VERSION >= 6.TBD
+#if LANGUAGE_RUNTIME_VERSION >= 6.TBD
   type ::= '$' 'n'? INDEX                    // integer type
 #endif
 
-  bound-generic-type ::= type 'y' (type* '_')* type* retroactive-conformance* 'G'   // one type-list per nesting level of type
+  bound-generic-type ::= type bound-generic-args 'G'   // one type-list per nesting level of type
   bound-generic-type ::= substitution
+  bound-generic-args ::= 'y' (type* '_')* type* retroactive-conformance* // generic arguments
 
   FUNCTION-KIND ::= 'f'                      // @thin function type
   FUNCTION-KIND ::= 'U'                      // uncurried function type (currently not used)
@@ -737,7 +740,7 @@ Types
   FUNCTION-KIND ::= 'A'                      // @auto_closure function type (escaping)
   FUNCTION-KIND ::= 'E'                      // function type (noescape)
 
-  C-TYPE ::= NATURAL CHAR*                   // raw Itanium mangling
+  C-TYPE ::= NATURAL IDENTIFIER-STRING       // raw Itanium mangling
 
   function-signature ::= result-type params-type async? sendable? throws? differentiable? function-isolation? sending-result? // results and parameters
 
@@ -749,18 +752,18 @@ Types
                                              // they are mangled separately as part of the entity.
   params-type ::= empty-list                 // shortcut for no parameters
 
-  #if SWIFT_RUNTIME_VERSION >= 5.5
+  #if LANGUAGE_RUNTIME_VERSION >= 5.5
     async ::= 'Ya'                             // 'async' annotation on function types
     sendable ::= 'Yb'                          // @Sendable on function types
     function-isolation ::= type 'Yc'          // Global actor on function type
   #endif
   throws ::= 'K'                             // 'throws' annotation on function types
-  #if SWIFT_RUNTIME_VERSION >= 6.0
+  #if LANGUAGE_RUNTIME_VERSION >= 6.0
     throws ::= type 'YK'                     // 'throws(type)' annotation on function types
     function-isolation ::= type 'YA'         // @isolated(any) on function type
     sending-result ::= 'YT'                  // -> sending T
   #endif
-  #if SWIFT_RUNTIME_VERSION >= 6.2
+  #if LANGUAGE_RUNTIME_VERSION >= 6.2
     function-isolation :== 'YC'              // nonisolated(nonsending) on function type
   #endif
   differentiable ::= 'Yjf'                   // @differentiable(_forward) on function type
@@ -775,7 +778,7 @@ Types
 
 In the mangling of C function types,``C-TYPE`` is mangled according to the Itanium ABI, prefixed with its length. This resembles the mangling of ``identifier``, but it does not honor substitutions or Punycode.
 
-The 6.0 Swift runtime supports demangling ``sending-result``, but has a bug when it's combined with ``function-isolation``.
+The 6.0 Codira runtime supports demangling ``sending-result``, but has a bug when it's combined with ``function-isolation``.
 
 ::
 
@@ -784,7 +787,7 @@ The 6.0 Swift runtime supports demangling ``sending-result``, but has a bug when
   METATYPE-REPR ::= 'o'                      // ObjC metatype representation
 
   existential-layout ::= protocol-list 'p'                 // existential layout
-  existential-layout ::= protocol-list superclass 'Xc'     // existential layout with superclass
+  existential-layout ::= protocol-list type 'Xc'           // existential layout with superclass
   existential-layout ::= protocol-list 'Xl'                // existential layout with AnyObject
 
   type ::= associated-type
@@ -800,23 +803,22 @@ The 6.0 Swift runtime supports demangling ``sending-result``, but has a bug when
   type ::= assoc-type-name 'Qz'                      // shortcut for 'Qyz'
   type ::= assoc-type-list 'QY' GENERIC-PARAM-INDEX  // associated type at depth
   type ::= assoc-type-list 'QZ'                      // shortcut for 'QYz'
-  type ::= opaque-type-decl-name bound-generic-args 'Qo' INDEX // opaque type
+
+  type ::= type 'Qe' INDEX              // pack element type
   
-  type ::= pack-type 'Qe' INDEX              // pack element type
-  
-  type ::= pattern-type count-type 'Qp'      // pack expansion type
+  type ::= type type 'Qp'         // pack expansion type (pattern, count)
   type ::= pack-element-list 'QP'            // pack type
   type ::= pack-element-list 'QS' DIRECTNESS // SIL pack type
 
   pack-element-list ::= type '_' type*
   pack-element-list ::= empty-list
   
-  #if SWIFT_RUNTIME_VERSION >= 5.2
+  #if LANGUAGE_RUNTIME_VERSION >= 5.2
     type ::= type assoc-type-name 'Qx' // associated type relative to base `type`
-    type ::= type assoc-type-list 'QX' // associated type relative to base `type`
+    type ::= type assoc-type-list 'QX' // associated type relative to base `type` list
   #endif
 
-  #if SWIFT_RUNTIME_VERSION >= 5.7
+  #if LANGUAGE_RUNTIME_VERSION >= 5.7
     type ::= symbolic-extended-existential-type-shape type* retroactive-conformance* 'Xj'
   #endif
 
@@ -829,7 +831,7 @@ The 6.0 Swift runtime supports demangling ``sending-result``, but has a bug when
   associated-type ::= type identifier 'Qa' // associated type
 
   assoc-type-name ::= identifier                // associated type name without protocol
-  assoc-type-name ::= identifier protocol 'P'   //
+  assoc-type-name ::= identifier protocol 'P'   // associated type name with protocol
 
   empty-list ::= 'y'
 
@@ -844,7 +846,7 @@ mangled in to disambiguate.
   impl-function-type ::= type* 'I' FUNC-ATTRIBUTES '_'
   impl-function-type ::= type* generic-signature 'I' FUNC-ATTRIBUTES '_'
 
-  FUNC-ATTRIBUTES ::= PATTERN-SUBS? INVOCATION-SUBS? PSEUDO-GENERIC? CALLEE-ESCAPE? ISOLATION? DIFFERENTIABILITY-KIND? CALLEE-CONVENTION FUNC-REPRESENTATION? COROUTINE-KIND? SENDABLE? ASYNC? SENDING-RESULT? (PARAM-CONVENTION PARAM-DIFFERENTIABILITY?)* RESULT-CONVENTION* ('Y' PARAM-CONVENTION)* ('z' RESULT-CONVENTION RESULT-DIFFERENTIABILITY?)?
+  FUNC-ATTRIBUTES ::= PATTERN-SUBS? INVOCATION-SUB? PSEUDO-GENERIC? CALLEE-ESCAPE? ISOLATION? DIFFERENTIABILITY-KIND? CALLEE-CONVENTION FUNC-REPRESENTATION? COROUTINE-KIND? SENDABLE? ASYNC? SENDING-RESULT? (PARAM-CONVENTION PARAM-DIFFERENTIABILITY?)* RESULT-CONVENTION* ('Y' PARAM-CONVENTION)* ('z' RESULT-CONVENTION RESULT-DIFFERENTIABILITY?)?
 
   PATTERN-SUBS ::= 's'                       // has pattern substitutions
   INVOCATION-SUB ::= 'I'                     // has invocation substitutions
@@ -868,7 +870,7 @@ mangled in to disambiguate.
   FUNC-REPRESENTATION ::= 'zB' C-TYPE        // C block invocation function with non-canonical C type
   FUNC-REPRESENTATION ::= 'C'                // C global function
   FUNC-REPRESENTATION ::= 'zC' C-TYPE        // C global function with non-canonical C type
-  FUNC-REPRESENTATION ::= 'M'                // Swift method
+  FUNC-REPRESENTATION ::= 'M'                // Codira method
   FUNC-REPRESENTATION ::= 'J'                // ObjC method
   FUNC-REPRESENTATION ::= 'K'                // closure
   FUNC-REPRESENTATION ::= 'W'                // protocol witness
@@ -877,12 +879,12 @@ mangled in to disambiguate.
   COROUTINE-KIND ::= 'I'                     // yield-once-2 coroutine
   COROUTINE-KIND ::= 'G'                     // yield-many coroutine
 
-  #if SWIFT_RUNTIME_VERSION >= 5.5
+  #if LANGUAGE_RUNTIME_VERSION >= 5.5
     SENDABLE ::= 'h'                         // @Sendable
     ASYNC ::= 'H'                            // @async
   #endif
 
-  #if SWIFT_RUNTIME_VERSION >= 6.0
+  #if LANGUAGE_RUNTIME_VERSION >= 6.0
     SENDING-RESULT ::= 'T'                   // sending result
   #endif
 
@@ -899,6 +901,15 @@ mangled in to disambiguate.
   PARAM-CONVENTION ::= 'v'                   // pack owned
   PARAM-CONVENTION ::= 'p'                   // pack guaranteed
   PARAM-CONVENTION ::= 'm'                   // pack inout
+
+  #if LANGUAGE_RUNTIME_VERSION >= 6.0
+    SENDING-PARAM  ::= 'T'                   // sending parameter
+  #endif
+
+  #if LANGUAGE_RUNTIME_VERSION >= 6.2
+    ISOLATED-PARAM ::= 'I'                   // @isolated parameter
+    IMPLICIT-LEADING-PARAM ::= 'L'           // @implicit_leading parameter
+  #endif
 
   PARAM-DIFFERENTIABILITY ::= 'w'            // @noDerivative
 
@@ -920,7 +931,7 @@ implementation details of a function type.
 
 ::
 
-  #if SWIFT_VERSION >= 5.1
+  #if LANGUAGE_VERSION >= 5.1
     type ::= 'Qr'                         // opaque result type (of current decl, used for the first opaque type parameter only)
     type ::= 'QR' INDEX                   // same as above, for subsequent opaque type parameters, INDEX is the ordinal -1
     type ::= opaque-type-decl-name bound-generic-args 'Qo' INDEX // opaque type
@@ -928,7 +939,7 @@ implementation details of a function type.
     opaque-type-decl-name ::= entity 'QO' // opaque result type of specified decl
   #endif
 
-  #if SWIFT_VERSION >= 5.4
+  #if LANGUAGE_VERSION >= 5.4
     type ::= 'Qu'                         // opaque result type (of current decl, first param)
                                           // used for ObjC class runtime name purposes.
     type ::= 'QU' INDEX
@@ -952,10 +963,10 @@ productions:
 ::
 
   any-generic-type ::= context decl-name 'a'     // typealias type
-  type ::= base-type "XSq"                       // sugared Optional type
-  type ::= base-type "XSa"                       // sugared Array type
-  type ::= key-type value-type "XSD"             // sugared Dictionary type
-  type ::= count-type element-type "XSA"         // sugared InlineArray type
+  type ::= type 'XSq'                            // sugared Optional type
+  type ::= type 'XSa'                            // sugared Array type
+  type ::= type type 'XSD'                       // sugared Dictionary type (key, value)
+  type ::= type type 'XSA'                       // sugared InlineArray type (count, element)
 
 Generics
 ~~~~~~~~
@@ -1004,7 +1015,7 @@ Property behaviors are implemented using private protocol conformances.
       dependent-associated-conformance 'HA' DEPENDENT-CONFORMANCE-INDEX
 
   dependent-associated-conformance ::= type protocol
-  dependent-protocol-conformance ::= dependent-protocol-conformance opaque-type 'HO'
+  dependent-protocol-conformance ::= dependent-protocol-conformance type 'HO'
 
   pack-protocol-conformance ::= any-protocol-conformance-list 'HX'
 
@@ -1040,9 +1051,9 @@ now codified into the ABI; the index 0 is therefore reserved.
   generic-param-marker ::= generic-param-pack-marker
   generic-param-marker ::= generic-param-value-marker
 
-  generic-param-pack-marker ::= 'Rv' GENERIC_PARAM-INDEX   // generic parameter pack marker
+  generic-param-pack-marker ::= 'Rv' GENERIC-PARAM-INDEX   // generic parameter pack marker
 
-#if SWIFT_RUNTIME_VERSION >= 6.TBD
+#if LANGUAGE_RUNTIME_VERSION >= 6.TBD
   generic-param-value-marker ::= type 'RV' GENERIC-PARAM-INDEX // generic parameter value marker
 #endif
 
@@ -1053,7 +1064,7 @@ now codified into the ABI; the index 0 is therefore reserved.
   requirement ::= protocol assoc-type-name 'Rp' GENERIC-PARAM-INDEX // protocol requirement on associated type
   requirement ::= protocol assoc-type-list 'RP' GENERIC-PARAM-INDEX // protocol requirement on associated type at depth
   requirement ::= protocol substitution 'RQ'                        // protocol requirement with substitution
-#if SWIFT_RUNTIME_VERSION >= 6.0
+#if LANGUAGE_RUNTIME_VERSION >= 6.0
   requirement ::= 'Ri' INDEX GENERIC-PARAM-INDEX                    // inverse requirement on generic parameter where INDEX is the bit number
   requirement ::= substitution 'RI' INDEX                           // inverse requirement with substitution
   requirement ::= assoc-type-name 'Rj' INDEX GENERIC-PARAM-INDEX    // inverse requirement on associated type
@@ -1084,9 +1095,9 @@ now codified into the ABI; the index 0 is therefore reserved.
   LAYOUT-CONSTRAINT ::= 'T'  // Trivial
   LAYOUT-CONSTRAINT ::= 'C'  // Class
   LAYOUT-CONSTRAINT ::= 'D'  // NativeClass
-  LAYOUT-CONSTRAINT ::= 'E' LAYOUT-SIZE-AND-ALIGNMENT  // Trivial of exact size
+  LAYOUT-CONSTRAINT ::= 'E' LAYOUT-SIZE-AND-ALIGNMENT  // Trivial of exact size and alignment
   LAYOUT-CONSTRAINT ::= 'e' LAYOUT-SIZE  // Trivial of exact size
-  LAYOUT-CONSTRAINT ::= 'M' LAYOUT-SIZE-AND-ALIGNMENT  // Trivial of size at most N bits
+  LAYOUT-CONSTRAINT ::= 'M' LAYOUT-SIZE-AND-ALIGNMENT  // Trivial of size and alignment at most N bits
   LAYOUT-CONSTRAINT ::= 'm' LAYOUT-SIZE  // Trivial of size at most N bits
   LAYOUT-CONSTRAINT ::= 'U'  // Unknown layout
   LAYOUT-CONSTRAINT ::= 'B' // BridgeObject
@@ -1230,7 +1241,7 @@ Substitutions
 ::
 
   substitution ::= 'A' INDEX                  // substitution of N+26
-  substitution ::= 'A' SUBST_IDX* LAST-SUBST-IDX    // One or more consecutive substitutions of N < 26
+  substitution ::= 'A' SUBST-IDX* LAST-SUBST-IDX    // One or more consecutive substitutions of N < 26
   SUBST-IDX ::= [a-z]
   SUBST-IDX ::= NATURAL [a-z]
   LAST-SUBST-IDX ::= [A-Z]
@@ -1281,14 +1292,14 @@ Numbers and Indexes
   INDEX ::= '_'                               // 0
   INDEX ::= NATURAL '_'                       // N+1
   NATURAL ::= [1-9] [0-9]*
-  NATURAL_ZERO ::= [0-9]+
+  NATURAL-ZERO ::= [0-9]+
 
 ``<INDEX>`` is a production for encoding numbers in contexts that can't
 end in a digit; it's optimized for encoding smaller numbers.
 
 ::
 
-  INDEX-SUBSET ::= ('S' | 'U')+
+  INDEX-SUBSET ::= [SU]+
 
 ``<INDEX-SUBSET>`` is encoded like a bit vector and is optimized for encoding
 indices with a small upper bound.
@@ -1358,14 +1369,14 @@ Some kinds need arguments, which precede ``Tf``.
 
   CONST-PROP ::= 'f'                         // Consumes one identifier argument which is a function symbol name
   CONST-PROP ::= 'g'                         // Consumes one identifier argument which is a global symbol name
-  CONST-PROP ::= 'i' NATURAL_ZERO            // 64-bit-integer
-  CONST-PROP ::= 'd' NATURAL_ZERO            // float-as-64-bit-integer
+  CONST-PROP ::= 'i' NATURAL-ZERO            // 64-bit-integer
+  CONST-PROP ::= 'd' NATURAL-ZERO            // float-as-64-bit-integer
   CONST-PROP ::= 's' ENCODING                // string literal. Consumes one identifier argument.
   CONST-PROP ::= 'k'                         // keypath. Consumes one identifier - the SHA1 of the keypath and two types (root and value).
 
   ENCODING ::= 'b'                           // utf8
   ENCODING ::= 'w'                           // utf16
-  ENCODING ::= 'c'                           // utf16
+  ENCODING ::= 'c'                           // objc
 
 If the first character of the string literal is a digit ``[0-9]`` or an
 underscore ``_``, the identifier for the string literal is prefixed with an
@@ -1374,10 +1385,10 @@ additional underscore ``_``.
 Conventions for foreign symbols
 -------------------------------
 
-Swift interoperates with multiple other languages - C, C++, Objective-C, and
+Codira interoperates with multiple other languages - C, C++, Objective-C, and
 Objective-C++. Each of these languages defines their own mangling conventions,
-so Swift must take care to follow them. However, these conventions do not cover
-Swift-specific symbols like Swift type metadata for foreign types, so Swift uses
+so Codira must take care to follow them. However, these conventions do not cover
+Codira-specific symbols like Codira type metadata for foreign types, so Codira uses
 its own mangling scheme for those symbols.
 
 Importing C and C++ structs
@@ -1385,7 +1396,7 @@ Importing C and C++ structs
 
 Types imported from C and C++ are imported as if they are located in the ``__C``
 module, regardless of the actual Clang module that they are coming from. This
-can be observed when mangling a Swift function that accepts a C/C++ struct as a
+can be observed when mangling a Codira function that accepts a C/C++ struct as a
 parameter:
 
 C++ module ``CxxStructModule``:
@@ -1396,35 +1407,35 @@ C++ module ``CxxStructModule``:
 
   inline void cxxFunction(CxxStruct s) {}
 
-Swift module ``main`` that imports ``CxxStructModule``:
+Codira module ``main`` that imports ``CxxStructModule``:
 
-.. code-block:: swift
+.. code-block:: language
 
   import CxxStructModule
 
-  public func swiftFunction(_ s: CxxStruct) {}
+  public fn languageFunction(_ s: CxxStruct) {}
 
 Resulting symbols (showing only Itanium-mangled C++ symbols for brevity):
 
 .. code::
 
   _Z11cxxFunction9CxxStruct // -> cxxFunction(CxxStruct)
-  s4main13swiftFunctionyySo9CxxStructVF // -> main.swiftFunction(__C.CxxStruct) -> ()
+  s4main13languageFunctionyySo9CxxStructVF // -> main.codeFunction(__C.CxxStruct) -> ()
 
 The reason for ignoring the Clang module and always putting C and C++ types into
-``__C`` at the Swift ABI level is that the Clang module is not a part of the C
+``__C`` at the Codira ABI level is that the Clang module is not a part of the C
 or C++ ABI. When owners of C and C++ Clang modules decide what changes are
 ABI-compatible or not, they will likely take into account C and C++ ABI, but not
-the Swift ABI. Therefore, Swift ABI can only encode information about a C or C++
+the Codira ABI. Therefore, Codira ABI can only encode information about a C or C++
 type that the C and C++ ABI already encodes in order to remain compatible with
 future versions of libraries that evolve according to C and C++ ABI
 compatibility principles.
 
-The C/C++ compiler does not generate Swift metadata symbols and value witness
-tables for C and C++ types. To make a foreign type usable in Swift in the same
-way as a native type, the Swift compiler must generate these symbols.
-Specifically, each Swift module that uses a given C or C++ type generates the
-necessary Swift symbols. For the example above the Swift compiler will generate following
+The C/C++ compiler does not generate Codira metadata symbols and value witness
+tables for C and C++ types. To make a foreign type usable in Codira in the same
+way as a native type, the Codira compiler must generate these symbols.
+Specifically, each Codira module that uses a given C or C++ type generates the
+necessary Codira symbols. For the example above the Codira compiler will generate following
 nominal type descriptor symbol for ``CxxStruct`` while compiling the ``main`` module:
 
 .. code::
@@ -1438,7 +1449,7 @@ A class template instantiation is imported as a struct named
 ``__CxxTemplateInst`` plus Itanium mangled type of the instantiation (see the
 ``type`` production in the Itanium specification). Note that Itanium mangling is
 used on all platforms, regardless of the ABI of the C++ toolchain, to ensure
-that the mangled name is a valid Swift type name (this is not the case for MSVC
+that the mangled name is a valid Codira type name (this is not the case for MSVC
 mangled names). A prefix with a double underscore (to ensure we have a reserved
 C++ identifier) is added to limit the possibility for conflicts with names of
 user-defined structs. The struct is notionally defined in the ``__C`` module,
@@ -1460,7 +1471,7 @@ module:
 ``__CxxTemplateInst12MagicWrapperI11MagicNumberE``. Interface of the imported
 module looks as follows:
 
-.. code-block:: swift
+.. code-block:: language
 
   struct __CxxTemplateInst12MagicWrapperI11MagicNumberE {
     var t: MagicNumber

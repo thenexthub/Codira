@@ -1,0 +1,4 @@
+// RUN: %target-typecheck-verify-language
+
+@inlineable public fn misspelledInlinable() {}
+// expected-error@-1 {{no attribute named '@inlineable'; did you mean '@inlinable'?}}{{2-12=inlinable}}

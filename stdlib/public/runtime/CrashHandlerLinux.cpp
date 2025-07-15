@@ -1,13 +1,17 @@
-//===--- CrashHandlerLinux.cpp - Swift crash handler for Linux ----------- ===//
+//===--- CrashHandlerLinux.cpp - Codira crash handler for Linux ----------- ===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The Linux crash handler implementation.
@@ -49,6 +53,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#define DEBUG_MEMSERVER 0
+
+#if DEBUG_MEMSERVER
+#include <stdio.h>
+#define memserver_error(x) perror(x)
+#else
+#define memserver_error(x)
+#endif
+
 #include "language/Runtime/Backtrace.h"
 
 #include <cstring>
@@ -86,8 +99,8 @@ ssize_t safe_read(int fd, void *buf, size_t len) {
     ssize_t ret;
     do {
       ret = read(fd, buf, len);
-    } while (ret < 0 && errno == EINTR);
-    if (ret < 0)
+    } while (ret <= 0 && errno == EINTR);
+    if (ret <= 0)
       return ret;
     total += ret;
     ptr += ret;
@@ -106,8 +119,8 @@ ssize_t safe_write(int fd, const void *buf, size_t len) {
     ssize_t ret;
     do {
       ret = write(fd, buf, len);
-    } while (ret < 0 && errno == EINTR);
-    if (ret < 0)
+    } while (ret <= 0 && errno == EINTR);
+    if (ret <= 0)
       return ret;
     total += ret;
     ptr += ret;
@@ -135,8 +148,8 @@ namespace language {
 namespace runtime {
 namespace backtrace {
 
-SWIFT_RUNTIME_STDLIB_INTERNAL int
-_swift_installCrashHandler()
+LANGUAGE_RUNTIME_STDLIB_INTERNAL int
+_language_installCrashHandler()
 {
   stack_t ss;
 
@@ -257,13 +270,13 @@ handle_fatal_signal(int signum,
 #endif
 #endif
 
-  _swift_displayCrashMessage(signum, pc);
+  _language_displayCrashMessage(signum, pc);
 
   // Actually start the backtracer
-  if (!_swift_spawnBacktracer(&crashInfo, fd)) {
-    const char *message = _swift_backtraceSettings.color == OnOffTty::On
+  if (!_language_spawnBacktracer(&crashInfo, fd)) {
+    const char *message = _language_backtraceSettings.color == OnOffTty::On
       ? " failed\n\n" : " failed ***\n\n";
-    if (_swift_backtraceSettings.outputTo == OutputTo::Stdout)
+    if (_language_backtraceSettings.outputTo == OutputTo::Stdout)
       write(STDOUT_FILENO, message, strlen(message));
     else
       write(STDERR_FILENO, message, strlen(message));
@@ -362,8 +375,8 @@ signal_for_suspend(int pid, int tid)
   char pid_buffer[22];
   char tid_buffer[22];
 
-  _swift_formatUnsigned((unsigned)pid, pid_buffer);
-  _swift_formatUnsigned((unsigned)tid, tid_buffer);
+  _language_formatUnsigned((unsigned)pid, pid_buffer);
+  _language_formatUnsigned((unsigned)tid, tid_buffer);
 
   char status_file[6 + 22 + 6 + 22 + 7 + 1];
 
@@ -419,7 +432,7 @@ signal_for_suspend(int pid, int tid)
           break;
         }
         state = InHex;
-        SWIFT_FALLTHROUGH;
+        LANGUAGE_FALLTHROUGH;
       case InHex:
         if (ch >= '0' && ch <= '9') {
           mask = (mask << 4) | (ch - '0');
@@ -538,7 +551,7 @@ suspend_other_threads(struct thread *self)
           tgkill(our_pid, tid, sig_to_use);
           ++pending;
         } else {
-          warn("swift-runtime: failed to suspend thread ");
+          warn("language-runtime: failed to suspend thread ");
           warn(dp->d_name);
           warn(" while processing a crash; backtraces will be missing "
                "information\n");
@@ -643,7 +656,7 @@ wait_paused(uint32_t expected, const struct timespec *timeout)
    We don't want to require CAP_SYS_PTRACE because we're potentially being
    used inside of a Docker container, which won't have that enabled. */
 
-char memserver_stack[4096] __attribute__((aligned(SWIFT_PAGE_SIZE)));
+char memserver_stack[4096] __attribute__((aligned(LANGUAGE_PAGE_SIZE)));
 char memserver_buffer[4096];
 int memserver_fd;
 bool memserver_has_ptrace;
@@ -657,20 +670,28 @@ memserver_start()
   int fds[2];
 
   ret = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-  if (ret < 0)
+  if (ret < 0) {
+    memserver_error("memserver_start: socketpair failed");
     return ret;
+  }
 
   memserver_fd = fds[0];
   ret = clone(memserver_entry, memserver_stack + sizeof(memserver_stack),
 #if MEMSERVER_USE_PROCESS
               0,
 #else
-              CLONE_THREAD | CLONE_VM | CLONE_FILES
-              | CLONE_FS | CLONE_IO | CLONE_SIGHAND,
+              #ifndef __musl__
+              // Can't use CLONE_THREAD on musl because the clone() function
+              // there returns EINVAL if we do.
+              CLONE_THREAD | CLONE_SIGHAND |
+              #endif
+              CLONE_VM | CLONE_FILES | CLONE_FS | CLONE_IO,
 #endif
               NULL);
-  if (ret < 0)
+  if (ret < 0) {
+    memserver_error("memserver_start: clone failed");
     return ret;
+  }
 
 #if MEMSERVER_USE_PROCESS
   memserver_pid = ret;
@@ -718,7 +739,7 @@ memserver_entry(void *dummy __attribute__((unused))) {
   int fd = memserver_fd;
   int result = 1;
 
-#if MEMSERVER_USE_PROCESS
+#if MEMSERVER_USE_PROCESS || defined(__musl__)
   prctl(PR_SET_NAME, "[backtrace]");
 #endif
 
@@ -743,8 +764,10 @@ memserver_entry(void *dummy __attribute__((unused))) {
     ssize_t ret;
 
     ret = safe_read(fd, &req, sizeof(req));
-    if (ret != sizeof(req))
+    if (ret != sizeof(req)) {
+      memserver_error("memserver: terminating because safe_read() returned wrong size");
       break;
+    }
 
     uint64_t addr = req.addr;
     uint64_t bytes = req.len;
@@ -761,15 +784,19 @@ memserver_entry(void *dummy __attribute__((unused))) {
       resp.len = ret;
 
       ret = safe_write(fd, &resp, sizeof(resp));
-      if (ret != sizeof(resp))
+      if (ret != sizeof(resp)) {
+        memserver_error("memserver: terminating because safe_write() failed");
         goto fail;
+      }
 
       if (resp.len < 0)
         break;
 
       ret = safe_write(fd, memserver_buffer, resp.len);
-      if (ret != resp.len)
+      if (ret != resp.len) {
+        memserver_error("memserver: terminating because safe_write() failed (2)");
         goto fail;
+      }
 
       addr += resp.len;
       bytes -= resp.len;

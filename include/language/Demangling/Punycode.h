@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // These functions implement a variant of the Punycode algorithm from RFC3492,
 // originally designed for encoding international domain names, for the purpose
-// of encoding Swift identifiers into mangled symbol names. This version differs
+// of encoding Codira identifiers into mangled symbol names. This version differs
 // from RFC3492 in the following respects:
 // - '_' is used as the encoding delimiter instead of '-'.
 // - Encoding digits are represented using [a-zA-J] instead of [a-z0-9], because
-//   symbol names are case-sensitive, and Swift mangled identifiers cannot begin
+//   symbol names are case-sensitive, and Codira mangled identifiers cannot begin
 //   with a digit.
 // - Optionally, non-symbol ASCII characters (characters except [$_a-zA-Z0-9])
 //   are mapped to the code range 0xD800 - 0xD880 and are also encoded like
@@ -27,19 +28,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_PUNYCODE_H
-#define SWIFT_DEMANGLING_PUNYCODE_H
+#ifndef LANGUAGE_DEMANGLING_PUNYCODE_H
+#define LANGUAGE_DEMANGLING_PUNYCODE_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include "language/Demangling/NamespaceMacros.h"
 #include <vector>
 #include <cstdint>
 
 namespace language {
 namespace Punycode {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
-using llvm::StringRef;
+using toolchain::StringRef;
 
 /// Encodes a sequence of code points into Punycode.
 ///
@@ -63,9 +64,9 @@ bool encodePunycodeUTF8(StringRef InputUTF8, std::string &OutPunycode,
 
 bool decodePunycodeUTF8(StringRef InputPunycode, std::string &OutUTF8);
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Punycode
 } // end namespace language
 
-#endif // SWIFT_DEMANGLING_PUNYCODE_H
+#endif // LANGUAGE_DEMANGLING_PUNYCODE_H
 

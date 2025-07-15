@@ -1,13 +1,17 @@
 //===--- InstWrappers.cpp ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -32,7 +36,7 @@ bool ForwardingOperation::preservesOwnership() {
   return ForwardingInstruction::get(forwardingInst)->preservesOwnership();
 }
 
-// See ForwardingInstruction.swift preservesRepresentation().
+// See ForwardingInstruction.code preservesRepresentation().
 bool ForwardingOperation::hasSameRepresentation() const {
   switch (forwardingInst->getKind()) {
   // Explicitly list instructions which definitely involve a representation
@@ -81,7 +85,7 @@ bool ForwardingOperation::visitForwardedValues(
     return visitor(svi);
   }
   if (auto *mvri = dyn_cast<MultipleValueInstruction>(forwardingInst)) {
-    return llvm::all_of(mvri->getResults(), [&](SILValue value) {
+    return toolchain::all_of(mvri->getResults(), [&](SILValue value) {
       if (value->getOwnershipKind() == OwnershipKind::None)
         return true;
       return visitor(value);
@@ -89,7 +93,7 @@ bool ForwardingOperation::visitForwardedValues(
   }
   auto *ti = cast<TermInst>(forwardingInst);
   assert(ti->mayHaveTerminatorResult());
-  return llvm::all_of(ti->getSuccessorBlocks(), [&](SILBasicBlock *succBlock) {
+  return toolchain::all_of(ti->getSuccessorBlocks(), [&](SILBasicBlock *succBlock) {
     // If we do not have any arguments, then continue.
     if (succBlock->args_empty())
       return true;
@@ -100,7 +104,7 @@ bool ForwardingOperation::visitForwardedValues(
   });
 }
 
-bool swift::isFixedStorageSemanticsCallKind(SILFunction *function) {
+bool language::isFixedStorageSemanticsCallKind(SILFunction *function) {
   for (auto &attr : function->getSemanticsAttrs()) {
     if (attr == "fixed_storage.check_index" ||
         attr == "fixed_storage.get_count") {

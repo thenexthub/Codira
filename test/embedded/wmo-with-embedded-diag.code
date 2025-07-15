@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -c %s -o %t -module-name wmowithembedded -parse-stdlib -enable-experimental-feature Embedded
+// RUN: not %target-language-frontend -c %s -o %t -module-name wmowithembedded -parse-stdlib -primary-file %s -enable-experimental-feature Embedded 2>&1 | %FileCheck %s
+
+// RUN: %target-languagec_driver -c %s -o %t -module-name wmowithembedded -parse-stdlib -Xfrontend -disable-objc-interop -enable-experimental-feature Embedded -wmo
+// RUN: not %target-languagec_driver -c %s -o %t -module-name wmowithembedded -parse-stdlib -Xfrontend -disable-objc-interop -enable-experimental-feature Embedded 2>&1 | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// CHECK: error: Whole module optimization (wmo) must be enabled with embedded Codira.

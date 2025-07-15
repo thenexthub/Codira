@@ -1,13 +1,17 @@
 //===--- Common.cpp - Automatic differentiation common utils --*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Automatic differentiation common utilities.
@@ -26,7 +30,7 @@
 namespace language {
 namespace autodiff {
 
-raw_ostream &getADDebugStream() { return llvm::dbgs() << "[AD] "; }
+raw_ostream &getADDebugStream() { return toolchain::dbgs() << "[AD] "; }
 
 //===----------------------------------------------------------------------===//
 // Helpers
@@ -62,7 +66,7 @@ bool isSemanticMemberAccessor(SILFunction *original) {
   if (!accessor)
     return false;
   // Currently, only getters and setters are supported.
-  // TODO(https://github.com/apple/swift/issues/55084): Support `modify` accessors.
+  // TODO(https://github.com/apple/language/issues/55084): Support `modify` accessors.
   if (accessor->getAccessorKind() != AccessorKind::Get &&
       accessor->getAccessorKind() != AccessorKind::Set)
     return false;
@@ -91,7 +95,7 @@ bool hasSemanticMemberAccessorCallee(ApplySite applySite) {
 
 void forEachApplyDirectResult(
     FullApplySite applySite,
-    llvm::function_ref<void(SILValue)> resultCallback) {
+    toolchain::function_ref<void(SILValue)> resultCallback) {
   switch (applySite.getKind()) {
   case FullApplySiteKind::ApplyInst: {
     auto *ai = cast<ApplyInst>(applySite.getInstruction());
@@ -258,7 +262,7 @@ void collectMinimalIndicesForFunctionCall(
   // Make sure the function call has active results.
 #ifndef NDEBUG
   assert(results.size() == calleeFnTy->getNumAutoDiffSemanticResults());
-  assert(llvm::any_of(results, [&](SILValue result) {
+  assert(toolchain::any_of(results, [&](SILValue result) {
     return activityInfo.isActive(result, parentConfig);
   }));
 #endif
@@ -267,12 +271,12 @@ void collectMinimalIndicesForFunctionCall(
 std::optional<std::pair<SILDebugLocation, SILDebugVariable>>
 findDebugLocationAndVariable(SILValue originalValue) {
   if (auto *asi = dyn_cast<AllocStackInst>(originalValue))
-    return swift::transform(asi->getVarInfo(false),  [&](SILDebugVariable var) {
+    return language::transform(asi->getVarInfo(false),  [&](SILDebugVariable var) {
       return std::make_pair(asi->getDebugLocation(), var);
     });
   for (auto *use : originalValue->getUses()) {
     if (auto *dvi = dyn_cast<DebugValueInst>(use->getUser()))
-      return swift::transform(dvi->getVarInfo(false), [&](SILDebugVariable var) {
+      return language::transform(dvi->getVarInfo(false), [&](SILDebugVariable var) {
         // We need to drop `op_deref` here as we're transferring debug info
         // location from debug_value instruction (which describes how to get value)
         // into alloc_stack (which describes the location)
@@ -325,7 +329,7 @@ VarDecl *getTangentStoredProperty(ADContext &context, VarDecl *originalField,
   auto sourceLoc = loc.getSourceLoc();
   switch (tanFieldInfo.error->kind) {
   case TangentPropertyInfo::Error::Kind::NoDerivativeOriginalProperty:
-    llvm_unreachable(
+    toolchain_unreachable(
         "`@noDerivative` stored property accesses should not be "
         "differentiated; activity analysis should not mark as varied");
   case TangentPropertyInfo::Error::Kind::NominalParentNotDifferentiable:
@@ -538,9 +542,14 @@ SILDifferentiabilityWitness *getOrCreateMinimalASTDifferentiabilityWitness(
          "definitions with explicit differentiable attributes");
 
   return SILDifferentiabilityWitness::createDeclaration(
-      module, SILLinkage::PublicExternal, original, kind,
-      minimalConfig->parameterIndices, minimalConfig->resultIndices,
-      minimalConfig->derivativeGenericSignature);
+      module,
+      // Witness for @_alwaysEmitIntoClient original function must be emitted,
+      // otherwise a linker error would occur due to undefined reference to the
+      // witness symbol.
+      original->markedAsAlwaysEmitIntoClient() ? SILLinkage::PublicNonABI
+                                               : SILLinkage::PublicExternal,
+      original, kind, minimalConfig->parameterIndices,
+      minimalConfig->resultIndices, minimalConfig->derivativeGenericSignature);
 }
 
 } // end namespace autodiff

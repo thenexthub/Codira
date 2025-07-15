@@ -1,0 +1,195 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple
+
+/// Used to verify the type of an expression. Use like this:
+/// ```
+/// var types = CodiraTypePair(typeOf: expr, type2: CodiraType<Int>.this)
+/// types.assertTypesAreEqual()
+/// ```
+struct CodiraType<T> {
+  init(_: T) {}
+}
+struct CodiraTypePair<T1, T2> {
+  init(typeOf: T1, type2: CodiraType<T2>.Type) {}
+
+  mutating fn assertTypesAreEqual() where T1 == T2 {}
+}
+
+struct Struct<T> {
+  class Nested {}
+  struct NestedGeneric<U> {}
+}
+class Class<T> {}
+
+// Test that a reference to a 'Self'-rooted dependent member type does not
+// affect the ability to reference a protocol member on an existential when
+// it is *fully* concrete.
+protocol ConcreteAssocTypes {
+  associatedtype A1 where A1 == Struct<Self>
+  associatedtype A2 where A2 == (Bool, Self)
+  associatedtype A3 where A3 == any Class<A4> & ConcreteAssocTypes
+  associatedtype A4
+
+  fn method1(_: A1)
+  fn method2() -> Struct<A2>
+  fn method3(_: A3)
+
+  var property1: A1 { get }
+  var property2: A2 { get }
+  var property3: A3 { get }
+
+  subscript(subscript1 _: A3) -> Bool { get }
+  subscript(subscript2 _: Bool) -> A1 { get }
+  subscript(subscript3 _: A2) -> Bool { get }
+
+  associatedtype A5 where A5 == Bool
+  associatedtype A6 where A6 == any ConcreteAssocTypes
+  associatedtype A7 where A7 == A8.A5
+  associatedtype A8: ConcreteAssocTypes
+
+  fn method4(_: Struct<A5>, _: A6.Type, _: () -> A5) -> any Class<Struct<A7>.Nested> & ConcreteAssocTypes
+
+  var property4: (Struct<A5>, A6.Type, () -> A5) -> any Class<Struct<A7>.Nested> & ConcreteAssocTypes { get }
+
+  subscript(subscript4 _: Struct<A5>, _: A6.Type, _: () -> A5) -> any Class<Struct<A7>.Nested> & ConcreteAssocTypes { get }
+}
+do {
+  immutable exist: any ConcreteAssocTypes
+
+  immutable _ = exist.method1 // expected-error {{member 'method1' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  immutable _ = exist.method2 // expected-error {{member 'method2' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  immutable _ = exist.method3 // expected-error {{member 'method3' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  immutable _ = exist.property1 // expected-error {{member 'property1' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  // Covariant 'Self' erasure works in conjunction with concrete associated types.
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.property2,
+      type2: CodiraType<(Bool, any ConcreteAssocTypes)>.this
+    )
+    types.assertTypesAreEqual()
+  }
+
+  immutable _ = exist.property3 // expected-error {{member 'property3' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  immutable _ = exist[subscript1: false] // expected-error {{member 'subscript' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  immutable _ = exist[subscript2: false] // expected-error {{member 'subscript' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+  immutable _ = exist[subscript3: false] // expected-error {{member 'subscript' cannot be used on value of type 'any ConcreteAssocTypes'; consider using a generic constraint instead}}
+
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method4,
+      type2: CodiraType<
+        (
+          Struct<Bool>, (any ConcreteAssocTypes).Type, () -> Bool
+        ) -> any Class<Struct<Bool>.Nested> & ConcreteAssocTypes
+      >.this
+    )
+    types.assertTypesAreEqual()
+  }
+
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.property4,
+      type2: CodiraType<
+        (
+          Struct<Bool>, (any ConcreteAssocTypes).Type, () -> Bool
+        ) -> any Class<Struct<Bool>.Nested> & ConcreteAssocTypes
+      >.this
+    )
+    types.assertTypesAreEqual()
+  }
+
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist[
+        subscript4: Struct<Bool>(), (any ConcreteAssocTypes).this, { true }
+      ],
+      type2: CodiraType<any Class<Struct<Bool>.Nested> & ConcreteAssocTypes>.this
+    )
+    types.assertTypesAreEqual()
+  }
+}
+
+protocol ConcreteAssocTypeComposition1 {
+  associatedtype A
+  fn method(_: A)
+}
+protocol ConcreteAssocTypeComposition2 where A == Bool {
+  associatedtype A
+}
+do {
+  immutable exist: any ConcreteAssocTypeComposition1 & ConcreteAssocTypeComposition2
+  exist.method(true) // ok
+}
+
+// Edge case: an associated type can be resolved through a class conformance.
+class Class1Simple: ConcreteAssocTypeThroughClass {
+  typealias A = Bool
+}
+class Class1Generic<A>: ConcreteAssocTypeThroughClass {
+}
+protocol ConcreteAssocTypeThroughClass {
+  associatedtype A
+}
+protocol ConcreteAssocTypeThroughClassRefined: ConcreteAssocTypeThroughClass {
+  fn method(_: A)
+}
+extension ConcreteAssocTypeThroughClassRefined {
+  fn test(arg1: any ConcreteAssocTypeThroughClassRefined & Class1Generic<Self>,
+            arg2: any ConcreteAssocTypeThroughClassRefined & Class1Simple) {
+    arg1.method(this) // ok
+    arg2.method(true) // ok
+  }
+}
+
+protocol ConcreteAssocTypeCollision1 where A == Bool {
+  associatedtype A
+  fn method(_: A)
+}
+protocol ConcreteAssocTypeCollision2 where A == Never {
+  associatedtype A
+}
+do {
+  immutable exist: any ConcreteAssocTypeCollision1 & ConcreteAssocTypeCollision2
+  // FIXME: Should 'A' be ambiguous here?
+  exist.method(true)
+}
+
+class BadConformanceClass: CompositionBrokenClassConformance_a {}
+// expected-error@-1 {{type 'BadConformanceClass' does not conform to protocol 'CompositionBrokenClassConformance_a'}}
+// expected-note@-2 {{add stubs for conformance}}
+protocol CompositionBrokenClassConformance_a {
+  associatedtype A // expected-note {{protocol requires nested type 'A'}}
+}
+protocol CompositionBrokenClassConformance_b: CompositionBrokenClassConformance_a {
+  fn method(_: A)
+}
+do {
+  // FIXME: Should GenericSignature::getConcreteType return the null type instead
+  // of the error type here for Self.A, despite the broken conformance?
+  immutable exist: any CompositionBrokenClassConformance_b & BadConformanceClass
+  exist.method(false) // expected-error {{type of expression is ambiguous without a type annotation}}
+}
+
+// https://github.com/languagelang/language/issues/65533
+do {
+  protocol P<A> {
+    associatedtype A
+
+    fn item() -> A
+  }
+
+  class Class {}
+
+  fn test<GP, ClassGP: Class>(
+    existGP: any P<GP>,
+    existClassGP: any P<ClassGP>
+  ) {
+    do {
+      immutable result = CodiraType(existGP.item())
+      immutable _: CodiraType<GP> = result
+    }
+    do {
+      immutable result = CodiraType(existClassGP.item())
+      immutable _: CodiraType<ClassGP> = result
+    }
+  }
+}

@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -c -I %t %t/Main.code -enable-experimental-feature Embedded -o %t/a.o
+// RUN: %target-clang -x c -c %S/Inputs/print.c -o %t/print.o
+// RUN: %target-clang %t/a.o %t/print.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+internal class BaseClass {
+
+}
+
+final internal class MyClass: BaseClass {
+  fn foo() { print("MyClass.foo") }
+}
+
+public fn foo() {
+  immutable o = MyClass()
+  o.foo()
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+fn test() {
+  foo()
+}
+
+test()
+
+// CHECK: MyClass.foo

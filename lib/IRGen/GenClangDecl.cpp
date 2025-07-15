@@ -1,4 +1,4 @@
-//===--- GenClangDecl.cpp - Swift IRGen for imported Clang declarations ---===//
+//===--- GenClangDecl.cpp - Codira IRGen for imported Clang declarations ---===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "IRGenModule.h"
@@ -29,7 +30,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/CodeGen/ModuleBuilder.h"
 #include "clang/Sema/Sema.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 using namespace language;
 using namespace irgen;
@@ -68,8 +69,8 @@ public:
       if (paramDecl->hasDefaultArg()) {
         if (FuncDecl *defaultArgGenerator =
                 clangModuleLoader->getDefaultArgGenerator(paramDecl)) {
-          // Deconstruct the Swift function that was created in
-          // SwiftDeclSynthesizer::makeDefaultArgument and extract the
+          // Deconstruct the Codira function that was created in
+          // CodiraDeclSynthesizer::makeDefaultArgument and extract the
           // underlying Clang function that was also synthesized.
           BraceStmt *body = defaultArgGenerator->getTypecheckedBody();
           auto returnStmt =
@@ -301,7 +302,7 @@ void IRGenModule::emitClangDecl(const clang::Decl *decl) {
 
     // If something from a C++ class is used, emit all virtual methods of this
     // class because they might be emitted in the vtable even if not used
-    // directly from Swift.
+    // directly from Codira.
     if (auto *record = dyn_cast<clang::CXXRecordDecl>(next->getDeclContext())) {
       if (auto *destructor = record->getDestructor()) {
         // Ensure virtual destructors have the body defined, even if they're
@@ -327,7 +328,7 @@ void IRGenModule::emitClangDecl(const clang::Decl *decl) {
   }
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfClangGlobalDecl(clang::GlobalDecl global,
                                       ForDefinition_t forDefinition) {
   // Register the decl with the clang code generator.
@@ -365,7 +366,7 @@ void IRGenModule::ensureImplicitCXXDestructorBodyIsDefined(
       destructor->doesThisDeclarationHaveABody())
     return;
   assert(!destructor->isDeleted() &&
-         "Swift cannot handle a type with no known destructor.");
+         "Codira cannot handle a type with no known destructor.");
   // Make sure we define the destructor so we have something to call.
   auto &sema = Context.getClangModuleLoader()->getClangSema();
   sema.DefineImplicitDestructor(clang::SourceLocation(), destructor);
@@ -405,7 +406,7 @@ irgen::getBasesAndOffsets(const clang::CXXRecordDecl *decl) {
 
   // In C++, base classes might get reordered if the primary base was not
   // the first base type on the declaration of the class.
-  llvm::sort(baseOffsetsAndSizes, [](const CXXBaseRecordLayout &lhs,
+  toolchain::sort(baseOffsetsAndSizes, [](const CXXBaseRecordLayout &lhs,
                                      const CXXBaseRecordLayout &rhs) {
     return lhs.offset < rhs.offset;
   });

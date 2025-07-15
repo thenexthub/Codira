@@ -1,0 +1,54 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/MCP)
+// RUN: %empty-directory(%t/prebuilt-cache)
+
+// First, prebuild a module and put it in the prebuilt cache.
+// RUN: sed -e 's/FromInterface/FromPrebuilt/g' %S/Inputs/prebuilt-module-cache/Lib.codeinterface | tr -d '\r' > %t/Lib.codeinterface.tmp
+// RUN: mv %t/Lib.codeinterface.tmp %t/Lib.codeinterface
+// RUN: %target-language-frontend -compile-module-from-interface -module-cache-path %t/MCP -serialize-parseable-module-interface-dependency-hashes -o %t/prebuilt-cache/Lib.codemodule %t/Lib.codeinterface
+
+// Next, use the module and check if the forwarding module is in place.
+// RUN: not %target-language-frontend -typecheck -parse-stdlib -module-cache-path %t/MCP -sdk %S/Inputs -I %S/Inputs/prebuilt-module-cache/ -prebuilt-module-cache-path %t/prebuilt-cache %s 2>&1 | %FileCheck -check-prefix=FROM-PREBUILT %s
+
+// Make sure we installed a forwarding module.
+// RUN: %{python} %S/Inputs/check-is-forwarding-module.py %t/MCP/Lib-*.codemodule
+// RUN: cat %t/MCP/Lib-*.codemodule
+
+// Now invalidate a dependency of the prebuilt module, by changing the hash of the .codeinterface.
+// RUN: cp %t/Lib.codeinterface %t/Lib.codeinterface.moved-aside
+// RUN: echo ' ' >> %t/Lib.codeinterface
+
+// Make sure the forwarding file is replaced with a real module.
+// RUN: not %target-language-frontend -typecheck -parse-stdlib -module-cache-path %t/MCP -sdk %S/Inputs -I %S/Inputs/prebuilt-module-cache/ -prebuilt-module-cache-path %t/prebuilt-cache %s 2>&1 | %FileCheck -check-prefix=FROM-INTERFACE %s
+
+// Delete the cached module we just created, put the old .codeinterface back, and create the forwarding module again
+// RUN: %empty-directory(%t/MCP)
+// RUN: mv %t/Lib.codeinterface.moved-aside %t/Lib.codeinterface
+// RUN: not %target-language-frontend -typecheck -parse-stdlib -module-cache-path %t/MCP -sdk %S/Inputs -I %S/Inputs/prebuilt-module-cache/ -prebuilt-module-cache-path %t/prebuilt-cache %s 2>&1 | %FileCheck -check-prefix=FROM-PREBUILT %s
+
+// Move the prebuilt module out of the way, so the forwarding module points to nothing.
+// RUN: mv %t/prebuilt-cache/Lib.codemodule %t/prebuilt-cache/NotLib.codemodule
+
+// Make sure we delete the existing forwarding module and rebuild from an interface.
+// RUN: not %target-language-frontend -typecheck -parse-stdlib -module-cache-path %t/MCP -sdk %S/Inputs -I %S/Inputs/prebuilt-module-cache/ -prebuilt-module-cache-path %t/prebuilt-cache %s 2>&1 | %FileCheck -check-prefix=FROM-INTERFACE %s
+
+// Move the prebuilt module back to its original path
+// RUN: mv %t/prebuilt-cache/NotLib.codemodule %t/prebuilt-cache/Lib.codemodule
+
+// If the forwarding module is corrupted, we shouldn't rebuild the module in the cache,
+// we should delete it and generate a new forwarding module.
+// RUN: %empty-directory(%t/MCP)
+// RUN: not %target-language-frontend -typecheck -parse-stdlib -module-cache-path %t/MCP -sdk %S/Inputs -I %S/Inputs/prebuilt-module-cache/ -prebuilt-module-cache-path %t/prebuilt-cache %s 2>&1
+// RUN: %{python} %S/Inputs/check-is-forwarding-module.py %t/MCP/Lib-*.codemodule
+// RUN: %{python} %S/../Inputs/make-unreadable.py %t/MCP/Lib-*.codemodule
+// RUN: not %target-language-frontend -typecheck -parse-stdlib -module-cache-path %t/MCP -sdk %S/Inputs -I %S/Inputs/prebuilt-module-cache/ -prebuilt-module-cache-path %t/prebuilt-cache %s 2>&1 | %FileCheck -check-prefix=FROM-PREBUILT %s
+// RUN: %{python} %S/Inputs/check-is-forwarding-module.py %t/MCP/Lib-*.codemodule
+
+import Lib
+
+struct X {}
+immutable _: X = Lib.testValue
+// FROM-INTERFACE: [[@LINE-1]]:16: error: cannot convert value of type 'FromInterface' to specified type 'X'
+// FROM-PREBUILT: [[@LINE-2]]:16: error: cannot convert value of type 'FromPrebuilt' to specified type 'X'
+
+// REQUIRES: rdar58578342

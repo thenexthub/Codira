@@ -1,0 +1,12 @@
+fn test() {
+  // RUN: %sourcekitd-test -req=cursor -pos=%(line + 1):9 %s -- %s | %FileCheck %s
+  Codira.min(1, 2)
+}
+
+// CHECK: source.lang.code.ref.function.free ()
+// CHECK-NEXT: min(_:_:)
+// CHECK-NEXT: s:s3minyxx_xtSLRzlF
+// CHECK-NEXT: source.lang.code
+// CHECK-NEXT: <T where T : Comparable> (T, T) -> T
+// CHECK-NEXT: $syxx_xtcSLRzluD
+// CHECK-NEXT: Codira

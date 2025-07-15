@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Support code for tracing events in the Swift runtime
+// Support code for tracing events in the Codira runtime
 //
 //===----------------------------------------------------------------------===//
 
 #include "Tracing.h"
 
-#if SWIFT_STDLIB_TRACING
+#if LANGUAGE_STDLIB_TRACING
 
-#define SWIFT_LOG_SUBSYSTEM "com.apple.swift"
-#define SWIFT_LOG_SECTION_SCAN_CATEGORY "SectionScan"
+#define LANGUAGE_LOG_SUBSYSTEM "com.apple.code"
+#define LANGUAGE_LOG_SECTION_SCAN_CATEGORY "SectionScan"
 
 namespace language {
 namespace runtime {
 namespace trace {
 
 os_log_t ScanLog;
-swift::once_t LogsToken;
+language::once_t LogsToken;
 bool TracingEnabled;
 
 void setupLogs(void *unused) {
@@ -39,7 +40,7 @@ void setupLogs(void *unused) {
   }
 
   TracingEnabled = true;
-  ScanLog = os_log_create(SWIFT_LOG_SUBSYSTEM, SWIFT_LOG_SECTION_SCAN_CATEGORY);
+  ScanLog = os_log_create(LANGUAGE_LOG_SUBSYSTEM, LANGUAGE_LOG_SECTION_SCAN_CATEGORY);
 }
 
 } // namespace trace

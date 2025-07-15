@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "DerivedConformance.h"
@@ -275,6 +276,9 @@ void DerivedConformance::diagnoseIfSynthesisUnsupportedForDecl(
     shouldDiagnose = !isa<EnumDecl>(nominal);
   }
 
+  if (isa<BuiltinTupleDecl>(nominal))
+    shouldDiagnose = false;
+
   if (shouldDiagnose) {
     auto &ctx = nominal->getASTContext();
     ctx.Diags.diagnose(nominal->getLoc(),
@@ -361,16 +365,16 @@ ValueDecl *DerivedConformance::getDerivableRequirement(NominalTypeDecl *nominal,
   }
 
   // Functions.
-  if (auto func = dyn_cast<FuncDecl>(requirement)) {
-    if (func->isOperator() && name.getBaseName() == "<")
+  if (auto fn = dyn_cast<FuncDecl>(requirement)) {
+    if (fn->isOperator() && name.getBaseName() == "<")
       return getRequirement(KnownProtocolKind::Comparable);
     
-    if (func->isOperator() && name.getBaseName() == "==")
+    if (fn->isOperator() && name.getBaseName() == "==")
       return getRequirement(KnownProtocolKind::Equatable);
 
     // AdditiveArithmetic.+
     // AdditiveArithmetic.-
-    if (func->isOperator() && name.getArgumentNames().size() == 2 &&
+    if (fn->isOperator() && name.getArgumentNames().size() == 2 &&
         (name.getBaseName() == "+" || name.getBaseName() == "-")) {
       return getRequirement(KnownProtocolKind::AdditiveArithmetic);
     }
@@ -398,7 +402,7 @@ ValueDecl *DerivedConformance::getDerivableRequirement(NominalTypeDecl *nominal,
 
     // static DistributedActor.resolve(id:using:)
     if (name.isCompoundName() && name.getBaseName() == ctx.Id_resolve &&
-        func->isStatic()) {
+        fn->isStatic()) {
       auto argumentNames = name.getArgumentNames();
       if (argumentNames.size() == 2 &&
           argumentNames[0] == ctx.Id_id &&
@@ -551,7 +555,7 @@ mapIntroducer(DerivedConformance::SynthesizedIntroducer intro) {
   case DerivedConformance::SynthesizedIntroducer::Var:
     return VarDecl::Introducer::Var;
   }
-  llvm_unreachable("Invalid synthesized introducer!");
+  toolchain_unreachable("Invalid synthesized introducer!");
 }
 
 std::pair<VarDecl *, PatternBindingDecl *>
@@ -605,10 +609,10 @@ bool DerivedConformance::checkAndDiagnoseDisallowedContext(
     // Try to insert a stub.
     auto Extension = cast<ExtensionDecl>(getConformanceContext());
     auto FixitLocation = Extension->getBraces().Start;
-    llvm::SmallString<128> Text;
+    toolchain::SmallString<128> Text;
     {
-      llvm::raw_svector_ostream SS(Text);
-      swift::printRequirementStub(synthesizing, Nominal,
+      toolchain::raw_svector_ostream SS(Text);
+      language::printRequirementStub(synthesizing, Nominal,
                                   Nominal->getDeclaredType(),
                                   Extension->getStartLoc(), SS);
       if (!Text.empty()) {
@@ -978,7 +982,7 @@ VarDecl *DerivedConformance::indexedVarDecl(char prefixChar, int index, Type typ
                                DeclContext *varContext) {
   ASTContext &C = varContext->getASTContext();
 
-  llvm::SmallString<8> indexVal;
+  toolchain::SmallString<8> indexVal;
   indexVal.append(1, prefixChar);
   APInt(32, index).toString(indexVal, 10, /*signed*/ false);
   auto indexStr = C.AllocateCopy(indexVal);
@@ -991,7 +995,7 @@ VarDecl *DerivedConformance::indexedVarDecl(char prefixChar, int index, Type typ
   return varDecl;
 }
 
-bool swift::memberwiseAccessorsRequireActorIsolation(NominalTypeDecl *nominal) {
+bool language::memberwiseAccessorsRequireActorIsolation(NominalTypeDecl *nominal) {
   if (!getActorIsolation(nominal).isActorIsolated())
     return false;
 

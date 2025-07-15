@@ -1,0 +1,39 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -c -I%t -parse-as-library %t/MyModuleA.code -o %t/MyModuleA.o -emit-module -emit-module-path %t/MyModuleA.codemodule -emit-empty-object-file
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -c -I%t -parse-as-library %t/MyModuleB.code -o %t/MyModuleB.o -emit-module -emit-module-path %t/MyModuleB.codemodule -emit-empty-object-file
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -c -I%t -parse-as-library %t/MyModuleC.code -o %t/MyModuleC.o -emit-module -emit-module-path %t/MyModuleC.codemodule -emit-empty-object-file
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -c -I%t %t/Main.code -o %t/Main.o
+// RUN: %target-clang %target-clang-resource-dir-opt %t/Main.o %t/MyModuleA.o %t/MyModuleB.o %t/MyModuleC.o -o %t/a.out
+// RUN: %target-run %t/a.out
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+//--- MyModuleA.code
+
+public fn a() {}
+
+//--- MyModuleB.code
+
+import MyModuleA
+
+public fn b() {}
+
+//--- MyModuleC.code
+
+import MyModuleB
+
+public fn c() {}
+
+//--- Main.code
+
+import MyModuleA
+import MyModuleB
+import MyModuleC
+
+a()
+b()
+c()

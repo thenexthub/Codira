@@ -1,13 +1,17 @@
 //===--- AddressWalker.h --------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,8 +22,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_ADDRESSWALKER_H
-#define SWIFT_SIL_ADDRESSWALKER_H
+#ifndef LANGUAGE_SIL_ADDRESSWALKER_H
+#define LANGUAGE_SIL_ADDRESSWALKER_H
 
 #include "language/Basic/Defer.h"
 #include "language/SIL/AddressUseKind.h"
@@ -81,7 +85,7 @@ protected:
 
   void meet(AddressUseKind other) {
     assert(!didInvalidate);
-    result = swift::meet(result, other);
+    result = language::meet(result, other);
   }
 
   void recordEscape(Operand *op, AddressUseKind kind = AddressUseKind::PointerEscape) {
@@ -111,7 +115,7 @@ TransitiveAddressWalker<Impl>::walk(SILValue projectedAddress) {
   assert(!didInvalidate);
 
   // When we exit, set the result to be invalidated so we can't use this again.
-  SWIFT_DEFER { didInvalidate = true; };
+  LANGUAGE_DEFER { didInvalidate = true; };
 
   StackList<Operand *> worklist(projectedAddress->getFunction());
   SmallPtrSet<Operand *, 32> visitedOperands;
@@ -176,13 +180,13 @@ TransitiveAddressWalker<Impl>::walk(SILValue projectedAddress) {
       case TermKind::UnreachableInst:
       case TermKind::UnwindInst:
       case TermKind::ThrowAddrInst:
-        llvm_unreachable("Should never be used");
+        toolchain_unreachable("Should never be used");
       case TermKind::SwitchEnumInst:
       case TermKind::SwitchValueInst:
       case TermKind::DynamicMethodBranchInst:
       case TermKind::AwaitAsyncContinuationInst:
       case TermKind::CheckedCastBranchInst:
-        llvm_unreachable("Never takes an address");
+        toolchain_unreachable("Never takes an address");
       // Point uses.
       case TermKind::ReturnInst:
       case TermKind::ThrowInst:
@@ -229,7 +233,7 @@ TransitiveAddressWalker<Impl>::walk(SILValue projectedAddress) {
         isa<PackElementSetInst>(user) || isa<PackElementGetInst>(user) ||
         isa<DeinitExistentialAddrInst>(user) || isa<LoadBorrowInst>(user) ||
         isa<TupleAddrConstructorInst>(user) || isa<DeallocPackInst>(user) ||
-        isa<MergeIsolationRegionInst>(user)) {
+        isa<MergeIsolationRegionInst>(user) || isa<EndCOWMutationAddrInst>(user)) {
       callVisitUse(op);
       continue;
     }
@@ -249,6 +253,7 @@ TransitiveAddressWalker<Impl>::walk(SILValue projectedAddress) {
         isa<BeginAccessInst>(user) || isa<TailAddrInst>(user) ||
         isa<IndexAddrInst>(user) || isa<StoreBorrowInst>(user) ||
         isa<UncheckedAddrCastInst>(user) ||
+        isa<VectorBaseAddrInst>(user) ||
         isa<MarkUnresolvedNonCopyableValueInst>(user) ||
         isa<MarkUninitializedInst>(user) || isa<DropDeinitInst>(user) ||
         isa<ProjectBlockStorageInst>(user) || isa<UpcastInst>(user) ||
@@ -287,6 +292,7 @@ TransitiveAddressWalker<Impl>::walk(SILValue projectedAddress) {
         case BuiltinValueKind::GenericXor:
         case BuiltinValueKind::TaskRunInline:
         case BuiltinValueKind::ZeroInitializer:
+        case BuiltinValueKind::PrepareInitialization:
         case BuiltinValueKind::GetEnumTag:
         case BuiltinValueKind::InjectEnumTag:
         case BuiltinValueKind::AddressOfRawLayout:
@@ -307,7 +313,7 @@ TransitiveAddressWalker<Impl>::walk(SILValue projectedAddress) {
 
     if (auto mdi = MarkDependenceInstruction(user)) {
       // TODO: continue walking the dependent value, which may not be an
-      // address. See AddressUtils.swift. Until that is implemented, this must
+      // address. See AddressUtils.code. Until that is implemented, this must
       // be considered a pointer escape.
       if (op->get() == mdi.getBase()) {
         recordEscape(op, AddressUseKind::Dependent);

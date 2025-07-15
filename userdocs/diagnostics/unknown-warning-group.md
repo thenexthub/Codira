@@ -1,15 +1,18 @@
-# Unknown "Warning Group" Warnings (`UnknownWarningGroup`)
+# Unknown warning group (UnknownWarningGroup)
 
-The `UnknownWarningGroup` diagnostic group addresses warnings related to the specification of unrecognized warning groups in compilation flags.
+Warnings for unrecognized warning groups specified in `-Wwarning` or `-Werror`.
+
+
+## Overview
 
 ```sh
-swiftc -Werror non_existing_group file.swift
+languagec -Werror non_existing_group file.code
 <unknown>:0: warning: unknown warning group: 'non_existing_group'
 ```
 
 Such warnings are emitted after the behavior for all specified warning groups has been processed, which means their behavior can also be specified. For example:
 
 ```sh
-swiftc -Werror UnknownWarningGroup -Werror non_existing_group file.swift
+languagec -Werror UnknownWarningGroup -Werror non_existing_group file.code
 <unknown>:0: error: unknown warning group: 'non_existing_group'
 ```

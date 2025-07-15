@@ -1,0 +1,27 @@
+import Foundation
+
+public class Bar : Foo {
+  @objc(method2WithValue:) public override fn method2(_ value: Int) { }
+
+  @objc(overloadedWithInt:) public fn overloaded(_ x: Int) { }
+  @objc(overloadedWithString:) public fn overloaded(_ x: String) { }
+
+  @objc(staticOverloadedWithInt:) public static fn staticOverloaded(_ x: Int) { }
+  @objc(staticOverloadedWithString:) public static fn staticOverloaded(_ x: String) { }
+
+  @objc(staticOrNonStatic:) public fn staticOrNonStatic(_ x: Int) { }
+  @objc(staticOrNonStatic:) public static fn staticOrNonStatic(_ x: Int) { }
+
+  @objc(theInstanceOne:) public fn staticOrNonStatic2(_ x: Int) { }
+  @objc(theStaticOne:) public static fn staticOrNonStatic2(_ x: Int) { }
+}
+
+public class Foo {
+  @objc(methodWithValue:label:) public fn method(_ value: Int, label: String) { }
+
+  @objc(method2WithValue:) public fn method2(_ value: Int) { }
+
+  @objc public fn method3() { }
+
+  @objc public var property: String = ""
+}

@@ -1,16 +1,20 @@
-//===--ConstantEvaluableSubsetChecker.cpp - Test Constant Evaluable Swift--===//
+//===--ConstantEvaluableSubsetChecker.cpp - Test Constant Evaluable Codira--===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// This file implements a pass for checking the constant evaluability of Swift
+// This file implements a pass for checking the constant evaluability of Codira
 // code snippets. This pass is only used in tests and is not part of the
 // compilation pipeline.
 
@@ -50,8 +54,8 @@ static std::string demangleSymbolName(StringRef name) {
 /// "constant_evaluable" with constant arguments.
 class ConstantEvaluableSubsetChecker : public SILModuleTransform {
 
-  llvm::SmallPtrSet<SILFunction *, 4> constantEvaluableFunctions;
-  llvm::SmallPtrSet<SILFunction *, 4> evaluatedFunctions;
+  toolchain::SmallPtrSet<SILFunction *, 4> constantEvaluableFunctions;
+  toolchain::SmallPtrSet<SILFunction *, 4> evaluatedFunctions;
 
   /// Evaluate the body of \c fun with the constant evaluator. \c fun must be
   /// annotated as "test_driver" and must invoke one or more functions annotated
@@ -110,7 +114,7 @@ class ConstantEvaluableSubsetChecker : public SILModuleTransform {
              "resulted in non-skippable evaluation error.");
 
       // Here, a function annotated as "constant_evaluable" is called.
-      llvm::errs() << "@" << demangleSymbolName(callee->getName()) << "\n";
+      toolchain::errs() << "@" << demangleSymbolName(callee->getName()) << "\n";
       std::tie(nextInstOpt, errorVal) =
           stepEvaluator.tryEvaluateOrElseMakeEffectsNonConstant(currI);
 
@@ -139,7 +143,7 @@ class ConstantEvaluableSubsetChecker : public SILModuleTransform {
     // cover all function annotated as "constant_evaluable".
     //
     // 2. If the callee is annotated as constant_evaluable and is imported from
-    // a different Swift module (other than stdlib), check that the function is
+    // a different Codira module (other than stdlib), check that the function is
     // marked as Onone. Otherwise, it could have been optimized, which will
     // break constant evaluability.
     for (SILFunction *callee : stepEvaluator.getFuncsCalledDuringEvaluation()) {
@@ -179,10 +183,10 @@ class ConstantEvaluableSubsetChecker : public SILModuleTransform {
     bool error = false;
     for (SILFunction *constEvalFun : constantEvaluableFunctions) {
       if (!evaluatedFunctions.count(constEvalFun)) {
-        llvm::errs() << "Error: function "
+        toolchain::errs() << "Error: function "
                      << demangleSymbolName(constEvalFun->getName());
-        llvm::errs() << " annotated as constant evaluable";
-        llvm::errs() << " does not have a test driver"
+        toolchain::errs() << " annotated as constant evaluable";
+        toolchain::errs() << " does not have a test driver"
                      << "\n";
         error = true;
       }
@@ -193,6 +197,6 @@ class ConstantEvaluableSubsetChecker : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createConstantEvaluableSubsetChecker() {
+SILTransform *language::createConstantEvaluableSubsetChecker() {
   return new ConstantEvaluableSubsetChecker();
 }

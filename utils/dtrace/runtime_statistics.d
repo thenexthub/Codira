@@ -23,24 +23,24 @@ typedef struct ClassMetadata {
   NominalTypeDescriptor *Descriptor;
 } ClassMetadata;
 
-pid$target:libswiftCore:swift_retain:entry / arg0 != 0 /
+pid$target:liblanguageCore:language_retain:entry / arg0 != 0 /
 {
     this->ptr = (HeapObject *)copyin(arg0, sizeof(HeapObject));
     this->metadata = (ClassMetadata *)copyin(this->ptr->M, sizeof(ClassMetadata));
     this->descriptor = (NominalTypeDescriptor *)copyin((uintptr_t)this->metadata->Descriptor, sizeof(NominalTypeDescriptor));
     this->clsname = copyinstr(this->descriptor->Name);
-    @type_count["swift_retain", this->clsname] = count();
-    @counts["swift_retain", "global"] = count();
+    @type_count["language_retain", this->clsname] = count();
+    @counts["language_retain", "global"] = count();
 }
 
-pid$target:libswiftCore:swift_release:entry / arg0 != 0 /
+pid$target:liblanguageCore:language_release:entry / arg0 != 0 /
 {
     this->ptr = (HeapObject *)copyin(arg0, sizeof(HeapObject));
     this->metadata = (ClassMetadata *)copyin(this->ptr->M, sizeof(ClassMetadata));
     this->descriptor = (NominalTypeDescriptor *)copyin((uintptr_t)this->metadata->Descriptor, sizeof(NominalTypeDescriptor));
     this->clsname = copyinstr(this->descriptor->Name);
-    @type_count["swift_release", this->clsname] = count();
-    @counts["swift_release", "global"] = count();
+    @type_count["language_release", this->clsname] = count();
+    @counts["language_release", "global"] = count();
 }
 
 pid$target:libobjc:objc_retain:entry

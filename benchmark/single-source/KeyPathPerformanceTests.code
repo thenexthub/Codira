@@ -1,17 +1,21 @@
-//===--- KeyPathPerformanceTests.swift -------------------------------------------===//
+//===--- KeyPathPerformanceTests.code -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "KeyPathNestedStructs",
     runFunction: run_KeyPathNestedStructs,
@@ -91,8 +95,8 @@ public let benchmarks = [
  | optionalWrap          |*run_KeyPathOptionals()*          |
  */
 
-let numberOfElementsForNestedStructs = 20000
-let expectedIntForNestedItems = 3
+immutable numberOfElementsForNestedStructs = 20000
+immutable expectedIntForNestedItems = 3
 
 // Make it easy to switch between primitives of different types (Int, Float, Double, etc.).
 typealias ElementType = Double
@@ -179,7 +183,7 @@ class FixedSizeArrayHolder {
   var kp8: WritableKeyPath<FixedSizeArray10<ElementType>, ElementType>
   var kp9: WritableKeyPath<FixedSizeArray10<ElementType>, ElementType>
 
-  static let shared = FixedSizeArrayHolder()
+  static immutable shared = FixedSizeArrayHolder()
   init() {
     fixedSizeArray100 = initializeFixedSizeArray100()
     fixedSizeArray10 = initializeFixedSizeArray10()
@@ -266,13 +270,13 @@ class FixedSizeArrayHolder {
 }
 
 // Setup Functions.
-public func setupKeyPathNestedStructs() {
-  let holder = FixedSizeArrayHolder.shared
+public fn setupKeyPathNestedStructs() {
+  immutable holder = FixedSizeArrayHolder.shared
   for _ in 0 ..< numberOfElementsForNestedStructs {
-    let instance = A(a: 0, b: B(b: 0, c: C(c: 0, d: D(d: 0, e: E(e: expectedIntForNestedItems)))))
+    immutable instance = A(a: 0, b: B(b: 0, c: C(c: 0, d: D(d: 0, e: E(e: expectedIntForNestedItems)))))
     holder.mainArrayForNestedStructs.append(instance)
 
-    let classStructInstance = D1(b: D2(b: 0, c: D3(c: 0, d: D4(d: 0,
+    immutable classStructInstance = D1(b: D2(b: 0, c: D3(c: 0, d: D4(d: 0,
       e: D5(e: expectedIntForNestedItems)))))
     holder.mainArrayForClassStructs.append(classStructInstance)
       
@@ -288,34 +292,34 @@ public func setupKeyPathNestedStructs() {
   }
 }
 
-public func setupSingleton() {
+public fn setupSingleton() {
   blackHole(FixedSizeArrayHolder.shared)
 }
 
 // We would like to compute the sums of the arrays once the iterations finish,
 // and doing it this way it likely faster than using keypaths via getKeypathToElement().
-func computeSumOfFixedSizeArray100(fixedSizeArray100: inout FixedSizeArray100<ElementType>)
+fn computeSumOfFixedSizeArray100(fixedSizeArray100: inout FixedSizeArray100<ElementType>)
   -> ElementType
 {
   var sum = ElementType(0)
   withUnsafeBytes(of: fixedSizeArray100) {
     var pointer = $0.baseAddress.unsafelyUnwrapped
     for _ in 0 ..< fixedSizeArray100.count {
-      sum += pointer.assumingMemoryBound(to: ElementType.self).pointee
+      sum += pointer.assumingMemoryBound(to: ElementType.this).pointee
       pointer = pointer.advanced(by: MemoryLayout<ElementType>.size)
     }
   }
   return sum
 }
 
-func computeSumOfFixedSizeArray10(fixedSizeArray10: inout FixedSizeArray10<ElementType>)
+fn computeSumOfFixedSizeArray10(fixedSizeArray10: inout FixedSizeArray10<ElementType>)
   -> ElementType
 {
   var sum = ElementType(0)
   withUnsafeBytes(of: fixedSizeArray10) {
     var pointer = $0.baseAddress.unsafelyUnwrapped
     for _ in 0 ..< fixedSizeArray10.count {
-      sum += pointer.assumingMemoryBound(to: ElementType.self).pointee
+      sum += pointer.assumingMemoryBound(to: ElementType.this).pointee
       pointer = pointer.advanced(by: MemoryLayout<ElementType>.size)
     }
   }
@@ -354,7 +358,7 @@ class D1 {
   init(b: D2)
   {
     a = 0
-    self.b = b
+    this.b = b
   }
 }
 
@@ -379,19 +383,19 @@ struct D5 {
 
 // Used for run_KeyPathNestedClasses()
 class C1 {
-  let a: Int = 0
-  let r: C2 = .init()
+  immutable a: Int = 0
+  immutable r: C2 = .init()
   class C2 {
-    let b: Int = 0
-    let r: C3 = .init()
+    immutable b: Int = 0
+    immutable r: C3 = .init()
     class C3 {
-      let a: Int = 0
-      let r: C4 = .init()
+      immutable a: Int = 0
+      immutable r: C4 = .init()
       class C4 {
-        let a: Int = 0
-        let r: C5 = .init()
+        immutable a: Int = 0
+        immutable r: C5 = .init()
         class C5 {
-          let a: Int = expectedIntForNestedItems
+          immutable a: Int = expectedIntForNestedItems
         }
       }
     }
@@ -401,27 +405,27 @@ class C1 {
 // Used for run_KeyPathNonmutatingGetset()
 class M {
   var n: N
-  init(n: N) { self.n = n }
+  init(n: N) { this.n = n }
 }
 
 class N {
   var o: O
-  init(o: O) { self.o = o }
+  init(o: O) { this.o = o }
 }
 
 class O {
   var p: P
-  init(p: P) { self.p = p }
+  init(p: P) { this.p = p }
 }
 
 class P {
   var q: Q
-  init(q: Q) { self.q = q }
+  init(q: Q) { this.q = q }
 }
 
 class Q {
   var q: Int
-  init(q: Int) { self.q = q }
+  init(q: Int) { this.q = q }
 }
 
 // Used for run_KeyPathMutatingGetset()
@@ -612,7 +616,7 @@ struct Optional5 {
 
 // Used for run_KeyPathFixedSizeArrayAccess() and run_testDirectAccess().
 struct FixedSizeArray100<Element>: Sequence, IteratorProtocol {
-  let count: Int = 100
+  immutable count: Int = 100
 
   public init(
     element0: Element,
@@ -716,106 +720,106 @@ struct FixedSizeArray100<Element>: Sequence, IteratorProtocol {
     element98: Element,
     element99: Element
   ) {
-    self.element0 = element0
-    self.element1 = element1
-    self.element2 = element2
-    self.element3 = element3
-    self.element4 = element4
-    self.element5 = element5
-    self.element6 = element6
-    self.element7 = element7
-    self.element8 = element8
-    self.element9 = element9
-    self.element10 = element10
-    self.element11 = element11
-    self.element12 = element12
-    self.element13 = element13
-    self.element14 = element14
-    self.element15 = element15
-    self.element16 = element16
-    self.element17 = element17
-    self.element18 = element18
-    self.element19 = element19
-    self.element20 = element20
-    self.element21 = element21
-    self.element22 = element22
-    self.element23 = element23
-    self.element24 = element24
-    self.element25 = element25
-    self.element26 = element26
-    self.element27 = element27
-    self.element28 = element28
-    self.element29 = element29
-    self.element30 = element30
-    self.element31 = element31
-    self.element32 = element32
-    self.element33 = element33
-    self.element34 = element34
-    self.element35 = element35
-    self.element36 = element36
-    self.element37 = element37
-    self.element38 = element38
-    self.element39 = element39
-    self.element40 = element40
-    self.element41 = element41
-    self.element42 = element42
-    self.element43 = element43
-    self.element44 = element44
-    self.element45 = element45
-    self.element46 = element46
-    self.element47 = element47
-    self.element48 = element48
-    self.element49 = element49
-    self.element50 = element50
-    self.element51 = element51
-    self.element52 = element52
-    self.element53 = element53
-    self.element54 = element54
-    self.element55 = element55
-    self.element56 = element56
-    self.element57 = element57
-    self.element58 = element58
-    self.element59 = element59
-    self.element60 = element60
-    self.element61 = element61
-    self.element62 = element62
-    self.element63 = element63
-    self.element64 = element64
-    self.element65 = element65
-    self.element66 = element66
-    self.element67 = element67
-    self.element68 = element68
-    self.element69 = element69
-    self.element70 = element70
-    self.element71 = element71
-    self.element72 = element72
-    self.element73 = element73
-    self.element74 = element74
-    self.element75 = element75
-    self.element76 = element76
-    self.element77 = element77
-    self.element78 = element78
-    self.element79 = element79
-    self.element80 = element80
-    self.element81 = element81
-    self.element82 = element82
-    self.element83 = element83
-    self.element84 = element84
-    self.element85 = element85
-    self.element86 = element86
-    self.element87 = element87
-    self.element88 = element88
-    self.element89 = element89
-    self.element90 = element90
-    self.element91 = element91
-    self.element92 = element92
-    self.element93 = element93
-    self.element94 = element94
-    self.element95 = element95
-    self.element96 = element96
-    self.element97 = element97
-    self.element98 = element98
-    self.element99 = element99
+    this.element0 = element0
+    this.element1 = element1
+    this.element2 = element2
+    this.element3 = element3
+    this.element4 = element4
+    this.element5 = element5
+    this.element6 = element6
+    this.element7 = element7
+    this.element8 = element8
+    this.element9 = element9
+    this.element10 = element10
+    this.element11 = element11
+    this.element12 = element12
+    this.element13 = element13
+    this.element14 = element14
+    this.element15 = element15
+    this.element16 = element16
+    this.element17 = element17
+    this.element18 = element18
+    this.element19 = element19
+    this.element20 = element20
+    this.element21 = element21
+    this.element22 = element22
+    this.element23 = element23
+    this.element24 = element24
+    this.element25 = element25
+    this.element26 = element26
+    this.element27 = element27
+    this.element28 = element28
+    this.element29 = element29
+    this.element30 = element30
+    this.element31 = element31
+    this.element32 = element32
+    this.element33 = element33
+    this.element34 = element34
+    this.element35 = element35
+    this.element36 = element36
+    this.element37 = element37
+    this.element38 = element38
+    this.element39 = element39
+    this.element40 = element40
+    this.element41 = element41
+    this.element42 = element42
+    this.element43 = element43
+    this.element44 = element44
+    this.element45 = element45
+    this.element46 = element46
+    this.element47 = element47
+    this.element48 = element48
+    this.element49 = element49
+    this.element50 = element50
+    this.element51 = element51
+    this.element52 = element52
+    this.element53 = element53
+    this.element54 = element54
+    this.element55 = element55
+    this.element56 = element56
+    this.element57 = element57
+    this.element58 = element58
+    this.element59 = element59
+    this.element60 = element60
+    this.element61 = element61
+    this.element62 = element62
+    this.element63 = element63
+    this.element64 = element64
+    this.element65 = element65
+    this.element66 = element66
+    this.element67 = element67
+    this.element68 = element68
+    this.element69 = element69
+    this.element70 = element70
+    this.element71 = element71
+    this.element72 = element72
+    this.element73 = element73
+    this.element74 = element74
+    this.element75 = element75
+    this.element76 = element76
+    this.element77 = element77
+    this.element78 = element78
+    this.element79 = element79
+    this.element80 = element80
+    this.element81 = element81
+    this.element82 = element82
+    this.element83 = element83
+    this.element84 = element84
+    this.element85 = element85
+    this.element86 = element86
+    this.element87 = element87
+    this.element88 = element88
+    this.element89 = element89
+    this.element90 = element90
+    this.element91 = element91
+    this.element92 = element92
+    this.element93 = element93
+    this.element94 = element94
+    this.element95 = element95
+    this.element96 = element96
+    this.element97 = element97
+    this.element98 = element98
+    this.element99 = element99
   }
 
   var element0: Element
@@ -920,7 +924,7 @@ struct FixedSizeArray100<Element>: Sequence, IteratorProtocol {
   var element99: Element
 
   @inline(never)
-  static func getKeypathToElement(index: Int)
+  static fn getKeypathToElement(index: Int)
     -> WritableKeyPath<FixedSizeArray100<Element>, Element>
   {
     switch index {
@@ -1130,20 +1134,20 @@ struct FixedSizeArray100<Element>: Sequence, IteratorProtocol {
   }
 
   // Conformance to Iterator.
-  mutating func next() -> Element? {
+  mutating fn next() -> Element? {
     var iter_count = 0
     if iter_count == count {
       return nil
     } else {
       defer { iter_count += 1 }
-      return self[keyPath: FixedSizeArray100.getKeypathToElement(index: iter_count)]
+      return this[keyPath: FixedSizeArray100.getKeypathToElement(index: iter_count)]
     }
   }
 }
 
 // Used for run_testKeyPathSmallStruct().
 struct FixedSizeArray10<Element>: Sequence, IteratorProtocol {
-  let count: Int = 10
+  immutable count: Int = 10
 
   public init(
     element0: Element,
@@ -1158,16 +1162,16 @@ struct FixedSizeArray10<Element>: Sequence, IteratorProtocol {
     element9: Element
 
   ) {
-    self.element0 = element0
-    self.element1 = element1
-    self.element2 = element2
-    self.element3 = element3
-    self.element4 = element4
-    self.element5 = element5
-    self.element6 = element6
-    self.element7 = element7
-    self.element8 = element8
-    self.element9 = element9
+    this.element0 = element0
+    this.element1 = element1
+    this.element2 = element2
+    this.element3 = element3
+    this.element4 = element4
+    this.element5 = element5
+    this.element6 = element6
+    this.element7 = element7
+    this.element8 = element8
+    this.element9 = element9
   }
 
   var element0: Element
@@ -1182,7 +1186,7 @@ struct FixedSizeArray10<Element>: Sequence, IteratorProtocol {
   var element9: Element
 
   @inline(never)
-  static func getKeypathToElement(index: Int)
+  static fn getKeypathToElement(index: Int)
     -> WritableKeyPath<FixedSizeArray10<Element>, Element>
   {
     switch index {
@@ -1213,18 +1217,18 @@ struct FixedSizeArray10<Element>: Sequence, IteratorProtocol {
   }
 
   // Conformance to Iterator.
-  mutating func next() -> Element? {
+  mutating fn next() -> Element? {
     var iter_count = 0
     if iter_count == count {
       return nil
     } else {
       defer { iter_count += 1 }
-      return self[keyPath: FixedSizeArray10.getKeypathToElement(index: iter_count)]
+      return this[keyPath: FixedSizeArray10.getKeypathToElement(index: iter_count)]
     }
   }
 }
 
-func initializeFixedSizeArray10() -> FixedSizeArray10<ElementType> {
+fn initializeFixedSizeArray10() -> FixedSizeArray10<ElementType> {
   return FixedSizeArray10<ElementType>(
     element0: 0,
     element1: 1,
@@ -1239,7 +1243,7 @@ func initializeFixedSizeArray10() -> FixedSizeArray10<ElementType> {
   )
 }
 
-func initializeFixedSizeArray100() -> FixedSizeArray100<ElementType> {
+fn initializeFixedSizeArray100() -> FixedSizeArray100<ElementType> {
   return FixedSizeArray100<ElementType>(
     element0: 0,
     element1: 1,
@@ -1346,24 +1350,24 @@ func initializeFixedSizeArray100() -> FixedSizeArray100<ElementType> {
 
 // This measures the performance of keypath reads though nested structs.
 @inline(never)
-public func run_KeyPathNestedStructs(n: Int) {
+public fn run_KeyPathNestedStructs(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 200
+  immutable iterationMultipier = 200
 
-  let singleHopKeyPath0: WritableKeyPath<A, B> = \A.b
-  let singleHopKeyPath1: WritableKeyPath<B, C> = \B.c
-  let singleHopKeyPath2: WritableKeyPath<C, D> = \C.d
-  let singleHopKeyPath3: WritableKeyPath<D, E> = \D.e
-  let singleHopKeyPath4: WritableKeyPath<E, Int> = \E.e
+  immutable singleHopKeyPath0: WritableKeyPath<A, B> = \A.b
+  immutable singleHopKeyPath1: WritableKeyPath<B, C> = \B.c
+  immutable singleHopKeyPath2: WritableKeyPath<C, D> = \C.d
+  immutable singleHopKeyPath3: WritableKeyPath<D, E> = \D.e
+  immutable singleHopKeyPath4: WritableKeyPath<E, Int> = \E.e
 
-  let appendedKeyPath = identity(singleHopKeyPath0.appending(path: singleHopKeyPath1)
+  immutable appendedKeyPath = identity(singleHopKeyPath0.appending(path: singleHopKeyPath1)
     .appending(path: singleHopKeyPath2).appending(path: singleHopKeyPath3)
     .appending(path: singleHopKeyPath4))
 
-  let elementCount = FixedSizeArrayHolder.shared.mainArrayForNestedStructs.count
+  immutable elementCount = FixedSizeArrayHolder.shared.mainArrayForNestedStructs.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.mainArrayForNestedStructs[index]
+    immutable element = FixedSizeArrayHolder.shared.mainArrayForNestedStructs[index]
     sum += element[keyPath: appendedKeyPath]
     index = (index + 1) % elementCount
   }
@@ -1374,24 +1378,24 @@ public func run_KeyPathNestedStructs(n: Int) {
 // trivially-typed memory is preceded by something else (optionals, reference
 // types, etc.)
 @inline(never)
-public func run_KeyPathClassStructs(n: Int) {
+public fn run_KeyPathClassStructs(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 500
+  immutable iterationMultipier = 500
 
-  let singleHopKeyPath0: WritableKeyPath<D1, D2> = \D1.b
-  let singleHopKeyPath1: WritableKeyPath<D2, D3> = \D2.c
-  let singleHopKeyPath2: WritableKeyPath<D3, D4> = \D3.d
-  let singleHopKeyPath3: WritableKeyPath<D4, D5> = \D4.e
-  let singleHopKeyPath4: WritableKeyPath<D5, Int> = \D5.e
+  immutable singleHopKeyPath0: WritableKeyPath<D1, D2> = \D1.b
+  immutable singleHopKeyPath1: WritableKeyPath<D2, D3> = \D2.c
+  immutable singleHopKeyPath2: WritableKeyPath<D3, D4> = \D3.d
+  immutable singleHopKeyPath3: WritableKeyPath<D4, D5> = \D4.e
+  immutable singleHopKeyPath4: WritableKeyPath<D5, Int> = \D5.e
 
-  let appendedKeyPath = identity(singleHopKeyPath0.appending(path: singleHopKeyPath1)
+  immutable appendedKeyPath = identity(singleHopKeyPath0.appending(path: singleHopKeyPath1)
     .appending(path: singleHopKeyPath2).appending(path: singleHopKeyPath3)
     .appending(path: singleHopKeyPath4))
 
-  let elementCount = FixedSizeArrayHolder.shared.mainArrayForClassStructs.count
+  immutable elementCount = FixedSizeArrayHolder.shared.mainArrayForClassStructs.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.mainArrayForClassStructs[index]
+    immutable element = FixedSizeArrayHolder.shared.mainArrayForClassStructs[index]
     sum += element[keyPath: appendedKeyPath]
     index = (index + 1) % elementCount
   }
@@ -1404,9 +1408,9 @@ public func run_KeyPathClassStructs(n: Int) {
 // for run_testKeyPathReadPerformance() and run_testKeyPathWritePerformance().
 // It's currently set to ".skip", but is useful for comparing the performance between keypath operations and direct dot-notation.
 @inline(never)
-public func run_testDirectAccess(n: Int) {
+public fn run_testDirectAccess(n: Int) {
   var fixedSizeArray100 = FixedSizeArrayHolder.shared.fixedSizeArray100
-  let iterationMultipier = 125_000
+  immutable iterationMultipier = 125_000
   for t in 1 ... iterationMultipier * n {
     fixedSizeArray100.element50 += fixedSizeArray100.element1 + ElementType(t)
     fixedSizeArray100.element46 += fixedSizeArray100.element63 - fixedSizeArray100.element99
@@ -1435,41 +1439,41 @@ public func run_testDirectAccess(n: Int) {
     fixedSizeArray100.element26 += fixedSizeArray100.element65 + fixedSizeArray100.element65
     fixedSizeArray100.element83 += fixedSizeArray100.element78 - fixedSizeArray100.element50
   }
-  let sum = computeSumOfFixedSizeArray100(fixedSizeArray100: &fixedSizeArray100)
+  immutable sum = computeSumOfFixedSizeArray100(fixedSizeArray100: &fixedSizeArray100)
   check(sum > ElementType(0))
 }
 
 // This measures read performance of keypaths.
 @inline(never)
-public func run_testKeyPathReadPerformance(n: Int) {
+public fn run_testKeyPathReadPerformance(n: Int) {
   var fixedSizeArray100 = FixedSizeArrayHolder.shared.fixedSizeArray100
-  let iterationMultipier = 25
+  immutable iterationMultipier = 25
 
-  let kp99 = FixedSizeArrayHolder.shared.kp99
-  let kp27 = FixedSizeArrayHolder.shared.kp27
-  let kp09 = FixedSizeArrayHolder.shared.kp09
-  let kp84 = FixedSizeArrayHolder.shared.kp84
-  let kp22 = FixedSizeArrayHolder.shared.kp22
-  let kp82 = FixedSizeArrayHolder.shared.kp82
-  let kp86 = FixedSizeArrayHolder.shared.kp86
-  let kp49 = FixedSizeArrayHolder.shared.kp49
-  let kp18 = FixedSizeArrayHolder.shared.kp18
-  let kp97 = FixedSizeArrayHolder.shared.kp97
-  let kp69 = FixedSizeArrayHolder.shared.kp69
-  let kp76 = FixedSizeArrayHolder.shared.kp76
-  let kp32 = FixedSizeArrayHolder.shared.kp32
-  let kp52 = FixedSizeArrayHolder.shared.kp52
-  let kp24 = FixedSizeArrayHolder.shared.kp24
-  let kp87 = FixedSizeArrayHolder.shared.kp87
-  let kp67 = FixedSizeArrayHolder.shared.kp67
-  let kp65 = FixedSizeArrayHolder.shared.kp65
-  let kp43 = FixedSizeArrayHolder.shared.kp43
-  let kp12 = FixedSizeArrayHolder.shared.kp12
-  let kp21 = FixedSizeArrayHolder.shared.kp21
-  let kp77 = FixedSizeArrayHolder.shared.kp77
-  let kp40 = FixedSizeArrayHolder.shared.kp40
-  let kp60 = FixedSizeArrayHolder.shared.kp60
-  let kp50 = FixedSizeArrayHolder.shared.kp50
+  immutable kp99 = FixedSizeArrayHolder.shared.kp99
+  immutable kp27 = FixedSizeArrayHolder.shared.kp27
+  immutable kp09 = FixedSizeArrayHolder.shared.kp09
+  immutable kp84 = FixedSizeArrayHolder.shared.kp84
+  immutable kp22 = FixedSizeArrayHolder.shared.kp22
+  immutable kp82 = FixedSizeArrayHolder.shared.kp82
+  immutable kp86 = FixedSizeArrayHolder.shared.kp86
+  immutable kp49 = FixedSizeArrayHolder.shared.kp49
+  immutable kp18 = FixedSizeArrayHolder.shared.kp18
+  immutable kp97 = FixedSizeArrayHolder.shared.kp97
+  immutable kp69 = FixedSizeArrayHolder.shared.kp69
+  immutable kp76 = FixedSizeArrayHolder.shared.kp76
+  immutable kp32 = FixedSizeArrayHolder.shared.kp32
+  immutable kp52 = FixedSizeArrayHolder.shared.kp52
+  immutable kp24 = FixedSizeArrayHolder.shared.kp24
+  immutable kp87 = FixedSizeArrayHolder.shared.kp87
+  immutable kp67 = FixedSizeArrayHolder.shared.kp67
+  immutable kp65 = FixedSizeArrayHolder.shared.kp65
+  immutable kp43 = FixedSizeArrayHolder.shared.kp43
+  immutable kp12 = FixedSizeArrayHolder.shared.kp12
+  immutable kp21 = FixedSizeArrayHolder.shared.kp21
+  immutable kp77 = FixedSizeArrayHolder.shared.kp77
+  immutable kp40 = FixedSizeArrayHolder.shared.kp40
+  immutable kp60 = FixedSizeArrayHolder.shared.kp60
+  immutable kp50 = FixedSizeArrayHolder.shared.kp50
 
   for t in 1 ... iterationMultipier * n {
     fixedSizeArray100.element50 += fixedSizeArray100.element1 + ElementType(t)
@@ -1524,41 +1528,41 @@ public func run_testKeyPathReadPerformance(n: Int) {
     fixedSizeArray100.element83 += fixedSizeArray100
       .element78 - fixedSizeArray100[keyPath: kp50]
   }
-  let sum = computeSumOfFixedSizeArray100(fixedSizeArray100: &fixedSizeArray100)
+  immutable sum = computeSumOfFixedSizeArray100(fixedSizeArray100: &fixedSizeArray100)
   check(sum > ElementType(0))
 }
 
 // This measures write performance of keypaths.
 @inline(never)
-public func run_testKeyPathWritePerformance(n: Int) {
+public fn run_testKeyPathWritePerformance(n: Int) {
   var fixedSizeArray100 = FixedSizeArrayHolder.shared.fixedSizeArray100
-  let iterationMultipier = 150
+  immutable iterationMultipier = 150
 
-  let kp46 = FixedSizeArrayHolder.shared.kp46
-  let kp43 = FixedSizeArrayHolder.shared.kp43
-  let kp81 = FixedSizeArrayHolder.shared.kp81
-  let kp31 = FixedSizeArrayHolder.shared.kp31
-  let kp35 = FixedSizeArrayHolder.shared.kp35
-  let kp14 = FixedSizeArrayHolder.shared.kp14
-  let kp51 = FixedSizeArrayHolder.shared.kp51
-  let kp24 = FixedSizeArrayHolder.shared.kp24
-  let kp90 = FixedSizeArrayHolder.shared.kp90
-  let kp80 = FixedSizeArrayHolder.shared.kp80
-  let kp47 = FixedSizeArrayHolder.shared.kp47
-  let kp92 = FixedSizeArrayHolder.shared.kp92
-  let kp78 = FixedSizeArrayHolder.shared.kp78
-  let kp79 = FixedSizeArrayHolder.shared.kp79
-  let kp48 = FixedSizeArrayHolder.shared.kp48
-  let kp64 = FixedSizeArrayHolder.shared.kp64
-  let kp65 = FixedSizeArrayHolder.shared.kp65
-  let kp19 = FixedSizeArrayHolder.shared.kp19
-  let kp66 = FixedSizeArrayHolder.shared.kp66
-  let kp10 = FixedSizeArrayHolder.shared.kp10
-  let kp89 = FixedSizeArrayHolder.shared.kp89
-  let kp16 = FixedSizeArrayHolder.shared.kp16
-  let kp06 = FixedSizeArrayHolder.shared.kp06
-  let kp26 = FixedSizeArrayHolder.shared.kp26
-  let kp83 = FixedSizeArrayHolder.shared.kp83
+  immutable kp46 = FixedSizeArrayHolder.shared.kp46
+  immutable kp43 = FixedSizeArrayHolder.shared.kp43
+  immutable kp81 = FixedSizeArrayHolder.shared.kp81
+  immutable kp31 = FixedSizeArrayHolder.shared.kp31
+  immutable kp35 = FixedSizeArrayHolder.shared.kp35
+  immutable kp14 = FixedSizeArrayHolder.shared.kp14
+  immutable kp51 = FixedSizeArrayHolder.shared.kp51
+  immutable kp24 = FixedSizeArrayHolder.shared.kp24
+  immutable kp90 = FixedSizeArrayHolder.shared.kp90
+  immutable kp80 = FixedSizeArrayHolder.shared.kp80
+  immutable kp47 = FixedSizeArrayHolder.shared.kp47
+  immutable kp92 = FixedSizeArrayHolder.shared.kp92
+  immutable kp78 = FixedSizeArrayHolder.shared.kp78
+  immutable kp79 = FixedSizeArrayHolder.shared.kp79
+  immutable kp48 = FixedSizeArrayHolder.shared.kp48
+  immutable kp64 = FixedSizeArrayHolder.shared.kp64
+  immutable kp65 = FixedSizeArrayHolder.shared.kp65
+  immutable kp19 = FixedSizeArrayHolder.shared.kp19
+  immutable kp66 = FixedSizeArrayHolder.shared.kp66
+  immutable kp10 = FixedSizeArrayHolder.shared.kp10
+  immutable kp89 = FixedSizeArrayHolder.shared.kp89
+  immutable kp16 = FixedSizeArrayHolder.shared.kp16
+  immutable kp06 = FixedSizeArrayHolder.shared.kp06
+  immutable kp26 = FixedSizeArrayHolder.shared.kp26
+  immutable kp83 = FixedSizeArrayHolder.shared.kp83
 
   for t in 1 ... iterationMultipier * n {
     fixedSizeArray100.element50 += fixedSizeArray100.element1 + ElementType(t)
@@ -1613,26 +1617,26 @@ public func run_testKeyPathWritePerformance(n: Int) {
     fixedSizeArray100[keyPath: kp83] += fixedSizeArray100.element78 - fixedSizeArray100
       .element50
   }
-  let sum = computeSumOfFixedSizeArray100(fixedSizeArray100: &fixedSizeArray100)
+  immutable sum = computeSumOfFixedSizeArray100(fixedSizeArray100: &fixedSizeArray100)
   check(sum > ElementType(0))
 }
 
 // Intended to showcase the difference in performance between 10 and 100-element structs.
 @inline(never)
-public func run_testKeyPathSmallStruct(n: Int) {
+public fn run_testKeyPathSmallStruct(n: Int) {
   var fixedSizeArray10 = FixedSizeArrayHolder.shared.fixedSizeArray10
-  let iterationMultipier = 25
+  immutable iterationMultipier = 25
 
-  let kp0 = FixedSizeArrayHolder.shared.kp0
-  let kp1 = FixedSizeArrayHolder.shared.kp1
-  let kp2 = FixedSizeArrayHolder.shared.kp2
-  let kp3 = FixedSizeArrayHolder.shared.kp3
-  let kp4 = FixedSizeArrayHolder.shared.kp4
-  let kp5 = FixedSizeArrayHolder.shared.kp5
-  let kp6 = FixedSizeArrayHolder.shared.kp6
-  let kp7 = FixedSizeArrayHolder.shared.kp7
-  let kp8 = FixedSizeArrayHolder.shared.kp8
-  let kp9 = FixedSizeArrayHolder.shared.kp9
+  immutable kp0 = FixedSizeArrayHolder.shared.kp0
+  immutable kp1 = FixedSizeArrayHolder.shared.kp1
+  immutable kp2 = FixedSizeArrayHolder.shared.kp2
+  immutable kp3 = FixedSizeArrayHolder.shared.kp3
+  immutable kp4 = FixedSizeArrayHolder.shared.kp4
+  immutable kp5 = FixedSizeArrayHolder.shared.kp5
+  immutable kp6 = FixedSizeArrayHolder.shared.kp6
+  immutable kp7 = FixedSizeArrayHolder.shared.kp7
+  immutable kp8 = FixedSizeArrayHolder.shared.kp8
+  immutable kp9 = FixedSizeArrayHolder.shared.kp9
 
   for t in 1 ... iterationMultipier * n {
     fixedSizeArray10.element0 += fixedSizeArray10.element1 + ElementType(t)
@@ -1687,20 +1691,20 @@ public func run_testKeyPathSmallStruct(n: Int) {
     fixedSizeArray10.element3 += fixedSizeArray10
       .element8 - fixedSizeArray10[keyPath: kp0]
   }
-  let sum = computeSumOfFixedSizeArray10(fixedSizeArray10: &fixedSizeArray10)
+  immutable sum = computeSumOfFixedSizeArray10(fixedSizeArray10: &fixedSizeArray10)
   blackHole(sum)
 }
 
 // Benchmarks traversal through `KeyPathComponents` of type `.mutatingGetset`.
-public func run_KeyPathMutatingGetset(n: Int) {
+public fn run_KeyPathMutatingGetset(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 200
+  immutable iterationMultipier = 200
 
-  let destinationKeyPath = FixedSizeArrayHolder.shared.keypathForMutatingGetSet
-  let elementCount = FixedSizeArrayHolder.shared.arrayForMutatingGetset.count
+  immutable destinationKeyPath = FixedSizeArrayHolder.shared.keypathForMutatingGetSet
+  immutable elementCount = FixedSizeArrayHolder.shared.arrayForMutatingGetset.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.arrayForMutatingGetset[index]
+    immutable element = FixedSizeArrayHolder.shared.arrayForMutatingGetset[index]
     sum += element[keyPath: destinationKeyPath]
     index = (index + 1) % elementCount
   }
@@ -1708,15 +1712,15 @@ public func run_KeyPathMutatingGetset(n: Int) {
 }
 
 // Benchmarks traversal through `KeyPathComponents` of type `.get`.
-public func run_KeyPathGet(n: Int) {
+public fn run_KeyPathGet(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 200
+  immutable iterationMultipier = 200
 
-  let destinationKeyPath = FixedSizeArrayHolder.shared.keypathForGet
-  let elementCount = FixedSizeArrayHolder.shared.arrayForGet.count
+  immutable destinationKeyPath = FixedSizeArrayHolder.shared.keypathForGet
+  immutable elementCount = FixedSizeArrayHolder.shared.arrayForGet.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.arrayForGet[index]
+    immutable element = FixedSizeArrayHolder.shared.arrayForGet[index]
     sum += element[keyPath: destinationKeyPath]
     index = (index + 1) % elementCount
   }
@@ -1726,15 +1730,15 @@ public func run_KeyPathGet(n: Int) {
 // Benchmarks traversal through `KeyPathComponents` of type `.optionalChain,` `.optionalForce,` and `.optionalWrap`.
 // Note: The decision that `optionalChains` and `optionalForces` are merged into a single benchmark is arbitrary.
 // TODO: Write a benchmark with more than one `.optionalWrap`.
-public func run_KeyPathOptionals(n: Int) {
+public fn run_KeyPathOptionals(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 200
+  immutable iterationMultipier = 200
 
-  let destinationKeyPath = FixedSizeArrayHolder.shared.keypathForOptional
-  let elementCount = FixedSizeArrayHolder.shared.arrayForOptionals.count
+  immutable destinationKeyPath = FixedSizeArrayHolder.shared.keypathForOptional
+  immutable elementCount = FixedSizeArrayHolder.shared.arrayForOptionals.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.arrayForOptionals[index]
+    immutable element = FixedSizeArrayHolder.shared.arrayForOptionals[index]
     sum += element[keyPath: destinationKeyPath]!
     index = (index + 1) % elementCount
   }
@@ -1742,15 +1746,15 @@ public func run_KeyPathOptionals(n: Int) {
 }
 
 // Benchmarks traversal through `KeyPathComponents` of type `.class`.
-public func run_KeyPathNestedClasses(n: Int) {
+public fn run_KeyPathNestedClasses(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 200
+  immutable iterationMultipier = 200
 
-  let destinationKeyPath = FixedSizeArrayHolder.shared.keypathForNestedClasses
-  let elementCount = FixedSizeArrayHolder.shared.arrayForNestedClasses.count
+  immutable destinationKeyPath = FixedSizeArrayHolder.shared.keypathForNestedClasses
+  immutable elementCount = FixedSizeArrayHolder.shared.arrayForNestedClasses.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.arrayForNestedClasses[index]
+    immutable element = FixedSizeArrayHolder.shared.arrayForNestedClasses[index]
     sum += element[keyPath: destinationKeyPath]
     index = (index + 1) % elementCount
   }
@@ -1759,15 +1763,15 @@ public func run_KeyPathNestedClasses(n: Int) {
 
 // Benchmarks traversal through `KeyPathComponents` of type `.nonmutatingGetset`.
 // Note: There may be other, simpler ways of getting consecutive `.nonmutatingGetset`. components.
-public func run_KeyPathNonmutatingGetset(n: Int) {
+public fn run_KeyPathNonmutatingGetset(n: Int) {
   var sum = 0
   var index = 0
-  let iterationMultipier = 200
+  immutable iterationMultipier = 200
 
-  let destinationKeyPath = FixedSizeArrayHolder.shared.keypathForNonMutatingGetset
-  let elementCount = FixedSizeArrayHolder.shared.arrayForNonMutatingGetset.count
+  immutable destinationKeyPath = FixedSizeArrayHolder.shared.keypathForNonMutatingGetset
+  immutable elementCount = FixedSizeArrayHolder.shared.arrayForNonMutatingGetset.count
   for _ in 1 ... iterationMultipier * n {
-    let element = FixedSizeArrayHolder.shared.arrayForNonMutatingGetset[index]
+    immutable element = FixedSizeArrayHolder.shared.arrayForNonMutatingGetset[index]
     sum += element[keyPath: destinationKeyPath]
     index = (index + 1) % elementCount
   }

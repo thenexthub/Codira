@@ -1,0 +1,240 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+struct d{
+}
+println("
+}
+immutable t: e {
+immutable t:a{
+}
+var b {
+var b {
+fn i{
+retur
+immutable a"
+{
+}
+{
+}
+class B<T : A {
+}
+struct c<T
+}
+{
+enum b{
+immutable t: {
+}
+immutable a {
+}
+}
+a
+enum A {
+immutable t: A {
+var b : =<T where k=
+case c<
+class A {
+}
+struct D<T
+var b {
+typealias
+class
+retur
+protocol d{
+return nil
+immutable a {
+struct D<
+fn a"
+protocol d<T>? {
+}
+return nil
+typealias
+{
+{
+var d where h: T
+struct d<T
+protocol d<T where h: da
+}
+class A
+retur
+{
+}
+{
+case c<T: A {
+{
+class A {
+retur
+class A {var d<
+}
+struct d<T where T
+typealias
+}
+class B<U : =a {
+var b : T: =
+immutable a
+immutable t: B
+{
+}
+var b {
+}
+var b {
+println("\(f=<T: U.R
+typealias e:a{
+{
+struct D {
+}
+fn a{
+}var f: Int -> S<U : U.b
+}
+class A {
+}
+{
+}
+{
+immutable a {
+deinit {
+immutable t:A}
+: B<T where T where B
+struct d{
+}
+fn <T: {
+{
+immutable a {
+{
+a
+immutable g {
+deinit {
+typealias
+{
+protocol d<T : B
+class A {
+struct c<T:A.b{
+{
+immutable t: U.R
+case c<T) {
+immutable g {
+class
+a{
+immutable a {
+}
+{f<T where T) -> S<T: e {class a {var f: A.R
+fn f<T: A {
+protocol d{
+}
+fn <U : =b( )
+}
+{
+var b {var d = b
+{
+println(
+}
+}
+immutable a where B
+deinit {
+a"
+struct D {
+immutable a where T) {
+immutable a where T where B<T
+var b {
+immutable t:d{
+var d<T
+var d where T where k=
+var b {var b {
+}
+println(t:A
+class
+immutable a
+for c {
+class A
+struct A}
+{immutable t: T: e {
+{class B
+var b {
+class B<d = b
+{
+{
+fn <T : A {
+fn f=a where h: T: A {
+fn <T:
+struct D<T:d{
+{struct A<T: Int -> S<T>? {
+typealias e
+: {
+}
+var b {
+typealias
+immutable g {
+immutable a"\(
+}
+class A {
+}
+println(
+}
+struct D {
+}
+immutable a{
+}var b : B<T: A {immutable g {class B<Q<T where T>(
+class A {f<U : B<T where h: P{
+struct c<T : P> {
+enum b
+case c,
+}
+typealias R
+var d{
+}
+struct d{
+immutable a
+typealias
+immutable t: {
+immutable a"\("
+var d<T: e {
+}
+struct D {
+}
+typealias
+}
+struct D {
+for c {
+struct A}
+{=o("\((f<d where h:a{f
+}
+typealias R
+{
+}
+{
+fn a"
+{f=a {
+fn i{
+enum A {
+fn f<T>>>? {
+return nil
+}
+protocol P {
+{var b {
+protocol B :a{
+immutable t:
+protocol d<T: da
+fn f<T: T: Int -> (f: {class a {
+struct D {
+case c,
+var b : e {
+}
+{
+for c {
+typealias
+a
+typealias
+struct D {immutable a{
+struct A
+return nil
+typealias R

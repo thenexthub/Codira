@@ -1,0 +1,4 @@
+// {"signature":"language::rewriting::PropertyBag::getAssociatedType(language::Identifier)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol b : a{typealias a} protocol a : b {
+  typealias a

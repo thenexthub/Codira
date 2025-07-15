@@ -11,62 +11,63 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A structure for holding the address of an object.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_ADDRESS_H
-#define SWIFT_IRGEN_ADDRESS_H
+#ifndef LANGUAGE_IRGEN_ADDRESS_H
+#define LANGUAGE_IRGEN_ADDRESS_H
 
 #include "IRGen.h"
-#include "llvm/ADT/ilist.h"
-#include "llvm/IR/Argument.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instruction.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Value.h"
+#include "toolchain/ADT/ilist.h"
+#include "toolchain/IR/Argument.h"
+#include "toolchain/IR/DerivedTypes.h"
+#include "toolchain/IR/Function.h"
+#include "toolchain/IR/Instruction.h"
+#include "toolchain/IR/Type.h"
+#include "toolchain/IR/Value.h"
 
 namespace language {
 namespace irgen {
 
 /// The address of an object in memory.
 class Address {
-  llvm::Value *Addr;
-  llvm::Type *ElementType;
+  toolchain::Value *Addr;
+  toolchain::Type *ElementType;
   Alignment Align;
 
 public:
   Address() : Addr(nullptr) {}
 
-  Address(llvm::Value *addr, llvm::Type *elementType, Alignment align)
+  Address(toolchain::Value *addr, toolchain::Type *elementType, Alignment align)
       : Addr(addr), ElementType(elementType), Align(align) {
-    if (addr == llvm::DenseMapInfo<llvm::Value *>::getEmptyKey() ||
-        llvm::DenseMapInfo<llvm::Value *>::getTombstoneKey())
+    if (addr == toolchain::DenseMapInfo<toolchain::Value *>::getEmptyKey() ||
+        toolchain::DenseMapInfo<toolchain::Value *>::getTombstoneKey())
       return;
     assert(addr != nullptr && "building an invalid address");
   }
 
-  llvm::Value *operator->() const {
+  toolchain::Value *operator->() const {
     assert(isValid());
     return getAddress();
   }
 
   bool isValid() const { return Addr != nullptr; }
 
-  llvm::Value *getAddress() const { return Addr; }
+  toolchain::Value *getAddress() const { return Addr; }
 
   Alignment getAlignment() const {
     return Align;
   }
   
-  llvm::PointerType *getType() const {
-    return cast<llvm::PointerType>(Addr->getType());
+  toolchain::PointerType *getType() const {
+    return cast<toolchain::PointerType>(Addr->getType());
   }
 
-  llvm::Type *getElementType() const { return ElementType; }
+  toolchain::Type *getElementType() const { return ElementType; }
 
   bool operator==(Address RHS) const {
     return Addr == RHS.Addr && ElementType == RHS.ElementType &&
@@ -79,17 +80,17 @@ public:
 /// allocation which owns it.
 class OwnedAddress {
   Address Addr;
-  llvm::Value *Owner;
+  toolchain::Value *Owner;
 
 public:
   OwnedAddress() : Owner(nullptr) {}
-  OwnedAddress(Address address, llvm::Value *owner)
+  OwnedAddress(Address address, toolchain::Value *owner)
     : Addr(address), Owner(owner) {}
 
-  llvm::Value *getAddressPointer() const { return Addr.getAddress(); }
+  toolchain::Value *getAddressPointer() const { return Addr.getAddress(); }
   Alignment getAlignment() const { return Addr.getAlignment(); }
   Address getAddress() const { return Addr; }
-  llvm::Value *getOwner() const { return Owner; }
+  toolchain::Value *getOwner() const { return Owner; }
 
   Address getUnownedAddress() const {
     assert(getOwner() == nullptr);
@@ -114,7 +115,7 @@ public:
   ContainedAddress(Address container, Address address)
     : Addr(address), Container(container) {}
 
-  llvm::Value *getAddressPointer() const { return Addr.getAddress(); }
+  toolchain::Value *getAddressPointer() const { return Addr.getAddress(); }
   Alignment getAlignment() const { return Addr.getAlignment(); }
   Address getAddress() const { return Addr; }
   Address getContainer() const { return Container; }
@@ -128,14 +129,14 @@ class StackAddress {
   /// The address of an object of type T.
   Address Addr;
 
-  /// In a normal function, the result of llvm.stacksave or null.
-  /// In a coroutine, the result of llvm.coro.alloca.alloc.
+  /// In a normal function, the result of toolchain.stacksave or null.
+  /// In a coroutine, the result of toolchain.coro.alloca.alloc.
   /// In an async function, the result of the taskAlloc call.
-  llvm::Value *ExtraInfo;
+  toolchain::Value *ExtraInfo;
 
 public:
   StackAddress() : ExtraInfo(nullptr) {}
-  StackAddress(Address address, llvm::Value *extraInfo = nullptr)
+  StackAddress(Address address, toolchain::Value *extraInfo = nullptr)
     : Addr(address), ExtraInfo(extraInfo) {}
 
   /// Return a StackAddress with the address changed in some superficial way.
@@ -143,10 +144,10 @@ public:
     return StackAddress(addr, ExtraInfo);
   }
 
-  llvm::Value *getAddressPointer() const { return Addr.getAddress(); }
+  toolchain::Value *getAddressPointer() const { return Addr.getAddress(); }
   Alignment getAlignment() const { return Addr.getAlignment(); }
   Address getAddress() const { return Addr; }
-  llvm::Value *getExtraInfo() const { return ExtraInfo; }
+  toolchain::Value *getExtraInfo() const { return ExtraInfo; }
 
   bool isValid() const { return Addr.isValid(); }
 
@@ -159,54 +160,54 @@ public:
 } // end namespace irgen
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 template <>
-struct DenseMapInfo<swift::irgen::Address> {
-  static swift::irgen::Address getEmptyKey() {
-    return swift::irgen::Address(DenseMapInfo<llvm::Value *>::getEmptyKey(),
-                                 DenseMapInfo<llvm::Type *>::getEmptyKey(),
-                                 swift::irgen::Alignment(8));
+struct DenseMapInfo<language::irgen::Address> {
+  static language::irgen::Address getEmptyKey() {
+    return language::irgen::Address(DenseMapInfo<toolchain::Value *>::getEmptyKey(),
+                                 DenseMapInfo<toolchain::Type *>::getEmptyKey(),
+                                 language::irgen::Alignment(8));
   }
-  static swift::irgen::Address getTombstoneKey() {
-    return swift::irgen::Address(DenseMapInfo<llvm::Value *>::getTombstoneKey(),
-                                 DenseMapInfo<llvm::Type *>::getTombstoneKey(),
-                                 swift::irgen::Alignment(8));
+  static language::irgen::Address getTombstoneKey() {
+    return language::irgen::Address(DenseMapInfo<toolchain::Value *>::getTombstoneKey(),
+                                 DenseMapInfo<toolchain::Type *>::getTombstoneKey(),
+                                 language::irgen::Alignment(8));
   }
-  static unsigned getHashValue(swift::irgen::Address address) {
+  static unsigned getHashValue(language::irgen::Address address) {
     return detail::combineHashValue(
-        DenseMapInfo<llvm::Value *>::getHashValue(address.getAddress()),
+        DenseMapInfo<toolchain::Value *>::getHashValue(address.getAddress()),
         detail::combineHashValue(
-            DenseMapInfo<llvm::Type *>::getHashValue(address.getElementType()),
-            DenseMapInfo<swift::irgen::Alignment::int_type>::getHashValue(
+            DenseMapInfo<toolchain::Type *>::getHashValue(address.getElementType()),
+            DenseMapInfo<language::irgen::Alignment::int_type>::getHashValue(
                 address.getAlignment().getValue())));
   }
-  static bool isEqual(swift::irgen::Address LHS, swift::irgen::Address RHS) {
+  static bool isEqual(language::irgen::Address LHS, language::irgen::Address RHS) {
     return LHS == RHS;
   }
 };
 template <>
-struct DenseMapInfo<swift::irgen::StackAddress> {
-  static swift::irgen::StackAddress getEmptyKey() {
-    return swift::irgen::StackAddress(
-        DenseMapInfo<swift::irgen::Address>::getEmptyKey(),
-        DenseMapInfo<llvm::Value *>::getEmptyKey());
+struct DenseMapInfo<language::irgen::StackAddress> {
+  static language::irgen::StackAddress getEmptyKey() {
+    return language::irgen::StackAddress(
+        DenseMapInfo<language::irgen::Address>::getEmptyKey(),
+        DenseMapInfo<toolchain::Value *>::getEmptyKey());
   }
-  static swift::irgen::StackAddress getTombstoneKey() {
-    return swift::irgen::StackAddress(
-        DenseMapInfo<swift::irgen::Address>::getTombstoneKey(),
-        DenseMapInfo<llvm::Value *>::getTombstoneKey());
+  static language::irgen::StackAddress getTombstoneKey() {
+    return language::irgen::StackAddress(
+        DenseMapInfo<language::irgen::Address>::getTombstoneKey(),
+        DenseMapInfo<toolchain::Value *>::getTombstoneKey());
   }
-  static unsigned getHashValue(swift::irgen::StackAddress address) {
+  static unsigned getHashValue(language::irgen::StackAddress address) {
     return detail::combineHashValue(
-        DenseMapInfo<swift::irgen::Address>::getHashValue(address.getAddress()),
-        DenseMapInfo<swift::irgen::Alignment::int_type>::getHashValue(
+        DenseMapInfo<language::irgen::Address>::getHashValue(address.getAddress()),
+        DenseMapInfo<language::irgen::Alignment::int_type>::getHashValue(
             address.getAlignment().getValue()));
   }
-  static bool isEqual(swift::irgen::StackAddress LHS,
-                      swift::irgen::StackAddress RHS) {
+  static bool isEqual(language::irgen::StackAddress LHS,
+                      language::irgen::StackAddress RHS) {
     return LHS == RHS;
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

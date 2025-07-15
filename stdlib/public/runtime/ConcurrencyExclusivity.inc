@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements the runtime support for dynamically tracking exclusivity
@@ -201,13 +202,13 @@ namespace {
 /// the node we found in TBegin, set TBegin to the current TLV head, set TEnd
 /// to that predecessor node of the current TLV head and set TEnd->next to be
 /// nullptr.
-struct SwiftTaskThreadLocalContext {
+struct CodiraTaskThreadLocalContext {
   uintptr_t state[2];
 
 #ifndef NDEBUG
   void dump() {
     fprintf(stderr,
-            "        SwiftTaskThreadLocalContext: (FirstAccess,LastAccess): "
+            "        CodiraTaskThreadLocalContext: (FirstAccess,LastAccess): "
             "(%p, %p)\n",
             (void *)state[0], (void *)state[1]);
   }
@@ -252,10 +253,10 @@ struct SwiftTaskThreadLocalContext {
 
 } // end anonymous namespace
 
-// See algorithm description on SwiftTaskThreadLocalContext.
-void swift::swift_task_enterThreadLocalContext(char *state) {
-  auto &taskCtx = *reinterpret_cast<SwiftTaskThreadLocalContext *>(state);
-  auto &tlsCtxAccessSet = SwiftTLSContext::get().accessSet;
+// See algorithm description on CodiraTaskThreadLocalContext.
+void language::language_task_enterThreadLocalContext(char *state) {
+  auto &taskCtx = *reinterpret_cast<CodiraTaskThreadLocalContext *>(state);
+  auto &tlsCtxAccessSet = CodiraTLSContext::get().accessSet;
 
 #ifndef NDEBUG
   if (isExclusivityLoggingEnabled()) {
@@ -264,7 +265,7 @@ void swift::swift_task_enterThreadLocalContext(char *state) {
               "Entering Thread Local Context. Before Swizzle. Task: %p\n",
               taskCtx.getTaskAddress());
       taskCtx.dump();
-      swift_dumpTrackedAccesses();
+      language_dumpTrackedAccesses();
     });
   }
 
@@ -275,7 +276,7 @@ void swift::swift_task_enterThreadLocalContext(char *state) {
                 "Entering Thread Local Context. After Swizzle. Task: %p\n",
                 taskCtx.getTaskAddress());
         taskCtx.dump();
-        swift_dumpTrackedAccesses();
+        language_dumpTrackedAccesses();
       });
     }
   };
@@ -342,10 +343,10 @@ void swift::swift_task_enterThreadLocalContext(char *state) {
   logEndState();
 }
 
-// See algorithm description on SwiftTaskThreadLocalContext.
-void swift::swift_task_exitThreadLocalContext(char *state) {
-  auto &taskCtx = *reinterpret_cast<SwiftTaskThreadLocalContext *>(state);
-  auto &tlsCtxAccessSet = SwiftTLSContext::get().accessSet;
+// See algorithm description on CodiraTaskThreadLocalContext.
+void language::language_task_exitThreadLocalContext(char *state) {
+  auto &taskCtx = *reinterpret_cast<CodiraTaskThreadLocalContext *>(state);
+  auto &tlsCtxAccessSet = CodiraTLSContext::get().accessSet;
 
 #ifndef NDEBUG
   if (isExclusivityLoggingEnabled()) {
@@ -354,7 +355,7 @@ void swift::swift_task_exitThreadLocalContext(char *state) {
               "Exiting Thread Local Context. Before Swizzle. Task: %p\n",
               taskCtx.getTaskAddress());
       taskCtx.dump();
-      swift_dumpTrackedAccesses();
+      language_dumpTrackedAccesses();
     });
   }
 
@@ -365,7 +366,7 @@ void swift::swift_task_exitThreadLocalContext(char *state) {
                 "Exiting Thread Local Context. After Swizzle. Task: %p\n",
                 taskCtx.getTaskAddress());
         taskCtx.dump();
-        swift_dumpTrackedAccesses();
+        language_dumpTrackedAccesses();
       });
     }
   };

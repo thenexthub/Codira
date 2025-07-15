@@ -1,4 +1,4 @@
-//===--- ConformanceLookupTable - Conformance Lookup Table ------*- C++ -*-===//
+//===--- ConformanceLookupTable.h - Conformance Lookup Table ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the ConformanceLookupTable class, which manages protocol
@@ -20,19 +21,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CONFORMANCE_LOOKUP_TABLE_H
-#define SWIFT_AST_CONFORMANCE_LOOKUP_TABLE_H
+#ifndef LANGUAGE_AST_CONFORMANCE_LOOKUP_TABLE_H
+#define LANGUAGE_AST_CONFORMANCE_LOOKUP_TABLE_H
 
 #include "language/AST/DeclContext.h"
 #include "language/AST/ConformanceAttributes.h"
 #include "language/AST/ProtocolConformanceOptions.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 #include <unordered_map>
 
 namespace language {
@@ -72,7 +73,7 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
   /// nullptr if no extensions have been processed) and indicates
   /// whether the nominal type declaration itself has been processed
   /// at that stage.
-  typedef llvm::PointerIntPair<ExtensionDecl *, 1, bool> LastProcessedEntry;
+  typedef toolchain::PointerIntPair<ExtensionDecl *, 1, bool> LastProcessedEntry;
 
   /// Array indicating how far we have gotten in processing each
   /// nominal type and list of extensions for each stage of
@@ -91,12 +92,20 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
   class ConformanceSource {
     void *Storage;
 
+    /// The `TypeRepr` of the inheritance clause entry that declares this
+    /// conformance, if any. For example, if this is a conformance to `Y`
+    /// declared as `struct S: X, Y & Z {}`, this is the `TypeRepr` for `Y & Z`.
+    ///
+    /// - Important: The value can be valid only for an explicit conformance.
+    TypeRepr *inheritedTypeRepr;
+
     ConformanceEntryKind Kind;
 
     ConformanceAttributes attributes;
 
-    ConformanceSource(void *ptr, ConformanceEntryKind kind)
-      : Storage(ptr), Kind(kind) { }
+    ConformanceSource(void *ptr, ConformanceEntryKind kind,
+                      TypeRepr *inheritedTypeRepr = nullptr)
+        : Storage(ptr), inheritedTypeRepr(inheritedTypeRepr), Kind(kind) {}
 
   public:
     /// Create an inherited conformance.
@@ -112,8 +121,10 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
     /// The given declaration context (nominal type declaration or
     /// extension thereof) explicitly specifies conformance to the
     /// protocol.
-    static ConformanceSource forExplicit(DeclContext *dc) {
-      return ConformanceSource(dc, ConformanceEntryKind::Explicit);
+    static ConformanceSource forExplicit(DeclContext *dc,
+                                         TypeRepr *inheritedEntry) {
+      return ConformanceSource(dc, ConformanceEntryKind::Explicit,
+                               inheritedEntry);
     }
 
     /// Create an implied conformance.
@@ -136,6 +147,13 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
     static ConformanceSource forUnexpandedMacro(DeclContext *dc) {
       return ConformanceSource(dc, ConformanceEntryKind::PreMacroExpansion);
     }
+
+    /// Return the `TypeRepr` of the inheritance clause entry that declares this
+    /// conformance, if any. For example, if this is a conformance to `Y`
+    /// declared as `struct S: X, Y & Z {}`, this is the `TypeRepr` for `Y & Z`.
+    ///
+    /// - Important: The value can be valid only for an explicit conformance.
+    TypeRepr *getInheritedTypeRepr() const { return inheritedTypeRepr; }
 
     /// Return a new conformance source with the given conformance
     /// attributes.
@@ -199,7 +217,7 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
       }
       }
 
-      llvm_unreachable("Unhandled ConformanceEntryKind in switch.");
+      toolchain_unreachable("Unhandled ConformanceEntryKind in switch.");
     }
 
     /// The location of the @unchecked attribute, if any.
@@ -275,7 +293,7 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
     ConformanceSource Source;
 
     /// Either the protocol to be resolved or the resolved protocol conformance.
-    llvm::PointerUnion<ProtocolDecl *, ProtocolConformance *> Conformance;
+    toolchain::PointerUnion<ProtocolDecl *, ProtocolConformance *> Conformance;
 
     ConformanceEntry(SourceLoc loc, ProtocolDecl *protocol,
                      ConformanceSource source)
@@ -307,7 +325,7 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
         return true;
       }
 
-      llvm_unreachable("Unhandled ConformanceEntryKind in switch.");
+      toolchain_unreachable("Unhandled ConformanceEntryKind in switch.");
     }
 
     /// Whether this protocol conformance was superseded by another
@@ -366,33 +384,33 @@ class ConformanceLookupTable : public ASTAllocated<ConformanceLookupTable> {
       return Loc;
     }
 
-    SWIFT_DEBUG_DUMP;
+    LANGUAGE_DEBUG_DUMP;
     void dump(raw_ostream &os, unsigned indent = 0) const;
   };
 
   /// The set of conformance entries for a given protocol.
-  typedef llvm::TinyPtrVector<ConformanceEntry *> ConformanceEntries;
+  typedef toolchain::TinyPtrVector<ConformanceEntry *> ConformanceEntries;
 
   /// The type of the internal conformance table.
-  typedef llvm::MapVector<ProtocolDecl *, ConformanceEntries> ConformanceTable;
+  typedef toolchain::MapVector<ProtocolDecl *, ConformanceEntries> ConformanceTable;
 
   /// The conformance table.
   ConformanceTable Conformances;
 
-  typedef llvm::SmallVector<ProtocolDecl *, 2> ProtocolList;
+  typedef toolchain::SmallVector<ProtocolDecl *, 2> ProtocolList;
 
   /// List of all of the protocols to which a given context declares
   /// conformance, both explicitly and implicitly.
-  llvm::MapVector<DeclContext *, SmallVector<ConformanceEntry *, 4>>
+  toolchain::MapVector<DeclContext *, SmallVector<ConformanceEntry *, 4>>
     AllConformances;
 
   /// The complete set of diagnostics about erroneously superseded
   /// protocol conformances.
-  llvm::SmallDenseMap<DeclContext *, std::vector<ConformanceEntry *> >
+  toolchain::SmallDenseMap<DeclContext *, std::vector<ConformanceEntry *> >
     AllSupersededDiagnostics;
 
   /// Associates a conforming decl to its protocol conformance decls.
-  llvm::DenseMap<const ValueDecl *, llvm::TinyPtrVector<ValueDecl *>>
+  toolchain::DenseMap<const ValueDecl *, toolchain::TinyPtrVector<ValueDecl *>>
     ConformingDeclMap;
 
   /// Indicates whether we are visiting the superclass.
@@ -545,7 +563,7 @@ public:
                                             NominalTypeDecl *nominal,
                                             bool sorted);
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &os) const;
 
   /// Compare two protocol conformances to place them in some canonical order.
@@ -555,4 +573,4 @@ public:
 
 }
 
-#endif /* SWIFT_AST_CONFORMANCE_LOOKUP_TABLE_H */
+#endif /* LANGUAGE_AST_CONFORMANCE_LOOKUP_TABLE_H */

@@ -1,0 +1,86 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=default
+import InheritedLookup
+
+extension One {
+    // Codira extensions of a base class should not affect its derived classes.
+    // We later attempt to call baseExt() in derived classes, which should fail.
+    fn baseExt() -> Int32 { return 0 }
+
+    fn ext() {
+        immutable _ = baseExt()
+        immutable _ = this[0]
+        immutable _ = method()
+        immutable _ = methodI()   // expected-error {{cannot find 'methodI' in scope}}
+        immutable _ = methodII()  // expected-error {{cannot find 'methodII' in scope}}
+        immutable _ = methodIII() // expected-error {{cannot find 'methodIII' in scope}}
+    }
+}
+
+fn fOne(v: One) {
+    immutable _ = v.baseExt()
+    immutable _ = v[0]
+    immutable _ = v.method()
+    immutable _ = v.methodI()     // expected-error {{'One' has no member 'methodI'}}
+    immutable _ = v.methodII()    // expected-error {{'One' has no member 'methodII'}}
+    immutable _ = v.methodIII()   // expected-error {{'One' has no member 'methodIII'}}
+}
+
+extension IOne {
+    fn ext() {
+        immutable _ = baseExt()   // expected-error {{cannot find 'baseExt' in scope}}
+        immutable _ = this[0]
+        immutable _ = method()
+        immutable _ = methodI()
+        immutable _ = methodII()  // expected-error {{cannot find 'methodII' in scope}}
+        immutable _ = methodIII() // expected-error {{cannot find 'methodIII' in scope}}
+    }
+}
+
+fn fIOne(v: IOne) {
+    immutable _ = v.baseExt()     // expected-error {{'IOne' has no member 'baseExt'}}
+    immutable _ = v[0]
+    immutable _ = v.method()
+    immutable _ = v.methodI()
+    immutable _ = v.methodII()    // expected-error {{'IOne' has no member 'methodII'}}
+    immutable _ = v.methodIII()   // expected-error {{'IOne' has no member 'methodIII'}}
+}
+
+extension IIOne {
+    fn ext() {
+        immutable _ = baseExt()   // expected-error {{cannot find 'baseExt' in scope}}
+        immutable _ = this[0]
+        immutable _ = method()
+        immutable _ = methodI()
+        immutable _ = methodII()
+        immutable _ = methodIII() // expected-error {{cannot find 'methodIII' in scope}}
+    }
+}
+
+fn fIIOne(v: IIOne) {
+    immutable _ = v.baseExt()     // expected-error {{'IIOne' has no member 'baseExt'}}
+    immutable _ = v[0]
+    immutable _ = v.method()
+    immutable _ = v.methodI()
+    immutable _ = v.methodII()
+    immutable _ = v.methodIII()   // expected-error {{'IIOne' has no member 'methodIII'}}
+}
+
+extension IIIOne {
+    fn ext() {
+        immutable _ = baseExt()   // expected-error {{cannot find 'baseExt' in scope}}
+        immutable _ = this[0]
+        immutable _ = method()
+        immutable _ = methodI()
+        immutable _ = methodII()
+        immutable _ = methodIII()
+    }
+}
+
+fn fIIIOne(v: IIIOne) {
+    immutable _ = v.baseExt()     // expected-error {{'IIIOne' has no member 'baseExt'}}
+    immutable _ = v[0]
+    immutable _ = v.method()
+    immutable _ = v.methodI()
+    immutable _ = v.methodII()
+    immutable _ = v.methodIII()
+}

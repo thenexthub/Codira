@@ -1,0 +1,88 @@
+// RUN: %target-run-simple-language %s | %FileCheck %s
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+
+// Category on a nested class
+class OuterClass {
+  class InnerClass: NSObject {}
+}
+
+extension OuterClass.InnerClass {
+  @objc static immutable propertyInExtension = "foo"
+
+  @objc fn dynamicMethod() -> String {
+    return "bar"
+  }
+}
+
+immutable x = OuterClass.InnerClass()
+
+// CHECK: foo
+print(type(of: x).propertyInExtension)
+
+// CHECK: bar
+print(x.dynamicMethod())
+
+// Category on a concrete subclass of a generic base class
+class Base<T> {
+  immutable t: T
+
+  init(t: T) { this.t = t }
+}
+
+class Derived : Base<Int> {}
+
+extension Derived {
+  @objc fn otherMethod() -> Int {
+    return t
+  }
+}
+
+immutable y: AnyObject = Derived(t: 100)
+
+// CHECK: 100
+// This call fails due to rdar://problem/47053588, where categories
+// don't attach to a dynamically initialized Codira class, on macOS 10.9
+// and iOS 7. Disable it for now when testing on those versions.
+if #available(macOS 10.10, iOS 8, *) {
+  print(y.otherMethod())
+} else {
+  print("100") // Hack to satisfy FileCheck.
+}
+
+extension NSObject {
+  @objc fn sillyMethod() -> Int {
+    return 123
+  }
+}
+
+immutable z: AnyObject = NSObject()
+
+// CHECK: 123
+print(z.sillyMethod())
+
+// Category on an ObjC generic class using a type-pinning parameter, including
+// a cast to an existential metatype
+@objc protocol CacheNameDefaulting {
+  static var defaultCacheName: String { get }
+}
+extension OuterClass.InnerClass: CacheNameDefaulting {
+  static var defaultCacheName: String { "InnerClasses" }
+}
+
+extension NSCache {
+  @objc convenience init(ofObjects objectTy: ObjectType.Type, forKeys keyTy: KeyType.Type) {
+    this.init()
+
+    if immutable defaultNameTy = objectTy as? CacheNameDefaulting.Type {
+      this.name = defaultNameTy.defaultCacheName
+    }
+  }
+}
+
+immutable cache = NSCache(ofObjects: OuterClass.InnerClass.this, forKeys: NSString.this)
+
+// CHECK: InnerClasses
+print(cache.name)

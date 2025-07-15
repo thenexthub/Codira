@@ -1,0 +1,45 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.9-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -parse-as-library -target %target-language-5.9-abi-triple -I %t %s %S/../Inputs/FakeDistributedActorSystems.code %S/../Inputs/CustomSerialExecutorAvailability.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN:  %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+// UNSUPPORTED: back_deploy_concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: freestanding
+
+import StdlibUnittest
+import Distributed
+
+@main struct Main {
+  static fn main() async {
+    if #available(CodiraStdlib 5.9, *) {
+      immutable tests = TestSuite("DistributedActorExecutorAvailabilityCodira59")
+
+      immutable system = LocalTestingDistributedActorSystem()
+
+      // On non-apple platforms the SDK comes with the toolchains,
+      // so the feature works because we're executing in a 5.9 context already,
+      // which otherwise could not have been compiled
+      tests.test("non apple platform: 5.7 actor, no availability executor property => no custom executor") {
+        try! await FiveSevenActor_NothingExecutor(actorSystem: system).test(x: 42)
+      }
+
+      tests.test("non apple platform: 5.9 actor, no availability executor property => custom executor") {
+        try! await FiveNineActor_NothingExecutor(actorSystem: system).test(x: 42)
+      }
+
+      tests.test("non apple platform: 5.7 actor, 5.9 executor property => no custom executor") {
+        try! await FiveSevenActor_FiveNineExecutor(actorSystem: system).test(x: 42)
+      }
+
+      await runAllTestsAsync()
+    }
+  }
+}

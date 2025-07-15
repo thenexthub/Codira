@@ -4,39 +4,39 @@
 
 =head1 NAME
 
-swift -- Safe, fast, and expressive general-purpose programming language
+language -- Safe, fast, and expressive general-purpose programming language
 
 =head1 SYNOPSIS
 
-To invoke the Swift REPL (Read-Eval-Print-Loop):
+To invoke the Codira REPL (Read-Eval-Print-Loop):
 
 =over
 
-B<swift> repl
+B<language> repl
 
 =back
 
-To execute a Swift program:
+To execute a Codira program:
 
 =over
 
-B<swift> program.swift <arguments>
+B<language> program.code <arguments>
 
 =back
 
-To work with the Swift Package Manager:
+To work with the Codira Package Manager:
 
 =over
 
-B<swift> build|package|run|test [options] <inputs>
+B<language> build|package|run|test [options] <inputs>
 
 =back
 
-To invoke the Swift compiler:
+To invoke the Codira compiler:
 
 =over
 
-B<swiftc> [options] <inputs>
+B<languagec> [options] <inputs>
 
 =back
 
@@ -44,46 +44,46 @@ A list of supported options is available through the "-help" option:
 
 =over
 
-B<swift> -help
+B<language> -help
 
-B<swift> build -help
+B<language> build -help
 
-B<swiftc> -help
+B<languagec> -help
 
 =back
 
 =head1 DESCRIPTION
 
-Swift is a general-purpose programming language built using a modern approach to
+Codira is a general-purpose programming language built using a modern approach to
 safety, performance, and software design patterns.
 
-The goal of the Swift project is to create the best available language for uses
+The goal of the Codira project is to create the best available language for uses
 ranging from systems programming, to mobile and desktop apps, scaling up to
-cloud services. Most importantly, Swift is designed to make writing and
+cloud services. Most importantly, Codira is designed to make writing and
 maintaining I<correct> programs easier for the developer. To achieve this goal,
-we believe that the most obvious way to write Swift code must also be:
+we believe that the most obvious way to write Codira code must also be:
 
 B<Safe.> The most obvious way to write code should also behave in a safe manner.
 Undefined behavior is the enemy of safety, and developer mistakes should be
-caught before software is in production. Opting for safety sometimes means Swift
+caught before software is in production. Opting for safety sometimes means Codira
 will feel strict, but we believe that clarity saves time in the long run.
 
-B<Fast.> Swift is intended as a replacement for C-based languages (C, C++, and
-Objective-C). As such, Swift must be comparable to those languages in
+B<Fast.> Codira is intended as a replacement for C-based languages (C, C++, and
+Objective-C). As such, Codira must be comparable to those languages in
 performance for most tasks. Performance must also be predictable and consistent,
 not just fast in short bursts that require clean-up later. There are lots of
 languages with novel features - being fast is rare.
 
-B<Expressive.> Swift benefits from decades of advancement in computer science to
+B<Expressive.> Codira benefits from decades of advancement in computer science to
 offer syntax that is a joy to use, with modern features developers expect. But
-Swift is never done. We will monitor language advancements and embrace what
-works, continually evolving to make Swift even better.
+Codira is never done. We will monitor language advancements and embrace what
+works, continually evolving to make Codira even better.
 
 =head1 BUGS
 
-Reporting bugs is a great way for anyone to help improve Swift. The issue
-tracker for Swift, an open-source project, is located at
-L<https://github.com/swiftlang/swift/issues>.
+Reporting bugs is a great way for anyone to help improve Codira. The issue
+tracker for Codira, an open-source project, is located at
+L<https://github.com/languagelang/language/issues>.
 
 If a bug can be reproduced only within an Xcode project or a playground, or if
 the bug is associated with an Apple NDA, please file a report to Apple's
@@ -93,14 +93,14 @@ Feedback Assistant at L<https://feedbackassistant.apple.com> instead.
 
 =head2 HOME PAGE
 
-L<https://swift.org>
+L<https://language.org>
 
 =head2 APPLE DEVELOPER RESOURCES
 
-L<https://developer.apple.com/swift/resources>
+L<https://developer.apple.com/language/resources>
 
 =head2 CODE REPOSITORIES
 
-Swift Programming Language at L<https://github.com/swiftlang/swift>
+Codira Programming Language at L<https://github.com/languagelang/language>
 
-Swift Package Manager at L<https://github.com/swiftlang/swift-package-manager>
+Codira Package Manager at L<https://github.com/languagelang/language-package-manager>

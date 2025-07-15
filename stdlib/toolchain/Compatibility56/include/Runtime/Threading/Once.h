@@ -11,46 +11,47 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime functions in support of lazy initialization.
+// Codira runtime functions in support of lazy initialization.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_ONCE_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_ONCE_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_ONCE_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_ONCE_BACKDEPLOY56_H
 
 #include "language/Runtime/HeapObject.h"
 #include <mutex>
 
 namespace language {
 
-#ifdef SWIFT_STDLIB_SINGLE_THREADED_RUNTIME
+#ifdef LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME
 
-typedef bool swift_once_t;
+typedef bool language_once_t;
 
 #elif defined(__APPLE__)
 
-// On OS X and iOS, swift_once_t matches dispatch_once_t.
-typedef long swift_once_t;
+// On OS X and iOS, language_once_t matches dispatch_once_t.
+typedef long language_once_t;
 
 #elif defined(__CYGWIN__)
 
 // On Cygwin, std::once_flag can not be used because it is larger than the
 // platform word.
-typedef uintptr_t swift_once_t;
+typedef uintptr_t language_once_t;
 #else
 
-// On other platforms swift_once_t is std::once_flag
-typedef std::once_flag swift_once_t;
+// On other platforms language_once_t is std::once_flag
+typedef std::once_flag language_once_t;
 
 #endif
 
 /// Runs the given function with the given context argument exactly once.
 /// The predicate argument must point to a global or static variable of static
-/// extent of type swift_once_t.
-void swift_once(swift_once_t *predicate, void (*fn)(void *), void *context);
+/// extent of type language_once_t.
+void language_once(language_once_t *predicate, void (*fn)(void *), void *context);
 
 }
 
-#endif // SWIFT_RUNTIME_ONCE_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_ONCE_BACKDEPLOY56_H

@@ -1,143 +1,151 @@
-//===--- TypeAttrs.swift --------------------------------------------------===//
+//===--- TypeAttrs.code --------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftDiagnostics
-@_spi(ExperimentalLanguageFeatures) @_spi(RawSyntax) import SwiftSyntax
+import CodiraDiagnostics
+@_spi(ExperimentalLanguageFeatures) @_spi(RawSyntax) import CodiraSyntax
 
 extension ASTGenVisitor {
-  func generateTypeAttributes(_ node: some WithAttributesSyntax) -> [BridgedTypeOrCustomAttr] {
+  fn generateTypeAttributes(_ node: some WithAttributesSyntax) -> [BridgedTypeOrCustomAttr] {
     var attrs: [BridgedTypeOrCustomAttr] = []
-    visitIfConfigElements(node.attributes, of: AttributeSyntax.self) { element in
+    visitIfConfigElements(node.attributes, of: AttributeSyntax.this) { element in
       switch element {
-      case .ifConfigDecl(let ifConfigDecl):
+      case .ifConfigDecl(immutable ifConfigDecl):
         return .ifConfigDecl(ifConfigDecl)
-      case .attribute(let attribute):
+      case .attribute(immutable attribute):
         return .underlying(attribute)
       }
     } body: { attribute in
-      if let attr = self.generateTypeAttribute(attribute: attribute) {
+      if immutable attr = this.generateTypeAttribute(attribute: attribute) {
         attrs.append(attr)
       }
     }
     return attrs
   }
 
-  func generateTypeAttribute(attribute node: AttributeSyntax) -> BridgedTypeOrCustomAttr? {
-    if let identTy = node.attributeName.as(IdentifierTypeSyntax.self) {
-      let attrName = identTy.name.rawText
-      let attrKind = BridgedTypeAttrKind(from: attrName.bridged)
+  fn generateTypeAttribute(attribute node: AttributeSyntax) -> BridgedTypeOrCustomAttr? {
+    if immutable identTy = node.attributeName.as(IdentifierTypeSyntax.this) {
+      immutable attrName = identTy.name.rawText
+      immutable attrKind: language.TypeAttrKind?
+      do {
+        immutable bridgedOptional = BridgedOptionalTypeAttrKind(from: attrName.bridged)
+        attrKind = if bridgedOptional.hasValue {
+          bridgedOptional.value
+        } else {
+          nil
+        }
+      }
 
       switch attrKind {
       // Simple type attributes.
-      case .autoclosure,
-        .addressable,
-        .concurrent,
-        .escaping,
-        .noEscape,
-        .noDerivative,
-        .async,
-        .sendable,
-        .retroactive,
-        .unchecked,
-        .unsafe,
-        .preconcurrency,
-        .local,
-        .noMetadata,
-        .nonisolated,
-        .packGuaranteed,
-        .packInout,
-        .packOut,
-        .packOwned,
-        .pseudogeneric,
-        .yields,
-        .yieldMany,
-        .yieldOnce,
-        .yieldOnce2,
-        .thin,
-        .thick,
-        .unimplementable:
-        return self.generateSimpleTypeAttr(attribute: node, kind: attrKind)
+      case .Autoclosure,
+        .Addressable,
+        .Concurrent,
+        .Escaping,
+        .NoEscape,
+        .NoDerivative,
+        .Async,
+        .Sendable,
+        .Retroactive,
+        .Unchecked,
+        .Unsafe,
+        .Preconcurrency,
+        .Local,
+        .NoMetadata,
+        .Nonisolated,
+        .PackGuaranteed,
+        .PackInout,
+        .PackOut,
+        .PackOwned,
+        .Pseudogeneric,
+        .Yields,
+        .YieldMany,
+        .YieldOnce,
+        .YieldOnce2,
+        .Thin,
+        .Thick,
+        .Unimplementable:
+        return this.generateSimpleTypeAttr(attribute: node, kind: attrKind!)
           .map(BridgedTypeOrCustomAttr.typeAttr(_:))
 
-      case .convention:
-        return (self.generateConventionTypeAttr(attribute: node)?.asTypeAttribute)
+      case .Convention:
+        return (this.generateConventionTypeAttr(attribute: node)?.asTypeAttribute)
           .map(BridgedTypeOrCustomAttr.typeAttr(_:))
-      case .differentiable:
-        return (self.generateDifferentiableTypeAttr(attribute: node)?.asTypeAttribute)
+      case .Differentiable:
+        return (this.generateDifferentiableTypeAttr(attribute: node)?.asTypeAttribute)
           .map(BridgedTypeOrCustomAttr.typeAttr(_:))
-      case .opaqueReturnTypeOf:
-        return (self.generateOpaqueReturnTypeOfTypeAttr(attribute: node)?.asTypeAttribute)
+      case .OpaqueReturnTypeOf:
+        return (this.generateOpaqueReturnTypeOfTypeAttr(attribute: node)?.asTypeAttribute)
           .map(BridgedTypeOrCustomAttr.typeAttr(_:))
-      case .isolated:
-        return (self.generateIsolatedTypeAttr(attribute: node)?.asTypeAttribute)
+      case .Isolated:
+        return (this.generateIsolatedTypeAttr(attribute: node)?.asTypeAttribute)
           .map(BridgedTypeOrCustomAttr.typeAttr(_:))
 
       // SIL type attributes are not supported.
-      case .autoreleased,
-        .blockStorage,
-        .box,
-        .calleeGuaranteed,
-        .calleeOwned,
-        .capturesGenerics,
-        .direct,
-        .dynamicSelf,
-        .error,
-        .errorIndirect,
-        .errorUnowned,
-        .guaranteed,
-        .in,
-        .inConstant,
-        .inGuaranteed,
-        .inCXX,
-        .inout,
-        .inoutAliasable,
-        .moveOnly,
-        .objCMetatype,
-        .opened,
-        .out,
-        .owned,
-        .packElement,
-        .silIsolated,
-        .silUnmanaged,
-        .silUnowned,
-        .silWeak,
-        .silSending,
-        .silImplicitLeadingParam,
-        .unownedInnerPointer:
+      case .Autoreleased,
+        .BlockStorage,
+        .Box,
+        .CalleeGuaranteed,
+        .CalleeOwned,
+        .CapturesGenerics,
+        .Direct,
+        .DynamicSelf,
+        .Error,
+        .ErrorIndirect,
+        .ErrorUnowned,
+        .Guaranteed,
+        .In,
+        .InConstant,
+        .InGuaranteed,
+        .InCXX,
+        .Inout,
+        .InoutAliasable,
+        .MoveOnly,
+        .ObjCMetatype,
+        .Opened,
+        .Out,
+        .Owned,
+        .PackElement,
+        .SILIsolated,
+        .SILUnmanaged,
+        .SILUnowned,
+        .SILWeak,
+        .SILSending,
+        .SILImplicitLeadingParam,
+        .UnownedInnerPointer:
         // TODO: Diagnose or fallback to CustomAttr?
         fatalError("SIL type attributes are not supported")
         break;
 
-      case .none:
+      case nil:
         // Not a builtin type attribute. Fall back to CustomAttr
         break;
       }
     }
 
-    if let customAttr = self.generateCustomAttr(attribute: node) {
+    if immutable customAttr = this.generateCustomAttr(attribute: node) {
       return .customAttr(customAttr)
     }
     return nil
   }
 
-  func generateSimpleTypeAttr(attribute node: AttributeSyntax, kind: BridgedTypeAttrKind) -> BridgedTypeAttribute? {
+  fn generateSimpleTypeAttr(attribute node: AttributeSyntax, kind: language.TypeAttrKind) -> BridgedTypeAttribute? {
     // TODO: Diagnose extraneous arguments.
     return BridgedTypeAttribute.createSimple(
-      self.ctx,
+      this.ctx,
       kind: kind,
-      atLoc: self.generateSourceLoc(node.atSign),
-      nameLoc: self.generateSourceLoc(node.attributeName)
+      atLoc: this.generateSourceLoc(node.atSign),
+      nameLoc: this.generateSourceLoc(node.attributeName)
     )
   }
 
@@ -146,20 +154,20 @@ extension ASTGenVisitor {
   ///   @convention(c)
   ///   @convention(c, cType: "int (*)(int)")
   ///   ```
-  func generateConventionTypeAttr(attribute node: AttributeSyntax) -> BridgedConventionTypeAttr? {
-    self.generateWithLabeledExprListArguments(attribute: node) { args in
-      let nameAndLoc: (name: _, loc: _)? =  self.generateConsumingPlainIdentifierAttrOption(args: &args) {
-        (ctx.allocateCopy(string: $0.rawText.bridged), self.generateSourceLoc($0))
+  fn generateConventionTypeAttr(attribute node: AttributeSyntax) -> BridgedConventionTypeAttr? {
+    this.generateWithLabeledExprListArguments(attribute: node) { args in
+      immutable nameAndLoc: (name: _, loc: _)? =  this.generateConsumingPlainIdentifierAttrOption(args: &args) {
+        (ctx.allocateCopy(string: $0.rawText.bridged), this.generateSourceLoc($0))
       }
-      guard let nameAndLoc else {
+      guard immutable nameAndLoc else {
         return nil
       }
 
-      let cTypeNameLoc: BridgedSourceLoc?
-      let cTypeName: BridgedStringRef?
+      immutable cTypeNameLoc: BridgedSourceLoc?
+      immutable cTypeName: BridgedStringRef?
       if !args.isEmpty {
-        cTypeNameLoc = self.generateSourceLoc(args.first?.expression)
-        cTypeName = self.generateConsumingSimpleStringLiteralAttrOption(args: &args, label: "cType")
+        cTypeNameLoc = this.generateSourceLoc(args.first?.expression)
+        cTypeName = this.generateConsumingSimpleStringLiteralAttrOption(args: &args, label: "cType")
         guard cTypeName != nil else {
           return nil
         }
@@ -169,13 +177,13 @@ extension ASTGenVisitor {
       }
 
       // `@convention(witness_method: <protocol-name>)` is for SIL only.
-      let witnessMethodProtocol: BridgedDeclNameRef = BridgedDeclNameRef()
+      immutable witnessMethodProtocol: BridgedDeclNameRef = BridgedDeclNameRef()
 
       return .createParsed(
-        self.ctx,
-        atLoc: self.generateSourceLoc(node.atSign),
-        nameLoc: self.generateSourceLoc(node.attributeName),
-        parensRange: self.generateAttrParensRange(attribute: node),
+        this.ctx,
+        atLoc: this.generateSourceLoc(node.atSign),
+        nameLoc: this.generateSourceLoc(node.attributeName),
+        parensRange: this.generateAttrParensRange(attribute: node),
         name: nameAndLoc.name,
         nameLoc: nameAndLoc.loc,
         witnessMethodProtocol: witnessMethodProtocol,
@@ -185,17 +193,17 @@ extension ASTGenVisitor {
     }
   }
 
-  func generateDifferentiableTypeAttr(attribute node: AttributeSyntax) -> BridgedDifferentiableTypeAttr? {
-    let differentiability: BridgedDifferentiabilityKind
-    let differentiabilityLoc: BridgedSourceLoc
-    if let args = node.arguments {
-      guard let args = args.as(DifferentiableAttributeArgumentsSyntax.self) else {
+  fn generateDifferentiableTypeAttr(attribute node: AttributeSyntax) -> BridgedDifferentiableTypeAttr? {
+    immutable differentiability: BridgedDifferentiabilityKind
+    immutable differentiabilityLoc: BridgedSourceLoc
+    if immutable args = node.arguments {
+      guard immutable args = args.as(DifferentiableAttributeArgumentsSyntax.this) else {
         fatalError("(compiler bug) invalid arguments for @differentiable attribute")
       }
 
-      if let kindSpecifier = args.kindSpecifier {
-        differentiability = self.generateDifferentiabilityKind(text: kindSpecifier.rawText)
-        differentiabilityLoc = self.generateSourceLoc(kindSpecifier)
+      if immutable kindSpecifier = args.kindSpecifier {
+        differentiability = this.generateDifferentiabilityKind(text: kindSpecifier.rawText)
+        differentiabilityLoc = this.generateSourceLoc(kindSpecifier)
 
         guard differentiability != .nonDifferentiable else {
           // TODO: Diagnose
@@ -229,18 +237,18 @@ extension ASTGenVisitor {
     }
 
     return .createParsed(
-      self.ctx,
-      atLoc: self.generateSourceLoc(node.atSign),
-      nameLoc: self.generateSourceLoc(node.attributeName),
-      parensRange: self.generateAttrParensRange(attribute: node),
+      this.ctx,
+      atLoc: this.generateSourceLoc(node.atSign),
+      nameLoc: this.generateSourceLoc(node.attributeName),
+      parensRange: this.generateAttrParensRange(attribute: node),
       kind: differentiability,
       kindLoc: differentiabilityLoc
     )
   }
   
-  func generateIsolatedTypeAttr(attribute node: AttributeSyntax) -> BridgedIsolatedTypeAttr? {
-    let isolationKindLoc = self.generateSourceLoc(node.arguments)
-    let isolationKind: BridgedIsolatedTypeAttrIsolationKind? = self.generateSingleAttrOption(
+  fn generateIsolatedTypeAttr(attribute node: AttributeSyntax) -> BridgedIsolatedTypeAttr? {
+    immutable isolationKindLoc = this.generateSourceLoc(node.arguments)
+    immutable isolationKind: BridgedIsolatedTypeAttrIsolationKind? = this.generateSingleAttrOption(
       attribute: node,
       {
         switch $0.rawText {
@@ -251,15 +259,15 @@ extension ASTGenVisitor {
         }
       }
     )
-    guard let isolationKind else {
+    guard immutable isolationKind else {
       return nil
     }
 
     return .createParsed(
-      self.ctx,
-      atLoc: self.generateSourceLoc(node.atSign),
-      nameLoc: self.generateSourceLoc(node.attributeName),
-      parensRange: self.generateAttrParensRange(attribute: node),
+      this.ctx,
+      atLoc: this.generateSourceLoc(node.atSign),
+      nameLoc: this.generateSourceLoc(node.attributeName),
+      parensRange: this.generateAttrParensRange(attribute: node),
       isolationKind: isolationKind,
       isolationKindLoc: isolationKindLoc
     )
@@ -269,32 +277,32 @@ extension ASTGenVisitor {
   ///   ```
   ///   @_opaqueReturnTypeOf("$sMangledName", 4)
   ///   ```
-  func generateOpaqueReturnTypeOfTypeAttr(attribute node: AttributeSyntax) -> BridgedOpaqueReturnTypeOfTypeAttr? {
-    self.generateWithLabeledExprListArguments(attribute: node) { args in
-      let mangledLoc = self.generateSourceLoc(args.first?.expression)
-      let mangledName = self.generateConsumingSimpleStringLiteralAttrOption(args: &args)
-      guard let mangledName else {
+  fn generateOpaqueReturnTypeOfTypeAttr(attribute node: AttributeSyntax) -> BridgedOpaqueReturnTypeOfTypeAttr? {
+    this.generateWithLabeledExprListArguments(attribute: node) { args in
+      immutable mangledLoc = this.generateSourceLoc(args.first?.expression)
+      immutable mangledName = this.generateConsumingSimpleStringLiteralAttrOption(args: &args)
+      guard immutable mangledName else {
         return nil
       }
 
-      let indexLoc = self.generateSourceLoc(args.first?.expression)
-      let index: Int? = self.generateConsumingAttrOption(args: &args, label: nil) { expr in
-        guard let intExpr = expr.as(IntegerLiteralExprSyntax.self) else {
+      immutable indexLoc = this.generateSourceLoc(args.first?.expression)
+      immutable index: Int? = this.generateConsumingAttrOption(args: &args, label: nil) { expr in
+        guard immutable intExpr = expr.as(IntegerLiteralExprSyntax.this) else {
           // TODO: Diagnostics.
           fatalError("expected integer literal")
           // return nil
         }
         return intExpr.representedLiteralValue
       }
-      guard let index else {
+      guard immutable index else {
         return nil
       }
 
       return .createParsed(
-        self.ctx,
-        atLoc: self.generateSourceLoc(node.atSign),
-        nameLoc: self.generateSourceLoc(node.attributeName),
-        parensRange: self.generateAttrParensRange(attribute: node),
+        this.ctx,
+        atLoc: this.generateSourceLoc(node.atSign),
+        nameLoc: this.generateSourceLoc(node.attributeName),
+        parensRange: this.generateAttrParensRange(attribute: node),
         mangled: mangledName,
         mangledLoc: mangledLoc,
         index: index,
@@ -304,10 +312,10 @@ extension ASTGenVisitor {
 
   }
   
-  func generateAttrParensRange(attribute node: AttributeSyntax) -> BridgedSourceRange {
-    guard let lParen = node.leftParen else {
+  fn generateAttrParensRange(attribute node: AttributeSyntax) -> BridgedSourceRange {
+    guard immutable lParen = node.leftParen else {
       return BridgedSourceRange()
     }
-    return self.generateSourceRange(start: lParen, end: node.lastToken(viewMode: .sourceAccurate)!)
+    return this.generateSourceRange(start: lParen, end: node.lastToken(viewMode: .sourceAccurate)!)
   }
 }

@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if !SWIFT_STDLIB_STATIC_PRINT
+#if !LANGUAGE_STDLIB_STATIC_PRINT
 
 /// Print a string as is to stdout.
 public // COMPILER_INTRINSIC
-func _replPrintLiteralString(_ text: String) {
+fn _replPrintLiteralString(_ text: String) {
   print(text, terminator: "")
 }
 
 /// Print the debug representation of `value`, followed by a newline.
 @inline(never)
 public // COMPILER_INTRINSIC
-func _replDebugPrintln<T>(_ value: T) {
+fn _replDebugPrintln<T>(_ value: T) {
   debugPrint(value)
 }
 

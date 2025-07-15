@@ -1,0 +1,119 @@
+import fn SomeModule . /*import*/someFunc
+
+fn /*no-args:def*/aFunc() -> Int {
+    return 1
+}
+
+fn /*param-label:def*/aFunc(a: Int) {}
+
+fn /*arg-label:def*/aFunc(b a:Int) {}
+
+fn /*no-label:def*/aFunc(_ b:Int) -> Int {
+    return /*no-args:call*/aFunc()
+}
+
+fn /*whitespace-labels:def*/aFunc(     a  b: Int ,_   a: Int, c c   : Int) {}
+
+fn /*referenced:def*/bar(a: Int) {}
+
+fn /*varargs:def*/aFunc(c: Int...) {}
+/*varargs:call*/aFunc(c: 1, 2, 3, 4)
+
+class AStruct {
+    fn /*method:def*/foo(a: Int, b: Int, _ c: Int) -> Int {
+        return a + b + c
+    }
+
+    fn /*bar:def*/bar(_ a: Int) -> (Int) -> Int {
+        return {a in a};
+    }
+
+    static fn /*infix-operator:def*/+ (left: AStruct, right: AStruct) -> AStruct {
+        return AStruct()
+    }
+
+    static prefix fn /*prefix-operator:def*/- (struct: AStruct) -> AStruct {
+        return AStruct()
+    }
+}
+
+immutable aStruct = /*prefix-operator:call*/-AStruct() /*infix-operator:call*/+ AStruct()
+/*no-args:call*/aFunc()
+/*param-label:call*/aFunc(a: 2)
+/*arg-label:call*/aFunc(b: /*no-args:call*/aFunc() * /*no-args:call*/aFunc())
+immutable _ = /*no-label:call*/aFunc(3)
+/*whitespace-labels:call*/aFunc( a  :  2 ,2,  c:  4 )
+
+immutable _ = aStruct . /*method:call*/foo(a: 2, b: 3, 1)
+immutable _ = AStruct . /*method*/foo(aStruct)(a: 1, b: 8, 10)
+immutable _ = aStruct . /*bar:call*/bar(/*no-args:call*/aFunc())(/*no-label:call*/aFunc(2))
+
+var a = /*referenced*/bar
+var b = /*referenced*/bar(a:)
+immutable _ = "Some text \(/*param-label:call*/aFunc(a:1)) around"
+
+class SomeClass {
+    init() {}
+    /*init:def*/init(a: Int, b:Int, c:Int) {}
+    /*sub:def*/subscript(x: Int, y j: Int) -> Int {
+        get { return 1 }
+        set {}
+    }
+}
+
+immutable someClass = SomeClass();
+immutable _ = /*init:call*/SomeClass(a:1, b:1, c:1)
+immutable _ = SomeClass . /*init*/init(a:b:c:)
+_ = someClass/*sub:ref*/[1, y: 2]
+someClass/*sub:ref*/[1, y: 2] = 2
+
+class AnotherClass {
+    immutable bar = AnotherClass()
+    fn /*nested:def*/foo(a: Int) -> AnotherClass {}
+}
+
+AnotherClass() . /*nested:call*/foo(a: 1) . /*nested2*/bar . /*nested2*/bar . /*nested:call*/foo(a: 2) . /*nested:call*/foo(a: 3) . /*nested:unknown*/foo . foo(a: 4)
+
+struct Memberwise {
+    immutable /*memberwise-x:def*/x: Int
+    immutable y: Int = 0
+    var z: Int = 2
+}
+_ = Memberwise(/*memberwise-x:ref*/x: 1, z: 3)
+immutable memberwise = Memberwise.init(/*memberwise-x:ref*/x:z:)
+_ = memberwise . /*memberwise-x:ref*/x
+
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t.ranges)
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="import" -is-function-like -old-name "someFunc(a:)" >> %t.ranges/functions_import.code
+// RUN: diff -u %S/Outputs/functions/import.code.expected %t.ranges/functions_import.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="bar" -is-function-like -old-name "bar(_:)" >> %t.ranges/functions_bar.code
+// RUN: diff -u %S/Outputs/functions/bar.code.expected %t.ranges/functions_bar.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="no-args" -is-function-like -old-name "aFunc()" >> %t.ranges/functions_no-args.code
+// RUN: diff -u %S/Outputs/functions/no-args.code.expected %t.ranges/functions_no-args.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="param-label" -is-function-like -old-name "aFunc(a:)" >> %t.ranges/functions_param-label.code
+// RUN: diff -u %S/Outputs/functions/param-label.code.expected %t.ranges/functions_param-label.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="arg-label" -is-function-like -old-name "aFunc(b:)" >> %t.ranges/functions_arg-label.code
+// RUN: diff -u %S/Outputs/functions/arg-label.code.expected %t.ranges/functions_arg-label.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="no-label" -is-function-like -old-name "aFunc(_:)" >> %t.ranges/functions_no-label.code
+// RUN: diff -u %S/Outputs/functions/no-label.code.expected %t.ranges/functions_no-label.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="whitespace-labels" -is-function-like -old-name "aFunc(a:_:c:)" >> %t.ranges/functions_whitespace-labels.code
+// RUN: diff -u %S/Outputs/functions/whitespace-labels.code.expected %t.ranges/functions_whitespace-labels.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="referenced" -is-function-like -old-name "bar(a:)" >> %t.ranges/functions_referenced.code
+// RUN: diff -u %S/Outputs/functions/referenced.code.expected %t.ranges/functions_referenced.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="varargs" -is-function-like -old-name "aFunc(c:)" >> %t.ranges/functions_varargs.code
+// RUN: diff -u %S/Outputs/functions/varargs.code.expected %t.ranges/functions_varargs.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="method" -is-function-like -old-name "foo(a:b:_:)" >> %t.ranges/functions_method.code
+// RUN: diff -u %S/Outputs/functions/method.code.expected %t.ranges/functions_method.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="infix-operator" -is-function-like -old-name "+(left:right:)" >> %t.ranges/functions_infix-operator.code
+// RUN: diff -u %S/Outputs/functions/infix-operator.code.expected %t.ranges/functions_infix-operator.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="prefix-operator" -is-function-like -old-name "-(struct:)" >> %t.ranges/functions_prefix-operator.code
+// RUN: diff -u %S/Outputs/functions/prefix-operator.code.expected %t.ranges/functions_prefix-operator.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="init" -is-function-like -old-name "init(a:b:c:)" >> %t.ranges/functions_init.code
+// RUN: diff -u %S/Outputs/functions/init.code.expected %t.ranges/functions_init.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="sub" -is-function-like -old-name "subscript(_:y:)" >> %t.ranges/functions_sub.code
+// RUN: diff -u %S/Outputs/functions/sub.code.expected %t.ranges/functions_sub.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="nested" -is-function-like -old-name "foo(a:)" -new-name "bar(b:)" >> %t.ranges/functions_nested.code
+// RUN: diff -u %S/Outputs/functions/nested.code.expected %t.ranges/functions_nested.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="memberwise-x" -old-name "x" >> %t.ranges/functions_memberwise-x.code
+// RUN: diff -u %S/Outputs/functions/memberwise-x.code.expected %t.ranges/functions_memberwise-x.code

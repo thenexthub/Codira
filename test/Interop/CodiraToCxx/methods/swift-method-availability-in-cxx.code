@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Methods -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/methods.h
+// RUN: %FileCheck %s < %t/methods.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/methods.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+public struct Struct {
+  var field: Int16
+
+  init() {
+    field = 0
+  }
+    
+  @available(macOS 11, *)
+  public fn method() {}
+
+  @available(macOS 11, *)
+  public static fn staticMethod() {}
+
+  @available(*, unavailable, message: "stuff happened")
+  public fn unavailableMethod() {}
+
+  @available(macOS 11, *)
+  public subscript (_ x: Int) -> Int {
+    return 0
+  }
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK void method() const LANGUAGE_SYMBOL("s:7Methods6StructV6methodyyF") LANGUAGE_AVAILABILITY(macos,introduced=11);
+// CHECK: static LANGUAGE_INLINE_THUNK void staticMethod() LANGUAGE_SYMBOL("s:7Methods6StructV12staticMethodyyFZ") LANGUAGE_AVAILABILITY(macos,introduced=11);
+// CHECK: LANGUAGE_INLINE_THUNK void unavailableMethod() const LANGUAGE_SYMBOL("s:7Methods6StructV17unavailableMethodyyF") LANGUAGE_UNAVAILABLE_MSG("stuff happened");
+// CHECK: LANGUAGE_INLINE_THUNK language::Int operator [](language::Int x) const LANGUAGE_SYMBOL("s:7Methods6StructVyS2icig") LANGUAGE_AVAILABILITY(macos,introduced=11);
+
+// CHECK: LANGUAGE_INLINE_THUNK void Struct::method() const LANGUAGE_AVAILABILITY(macos,introduced=11) {
+
+// CHECK: LANGUAGE_INLINE_THUNK void Struct::staticMethod() LANGUAGE_AVAILABILITY(macos,introduced=11) {
+
+// CHECK: LANGUAGE_INLINE_THUNK void Struct::unavailableMethod() const LANGUAGE_UNAVAILABLE_MSG("stuff happened") {
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Int Struct::operator [](language::Int x) const LANGUAGE_SYMBOL("s:7Methods6StructVyS2icig") LANGUAGE_AVAILABILITY(macos,introduced=11)

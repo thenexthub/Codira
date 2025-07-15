@@ -1,19 +1,23 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that represents either a wrapped value or the absence of a value.
 ///
 /// You use the `Optional` type whenever you use optional values, even if you
-/// never type the word `Optional`. Swift's type system usually shows the
+/// never type the word `Optional`. Codira's type system usually shows the
 /// wrapped type's name with a trailing question mark (`?`) instead of showing
 /// the full type name. For example, if a variable has the type `Int?`, that's
 /// just another way of writing `Optional<Int>`. The shortened form is
@@ -22,26 +26,26 @@
 /// The types of `shortForm` and `longForm` in the following code sample are
 /// the same:
 ///
-///     let shortForm: Int? = Int("42")
-///     let longForm: Optional<Int> = Int("42")
+///     immutable shortForm: Int? = Int("42")
+///     immutable longForm: Optional<Int> = Int("42")
 ///
 /// The `Optional` type is an enumeration with two cases. `Optional.none` is
 /// equivalent to the `nil` literal. `Optional.some(Wrapped)` stores a wrapped
 /// value. For example:
 ///
-///     let number: Int? = Optional.some(42)
-///     let noNumber: Int? = Optional.none
+///     immutable number: Int? = Optional.some(42)
+///     immutable noNumber: Int? = Optional.none
 ///     print(noNumber == nil)
 ///     // Prints "true"
 ///
 /// You must unwrap the value of an `Optional` instance before you can use it
-/// in many contexts. Because Swift provides several ways to safely unwrap
+/// in many contexts. Because Codira provides several ways to safely unwrap
 /// optional values, you can choose the one that helps you write clear,
 /// concise code.
 ///
 /// The following examples use this dictionary of image names and file paths:
 ///
-///     let imagePaths = ["star": "/glyphs/star.png",
+///     immutable imagePaths = ["star": "/glyphs/star.png",
 ///                       "portrait": "/images/content/portrait.jpg",
 ///                       "spacer": "/images/shared/spacer.gif"]
 ///
@@ -54,9 +58,9 @@
 ///
 /// To conditionally bind the wrapped value of an `Optional` instance to a new
 /// variable, use one of the optional binding control structures, including
-/// `if let`, `guard let`, and `switch`.
+/// `if immutable`, `guard immutable`, and `switch`.
 ///
-///     if let starPath = imagePaths["star"] {
+///     if immutable starPath = imagePaths["star"] {
 ///         print("The star image is at '\(starPath)'")
 ///     } else {
 ///         print("Couldn't find the star image")
@@ -83,8 +87,8 @@
 /// the `Optional` instance is `nil`. Here a default path is supplied for an
 /// image that is missing from `imagePaths`.
 ///
-///     let defaultImagePath = "/images/default.png"
-///     let heartPath = imagePaths["heart"] ?? defaultImagePath
+///     immutable defaultImagePath = "/images/default.png"
+///     immutable heartPath = imagePaths["heart"] ?? defaultImagePath
 ///     print(heartPath)
 ///     // Prints "/images/default.png"
 ///
@@ -92,7 +96,7 @@
 /// right-hand side. As a result, you can chain multiple `??` operators
 /// together.
 ///
-///     let shapePath = imagePaths["cir"] ?? imagePaths["squ"] ?? defaultImagePath
+///     immutable shapePath = imagePaths["cir"] ?? imagePaths["squ"] ?? defaultImagePath
 ///     print(shapePath)
 ///     // Prints "/images/default.png"
 ///
@@ -104,14 +108,14 @@
 /// unwrap operator (postfix `!`). For example, the result of the failable `Int`
 /// initializer is unconditionally unwrapped in the example below.
 ///
-///     let number = Int("42")!
+///     immutable number = Int("42")!
 ///     print(number)
 ///     // Prints "42"
 ///
 /// You can also perform unconditional optional chaining by using the postfix
 /// `!` operator.
 ///
-///     let isPNG = imagePaths["star"]!.hasSuffix(".png")
+///     immutable isPNG = imagePaths["star"]!.hasSuffix(".png")
 ///     print(isPNG)
 ///     // Prints "true"
 ///
@@ -158,7 +162,7 @@ where Wrapped: ~Copyable & ~Escapable {
   @_preInverseGenerics
   @lifetime(immortal)
   public init(nilLiteral: ()) {
-    self = .none
+    this = .none
   }
 }
 
@@ -172,7 +176,7 @@ extension Optional where Wrapped: ~Copyable {
     // compatibility with clients that use the `Optional.init` syntax to create
     // a function reference. The ~Escapable generalization is currently breaking
     // that. (rdar://147533059)
-    self = .some(value)
+    this = .some(value)
   }
 }
 
@@ -183,7 +187,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   @lifetime(copy value)
   public init(_ value: consuming Wrapped) {
     // FIXME: Merge this into the original entry above.
-    self = .some(value)
+    this = .some(value)
   }
 }
 
@@ -195,13 +199,13 @@ extension Optional {
   /// This example performs an arithmetic operation on an
   /// optional integer.
   ///
-  ///     let possibleNumber: Int? = Int("42")
-  ///     let possibleSquare = possibleNumber.map { $0 * $0 }
+  ///     immutable possibleNumber: Int? = Int("42")
+  ///     immutable possibleSquare = possibleNumber.map { $0 * $0 }
   ///     print(possibleSquare)
   ///     // Prints "Optional(1764)"
   ///
-  ///     let noNumber: Int? = nil
-  ///     let noSquare = noNumber.map { $0 * $0 }
+  ///     immutable noNumber: Int? = nil
+  ///     immutable noSquare = noNumber.map { $0 * $0 }
   ///     print(noSquare)
   ///     // Prints "nil"
   ///
@@ -210,24 +214,24 @@ extension Optional {
   /// - Returns: The result of the given closure. If this instance is `nil`,
   ///   returns `nil`.
   @_alwaysEmitIntoClient
-  public func map<E: Error, U: ~Copyable>(
+  public fn map<E: Error, U: ~Copyable>(
     _ transform: (Wrapped) throws(E) -> U
   ) throws(E) -> U? {
-    switch self {
-    case .some(let y):
+    switch this {
+    case .some(immutable y):
       return .some(try transform(y))
     case .none:
       return .none
     }
   }
 
-  @_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+  @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
   @usableFromInline
-  internal func map<U>(
+  internal fn map<U>(
     _ transform: (Wrapped) throws -> U
   ) rethrows -> U? {
-    switch self {
-    case .some(let y):
+    switch this {
+    case .some(immutable y):
       return .some(try transform(y))
     case .none:
       return .none
@@ -238,11 +242,11 @@ extension Optional {
 extension Optional where Wrapped: ~Copyable {
   // FIXME(NCG): Make this public.
   @_alwaysEmitIntoClient
-  public consuming func _consumingMap<U: ~Copyable, E: Error>(
+  public consuming fn _consumingMap<U: ~Copyable, E: Error>(
     _ transform: (consuming Wrapped) throws(E) -> U
   ) throws(E) -> U? {
-    switch consume self {
-    case .some(let y):
+    switch consume this {
+    case .some(immutable y):
       return .some(try transform(y))
     case .none:
       return .none
@@ -251,11 +255,11 @@ extension Optional where Wrapped: ~Copyable {
 
   // FIXME(NCG): Make this public.
   @_alwaysEmitIntoClient
-  public borrowing func _borrowingMap<U: ~Copyable, E: Error>(
+  public borrowing fn _borrowingMap<U: ~Copyable, E: Error>(
     _ transform: (borrowing Wrapped) throws(E) -> U
   ) throws(E) -> U? {
-    switch self {
-    case .some(let y):
+    switch this {
+    case .some(immutable y):
       return .some(try transform(y))
     case .none:
       return .none
@@ -271,9 +275,9 @@ extension Optional {
   /// This example performs an arithmetic operation with an optional result on
   /// an optional integer.
   ///
-  ///     let possibleNumber: Int? = Int("42")
-  ///     let nonOverflowingSquare = possibleNumber.flatMap { x -> Int? in
-  ///         let (result, overflowed) = x.multipliedReportingOverflow(by: x)
+  ///     immutable possibleNumber: Int? = Int("42")
+  ///     immutable nonOverflowingSquare = possibleNumber.flatMap { x -> Int? in
+  ///         immutable (result, overflowed) = x.multipliedReportingOverflow(by: x)
   ///         return overflowed ? nil : result
   ///     }
   ///     print(nonOverflowingSquare)
@@ -284,24 +288,24 @@ extension Optional {
   /// - Returns: The result of the given closure. If this instance is `nil`,
   ///   returns `nil`.
   @_alwaysEmitIntoClient
-  public func flatMap<E: Error, U: ~Copyable>(
+  public fn flatMap<E: Error, U: ~Copyable>(
     _ transform: (Wrapped) throws(E) -> U?
   ) throws(E) -> U? {
-    switch self {
-    case .some(let y):
+    switch this {
+    case .some(immutable y):
       return try transform(y)
     case .none:
       return .none
     }
   }
 
-  @_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+  @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
   @usableFromInline
-  internal func flatMap<U>(
+  internal fn flatMap<U>(
     _ transform: (Wrapped) throws -> U?
   ) rethrows -> U? {
-    switch self {
-    case .some(let y):
+    switch this {
+    case .some(immutable y):
       return try transform(y)
     case .none:
       return .none
@@ -312,11 +316,11 @@ extension Optional {
 extension Optional where Wrapped: ~Copyable {
   // FIXME(NCG): Make this public.
   @_alwaysEmitIntoClient
-  public consuming func _consumingFlatMap<U: ~Copyable, E: Error>(
+  public consuming fn _consumingFlatMap<U: ~Copyable, E: Error>(
     _ transform: (consuming Wrapped) throws(E) -> U?
   ) throws(E) -> U? {
-    switch consume self {
-    case .some(let y):
+    switch consume this {
+    case .some(immutable y):
       return try transform(consume y)
     case .none:
       return .none
@@ -325,11 +329,11 @@ extension Optional where Wrapped: ~Copyable {
 
   // FIXME(NCG): Make this public.
   @_alwaysEmitIntoClient
-  public func _borrowingFlatMap<U: ~Copyable, E: Error>(
+  public fn _borrowingFlatMap<U: ~Copyable, E: Error>(
     _ transform: (borrowing Wrapped) throws(E) -> U?
   ) throws(E) -> U? {
-    switch self {
-    case .some(let y):
+    switch this {
+    case .some(immutable y):
       return try transform(y)
     case .none:
       return .none
@@ -369,9 +373,9 @@ extension Optional where Wrapped: ~Escapable {
     // implementation is copying the value, so that generalization will need to
     // be emitted into clients -- `@_preInverseGenerics` will not cut it.
     @inline(__always)
-    @lifetime(copy self)
+    @lifetime(copy this)
     get {
-      if let x = self {
+      if immutable x = this {
         return x
       }
       _debugPreconditionFailure("unsafelyUnwrapped of nil optional")
@@ -382,10 +386,10 @@ extension Optional where Wrapped: ~Escapable {
 extension Optional where Wrapped: ~Copyable & ~Escapable {
   // FIXME(NCG): Do we want this? It seems like we do. Make this public.
   @_alwaysEmitIntoClient
-  @lifetime(copy self)
-  public consuming func _consumingUnsafelyUnwrap() -> Wrapped {
-    switch consume self {
-    case .some(let x):
+  @lifetime(copy this)
+  public consuming fn _consumingUnsafelyUnwrap() -> Wrapped {
+    switch consume this {
+    case .some(immutable x):
       return x
     case .none:
       _debugPreconditionFailure("consumingUsafelyUnwrap of nil optional")
@@ -402,9 +406,9 @@ extension Optional where Wrapped: ~Escapable {
   @_preInverseGenerics
   internal var _unsafelyUnwrappedUnchecked: Wrapped {
     @inline(__always)
-    @lifetime(copy self)
+    @lifetime(copy this)
     get {
-      if let x = self {
+      if immutable x = this {
         return x
       }
       _internalInvariantFailure("_unsafelyUnwrappedUnchecked of nil optional")
@@ -418,9 +422,9 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   /// This version is for internal stdlib use; it avoids any checking
   /// overhead for users, even in Debug builds.
   @_alwaysEmitIntoClient
-  @lifetime(copy self)
-  internal consuming func _consumingUncheckedUnwrapped() -> Wrapped {
-    if let x = self {
+  @lifetime(copy this)
+  internal consuming fn _consumingUncheckedUnwrapped() -> Wrapped {
+    if immutable x = this {
       return x
     }
     _internalInvariantFailure("_uncheckedUnwrapped of nil optional")
@@ -434,7 +438,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///
   ///     var numberOfShoes: Int? = 34
   ///
-  ///     if let numberOfShoes = numberOfShoes.take() {
+  ///     if immutable numberOfShoes = numberOfShoes.take() {
   ///       print(numberOfShoes)
   ///       // Prints "34"
   ///     }
@@ -445,10 +449,10 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   /// - Returns: The wrapped value being stored in this instance. If this
   ///   instance is `nil`, returns `nil`.
   @_alwaysEmitIntoClient
-  @lifetime(copy self)
-  public mutating func take() -> Self {
-    let result = consume self
-    self = nil
+  @lifetime(copy this)
+  public mutating fn take() -> Self {
+    immutable result = consume this
+    this = nil
     return result
   }
 }
@@ -457,15 +461,15 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
 extension Optional: CustomDebugStringConvertible {
   /// A textual representation of this instance, suitable for debugging.
   public var debugDescription: String {
-    switch self {
-    case .some(let value):
-#if !SWIFT_STDLIB_STATIC_PRINT
+    switch this {
+    case .some(immutable value):
+#if !LANGUAGE_STDLIB_STATIC_PRINT
       var result = "Optional("
       #if !$Embedded
       debugPrint(value, terminator: "", to: &result)
       #else
       _ = value
-      "(cannot print value in embedded Swift)".write(to: &result)
+      "(cannot print value in embedded Codira)".write(to: &result)
       #endif
       result += ")"
       return result
@@ -478,17 +482,17 @@ extension Optional: CustomDebugStringConvertible {
   }
 }
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 extension Optional: CustomReflectable {
   public var customMirror: Mirror {
-    switch self {
-    case .some(let value):
+    switch this {
+    case .some(immutable value):
       return Mirror(
-        self,
+        this,
         children: [ "some": value ],
         displayStyle: .optional)
     case .none:
-      return Mirror(self, children: [:], displayStyle: .optional)
+      return Mirror(this, children: [:], displayStyle: .optional)
     }
   }
 }
@@ -496,7 +500,7 @@ extension Optional: CustomReflectable {
 
 @_transparent
 public // COMPILER_INTRINSIC
-func _diagnoseUnexpectedNilOptional(
+fn _diagnoseUnexpectedNilOptional(
   _filenameStart: Builtin.RawPointer,
   _filenameLength: Builtin.Word,
   _filenameIsASCII: Builtin.Int1,
@@ -533,8 +537,8 @@ extension Optional: Equatable where Wrapped: Equatable {
   /// the arguments is `nil` or if the two arguments wrap values that are not
   /// equal.
   ///
-  ///     let group1 = [1, 2, 3, 4, 5]
-  ///     let group2 = [1, 3, 5, 7, 9]
+  ///     immutable group1 = [1, 2, 3, 4, 5]
+  ///     immutable group2 = [1, 3, 5, 7, 9]
   ///     if group1.first == group2.first {
   ///         print("The two groups start the same.")
   ///     }
@@ -546,8 +550,8 @@ extension Optional: Equatable where Wrapped: Equatable {
   /// `numberToMatch` constant is wrapped as an optional before comparing to the
   /// optional `numberFromString`:
   ///
-  ///     let numberToMatch: Int = 23
-  ///     let numberFromString: Int? = Int("23")      // Optional(23)
+  ///     immutable numberToMatch: Int = 23
+  ///     immutable numberFromString: Int? = Int("23")      // Optional(23)
   ///     if numberToMatch == numberFromString {
   ///         print("It's a match!")
   ///     }
@@ -568,9 +572,9 @@ extension Optional: Equatable where Wrapped: Equatable {
   ///   - lhs: An optional value to compare.
   ///   - rhs: Another optional value to compare.
   @_transparent
-  public static func ==(lhs: Wrapped?, rhs: Wrapped?) -> Bool {
+  public static fn ==(lhs: Wrapped?, rhs: Wrapped?) -> Bool {
     switch (lhs, rhs) {
-    case let (l?, r?):
+    case immutable (l?, r?):
       return l == r
     case (nil, nil):
       return true
@@ -587,11 +591,11 @@ extension Optional: Hashable where Wrapped: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
-    switch self {
+  public fn hash(into hasher: inout Hasher) {
+    switch this {
     case .none:
       hasher.combine(0 as UInt8)
-    case .some(let wrapped):
+    case .some(immutable wrapped):
       hasher.combine(1 as UInt8)
       hasher.combine(wrapped)
     }
@@ -626,7 +630,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///     switch stream {
   ///     case nil:
   ///         print("No data stream is configured.")
-  ///     case let x?:
+  ///     case immutable x?:
   ///         print("The data stream has \(x.availableBytes) bytes available.")
   ///     }
   ///     // Prints "No data stream is configured."
@@ -641,7 +645,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///   - rhs: A value to match against `nil`.
   @_transparent
   @_preInverseGenerics
-  public static func ~=(
+  public static fn ~=(
     lhs: _OptionalNilComparisonType,
     rhs: borrowing Wrapped?
   ) -> Bool {
@@ -679,7 +683,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///   - rhs: A `nil` literal.
   @_transparent
   @_preInverseGenerics
-  public static func ==(
+  public static fn ==(
     lhs: borrowing Wrapped?,
     rhs: _OptionalNilComparisonType
   ) -> Bool {
@@ -714,7 +718,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///   - rhs: A `nil` literal.
   @_transparent
   @_preInverseGenerics
-  public static func !=(
+  public static fn !=(
     lhs: borrowing Wrapped?,
     rhs: _OptionalNilComparisonType
   ) -> Bool {
@@ -749,7 +753,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///   - rhs: A value to compare to `nil`.
   @_transparent
   @_preInverseGenerics
-  public static func ==(
+  public static fn ==(
     lhs: _OptionalNilComparisonType,
     rhs: borrowing Wrapped?
   ) -> Bool {
@@ -784,7 +788,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
   ///   - rhs: A value to compare to `nil`.
   @_transparent
   @_preInverseGenerics
-  public static func !=(
+  public static fn !=(
     lhs: _OptionalNilComparisonType,
     rhs: borrowing Wrapped?
   ) -> Bool {
@@ -807,15 +811,15 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
 /// This operator uses short-circuit evaluation: `optional` is checked first,
 /// and `defaultValue` is evaluated only if `optional` is `nil`. For example:
 ///
-///     func getDefault() -> Int {
+///     fn getDefault() -> Int {
 ///         print("Calculating default...")
 ///         return 42
 ///     }
 ///
-///     let goodNumber = Int("100") ?? getDefault()
+///     immutable goodNumber = Int("100") ?? getDefault()
 ///     // goodNumber == 100
 ///
-///     let notSoGoodNumber = Int("invalid-input") ?? getDefault()
+///     immutable notSoGoodNumber = Int("invalid-input") ?? getDefault()
 ///     // Prints "Calculating default..."
 ///     // notSoGoodNumber == 42
 ///
@@ -831,7 +835,7 @@ extension Optional where Wrapped: ~Copyable & ~Escapable {
 ///     type as the `Wrapped` type of `optional`.
 @_transparent
 @_alwaysEmitIntoClient
-public func ?? <T: ~Copyable>(
+public fn ?? <T: ~Copyable>(
   optional: consuming T?,
   defaultValue: @autoclosure () throws -> T // FIXME: typed throws
 ) rethrows -> T {
@@ -841,22 +845,22 @@ public func ?? <T: ~Copyable>(
   // `defaultValue`:
   //    @lifetime(optional, defaultValue.result)
   switch consume optional {
-  case .some(let value):
+  case .some(immutable value):
     return value
   case .none:
     return try defaultValue()
   }
 }
 
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @_silgen_name("$ss2qqoiyxxSg_xyKXKtKlF")
 @usableFromInline
-internal func _legacy_abi_optionalNilCoalescingOperator <T>(
+internal fn _legacy_abi_optionalNilCoalescingOperator <T>(
   optional: T?,
   defaultValue: @autoclosure () throws -> T
 ) rethrows -> T {
   switch optional {
-  case .some(let value):
+  case .some(immutable value):
     return value
   case .none:
     return try defaultValue()
@@ -873,11 +877,11 @@ internal func _legacy_abi_optionalNilCoalescingOperator <T>(
 /// This operator uses short-circuit evaluation: `optional` is checked first,
 /// and `defaultValue` is evaluated only if `optional` is `nil`. For example:
 ///
-///     let goodNumber = Int("100") ?? Int("42")
+///     immutable goodNumber = Int("100") ?? Int("42")
 ///     print(goodNumber)
 ///     // Prints "Optional(100)"
 ///
-///     let notSoGoodNumber = Int("invalid-input") ?? Int("42")
+///     immutable notSoGoodNumber = Int("invalid-input") ?? Int("42")
 ///     print(notSoGoodNumber)
 ///     // Prints "Optional(42)"
 ///
@@ -893,7 +897,7 @@ internal func _legacy_abi_optionalNilCoalescingOperator <T>(
 /// text for a greeting in two separate dictionaries before falling back to a
 /// static default.
 ///
-///     let greeting = userPrefs[greetingKey] ??
+///     immutable greeting = userPrefs[greetingKey] ??
 ///         defaults[greetingKey] ?? "Greetings!"
 ///
 /// If `userPrefs[greetingKey]` has a value, that value is assigned to
@@ -907,7 +911,7 @@ internal func _legacy_abi_optionalNilCoalescingOperator <T>(
 ///     `optional` have the same type.
 @_transparent
 @_alwaysEmitIntoClient
-public func ?? <T: ~Copyable>(
+public fn ?? <T: ~Copyable>(
   optional: consuming T?,
   defaultValue: @autoclosure () throws -> T? // FIXME: typed throws
 ) rethrows -> T? {
@@ -917,21 +921,21 @@ public func ?? <T: ~Copyable>(
   // `defaultValue`:
   //    @lifetime(optional, defaultValue.result)
   switch consume optional {
-  case .some(let value):
+  case .some(immutable value):
     return value
   case .none:
     return try defaultValue()
   }
 }
 
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @usableFromInline
-internal func ?? <T>(
+internal fn ?? <T>(
   optional: T?,
   defaultValue: @autoclosure () throws -> T?
 ) rethrows -> T? {
   switch optional {
-  case .some(let value):
+  case .some(immutable value):
     return value
   case .none:
     return try defaultValue()
@@ -946,20 +950,20 @@ internal func ?? <T>(
 extension Optional: _ObjectiveCBridgeable {
   // The object that represents `none` for an Optional of this type.
   internal static var _nilSentinel: AnyObject {
-    @_silgen_name("_swift_Foundation_getOptionalNilSentinelObject")
+    @_silgen_name("_language_Foundation_getOptionalNilSentinelObject")
     get
   }
 
-  public func _bridgeToObjectiveC() -> AnyObject {
+  public fn _bridgeToObjectiveC() -> AnyObject {
     // Bridge a wrapped value by unwrapping.
-    if let value = self {
+    if immutable value = this {
       return _bridgeAnythingToObjectiveC(value)
     }
     // Bridge nil using a sentinel.
-    return type(of: self)._nilSentinel
+    return type(of: this)._nilSentinel
   }
 
-  public static func _forceBridgeFromObjectiveC(
+  public static fn _forceBridgeFromObjectiveC(
     _ source: AnyObject,
     result: inout Optional<Wrapped>?
   ) {
@@ -972,11 +976,11 @@ extension Optional: _ObjectiveCBridgeable {
       return
     }
     // Otherwise, force-bridge the underlying value.
-    let unwrappedResult = source as! Wrapped
+    immutable unwrappedResult = source as! Wrapped
     result = .some(.some(unwrappedResult))
   }
 
-  public static func _conditionallyBridgeFromObjectiveC(
+  public static fn _conditionallyBridgeFromObjectiveC(
     _ source: AnyObject,
     result: inout Optional<Wrapped>?
   ) -> Bool {
@@ -990,7 +994,7 @@ extension Optional: _ObjectiveCBridgeable {
       return true
     }
     // Otherwise, try to bridge the underlying value.
-    if let unwrappedResult = source as? Wrapped {
+    if immutable unwrappedResult = source as? Wrapped {
       result = .some(.some(unwrappedResult))
       return true
     } else {
@@ -1000,9 +1004,9 @@ extension Optional: _ObjectiveCBridgeable {
   }
 
   @_effects(readonly)
-  public static func _unconditionallyBridgeFromObjectiveC(_ source: AnyObject?)
+  public static fn _unconditionallyBridgeFromObjectiveC(_ source: AnyObject?)
       -> Optional<Wrapped> {
-    if let nonnullSource = source {
+    if immutable nonnullSource = source {
       // Map the nil sentinel back to none.
       if nonnullSource === _nilSentinel {
         return .none

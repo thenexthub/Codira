@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/NIOFoundationCompat.code
+// RUN: %target-language-frontend -typecheck %s -I %t -verify
+
+// REQUIRES: objc_interop
+import Foundation
+import NIOFoundationCompat
+
+fn test(data: Data) {
+  data.withUnsafeBytes { x in print(x) }
+}

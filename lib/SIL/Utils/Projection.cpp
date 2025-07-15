@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-projection"
@@ -22,7 +23,7 @@
 #include "language/SIL/InstructionUtils.h"
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/SILUndef.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -46,7 +47,7 @@ static_assert(std::is_standard_layout<Projection>::value,
 /// Return true if IndexVal is a constant index representable as unsigned
 /// int. We do not support symbolic projections yet, only 32-bit unsigned
 /// integers.
-bool swift::getIntegerIndex(SILValue IndexVal, int &IndexConst) {
+bool language::getIntegerIndex(SILValue IndexVal, int &IndexConst) {
   auto *IndexLiteral = dyn_cast<IntegerLiteralInst>(IndexVal);
   if (!IndexLiteral)
     return false;
@@ -219,7 +220,7 @@ SILType Projection::getType(SILType BaseType, SILModule &M,
     return BaseType;
   }
 
-  llvm_unreachable("Unhandled ProjectionKind in switch.");
+  toolchain_unreachable("Unhandled ProjectionKind in switch.");
 }
 
 NullablePtr<SingleValueInstruction>
@@ -259,7 +260,7 @@ Projection::createObjectProjection(SILBuilder &B, SILLocation Loc,
     return B.createUncheckedBitwiseCast(Loc, Base, getCastType(BaseTy));
   }
 
-  llvm_unreachable("Unhandled ProjectionKind in switch.");
+  toolchain_unreachable("Unhandled ProjectionKind in switch.");
 }
 
 NullablePtr<SingleValueInstruction>
@@ -307,18 +308,18 @@ Projection::createAddressProjection(SILBuilder &B, SILLocation Loc,
     return B.createUncheckedAddrCast(Loc, Base, getCastType(BaseTy));
   }
 
-  llvm_unreachable("Unhandled ProjectionKind in switch.");
+  toolchain_unreachable("Unhandled ProjectionKind in switch.");
 }
 
 void Projection::getFirstLevelProjections(
     SILType Ty, SILModule &Mod, TypeExpansionContext context,
-    llvm::SmallVectorImpl<Projection> &Out) {
+    toolchain::SmallVectorImpl<Projection> &Out) {
   if (auto *S = Ty.getStructOrBoundGenericStruct()) {
     unsigned Count = 0;
     for (auto *VDecl : S->getStoredProperties()) {
       (void) VDecl;
       Projection P(ProjectionKind::Struct, Count++);
-      LLVM_DEBUG(ProjectionPath X(Ty);
+      TOOLCHAIN_DEBUG(ProjectionPath X(Ty);
                  assert(X.getMostDerivedType(Mod, context) == Ty);
                  X.append(P);
                  assert(X.getMostDerivedType(Mod, context) ==
@@ -332,7 +333,7 @@ void Projection::getFirstLevelProjections(
   if (auto TT = Ty.getAs<TupleType>()) {
     for (unsigned i = 0, e = TT->getNumElements(); i != e; ++i) {
       Projection P(ProjectionKind::Tuple, i);
-      LLVM_DEBUG(ProjectionPath X(Ty);
+      TOOLCHAIN_DEBUG(ProjectionPath X(Ty);
                  assert(X.getMostDerivedType(Mod, context) == Ty);
                  X.append(P);
                  assert(X.getMostDerivedType(Mod, context) ==
@@ -348,7 +349,7 @@ void Projection::getFirstLevelProjections(
     for (auto *VDecl : C->getStoredProperties()) {
       (void) VDecl;
       Projection P(ProjectionKind::Class, Count++);
-      LLVM_DEBUG(ProjectionPath X(Ty);
+      TOOLCHAIN_DEBUG(ProjectionPath X(Ty);
                  assert(X.getMostDerivedType(Mod, context) == Ty);
                  X.append(P);
                  assert(X.getMostDerivedType(Mod, context) ==
@@ -362,7 +363,7 @@ void Projection::getFirstLevelProjections(
   if (auto Box = Ty.getAs<SILBoxType>()) {
     for (unsigned field : indices(Box->getLayout()->getFields())) {
       Projection P(ProjectionKind::Box, field);
-      LLVM_DEBUG(ProjectionPath X(Ty);
+      TOOLCHAIN_DEBUG(ProjectionPath X(Ty);
                  assert(X.getMostDerivedType(Mod, context) == Ty); X.append(P);
                  assert(X.getMostDerivedType(Mod, context) ==
                         getSILBoxFieldType(context, Box, Mod.Types, field));
@@ -464,7 +465,7 @@ ProjectionPath::hasNonEmptySymmetricDifference(const ProjectionPath &RHS) const{
     // If we are accessing different fields of a common object, the two
     // projection paths may have a non-empty symmetric difference. We check if
     if (LHSProj != RHSProj) {
-      LLVM_DEBUG(llvm::dbgs() << "        Path different at index: "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Path different at index: "
                               << i << '\n');
       FoundDifferingProjections = true;
       break;
@@ -656,7 +657,7 @@ raw_ostream &ProjectionPath::print(raw_ostream &os, SILModule &M,
 }
 
 void ProjectionPath::dump(SILModule &M, TypeExpansionContext context) const {
-  print(llvm::dbgs(), M, context);
+  print(toolchain::dbgs(), M, context);
 }
 
 void ProjectionPath::verify(SILModule &M, TypeExpansionContext context) {
@@ -676,8 +677,8 @@ ProjectionPath::expandTypeIntoLeafProjectionPaths(SILType B, SILModule *Mod,
                                                   ProjectionPathList &Paths) {
   // Perform a BFS to expand the given type into projectionpath each of
   // which contains 1 field from the type.
-  llvm::SmallVector<ProjectionPath, 8> Worklist;
-  llvm::SmallVector<Projection, 8> Projections;
+  toolchain::SmallVector<ProjectionPath, 8> Worklist;
+  toolchain::SmallVector<Projection, 8> Projections;
 
   // Push an empty projection path to get started.
   ProjectionPath P(B);
@@ -688,7 +689,7 @@ ProjectionPath::expandTypeIntoLeafProjectionPaths(SILType B, SILModule *Mod,
     // Get the current type to process.
     SILType Ty = PP.getMostDerivedType(*Mod, context);
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting type: " << Ty << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting type: " << Ty << "\n");
 
     // If this is a class type, we have reached the end of the type
     // tree for this type.
@@ -708,7 +709,7 @@ ProjectionPath::expandTypeIntoLeafProjectionPaths(SILType B, SILModule *Mod,
     // The worklist would never be empty in this case !.
     //
     if (Ty.getClassOrBoundGenericClass()) {
-      LLVM_DEBUG(llvm::dbgs() << "    Found class. Finished projection list\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found class. Finished projection list\n");
       Paths.push_back(PP);
       continue;
     }
@@ -720,7 +721,7 @@ ProjectionPath::expandTypeIntoLeafProjectionPaths(SILType B, SILModule *Mod,
     // Reached the end of the projection tree, this field can not be expanded
     // anymore.
     if (Projections.empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "    No projections. "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    No projections. "
                  "Finished projection list\n");
       Paths.push_back(PP);
       continue;
@@ -742,7 +743,7 @@ bool ProjectionPath::hasUncoveredNonTrivials(SILType B, const SILFunction &F,
                                              ProjectionPathSet &CPaths) {
   auto &Mod = F.getModule();
 
-  llvm::SmallVector<ProjectionPath, 4> Worklist, Paths;
+  toolchain::SmallVector<ProjectionPath, 4> Worklist, Paths;
   // Push an empty projection path to get started.
   ProjectionPath P(B);
   Worklist.push_back(P);
@@ -758,7 +759,7 @@ bool ProjectionPath::hasUncoveredNonTrivials(SILType B, const SILFunction &F,
     SILType Ty = PP.getMostDerivedType(Mod, F.getTypeExpansionContext());
 
     // Get the first level projection of the current type.
-    llvm::SmallVector<Projection, 4> Projections;
+    toolchain::SmallVector<Projection, 4> Projections;
     Projection::getFirstLevelProjections(Ty, Mod, F.getTypeExpansionContext(),
                                          Projections);
 
@@ -958,27 +959,27 @@ static bool isSupportedProjection(const Projection &p) {
   case ProjectionKind::Index:
     return false;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 void
 ProjectionTreeNode::
 processUsersOfValue(ProjectionTree &Tree,
-                    llvm::SmallVectorImpl<ValueNodePair> &Worklist,
+                    toolchain::SmallVectorImpl<ValueNodePair> &Worklist,
                     SILValue Value) {
-  LLVM_DEBUG(llvm::dbgs() << "    Looking at Users:\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Looking at Users:\n");
 
   // For all uses of V...
   for (Operand *Op : getNonDebugUses(Value)) {
     // Grab the User of V.
     SILInstruction *User = Op->getUser();
 
-    LLVM_DEBUG(llvm::dbgs() << "        " << *User);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        " << *User);
 
     // The projections we can handle are always single-value instructions.
     auto projectionInst = dyn_cast<SingleValueInstruction>(User);
     if (!projectionInst) {
-      LLVM_DEBUG(llvm::dbgs() << "            Failed to create projection. "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Failed to create projection. "
                  "Adding to non projection user!\n");
       addNonProjectionUser(Op);
       continue;
@@ -989,13 +990,13 @@ processUsersOfValue(ProjectionTree &Tree,
     // If we fail to create a projection or this is a type of projection that we
     // do not support, add User as a user to this node and continue.
     if (!P.isValid() || !isSupportedProjection(P)) {
-      LLVM_DEBUG(llvm::dbgs() << "            Failed to create projection. "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Failed to create projection. "
                  "Adding to non projection user!\n");
       addNonProjectionUser(Op);
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "            Created projection.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Created projection.\n");
 
     // we have a projection to the next level children, create the next
     // level children nodes lazily.
@@ -1009,13 +1010,13 @@ processUsersOfValue(ProjectionTree &Tree,
     // *NOTE* This means that we will process ChildNode multiple times
     // potentially with different projection users.
     if (auto *ChildNode = getChildForProjection(Tree, P)) {
-      LLVM_DEBUG(llvm::dbgs() << "            Found child for projection: "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found child for projection: "
                  << ChildNode->getType() << "\n");
 
       SILValue V = SILValue(projectionInst);
       Worklist.push_back({V, ChildNode});
     } else {
-      LLVM_DEBUG(llvm::dbgs() << "            Did not find a child for "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Did not find a child for "
                  "projection!. Adding to non projection user!\n");
 
       // The only projection which we do not currently handle are enums since we
@@ -1035,8 +1036,8 @@ void ProjectionTreeNode::createNextLevelChildrenForStruct(
     assert(Tree.getNode(Index) == this && "Node is not mapped to itself?");
     SILType NodeTy = Ty.getFieldType(VD, Mod, context);
     auto *Node = Tree.createChildForStruct(this, NodeTy, VD, ChildIndex++);
-    LLVM_DEBUG(llvm::dbgs() << "        Creating child for: " <<NodeTy << "\n");
-    LLVM_DEBUG(llvm::dbgs() << "            Projection: " 
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Creating child for: " <<NodeTy << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Projection: " 
                << Node->getProjection().value().getIndex() << "\n");
     ChildProjections.push_back(Node->getIndex());
     assert(getChildForProjection(Tree, Node->getProjection().value()) == Node &&
@@ -1053,8 +1054,8 @@ createNextLevelChildrenForTuple(ProjectionTree &Tree, TupleType *TT) {
     assert(Tree.getNode(Index) == this && "Node is not mapped to itself?");
     SILType NodeTy = Ty.getTupleElementType(i);
     auto *Node = Tree.createChildForTuple(this, NodeTy, i);
-    LLVM_DEBUG(llvm::dbgs() << "        Creating child for: " << NodeTy <<"\n");
-    LLVM_DEBUG(llvm::dbgs() << "            Projection: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Creating child for: " << NodeTy <<"\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Projection: "
                << Node->getProjection().value().getIndex() << "\n");
     ChildProjections.push_back(Node->getIndex());
     assert(getChildForProjection(Tree, Node->getProjection().value()) == Node &&
@@ -1065,9 +1066,9 @@ createNextLevelChildrenForTuple(ProjectionTree &Tree, TupleType *TT) {
 
 void ProjectionTreeNode::createNextLevelChildren(ProjectionTree &Tree,
                                                  TypeExpansionContext context) {
-  LLVM_DEBUG(llvm::dbgs() << "    Creating children for: " << getType() <<"\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Creating children for: " << getType() <<"\n");
   if (Initialized) {
-    LLVM_DEBUG(llvm::dbgs() << "        Already initialized! bailing!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Already initialized! bailing!\n");
     return;
   }
 
@@ -1076,24 +1077,24 @@ void ProjectionTreeNode::createNextLevelChildren(ProjectionTree &Tree,
   SILType Ty = getType();
 
   if (Ty.aggregateHasUnreferenceableStorage()) {
-    LLVM_DEBUG(llvm::dbgs() << "        Has unreferenced storage bailing!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Has unreferenced storage bailing!\n");
     return;
   }
 
   if (auto *SD = Ty.getStructOrBoundGenericStruct()) {
-    LLVM_DEBUG(llvm::dbgs() << "        Found a struct!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a struct!\n");
     createNextLevelChildrenForStruct(Tree, context, SD);
     return;
   }
 
   auto TT = Ty.getAs<TupleType>();
   if (!TT) {
-    LLVM_DEBUG(llvm::dbgs() << "        Did not find a tuple or struct, "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Did not find a tuple or struct, "
                "bailing!\n");
     return;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "        Found a tuple.");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a tuple.");
   createNextLevelChildrenForTuple(Tree, TT);
 }
 
@@ -1112,14 +1113,14 @@ createAggregate(SILBuilder &B, SILLocation Loc, ArrayRef<SILValue> Args) const {
     return B.createTuple(Loc, Ty, Args);
   }
 
-  llvm_unreachable("Unhandled type");
+  toolchain_unreachable("Unhandled type");
 }
 
 class ProjectionTreeNode::NewAggregateBuilder {
   ProjectionTreeNode *Node;
   SILBuilder &Builder;
   SILLocation Loc;
-  llvm::SmallVector<SILValue, 8> Values;
+  toolchain::SmallVector<SILValue, 8> Values;
 
   // Did this aggregate already create an aggregate and thus is "invalidated".
   bool Invalidated;
@@ -1172,7 +1173,7 @@ using NewAggregateBuilder = ProjectionTreeNode::NewAggregateBuilder;
 class NewAggregateBuilderMap {
   SILBuilder &Builder;
   SILLocation Loc;
-  llvm::MapVector<ProjectionTreeNode *, NewAggregateBuilder> NodeBuilderMap;
+  toolchain::MapVector<ProjectionTreeNode *, NewAggregateBuilder> NodeBuilderMap;
 
 public:
 
@@ -1209,7 +1210,7 @@ public:
   }
 
   ProjectionTreeNode *
-  getNextValidNode(llvm::SmallVectorImpl<ProjectionTreeNode *> &Worklist,
+  getNextValidNode(toolchain::SmallVectorImpl<ProjectionTreeNode *> &Worklist,
                    bool CheckForDeadLock=false);
 };
 
@@ -1221,9 +1222,9 @@ public:
 
 ProjectionTree::ProjectionTree(
     SILModule &Mod, SILType BaseTy,
-    llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator)
+    toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator)
     : Mod(&Mod), Allocator(&Allocator) {
-  LLVM_DEBUG(llvm::dbgs() << "Constructing Projection Tree For : " << BaseTy
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Constructing Projection Tree For : " << BaseTy
                           << "\n");
 
   // Create the root node of the tree with our base type.
@@ -1256,7 +1257,7 @@ ProjectionTree::computeExplodedArgumentValueInner(SILBuilder &Builder,
   //
   // NOTE: We do not expect to have too many levels of nesting, so
   // recursion should be fine.
-  llvm::SmallVector<SILValue, 8> ChildValues;
+  toolchain::SmallVector<SILValue, 8> ChildValues;
   for (unsigned ChildIdx : Node->ChildProjections) {
     ProjectionTreeNode *Child = getNode(ChildIdx);
     ChildValues.push_back(computeExplodedArgumentValueInner(Builder, Loc, Child,
@@ -1276,9 +1277,9 @@ ProjectionTree::computeExplodedArgumentValueInner(SILBuilder &Builder,
 SILValue
 ProjectionTree::computeExplodedArgumentValue(
                             SILBuilder &Builder, SILLocation Loc,
-                            llvm::SmallVector<SILValue, 8> &LeafValues) {
+                            toolchain::SmallVector<SILValue, 8> &LeafValues) {
   // Construct the leaf index to leaf value map.
-  llvm::DenseMap<unsigned, SILValue> LeafIndexToValue;
+  toolchain::DenseMap<unsigned, SILValue> LeafIndexToValue;
   for (unsigned i = 0; i < LeafValues.size(); ++i) {
     LeafIndexToValue[LiveLeafIndices[i]] = LeafValues[i];
   }
@@ -1292,18 +1293,18 @@ void
 ProjectionTree::
 computeUsesAndLiveness(SILValue Base) {
   // Propagate liveness and users through the tree.
-  llvm::SmallVector<ProjectionTreeNode::ValueNodePair, 32> UseWorklist;
+  toolchain::SmallVector<ProjectionTreeNode::ValueNodePair, 32> UseWorklist;
   UseWorklist.push_back({Base, getRoot()});
 
   // Then until the worklist is empty...
   while (!UseWorklist.empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "Current Worklist:\n");
-    LLVM_DEBUG(for (auto &T : UseWorklist) {
-        llvm::dbgs() << "    Type: " << T.second->getType() << "; Value: ";
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Current Worklist:\n");
+    TOOLCHAIN_DEBUG(for (auto &T : UseWorklist) {
+        toolchain::dbgs() << "    Type: " << T.second->getType() << "; Value: ";
         if (T.first) {
-          llvm::dbgs() << T.first;
+          toolchain::dbgs() << T.first;
         } else {
-          llvm::dbgs() << "<null>\n";
+          toolchain::dbgs() << "<null>\n";
         }
     });
 
@@ -1313,7 +1314,7 @@ computeUsesAndLiveness(SILValue Base) {
     // Pop off the top type, value, and node.
     std::tie(Value, Node) = UseWorklist.pop_back_val();
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting: " << Node->getType() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting: " << Node->getType() << "\n");
 
     // If Value is not null, collate all users of Value the appropriate child
     // nodes and add such items to the worklist.
@@ -1325,11 +1326,11 @@ computeUsesAndLiveness(SILValue Base) {
     // liveness to its children and its children with an empty value to the
     // worklist so we propagate liveness down to any further descendants.
     if (Node->IsLive) {
-      LLVM_DEBUG(llvm::dbgs() << "Node Is Live. Marking Children Live!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Node Is Live. Marking Children Live!\n");
       for (unsigned ChildIdx : Node->ChildProjections) {
         ProjectionTreeNode *Child = getNode(ChildIdx);
         Child->IsLive = true;
-        LLVM_DEBUG(llvm::dbgs() << "    Marking child live: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Marking child live: "
                                 << Child->getType() << "\n");
         UseWorklist.push_back({SILValue(), Child});
       }
@@ -1339,14 +1340,14 @@ computeUsesAndLiveness(SILValue Base) {
   // Then setup the leaf list by iterating through our Nodes looking for live
   // leafs. We use a DFS order, always processing the left leafs first so that
   // we match the order in which we will lay out arguments.
-  llvm::SmallVector<ProjectionTreeNode *, 8> Worklist;
+  toolchain::SmallVector<ProjectionTreeNode *, 8> Worklist;
   Worklist.push_back(getRoot());
   while (!Worklist.empty()) {
     ProjectionTreeNode *Node = Worklist.pop_back_val();
 
     // If node is not a leaf, add its children to the worklist and continue.
     if (!Node->ChildProjections.empty()) {
-      for (unsigned ChildIdx : llvm::reverse(Node->ChildProjections)) {
+      for (unsigned ChildIdx : toolchain::reverse(Node->ChildProjections)) {
         Worklist.push_back(getNode(ChildIdx));
       }
       continue;
@@ -1361,11 +1362,11 @@ computeUsesAndLiveness(SILValue Base) {
   }
 
 #ifndef NDEBUG
-  LLVM_DEBUG(llvm::dbgs() << "Final Leafs: \n");
-  llvm::SmallVector<SILType, 8> LeafTypes;
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Final Leafs: \n");
+  toolchain::SmallVector<SILType, 8> LeafTypes;
   getLiveLeafTypes(LeafTypes);
   for (SILType Leafs : LeafTypes) {
-    LLVM_DEBUG(llvm::dbgs() << "    " << Leafs << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    " << Leafs << "\n");
   }
 #endif
 }
@@ -1373,12 +1374,12 @@ computeUsesAndLiveness(SILValue Base) {
 void
 ProjectionTree::
 createTreeFromValue(SILBuilder &B, SILLocation Loc, SILValue NewBase,
-                    llvm::SmallVectorImpl<SILValue> &Leafs) const {
-  LLVM_DEBUG(llvm::dbgs() << "Recreating tree from value: " << NewBase);
+                    toolchain::SmallVectorImpl<SILValue> &Leafs) const {
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Recreating tree from value: " << NewBase);
 
   using WorklistEntry =
     std::tuple<const ProjectionTreeNode *, SILValue>;
-  llvm::SmallVector<WorklistEntry, 32> Worklist;
+  toolchain::SmallVector<WorklistEntry, 32> Worklist;
 
   // Start our worklist with NewBase and Root.
   Worklist.push_back(std::make_tuple(getRoot(), NewBase));
@@ -1390,19 +1391,19 @@ createTreeFromValue(SILBuilder &B, SILLocation Loc, SILValue NewBase,
     SILValue V = std::get<1>(Worklist.back());
     Worklist.pop_back();
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting: " << V->getType() << ": " << V);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting: " << V->getType() << ": " << V);
 
     // If we have any children...
     unsigned NumChildren = Node->ChildProjections.size();
     if (NumChildren) {
-      LLVM_DEBUG(llvm::dbgs() << "    Not Leaf! Adding children to list.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Not Leaf! Adding children to list.\n");
 
       // Create projections for each one of them and the child node and
       // projection to the worklist for processing.
-      for (unsigned ChildIdx : llvm::reverse(Node->ChildProjections)) {
+      for (unsigned ChildIdx : toolchain::reverse(Node->ChildProjections)) {
         const ProjectionTreeNode *ChildNode = getNode(ChildIdx);
         auto I = ChildNode->createProjection(B, Loc, V).get();
-        LLVM_DEBUG(llvm::dbgs() << "    Adding Child: " << I->getType() << ": "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Adding Child: " << I->getType() << ": "
                                 << *I);
         Worklist.push_back(std::make_tuple(ChildNode, SILValue(I)));
       }
@@ -1413,7 +1414,7 @@ createTreeFromValue(SILBuilder &B, SILLocation Loc, SILValue NewBase,
         continue;
 
       // Otherwise add it to our leaf list.
-      LLVM_DEBUG(llvm::dbgs() << "    Is a Leaf! Adding to leaf list\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Is a Leaf! Adding to leaf list\n");
       Leafs.push_back(V);
     }
   }
@@ -1421,7 +1422,7 @@ createTreeFromValue(SILBuilder &B, SILLocation Loc, SILValue NewBase,
 
 ProjectionTreeNode *
 NewAggregateBuilderMap::
-getNextValidNode(llvm::SmallVectorImpl<ProjectionTreeNode *> &Worklist,
+getNextValidNode(toolchain::SmallVectorImpl<ProjectionTreeNode *> &Worklist,
                  bool CheckForDeadLock) {
   if (Worklist.empty())
     return nullptr;
@@ -1433,7 +1434,7 @@ getNextValidNode(llvm::SmallVectorImpl<ProjectionTreeNode *> &Worklist,
   //
   // TODO: Prove this and put the proof here.
   if (CheckForDeadLock && !isComplete(Node)) {
-    llvm_unreachable("Algorithm Dead Locked!");
+    toolchain_unreachable("Algorithm Dead Locked!");
   }
 
   // This block of code, performs the pop back and also if the Node has been
@@ -1456,29 +1457,29 @@ getNextValidNode(llvm::SmallVectorImpl<ProjectionTreeNode *> &Worklist,
 void
 ProjectionTree::
 replaceValueUsesWithLeafUses(SILBuilder &Builder, SILLocation Loc,
-                             llvm::SmallVectorImpl<SILValue> &Leafs) {
+                             toolchain::SmallVectorImpl<SILValue> &Leafs) {
   assert(Leafs.size() == LiveLeafIndices.size() && "Leafs and leaf indices must "
          "equal in size.");
 
   NewAggregateBuilderMap AggBuilderMap(Builder, Loc);
-  llvm::SmallVector<ProjectionTreeNode *, 8> Worklist;
+  toolchain::SmallVector<ProjectionTreeNode *, 8> Worklist;
 
-  LLVM_DEBUG(llvm::dbgs() << "Replacing all uses in callee with leafs!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Replacing all uses in callee with leafs!\n");
 
   // For each Leaf we have as input...
   for (unsigned i = 0, e = Leafs.size(); i != e; ++i) {
     SILValue Leaf = Leafs[i];
     ProjectionTreeNode *Node = getNode(LiveLeafIndices[i]);
 
-    LLVM_DEBUG(llvm::dbgs() << "    Visiting leaf: " << Leaf);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Visiting leaf: " << Leaf);
 
     assert(Node->IsLive && "Unexpected dead node in LiveLeafIndices!");
 
     // Otherwise replace all uses at this level of the tree with uses of the
     // Leaf value.
-    LLVM_DEBUG(llvm::dbgs() << "        Replacing operands with leaf!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Replacing operands with leaf!\n");
     for (auto *Op : Node->NonProjUsers) {
-      LLVM_DEBUG(llvm::dbgs() << "            User: " << *Op->getUser());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            User: " << *Op->getUser());
       Op->set(Leaf);
     }
 
@@ -1487,18 +1488,18 @@ replaceValueUsesWithLeafUses(SILBuilder &Builder, SILLocation Loc,
 
     // If the parent is dead, continue.
     if (!Parent || !Parent->IsLive) {
-      LLVM_DEBUG(llvm::dbgs() << "        Parent is dead... continuing.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Parent is dead... continuing.\n");
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "        Parent is alive! Adding to parent "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Parent is alive! Adding to parent "
                "builder\n");
 
     // Otherwise either create an aggregate builder for the parent or reuse one
     // that has already been created for it.
     AggBuilderMap.getBuilder(Parent).setValueForChild(Node, Leaf);
 
-    LLVM_DEBUG(llvm::dbgs() << "            Is parent complete: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Is parent complete: "
                << (AggBuilderMap.isComplete(Parent)? "yes" : "no") << "\n");
 
     // Finally add the parent to the worklist.
@@ -1508,9 +1509,9 @@ replaceValueUsesWithLeafUses(SILBuilder &Builder, SILLocation Loc,
   // A utility array to add new Nodes to the list so we maintain while
   // processing the current worklist we maintain only completed items at the end
   // of the list.
-  llvm::SmallVector<ProjectionTreeNode *, 8> NewNodes;
+  toolchain::SmallVector<ProjectionTreeNode *, 8> NewNodes;
 
-  LLVM_DEBUG(llvm::dbgs() << "Processing worklist!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing worklist!\n");
 
   // Then until we have no work left...
   while (!Worklist.empty()) {
@@ -1529,10 +1530,10 @@ replaceValueUsesWithLeafUses(SILBuilder &Builder, SILLocation Loc,
                 return unsigned(IsComplete1) < unsigned(IsComplete2);
               });
 
-    LLVM_DEBUG(llvm::dbgs() << "    Current Worklist:\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Current Worklist:\n");
 #ifndef NDEBUG
     for (auto *_work : Worklist) {
-      LLVM_DEBUG(llvm::dbgs() << "        Type: " << _work->getType()
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Type: " << _work->getType()
                  << "; Complete: "
                  << (AggBuilderMap.isComplete(_work)? "yes" : "no")
                  << "; Invalidated: "

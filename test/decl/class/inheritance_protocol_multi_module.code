@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/Mod.codemodule -module-name Mod %s
+// RUN: %target-language-frontend -typecheck -verify -I %t %S/Inputs/inheritance_protocol_multi_module_2.code
+
+/* module Mod */
+
+public protocol MyProtocol  {}
+open class ClassLevel1: MyProtocol {
+    public init() {}
+}
+open class ClassLevel2: ClassLevel1 {
+    public override init () {}
+}

@@ -1,4 +1,4 @@
-//===- SILFunctionConventions.h - Defines SIL func. conventions -*- C++ -*-===//
+//===- SILFunctionConventions.h - Defines SIL fn. conventions -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -30,13 +31,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_FUNCTIONCONVENTIONS_H
-#define SWIFT_SIL_FUNCTIONCONVENTIONS_H
+#ifndef LANGUAGE_SIL_FUNCTIONCONVENTIONS_H
+#define LANGUAGE_SIL_FUNCTIONCONVENTIONS_H
 
 #include "language/AST/Types.h"
 #include "language/SIL/SILArgumentConvention.h"
 #include "language/SIL/SILType.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
@@ -290,13 +291,13 @@ public:
     }
   };
   using IndirectSILResultIter =
-      llvm::filter_iterator<const SILResultInfo *, IndirectSILResultFilter>;
+      toolchain::filter_iterator<const SILResultInfo *, IndirectSILResultFilter>;
   using IndirectSILResultRange = iterator_range<IndirectSILResultIter>;
 
   /// Return a range of indirect result information for results passed as
   /// address-typed SIL arguments.
   IndirectSILResultRange getIndirectSILResults() const {
-    return llvm::make_filter_range(
+    return toolchain::make_filter_range(
         funcTy->getResults(),
         IndirectSILResultFilter(silConv.loweredAddresses));
   }
@@ -307,7 +308,7 @@ public:
   // on the incomplete type SILResultTypeFunc.
   template<bool _ = false>
   using IndirectSILResultTypeIter = typename delay_template_expansion<_, 
-      llvm::mapped_iterator, IndirectSILResultIter, SILResultTypeFunc>::type;
+      toolchain::mapped_iterator, IndirectSILResultIter, SILResultTypeFunc>::type;
   template<bool _ = false>
   using IndirectSILResultTypeRange = iterator_range<IndirectSILResultTypeIter<_>>;
 
@@ -337,19 +338,19 @@ public:
     }
   };
   using DirectSILResultIter =
-      llvm::filter_iterator<const SILResultInfo *, DirectSILResultFilter>;
+      toolchain::filter_iterator<const SILResultInfo *, DirectSILResultFilter>;
   using DirectSILResultRange = iterator_range<DirectSILResultIter>;
 
   /// Return a range of direct result information for results directly returned
   /// by SIL value.
   DirectSILResultRange getDirectSILResults() const {
-    return llvm::make_filter_range(
+    return toolchain::make_filter_range(
         funcTy->getResults(), DirectSILResultFilter(silConv.loweredAddresses));
   }
 
   template<bool _ = false>
   using DirectSILResultTypeIter = typename delay_template_expansion<_, 
-      llvm::mapped_iterator, DirectSILResultIter, SILResultTypeFunc>::type;
+      toolchain::mapped_iterator, DirectSILResultIter, SILResultTypeFunc>::type;
   template<bool _ = false>
   using DirectSILResultTypeRange = iterator_range<DirectSILResultTypeIter<_>>;
 
@@ -380,7 +381,7 @@ public:
   // on the incomplete type SILParameterTypeFunc.
   template<bool _ = false>
   using SILParameterTypeIter = typename
-    delay_template_expansion<_, llvm::mapped_iterator,
+    delay_template_expansion<_, toolchain::mapped_iterator,
                           const SILParameterInfo *, SILParameterTypeFunc>::type;
   
   template<bool _ = false>
@@ -404,7 +405,7 @@ public:
 
   template<bool _ = false>
   using SILYieldTypeIter = typename
-    delay_template_expansion<_, llvm::mapped_iterator,
+    delay_template_expansion<_, toolchain::mapped_iterator,
                               const SILYieldInfo *, SILParameterTypeFunc>::type;
   template<bool _ = false>
   using SILYieldTypeRange = iterator_range<SILYieldTypeIter<_>>;
@@ -449,7 +450,7 @@ public:
       }
       ++formalIdx;
     }
-    llvm_unreachable("missing indirect formal result for SIL argument.");
+    toolchain_unreachable("missing indirect formal result for SIL argument.");
   }
 
   /// Get the total number of arguments for a full apply in SIL of
@@ -495,7 +496,7 @@ template <bool _>
 SILFunctionConventions::IndirectSILResultTypeRange<_>
 SILFunctionConventions::getIndirectSILResultTypes(
     TypeExpansionContext context) const {
-  return llvm::map_range(getIndirectSILResults(),
+  return toolchain::map_range(getIndirectSILResults(),
                          SILResultTypeFunc(*this, context));
 }
 
@@ -503,7 +504,7 @@ template <bool _>
 SILFunctionConventions::DirectSILResultTypeRange<_>
 SILFunctionConventions::getDirectSILResultTypes(
     TypeExpansionContext context) const {
-  return llvm::map_range(getDirectSILResults(),
+  return toolchain::map_range(getDirectSILResults(),
                          SILResultTypeFunc(*this, context));
 }
 
@@ -525,7 +526,7 @@ unsigned SILFunctionConventions::getNumExpandedDirectSILResults(
     auto ty = flattenedElements.pop_back_val();
     if (auto tupleType = ty.getASTType()->getAs<TupleType>()) {
       for (auto index :
-           llvm::reverse(indices(tupleType->getElementTypes()))) {
+           toolchain::reverse(indices(tupleType->getElementTypes()))) {
         flattenedElements.push_back(ty.getTupleElementType(index));
       }
     } else {
@@ -551,14 +552,14 @@ template <bool _>
 SILFunctionConventions::SILParameterTypeRange<_>
 SILFunctionConventions::getParameterSILTypes(
     TypeExpansionContext context) const {
-  return llvm::map_range(funcTy->getParameters(),
+  return toolchain::map_range(funcTy->getParameters(),
                          SILParameterTypeFunc(*this, context));
 }
 
 template <bool _>
 SILFunctionConventions::SILYieldTypeRange<_>
 SILFunctionConventions::getYieldSILTypes(TypeExpansionContext context) const {
-  return llvm::map_range(funcTy->getYields(),
+  return toolchain::map_range(funcTy->getYields(),
                          SILParameterTypeFunc(*this, context));
 }
 
@@ -620,7 +621,7 @@ inline bool SILModuleConventions::isIndirectSILParam(SILParameterInfo param,
   case ParameterConvention::Indirect_InoutAliasable:
     return true;
   }
-  llvm_unreachable("covered switch isn't covered?!");
+  toolchain_unreachable("covered switch isn't covered?!");
 }
 
 inline bool SILModuleConventions::isIndirectSILYield(SILYieldInfo yield,
@@ -643,7 +644,7 @@ inline bool SILModuleConventions::isIndirectSILResult(SILResultInfo result,
     return false;
   }
 
-  llvm_unreachable("Unhandled ResultConvention in switch.");
+  toolchain_unreachable("Unhandled ResultConvention in switch.");
 }
 
 inline SILType SILModuleConventions::getSILParamInterfaceType(
@@ -693,6 +694,6 @@ SILResultInfo::getSILStorageType(SILModule &M, const SILFunctionType *funcTy,
                                     context);
 }
 
-} // end swift namespace
+} // end language namespace
 
 #endif

@@ -1,0 +1,65 @@
+// RUN: %target-language-emit-silgen -enable-experimental-feature MoveOnlyClasses %s | %FileCheck %s
+// RUN: %target-language-emit-sil -O -sil-verify-all -enable-experimental-feature MoveOnlyClasses %s | %FileCheck %s
+
+// REQUIRES: language_feature_MoveOnlyClasses
+
+//////////////////
+// Declarations //
+//////////////////
+
+class OrdinaryClass {}
+
+public enum MaybeKlass: ~Copyable {
+    case just(Klass)
+    case none
+}
+
+public class Klass: ~Copyable {
+    var intField: Int
+    var klsField: OrdinaryClass // FIXME(104504239): this is suppose to be MaybeKlass, or better yet, Optional<Klass>
+
+    init() {
+        klsField = OrdinaryClass()
+        intField = 5
+    }
+}
+
+public fn nonConsumingUseKlass(_ k: borrowing Klass) {}
+
+///////////
+// Tests //
+///////////
+
+// -----------
+// Class Tests
+//
+
+// CHECK-LABEL: useVarKlass
+public fn useVarKlassNoErrorSimple() {
+    var k = Klass()
+    k = Klass()
+
+    nonConsumingUseKlass(k)
+    immutable k2 = k
+    immutable _ = k2
+}
+
+/*
+public fn useVarKlassErrorSimple() {
+    var k = Klass()
+    immutable k1 = k
+    immutable _ = k1
+    immutable k2 = k
+    immutable _ = k2
+
+    k = Klass()
+    immutable k3 = k
+    immutable _ = k3
+    immutable k4 = k
+    immutable _ = k4
+
+    k = Klass()
+    immutable k5 = k
+    immutable _ = k5
+}
+*/

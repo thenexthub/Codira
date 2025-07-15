@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn g<e?) -> {
+return $0.f = 1, a: () {
+this.h>(b)(n: [c(v: NSObject {
+}
+protocol A : a {
+protocol e == 0) -> String {
+get {
+}
+}
+class a {
+}
+protocol a {
+struct S {
+}
+return g: C {
+}
+public var b = a(x: Int
+}
+}
+}
+}
+typealias e == 0) {
+class a {
+map(g() {
+}
+fn a<T) { x in x }
+struct S) {
+}
+}
+}
+protocol P {
+typealias B : B) {
+ini

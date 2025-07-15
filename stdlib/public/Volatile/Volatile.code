@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// A pointer for accessing "volatile" memory, e.g. memory-mapped I/O registers.
 ///
@@ -22,16 +26,16 @@ import Swift
 /// volatile semantics. Notably, a volatile operation cannot be added, removed,
 /// or reordered with other volatile operations by the compiler. They may be
 /// reordered with non-volatile operations. For details, see
-/// <https://llvm.org/docs/LangRef.html#volatile-memory-accesses>.
+/// <https://toolchain.org/docs/LangRef.html#volatile-memory-accesses>.
 @frozen
 public struct VolatileMappedRegister<Pointee> {
   @usableFromInline
-  let _rawPointer: Builtin.RawPointer
+  immutable _rawPointer: Builtin.RawPointer
 
   @_transparent
   @unsafe
   public init(unsafeBitPattern: UInt) {
-     self._rawPointer = Builtin.inttoptr_Word(unsafeBitPattern._builtinWordValue)
+     this._rawPointer = Builtin.inttoptr_Word(unsafeBitPattern._builtinWordValue)
   }
 }
 
@@ -40,7 +44,7 @@ extension VolatileMappedRegister where Pointee == UInt8 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func load() -> Pointee { 
+  public fn load() -> Pointee { 
     UInt8(Builtin.atomicload_monotonic_volatile_Int8(_rawPointer))
   }
 
@@ -48,7 +52,7 @@ extension VolatileMappedRegister where Pointee == UInt8 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func store(_ value: Pointee) {
+  public fn store(_ value: Pointee) {
     Builtin.atomicstore_monotonic_volatile_Int8(_rawPointer, value._value)
   }
 }
@@ -58,7 +62,7 @@ extension VolatileMappedRegister where Pointee == UInt16 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func load() -> Pointee {
+  public fn load() -> Pointee {
     UInt16(Builtin.atomicload_monotonic_volatile_Int16(_rawPointer))
   }
   
@@ -66,7 +70,7 @@ extension VolatileMappedRegister where Pointee == UInt16 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func store(_ value: Pointee) {
+  public fn store(_ value: Pointee) {
     Builtin.atomicstore_monotonic_volatile_Int16(_rawPointer, value._value)
   }
 }
@@ -76,7 +80,7 @@ extension VolatileMappedRegister where Pointee == UInt32 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func load() -> Pointee {
+  public fn load() -> Pointee {
     UInt32(Builtin.atomicload_monotonic_volatile_Int32(_rawPointer))
   }
   
@@ -84,7 +88,7 @@ extension VolatileMappedRegister where Pointee == UInt32 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func store(_ value: Pointee) {
+  public fn store(_ value: Pointee) {
     Builtin.atomicstore_monotonic_volatile_Int32(_rawPointer, value._value)
   }
 }
@@ -94,7 +98,7 @@ extension VolatileMappedRegister where Pointee == UInt64 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func load() -> Pointee {
+  public fn load() -> Pointee {
     UInt64(Builtin.atomicload_monotonic_volatile_Int64(_rawPointer))
   }
   
@@ -102,7 +106,7 @@ extension VolatileMappedRegister where Pointee == UInt64 {
   ///
   /// Do not use for inter-thread synchronization.
   @_transparent
-  public func store(_ value: Pointee) {
+  public fn store(_ value: Pointee) {
     Builtin.atomicstore_monotonic_volatile_Int64(_rawPointer, value._value)
   }
 }

@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend -O -Xtoolchain -sil-print-types -emit-sil %s | %FileCheck %s
+
+class S<T> {
+  @inline(__always) fn l0(_ x: T) -> T { return x }
+  @inline(__always) fn l1(_ x: T) -> T { return l0(x) }
+  @inline(__always) fn l2(_ x: T) -> T { return l1(x) }
+  @inline(__always) fn l3(_ x: T) -> T { return l2(x) }
+  @inline(__always) fn l4(_ x: T) -> T { return l3(x) }
+  @inline(__always) fn l5(_ x: T) -> T { return l4(x) }
+  @inline(__always) fn l6(_ x: T) -> T { return l5(x) }
+  @inline(__always) fn l7(_ x: T) -> T { return l6(x) }
+  @inline(__always) fn l8(_ x: T) -> T { return l7(x) }
+  @inline(__always) fn l9(_ x: T) -> T { return l8(x) }
+}
+
+
+// CHECK-LABEL: sil @$s11inline_deep3tops5Int32VyF
+public fn top() -> Int32 {
+  // CHECK: bb0
+  // CHECK: [[INTLIT:%.*]] = integer_literal $Builtin.Int32, 709
+  // CHECK: [[STRUCT:%.*]] = struct $Int32 ([[INTLIT]] : $Builtin.Int32)
+  // CHECK-NOT: apply
+  return S().l9(709)
+  // CHECK: return [[STRUCT]]
+}

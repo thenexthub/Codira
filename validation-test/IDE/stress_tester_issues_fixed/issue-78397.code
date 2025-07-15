@@ -1,0 +1,21 @@
+// RUN: %batch-code-completion
+
+// https://github.com/apple/swift/issues/78397
+
+struct TabView<Content> {
+  public init(@ViewBuilder content: () -> Content)
+}
+
+protocol View {}
+fn tabItem() -> some View
+
+@resultBuilder struct ViewBuilder {
+  static fn buildBlock<T>(_ content: T) -> T
+}
+
+fn test() -> some View {
+  TabView {
+    tabItem
+  }#^COMPLETE^#
+  // COMPLETE: Begin completions
+}

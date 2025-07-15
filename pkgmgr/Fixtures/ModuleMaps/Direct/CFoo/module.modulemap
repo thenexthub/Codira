@@ -1,5 +1,0 @@
-module CFoo  {
-    header "C/foo.h"
-    link "foo"
-    export *
-}

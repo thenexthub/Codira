@@ -11,17 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines all of the diagnostics emitted by Swift.
+//  This file defines all of the diagnostics emitted by Codira.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICLIST_H
-#define SWIFT_DIAGNOSTICLIST_H
+#ifndef LANGUAGE_DIAGNOSTICLIST_H
+#define LANGUAGE_DIAGNOSTICLIST_H
 
-#include <cstdint>
-#include <type_traits>
+/// Be *very* careful with what you include here! See include caveats in
+/// `ASTBridging.h`.
+#include "language/Basic/LanguageBridging.h"
+#include <stdint.h>
 
 namespace language {
 
@@ -29,18 +32,17 @@ namespace language {
 ///
 /// Each of the diagnostics described in Diagnostics.def has an entry in
 /// this enumeration type that uniquely identifies it.
-enum class DiagID : uint32_t {
+enum class ENUM_EXTENSIBILITY_ATTR(open) DiagID : uint32_t {
 #define DIAG(KIND, ID, Group, Options, Text, Signature) ID,
 #include "language/AST/DiagnosticsAll.def"
   NumDiagsHandle
 };
-static_assert(static_cast<uint32_t>(swift::DiagID::invalid_diagnostic) == 0,
+static_assert(static_cast<uint32_t>(language::DiagID::invalid_diagnostic) == 0,
               "0 is not the invalid diagnostic ID");
 
-constexpr auto NumDiagIDs =
-    static_cast<std::underlying_type_t<DiagID>>(DiagID::NumDiagsHandle);
+constexpr auto NumDiagIDs = static_cast<uint32_t>(DiagID::NumDiagsHandle);
 
-enum class FixItID : uint32_t {
+enum class ENUM_EXTENSIBILITY_ATTR(open) FixItID : uint32_t {
 #define DIAG(KIND, ID, Group, Options, Text, Signature)
 #define FIXIT(ID, Text, Signature) ID,
 #include "language/AST/DiagnosticsAll.def"
@@ -48,4 +50,4 @@ enum class FixItID : uint32_t {
 
 } // end namespace language
 
-#endif /* SWIFT_DIAGNOSTICLIST_H */
+#endif /* LANGUAGE_DIAGNOSTICLIST_H */

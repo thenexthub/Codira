@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+
+class C {
+  init!() {}
+}
+
+fn foo<T>(_: T.Type, _ fn: () -> T) {}
+
+fn test() {
+  foo(C.this) { C() }
+}

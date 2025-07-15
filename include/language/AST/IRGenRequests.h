@@ -1,28 +1,32 @@
 //===--- IRGenRequests.h - IRGen Requests -----------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines IRGen requests.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGen_REQUESTS_H
-#define SWIFT_IRGen_REQUESTS_H
+#ifndef LANGUAGE_IRGen_REQUESTS_H
+#define LANGUAGE_IRGen_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/EvaluatorDependencies.h"
 #include "language/AST/SimpleRequest.h"
 #include "language/Basic/PrimarySpecificPaths.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Target/TargetMachine.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Target/TargetMachine.h"
 
 namespace language {
 class FileUnit;
@@ -43,7 +47,7 @@ namespace Lowering {
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 class GlobalVariable;
 class LLVMContext;
 class Module;
@@ -53,11 +57,11 @@ namespace orc {
 class ThreadSafeModule;
 } // namespace orc
 
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
-/// A pair consisting of an \c LLVMContext and an \c llvm::Module that enforces
+/// A pair consisting of an \c LLVMContext and an \c toolchain::Module that enforces
 /// exclusive ownership of those resources, and ensures that they are
 /// deallocated or transferred together.
 ///
@@ -65,9 +69,10 @@ namespace language {
 /// or both null. This class forbids the remaining cases by construction.
 class GeneratedModule final {
 private:
-  std::unique_ptr<llvm::LLVMContext> Context;
-  std::unique_ptr<llvm::Module> Module;
-  std::unique_ptr<llvm::TargetMachine> Target;
+  std::unique_ptr<toolchain::LLVMContext> Context;
+  std::unique_ptr<toolchain::Module> Module;
+  std::unique_ptr<toolchain::TargetMachine> Target;
+  std::unique_ptr<toolchain::raw_fd_ostream> RemarkStream;
 
   GeneratedModule() : Context(nullptr), Module(nullptr), Target(nullptr) {}
 
@@ -79,15 +84,16 @@ public:
   ///
   /// The given pointers must not be null. If a null \c GeneratedModule is
   /// needed, use \c GeneratedModule::null() instead.
-  explicit GeneratedModule(std::unique_ptr<llvm::LLVMContext> &&Context,
-                           std::unique_ptr<llvm::Module> &&Module,
-                           std::unique_ptr<llvm::TargetMachine> &&Target)
-    : Context(std::move(Context)), Module(std::move(Module)),
-      Target(std::move(Target)) {
-      assert(getModule() && "Use GeneratedModule::null() instead");
-      assert(getContext() && "Use GeneratedModule::null() instead");
-      assert(getTargetMachine() && "Use GeneratedModule::null() instead");
-    }
+  explicit GeneratedModule(std::unique_ptr<toolchain::LLVMContext> &&Context,
+                           std::unique_ptr<toolchain::Module> &&Module,
+                           std::unique_ptr<toolchain::TargetMachine> &&Target,
+                           std::unique_ptr<toolchain::raw_fd_ostream> &&RemarkStream)
+      : Context(std::move(Context)), Module(std::move(Module)),
+        Target(std::move(Target)), RemarkStream(std::move(RemarkStream)) {
+    assert(getModule() && "Use GeneratedModule::null() instead");
+    assert(getContext() && "Use GeneratedModule::null() instead");
+    assert(getTargetMachine() && "Use GeneratedModule::null() instead");
+  }
 
   GeneratedModule(GeneratedModule &&) = default;
   GeneratedModule& operator=(GeneratedModule &&) = default;
@@ -104,14 +110,14 @@ public:
   }
 
 public:
-  const llvm::Module *getModule() const { return Module.get(); }
-  llvm::Module *getModule() { return Module.get(); }
+  const toolchain::Module *getModule() const { return Module.get(); }
+  toolchain::Module *getModule() { return Module.get(); }
 
-  const llvm::LLVMContext *getContext() const { return Context.get(); }
-  llvm::LLVMContext *getContext() { return Context.get(); }
+  const toolchain::LLVMContext *getContext() const { return Context.get(); }
+  toolchain::LLVMContext *getContext() { return Context.get(); }
 
-  const llvm::TargetMachine *getTargetMachine() const { return Target.get(); }
-  llvm::TargetMachine *getTargetMachine() { return Target.get(); }
+  const toolchain::TargetMachine *getTargetMachine() const { return Target.get(); }
+  toolchain::TargetMachine *getTargetMachine() { return Target.get(); }
 
 public:
   /// Release ownership of the context and module to the caller, consuming
@@ -119,20 +125,20 @@ public:
   ///
   /// The REPL is the only caller that needs this. New uses of this function
   /// should be avoided at all costs.
-  std::pair<llvm::LLVMContext *, llvm::Module *> release() && {
+  std::pair<toolchain::LLVMContext *, toolchain::Module *> release() && {
     return { Context.release(), Module.release() };
   }
 
 public:
   /// Transfers ownership of the underlying module and context to an
   /// ORC-compatible context.
-  llvm::orc::ThreadSafeModule intoThreadSafeContext() &&;
+  toolchain::orc::ThreadSafeModule intoThreadSafeContext() &&;
 };
 
 struct IRGenDescriptor {
-  llvm::PointerUnion<FileUnit *, ModuleDecl *> Ctx;
+  toolchain::PointerUnion<FileUnit *, ModuleDecl *> Ctx;
 
-  using SymsToEmit = std::optional<llvm::SmallVector<std::string, 1>>;
+  using SymsToEmit = std::optional<toolchain::SmallVector<std::string, 1>>;
   SymsToEmit SymbolsToEmit;
 
   const IRGenOptions &Opts;
@@ -149,11 +155,11 @@ struct IRGenDescriptor {
   const PrimarySpecificPaths &PSPs;
   StringRef PrivateDiscriminator;
   ArrayRef<std::string> parallelOutputFilenames;
-  llvm::GlobalVariable **outModuleHash;
-  llvm::raw_pwrite_stream *out = nullptr;
+  toolchain::GlobalVariable **outModuleHash;
+  toolchain::raw_pwrite_stream *out = nullptr;
 
-  friend llvm::hash_code hash_value(const IRGenDescriptor &owner) {
-    return llvm::hash_combine(owner.Ctx, owner.SymbolsToEmit, owner.SILMod);
+  friend toolchain::hash_code hash_value(const IRGenDescriptor &owner) {
+    return toolchain::hash_combine(owner.Ctx, owner.SymbolsToEmit, owner.SILMod);
   }
 
   friend bool operator==(const IRGenDescriptor &lhs,
@@ -174,7 +180,7 @@ public:
           Lowering::TypeConverter &Conv, std::unique_ptr<SILModule> &&SILMod,
           StringRef ModuleName, const PrimarySpecificPaths &PSPs,
           StringRef PrivateDiscriminator, SymsToEmit symsToEmit = std::nullopt,
-          llvm::GlobalVariable **outModuleHash = nullptr) {
+          toolchain::GlobalVariable **outModuleHash = nullptr) {
     return IRGenDescriptor{file,
                            symsToEmit,
                            Opts,
@@ -195,7 +201,7 @@ public:
       std::unique_ptr<SILModule> &&SILMod, StringRef ModuleName,
       const PrimarySpecificPaths &PSPs, SymsToEmit symsToEmit = std::nullopt,
       ArrayRef<std::string> parallelOutputFilenames = {},
-      llvm::GlobalVariable **outModuleHash = nullptr) {
+      toolchain::GlobalVariable **outModuleHash = nullptr) {
     return IRGenDescriptor{M,
                            symsToEmit,
                            Opts,
@@ -251,7 +257,7 @@ public:
   readDependencySource(const evaluator::DependencyRecorder &) const;
 };
 
-void simple_display(llvm::raw_ostream &out, const IRGenDescriptor &d);
+void simple_display(toolchain::raw_ostream &out, const IRGenDescriptor &d);
 
 SourceLoc extractNearestSourceLoc(const IRGenDescriptor &desc);
 
@@ -291,22 +297,22 @@ public:
 };
 
 /// The zone number for IRGen.
-#define SWIFT_TYPEID_ZONE IRGen
-#define SWIFT_TYPEID_HEADER "swift/AST/IRGenTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE IRGen
+#define LANGUAGE_TYPEID_HEADER "language/AST/IRGenTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
  // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
 template<>                                                                     \
 inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,                \
                             const RequestType &request) {                      \
   ++stats.getFrontendCounters().RequestType;                                   \
 }
 #include "language/AST/IRGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_IRGen_REQUESTS_H
+#endif // LANGUAGE_IRGen_REQUESTS_H

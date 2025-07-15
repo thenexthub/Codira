@@ -1,4 +1,4 @@
-//===----------------- OSLogNSObjectType.swift ----------------------------===//
+//===----------------- OSLogNSObjectType.code ----------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file defines extensions for interpolating NSObject into an OSLogMessage.
@@ -39,7 +40,7 @@ extension OSLogInterpolation {
   @inlinable
   @_optimize(none)
   @_semantics("oslog.requires_constant_arguments")
-  public mutating func appendInterpolation(
+  public mutating fn appendInterpolation(
     _ argumentObject: @autoclosure @escaping () -> NSObject,
     privacy: OSLogPrivacy = .auto
   ) {
@@ -61,13 +62,13 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func addNSObjectHeaders(_ privacy: OSLogPrivacy) {
+  internal mutating fn addNSObjectHeaders(_ privacy: OSLogPrivacy) {
     // Append argument header.
-    let header = getArgumentHeader(privacy: privacy, type: .object)
+    immutable header = getArgumentHeader(privacy: privacy, type: .object)
     arguments.append(header)
 
     // Append number of bytes needed to serialize the argument.
-    let byteCount = pointerSizeInBytes()
+    immutable byteCount = pointerSizeInBytes()
     arguments.append(UInt8(byteCount))
 
     // Increment total byte size by the number of bytes needed for this
@@ -85,9 +86,9 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @_effects(readonly)
   @_optimize(none)
-  internal func getNSObjectFormatSpecifier(_ privacy: OSLogPrivacy) -> String {
+  internal fn getNSObjectFormatSpecifier(_ privacy: OSLogPrivacy) -> String {
     var specifier = "%"
-    if let privacySpecifier = privacy.privacySpecifier {
+    if immutable privacySpecifier = privacy.privacySpecifier {
       specifier += "{"
       specifier += privacySpecifier
       specifier += "}"
@@ -104,7 +105,7 @@ extension OSLogArguments {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func append(_ value: @escaping () -> NSObject) {
+  internal mutating fn append(_ value: @escaping () -> NSObject) {
     argumentClosures.append({ (position, objectArguments, _) in
       serialize(value(), at: &position, storingObjectsIn: &objectArguments)
     })
@@ -115,16 +116,16 @@ extension OSLogArguments {
 /// `bufferPosition`.
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func serialize(
+internal fn serialize(
   _ object: NSObject,
   at bufferPosition: inout ByteBufferPointer,
   storingObjectsIn objectArguments: inout ObjectStorage<NSObject>
 ) {
-  let byteCount = pointerSizeInBytes();
-  let dest =
+  immutable byteCount = pointerSizeInBytes();
+  immutable dest =
     UnsafeMutableRawBufferPointer(start: bufferPosition, count: byteCount)
   // Get the address of this NSObject as an UnsafeRawPointer.
-  let objectAddress = Unmanaged.passUnretained(object).toOpaque()
+  immutable objectAddress = Unmanaged.passUnretained(object).toOpaque()
   // Copy the address into the destination buffer. Note that the input NSObject
   // is kept alive until the os_log ABI call completes by storing in the
   // objectArguments.

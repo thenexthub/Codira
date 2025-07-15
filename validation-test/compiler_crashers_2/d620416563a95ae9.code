@@ -1,0 +1,11 @@
+// {"signature":"language::constraints::TrailingClosureAmbiguityFailure::diagnoseAsNote()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  struct a {
+    init ();
+    init ();
+    fn callAsFunction< b >(c : b)
+  } ;
+  a {
+  }
+}

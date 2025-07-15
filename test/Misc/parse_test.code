@@ -1,0 +1,8 @@
+// REQUIRES: language_language_parser
+// RUN: %language-parse-test -language-parser -lib-parse -skip-bodies -n 10 %s
+
+struct S {
+  fn foo() {
+    print(1)
+  }
+}

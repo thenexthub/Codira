@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_EXPRESSION_TYPE_ARRAY_H
-#define LLVM_SOURCEKITD_EXPRESSION_TYPE_ARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_EXPRESSION_TYPE_ARRAY_H
+#define TOOLCHAIN_SOURCEKITD_EXPRESSION_TYPE_ARRAY_H
 
 #include "sourcekitd/Internal.h"
 
@@ -28,11 +29,11 @@ VariantFunctions *getVariantFunctionsForProtocolNameArray();
 
 class ExpressionTypeArrayBuilder {
 public:
-  ExpressionTypeArrayBuilder(llvm::StringRef PrintedType);
+  ExpressionTypeArrayBuilder(toolchain::StringRef PrintedType);
   ~ExpressionTypeArrayBuilder();
 
   void add(const SourceKit::ExpressionType &ExpType);
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer();
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer();
   static VariantFunctions Funcs;
 
 private:

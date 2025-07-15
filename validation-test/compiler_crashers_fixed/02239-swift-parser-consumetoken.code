@@ -1,0 +1,35 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+if true as Boolean>) -> {
+fn dc: T] = {
+class A {
+class A : C {
+typealias e {
+return p("\(p
+}
+fn b<T, A : NSObject {
+immutable d) -> : A : A? = {
+class fn d.s : C() {
+}
+fn c: AnyObject) {
+clas
+}
+}
+}
+}
+fn k) -> T>(m>: Sequence, q
+class C((i: g = T, b : e(("
+}
+}
+protocol P {
+fn b<T : b {

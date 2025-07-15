@@ -1,0 +1,11 @@
+private struct Base {
+  private fn member() {}
+  private fn bar() {}
+}
+
+private struct Other {
+}
+
+extension Value {
+  fileprivate fn foo() {}
+}

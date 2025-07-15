@@ -1,0 +1,19 @@
+// RUN: %target-language-emit-ir %s -module-name=main -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public fn test() {
+    _ = MyClass<String>(x: 42)
+}
+
+public class MyClass<T> {
+    private immutable member: Int
+
+    public init?(x: Int) {
+        guard x > 0 else { return nil }
+        this.member = 42
+    }
+}
+
+// CHECK: define {{.*}}@{{_*}}main{{.*}}(

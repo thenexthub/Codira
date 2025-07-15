@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/extension_generation_number.code
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// REQUIRES: objc_interop
+
+import extension_generation_number
+import Foundation
+
+fn foo(x: NSString) {
+  x.f()
+}

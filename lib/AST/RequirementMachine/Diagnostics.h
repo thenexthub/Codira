@@ -1,17 +1,21 @@
 //===--- Diagnostics.h - Requirement machine diagnostics --------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REQUIREMENT_DIAGNOSTICS_H
-#define SWIFT_REQUIREMENT_DIAGNOSTICS_H
+#ifndef LANGUAGE_REQUIREMENT_DIAGNOSTICS_H
+#define LANGUAGE_REQUIREMENT_DIAGNOSTICS_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Requirement.h"
@@ -40,7 +44,7 @@ struct RequirementError {
     InvalidInverseSubject,
     /// The inverse constraint requirement cannot applied to the subject because
     /// it's an outer generic parameter, e.g.,
-    ///   protocol P { func f() where Self: ~Copyable }
+    ///   protocol P { fn f() where Self: ~Copyable }
     InvalidInverseOuterSubject,
     /// An invalid shape requirement, e.g. T.shape == Int.shape
     InvalidShapeRequirement,

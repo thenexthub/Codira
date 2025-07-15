@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
@@ -27,11 +28,11 @@ public protocol LoggingType: Wrapper {
 
 extension LoggingType {
   public var log: Log.Type {
-    return Log.self
+    return Log.this
   }
 
   public var selfType: Any.Type {
-    return type(of: self)
+    return type(of: this)
   }
 }
 
@@ -40,7 +41,7 @@ extension LoggingType {
 //===----------------------------------------------------------------------===//
 
 public class IteratorLog {
-  public static func dispatchTester<I>(
+  public static fn dispatchTester<I>(
     _ iterator: I
   ) -> LoggingIterator<LoggingIterator<I>> {
     return LoggingIterator(wrapping: LoggingIterator(wrapping: iterator))
@@ -56,12 +57,12 @@ extension LoggingIterator: LoggingType {
   public typealias Log = IteratorLog
 
   public init(wrapping base: Base) {
-    self.base = base
+    this.base = base
   }
 }
 
 extension LoggingIterator: IteratorProtocol {
-  public mutating func next() -> Base.Element? {
+  public mutating fn next() -> Base.Element? {
     Log.next[selfType] += 1
     return base.next()
   }
@@ -139,7 +140,7 @@ public class SequenceLogBase {
 }
 
 public class SequenceLog : SequenceLogBase {
-  public static func dispatchTester<S>(
+  public static fn dispatchTester<S>(
     _ s: S
   ) -> LoggingSequence<LoggingSequence<S>> {
     return LoggingSequence(wrapping: LoggingSequence(wrapping: s))
@@ -147,7 +148,7 @@ public class SequenceLog : SequenceLogBase {
 }
 
 public class CollectionLog : SequenceLogBase {
-  public static func dispatchTester<C>(
+  public static fn dispatchTester<C>(
     _ c: C
   ) -> LoggingCollection<LoggingCollection<C>> {
     return LoggingCollection(wrapping: LoggingCollection(wrapping: c))
@@ -155,7 +156,7 @@ public class CollectionLog : SequenceLogBase {
 }
 
 public class BidirectionalCollectionLog : SequenceLogBase {
-  public static func dispatchTester<C>(
+  public static fn dispatchTester<C>(
     _ c: C
   ) -> LoggingBidirectionalCollection<LoggingBidirectionalCollection<C>> {
     return LoggingBidirectionalCollection(
@@ -164,7 +165,7 @@ public class BidirectionalCollectionLog : SequenceLogBase {
 }
 
 public class MutableCollectionLog : SequenceLogBase {
-  public static func dispatchTester<C>(
+  public static fn dispatchTester<C>(
     _ c: C
   ) -> LoggingMutableCollection<LoggingMutableCollection<C>> {
     return LoggingMutableCollection(
@@ -177,7 +178,7 @@ public class MutableCollectionLog : SequenceLogBase {
 ///
 /// Each static variable is a mapping of Type -> Number of calls.
 public class RangeReplaceableCollectionLog : SequenceLogBase {
-  public static func dispatchTester<C>(
+  public static fn dispatchTester<C>(
     _ rrc: C
   ) -> LoggingRangeReplaceableCollection<LoggingRangeReplaceableCollection<C>> {
     return LoggingRangeReplaceableCollection(
@@ -202,7 +203,7 @@ extension LoggingSequence: LoggingType {
   public typealias Log = SequenceLog
 
   public init(wrapping base: Base) {
-    self.base = base
+    this.base = base
   }
 }
 
@@ -210,7 +211,7 @@ extension LoggingSequence: Sequence {
   public typealias Element = Base.Element
   public typealias Iterator = LoggingIterator<Base.Iterator>
 
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     SequenceLog.makeIterator[selfType] += 1
     return LoggingIterator(wrapping: base.makeIterator())
   }
@@ -220,31 +221,31 @@ extension LoggingSequence: Sequence {
     return base.underestimatedCount
   }
   
-  public func withContiguousStorageIfAvailable<R>(
+  public fn withContiguousStorageIfAvailable<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     SequenceLog.withContiguousStorageIfAvailable[selfType] += 1
     return try base.withContiguousStorageIfAvailable(body)
   }
 
-  public func _customContainsEquatableElement(_ element: Element) -> Bool? {
+  public fn _customContainsEquatableElement(_ element: Element) -> Bool? {
     SequenceLog._customContainsEquatableElement[selfType] += 1
     return base._customContainsEquatableElement(element)
   }
 
-  /// Create a native array buffer containing the elements of `self`,
+  /// Create a native array buffer containing the elements of `this`,
   /// in the same order.
-  public func _copyToContiguousArray() -> ContiguousArray<Element> {
+  public fn _copyToContiguousArray() -> ContiguousArray<Element> {
     SequenceLog._copyToContiguousArray[selfType] += 1
     return base._copyToContiguousArray()
   }
 
   /// Copy a Sequence into an array.
-  public func _copyContents(
+  public fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator,UnsafeMutableBufferPointer<Element>.Index) {
     SequenceLog._copyContents[selfType] += 1
-    let (it,idx) = base._copyContents(initializing: buffer)
+    immutable (it,idx) = base._copyContents(initializing: buffer)
     return (Iterator(wrapping: it),idx)
   }
 }
@@ -276,22 +277,22 @@ extension LoggingCollection: Collection {
     return base[bounds]
   }
 
-  public func _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
+  public fn _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
     CollectionLog._failEarlyRangeCheckIndex[selfType] += 1
     base._failEarlyRangeCheck(index, bounds: bounds)
   }
 
-  public func _failEarlyRangeCheck(_ range: Range<Index>, bounds: Range<Index>) {
+  public fn _failEarlyRangeCheck(_ range: Range<Index>, bounds: Range<Index>) {
     CollectionLog._failEarlyRangeCheckRange[selfType] += 1
     base._failEarlyRangeCheck(range, bounds: bounds)
   }
 
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     CollectionLog.successor[selfType] += 1
     return base.index(after: i)
   }
 
-  public func formIndex(after i: inout Index) {
+  public fn formIndex(after i: inout Index) {
     CollectionLog.formSuccessor[selfType] += 1
     base.formIndex(after: &i)
   }
@@ -311,26 +312,26 @@ extension LoggingCollection: Collection {
     return base.count
   }
 
-  public func _customIndexOfEquatableElement(
+  public fn _customIndexOfEquatableElement(
     _ element: Element
   ) -> Index?? {
     CollectionLog._customIndexOfEquatableElement[selfType] += 1
     return base._customIndexOfEquatableElement(element)
   }
 
-  public func index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Int) -> Index {
     CollectionLog.advance[selfType] += 1
     return base.index(i, offsetBy: n)
   }
 
-  public func index(
+  public fn index(
     _ i: Index, offsetBy n: Int, limitedBy limit: Index
   ) -> Index? {
     CollectionLog.advanceLimit[selfType] += 1
     return base.index(i, offsetBy: n, limitedBy: limit)
   }
 
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     CollectionLog.distance[selfType] += 1
     return base.distance(from: start, to: end)
   }
@@ -341,12 +342,12 @@ public typealias LoggingBidirectionalCollection<
 > = LoggingCollection<Base>
 
 extension LoggingBidirectionalCollection: BidirectionalCollection {
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     BidirectionalCollectionLog.predecessor[selfType] += 1
     return base.index(before: i)
   }
 
-  public func formIndex(before i: inout Index) {
+  public fn formIndex(before i: inout Index) {
     BidirectionalCollectionLog.formPredecessor[selfType] += 1
     base.formIndex(before: &i)
   }
@@ -383,7 +384,7 @@ extension LoggingMutableCollection: MutableCollection {
     }
   }
 
-  public mutating func partition(
+  public mutating fn partition(
      by belongsInSecondPartition: (Iterator.Element) throws -> Bool
    ) rethrows -> Index {
      Log.partitionBy[selfType] += 1
@@ -391,22 +392,22 @@ extension LoggingMutableCollection: MutableCollection {
    }
    
   @available(*, deprecated, renamed: "withContiguousMutableStorageIfAvailable")
-  public mutating func _withUnsafeMutableBufferPointerIfSupported<R>(
+  public mutating fn _withUnsafeMutableBufferPointerIfSupported<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     MutableCollectionLog._withUnsafeMutableBufferPointerIfSupported[selfType] += 1
-    let result = try base._withUnsafeMutableBufferPointerIfSupported(body)
+    immutable result = try base._withUnsafeMutableBufferPointerIfSupported(body)
     if result != nil {
       Log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[selfType] += 1
     }
     return result
   }
 
-  public mutating func withContiguousMutableStorageIfAvailable<R>(
+  public mutating fn withContiguousMutableStorageIfAvailable<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     MutableCollectionLog.withContiguousMutableStorageIfAvailable[selfType] += 1
-    let result = try base.withContiguousMutableStorageIfAvailable(body)
+    immutable result = try base.withContiguousMutableStorageIfAvailable(body)
     if result != nil {
       Log.withContiguousMutableStorageIfAvailableNonNilReturns[selfType] += 1
     }
@@ -429,92 +430,92 @@ public typealias LoggingRangeReplaceableCollection<
 
 extension LoggingRangeReplaceableCollection: RangeReplaceableCollection {
   public init() {
-    self.base = Base()
+    this.base = Base()
     RangeReplaceableCollectionLog.init_[selfType] += 1
   }
 
   public init(repeating repeatedValue: Element, count: Int) {
-    self.base = Base(repeating: repeatedValue, count: count)
+    this.base = Base(repeating: repeatedValue, count: count)
     RangeReplaceableCollectionLog.initRepeating[selfType] += 1
   }
 
   public init<S : Sequence>(_ elements: S)
     where S.Element == Element {
-    self.base = Base(elements)
+    this.base = Base(elements)
     RangeReplaceableCollectionLog.initWithSequence[selfType] += 1
   }
 
-  public mutating func _customRemoveLast() -> Element? {
+  public mutating fn _customRemoveLast() -> Element? {
     RangeReplaceableCollectionLog._customRemoveLast[selfType] += 1
     return base._customRemoveLast()
   }
 
-  public mutating func _customRemoveLast(_ n: Int) -> Bool {
+  public mutating fn _customRemoveLast(_ n: Int) -> Bool {
     RangeReplaceableCollectionLog._customRemoveLastN[selfType] += 1
     return base._customRemoveLast(n)
   }
 
-  public mutating func append(_ newElement: Element) {
+  public mutating fn append(_ newElement: Element) {
     RangeReplaceableCollectionLog.append[selfType] += 1
     base.append(newElement)
   }
 
-  public mutating func append<S : Sequence>(
+  public mutating fn append<S : Sequence>(
     contentsOf newElements: S
   ) where S.Element == Element {
     RangeReplaceableCollectionLog.appendContentsOf[selfType] += 1
     base.append(contentsOf: newElements)
   }
 
-  public mutating func insert(
+  public mutating fn insert(
     _ newElement: Element, at i: Index
   ) {
     RangeReplaceableCollectionLog.insert[selfType] += 1
     base.insert(newElement, at: i)
   }
 
-  public mutating func insert<C : Collection>(
+  public mutating fn insert<C : Collection>(
     contentsOf newElements: C, at i: Index
   ) where C.Element == Element {
     RangeReplaceableCollectionLog.insertContentsOf[selfType] += 1
     base.insert(contentsOf: newElements, at: i)
   }
 
-  public mutating func removeAll(keepingCapacity keepCapacity: Bool) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Bool) {
     RangeReplaceableCollectionLog.removeAll[selfType] += 1
     base.removeAll(keepingCapacity: keepCapacity)
   }
 
   @discardableResult
-  public mutating func remove(at index: Index) -> Element {
+  public mutating fn remove(at index: Index) -> Element {
     RangeReplaceableCollectionLog.removeAt[selfType] += 1
     return base.remove(at: index)
   }
 
   @discardableResult
-  public mutating func removeFirst() -> Element {
+  public mutating fn removeFirst() -> Element {
     RangeReplaceableCollectionLog.removeFirst[selfType] += 1
     return base.removeFirst()
   }
 
-  public mutating func removeFirst(_ n: Int) {
+  public mutating fn removeFirst(_ n: Int) {
     RangeReplaceableCollectionLog.removeFirstN[selfType] += 1
     base.removeFirst(n)
   }
 
-  public mutating func removeSubrange(_ bounds: Range<Index>) {
+  public mutating fn removeSubrange(_ bounds: Range<Index>) {
     RangeReplaceableCollectionLog.removeSubrange[selfType] += 1
     base.removeSubrange(bounds)
   }
 
-  public mutating func replaceSubrange<C : Collection>(
+  public mutating fn replaceSubrange<C : Collection>(
     _ bounds: Range<Index>, with newElements: C
   ) where C.Element == Element {
     RangeReplaceableCollectionLog.replaceSubrange[selfType] += 1
     base.replaceSubrange(bounds, with: newElements)
   }
 
-  public mutating func reserveCapacity(_ n: Int) {
+  public mutating fn reserveCapacity(_ n: Int) {
     RangeReplaceableCollectionLog.reserveCapacity[selfType] += 1
     base.reserveCapacity(n)
   }
@@ -545,7 +546,7 @@ extension BufferAccessLoggingMutableCollection: LoggingType {
   public typealias Log = MutableCollectionLog
   
   public init(wrapping base: Base) {
-    self.base = base
+    this.base = base
   }
 }
 
@@ -554,7 +555,7 @@ extension BufferAccessLoggingMutableCollection: Sequence {
   public typealias Iterator = Base.Iterator
   public typealias Element = Base.Element
 
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return base.makeIterator()
   }
 }
@@ -593,35 +594,35 @@ extension BufferAccessLoggingMutableCollection: MutableCollection {
     }
   }
 
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     return base.index(after: i)
   }
 
-  public func index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Int) -> Index {
     return base.index(i, offsetBy: n)
   }
 
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     return base.distance(from: start, to: end)
   }
 
   @available(*, deprecated, renamed: "withContiguousMutableStorageIfAvailable")
-  public mutating func _withUnsafeMutableBufferPointerIfSupported<R>(
+  public mutating fn _withUnsafeMutableBufferPointerIfSupported<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     Log._withUnsafeMutableBufferPointerIfSupported[selfType] += 1
-    let result = try base._withUnsafeMutableBufferPointerIfSupported(body)
+    immutable result = try base._withUnsafeMutableBufferPointerIfSupported(body)
     if result != nil {
       Log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[selfType] += 1
     }
     return result
   }
   
-  public mutating func withContiguousMutableStorageIfAvailable<R>(
+  public mutating fn withContiguousMutableStorageIfAvailable<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     Log.withContiguousMutableStorageIfAvailable[selfType] += 1
-    let result = try base.withContiguousMutableStorageIfAvailable(body)
+    immutable result = try base.withContiguousMutableStorageIfAvailable(body)
     if result != nil {
       Log.withContiguousMutableStorageIfAvailableNonNilReturns[selfType] += 1
     }
@@ -634,7 +635,7 @@ public typealias BufferAccessLoggingMutableBidirectionalCollection<
 > = BufferAccessLoggingMutableCollection<Base>
 
 extension BufferAccessLoggingMutableBidirectionalCollection: BidirectionalCollection {
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     return base.index(before: i)
   }
 }
@@ -647,7 +648,7 @@ public typealias BufferAccessLoggingMutableRandomAccessCollection<
 // Custom assertions
 //===----------------------------------------------------------------------===//
 
-public func expectCustomizable<T : LoggingType>(
+public fn expectCustomizable<T : LoggingType>(
   _: T, _ counters: TypeIndexed<Int>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -656,13 +657,13 @@ public func expectCustomizable<T : LoggingType>(
 ) where
   T.Base : LoggingType,
   T.Log == T.Base.Log {
-  let newTrace = stackTrace.pushIf(showFrame, file: file, line: line)
-  expectNotEqual(0, counters[T.self], message(), stackTrace: newTrace)
+  immutable newTrace = stackTrace.pushIf(showFrame, file: file, line: line)
+  expectNotEqual(0, counters[T.this], message(), stackTrace: newTrace)
   expectEqual(
-    counters[T.self], counters[T.Base.self], message(), stackTrace: newTrace)
+    counters[T.this], counters[T.Base.this], message(), stackTrace: newTrace)
 }
 
-public func expectNotCustomizable<T : LoggingType>(
+public fn expectNotCustomizable<T : LoggingType>(
   _: T, _ counters: TypeIndexed<Int>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -671,7 +672,7 @@ public func expectNotCustomizable<T : LoggingType>(
 ) where
   T.Base : LoggingType,
   T.Log == T.Base.Log {
-  let newTrace = stackTrace.pushIf(showFrame, file: file, line: line)
-  expectNotEqual(0, counters[T.self], message(), stackTrace: newTrace)
-  expectEqual(0, counters[T.Base.self], message(), stackTrace: newTrace)
+  immutable newTrace = stackTrace.pushIf(showFrame, file: file, line: line)
+  expectNotEqual(0, counters[T.this], message(), stackTrace: newTrace)
+  expectEqual(0, counters[T.Base.this], message(), stackTrace: newTrace)
 }

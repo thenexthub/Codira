@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for declarations.
@@ -63,15 +64,15 @@
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/DJB.h"
+#include "toolchain/ADT/APFloat.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/APSInt.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/DJB.h"
 
 using namespace language;
 
@@ -121,7 +122,7 @@ struct RawValueKey {
       return;
     case ExprKind::FloatLiteral: {
       APFloat value = cast<FloatLiteralExpr>(expr)->getValue();
-      llvm::APSInt asInt(127, /*isUnsigned=*/false);
+      toolchain::APSInt asInt(127, /*isUnsigned=*/false);
       bool isExact = false;
       APFloat::opStatus status =
           value.convertToInteger(asInt, APFloat::rmTowardZero, &isExact);
@@ -153,7 +154,7 @@ struct RawValueKey {
       return;
 
     default:
-      llvm_unreachable("not a valid literal expr for raw value");
+      toolchain_unreachable("not a valid literal expr for raw value");
     }
   }
   
@@ -176,7 +177,7 @@ struct RawValueSource {
 
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 
 template<>
 class DenseMapInfo<RawValueKey> {
@@ -206,7 +207,7 @@ public:
       return 0;
     }
 
-    llvm_unreachable("Unhandled RawValueKey in switch.");
+    toolchain_unreachable("Unhandled RawValueKey in switch.");
   }
   static bool isEqual(RawValueKey a, RawValueKey b) {
     if (a.kind != b.kind)
@@ -229,11 +230,11 @@ public:
       return true;
     }
 
-    llvm_unreachable("Unhandled RawValueKey in switch.");
+    toolchain_unreachable("Unhandled RawValueKey in switch.");
   }
 };
   
-} // namespace llvm
+} // namespace toolchain
 
 static bool canSkipCircularityCheck(NominalTypeDecl *decl) {
   // Don't bother checking imported or deserialized decls.
@@ -318,8 +319,8 @@ static bool inferFinalAndDiagnoseIfNeeded(ValueDecl *D, ClassDecl *cls,
   if (D->getFormalAccess() == AccessLevel::Open) {
     auto &context = D->getASTContext();
     auto diagID = diag::implicitly_final_cannot_be_open;
-    if (!context.isSwiftVersionAtLeast(5))
-      diagID = diag::implicitly_final_cannot_be_open_swift4;
+    if (!context.isCodiraVersionAtLeast(5))
+      diagID = diag::implicitly_final_cannot_be_open_language4;
     auto inFlightDiag = context.Diags.diagnose(D, diagID,
                                     static_cast<unsigned>(reason.value()));
     fixItAccess(inFlightDiag, D, AccessLevel::Public);
@@ -394,7 +395,7 @@ static bool doesAccessorNeedDynamicAttribute(AccessorDecl *accessor) {
   case AccessorKind::Init:
     return false;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 CtorInitializerKind
@@ -412,11 +413,11 @@ InitKindRequest::evaluate(Evaluator &evaluator, ConstructorDecl *decl) const {
           diags.diagnose(decl->getLoc(),
                 diag::no_convenience_keyword_init, "actors")
             .fixItRemove(convenAttr->getLocation())
-            .warnInSwiftInterface(dc)
-            .warnUntilSwiftVersion(6);
+            .warnInCodiraInterface(dc)
+            .warnUntilCodiraVersion(6);
 
         } else { // not an actor
-          // Forbid convenience inits on Foreign CF types, as Swift does not yet
+          // Forbid convenience inits on Foreign CF types, as Codira does not yet
           // support user-defined factory inits.
           if (classDecl->getForeignClassKind() == ClassDecl::ForeignKind::CFType)
             diags.diagnose(decl->getLoc(), diag::cfclass_convenience_init);
@@ -636,12 +637,12 @@ BodyInitKindRequest::evaluate(Evaluator &evaluator,
       Kind = BodyInitKind::Delegating;
 
     } else if (isa<ExtensionDecl>(decl->getDeclContext())) {
-      // Prior to Swift 5, cross-module initializers were permitted to be
+      // Prior to Codira 5, cross-module initializers were permitted to be
       // non-delegating. However, if the struct isn't fixed-layout, we have to
       // be delegating because, well, we don't know the layout.
       // A dynamic replacement is permitted to be non-delegating.
       if (NTD->isResilient() ||
-          (ctx.isSwiftVersionAtLeast(5) &&
+          (ctx.isCodiraVersionAtLeast(5) &&
            !decl->getAttrs().getAttribute<DynamicReplacementAttr>())) {
         if (decl->getParentModule() != NTD->getParentModule())
           Kind = BodyInitKind::Delegating;
@@ -755,7 +756,7 @@ PrimaryAssociatedTypesRequest::evaluate(Evaluator &evaluator,
     return decl->getASTContext().AllocateCopy(assocTypes);
   }
 
-  llvm::SmallDenseSet<Identifier, 2> assocTypeNames;
+  toolchain::SmallDenseSet<Identifier, 2> assocTypeNames;
 
   for (auto pair : decl->getPrimaryAssociatedTypeNames()) {
     if (!assocTypeNames.insert(pair.first).second) {
@@ -843,8 +844,8 @@ IsFinalRequest::evaluate(Evaluator &evaluator, ValueDecl *decl) const {
           if (VD->getFormalAccess() == AccessLevel::Open) {
             auto &context = decl->getASTContext();
             auto diagID = diag::implicitly_final_cannot_be_open;
-            if (!context.isSwiftVersionAtLeast(5))
-              diagID = diag::implicitly_final_cannot_be_open_swift4;
+            if (!context.isCodiraVersionAtLeast(5))
+              diagID = diag::implicitly_final_cannot_be_open_language4;
             auto inFlightDiag =
               context.Diags.diagnose(decl, diagID,
                                      static_cast<unsigned>(ImplicitlyFinalReason::Let));
@@ -1081,7 +1082,7 @@ NeedsNewVTableEntryRequest::evaluate(Evaluator &evaluator,
   if (!base || base->hasClangNode() || base->shouldUseObjCDispatch())
     return true;
 
-  // As above, convenience initializers are not formally overridable in Swift
+  // As above, convenience initializers are not formally overridable in Codira
   // vtables, although same-named initializers are modeled as overriding for
   // various QoI and objc interop reasons. Even if we "override" a non-required
   // convenience init, we still need a distinct vtable entry.
@@ -1145,7 +1146,7 @@ static LiteralExpr *getAutomaticRawValueExpr(AutomaticEnumValueKind valueKind,
       if (negative)
         nextVal = -nextVal;
 
-      llvm::SmallString<10> nextValStr;
+      toolchain::SmallString<10> nextValStr;
       nextVal.toStringSigned(nextValStr);
       auto expr = new (Ctx)
         IntegerLiteralExpr(Ctx.AllocateCopy(StringRef(nextValStr)),
@@ -1161,18 +1162,18 @@ static LiteralExpr *getAutomaticRawValueExpr(AutomaticEnumValueKind valueKind,
     return nullptr;
   }
 
-  llvm_unreachable("Unhandled AutomaticEnumValueKind in switch.");
+  toolchain_unreachable("Unhandled AutomaticEnumValueKind in switch.");
 }
 
 std::optional<AutomaticEnumValueKind>
-swift::computeAutomaticEnumValueKind(EnumDecl *ED) {
+language::computeAutomaticEnumValueKind(EnumDecl *ED) {
   Type rawTy = ED->getRawType();
   assert(rawTy && "Cannot compute value kind without raw type!");
   
   if (ED->getGenericEnvironmentOfContext() != nullptr)
     rawTy = ED->mapTypeIntoContext(rawTy);
 
-  // Swift enums require that the raw type is convertible from one of the
+  // Codira enums require that the raw type is convertible from one of the
   // primitive literal protocols.
   auto conformsToProtocol = [&](KnownProtocolKind protoKind) {
     return TypeChecker::conformsToKnownProtocol(rawTy, protoKind);
@@ -1205,11 +1206,11 @@ EnumRawValuesRequest::evaluate(Evaluator &eval, EnumDecl *ED,
     return std::make_tuple<>();
   }
   
-  // Avoid computing raw values for enum cases in swiftinterface files since raw
+  // Avoid computing raw values for enum cases in languageinterface files since raw
   // values are intentionally omitted from them (unless the enum is @objc).
   // Without bailing here, incorrect raw values can be automatically generated
   // and incorrect diagnostics may be omitted for some decls.
-  if (ED->getDeclContext()->isInSwiftinterface() && !ED->isObjC())
+  if (ED->getDeclContext()->isInCodirainterface() && !ED->isObjC())
     return std::make_tuple<>();
 
   if (!computeAutomaticEnumValueKind(ED)) {
@@ -1226,7 +1227,7 @@ EnumRawValuesRequest::evaluate(Evaluator &eval, EnumDecl *ED,
   EnumElementDecl *lastExplicitValueElt = nullptr;
 
   // Keep a map we can use to check for duplicate case values.
-  llvm::SmallDenseMap<RawValueKey, RawValueSource, 8> uniqueRawValues;
+  toolchain::SmallDenseMap<RawValueKey, RawValueSource, 8> uniqueRawValues;
 
   // Make the raw member accesses explicit.
   auto uncheckedRawValueOf = [](EnumElementDecl *EED) -> LiteralExpr * {
@@ -1307,15 +1308,6 @@ EnumRawValuesRequest::evaluate(Evaluator &eval, EnumDecl *ED,
     SourceLoc diagLoc = uncheckedRawValueOf(elt)->isImplicit()
                             ? elt->getLoc()
                             : uncheckedRawValueOf(elt)->getLoc();
-    if (auto magicLiteralExpr =
-            dyn_cast<MagicIdentifierLiteralExpr>(prevValue)) {
-      auto kindString =
-          magicLiteralExpr->getKindString(magicLiteralExpr->getKind());
-      Diags.diagnose(diagLoc, diag::enum_raw_value_magic_literal, kindString);
-      elt->setInvalid();
-      continue;
-    }
-
     // Check that the raw value is unique.
     RawValueKey key{prevValue};
     RawValueSource source{elt, lastExplicitValueElt};
@@ -1354,7 +1346,7 @@ EnumRawValuesRequest::evaluate(Evaluator &eval, EnumDecl *ED,
 }
 
 const ConstructorDecl *
-swift::findNonImplicitRequiredInit(const ConstructorDecl *CD) {
+language::findNonImplicitRequiredInit(const ConstructorDecl *CD) {
   while (CD->isImplicit()) {
     auto *overridden = CD->getOverriddenDecl();
     if (!overridden || !overridden->isRequired())
@@ -1370,7 +1362,7 @@ swift::findNonImplicitRequiredInit(const ConstructorDecl *CD) {
 /// we need to maintain the set anyway.
 static void buildHigherThanPath(
     PrecedenceGroupDecl *last,
-    const llvm::DenseMap<PrecedenceGroupDecl *, PrecedenceGroupDecl *>
+    const toolchain::DenseMap<PrecedenceGroupDecl *, PrecedenceGroupDecl *>
         &visitedFrom,
     raw_ostream &out) {
   auto it = visitedFrom.find(last);
@@ -1414,11 +1406,11 @@ static void checkPrecedenceCircularity(DiagnosticEngine &D,
   // so we need a proper visited set to avoid infinite loops.  We
   // also record a back-reference so that we can easily reconstruct
   // the cycle.
-  llvm::DenseMap<PrecedenceGroupDecl *, PrecedenceGroupDecl *> visitedFrom;
+  toolchain::DenseMap<PrecedenceGroupDecl *, PrecedenceGroupDecl *> visitedFrom;
   SmallVector<PrecedenceGroupDecl *, 4> stack;
 
   // Fill out the targets set.
-  llvm::SmallPtrSet<PrecedenceGroupDecl *, 4> targets;
+  toolchain::SmallPtrSet<PrecedenceGroupDecl *, 4> targets;
   stack.push_back(PGD);
   do {
     auto cur = stack.pop_back_val();
@@ -1475,7 +1467,7 @@ static void checkPrecedenceCircularity(DiagnosticEngine &D,
       // Otherwise, we have something to report.
       SmallString<128> path;
       {
-        llvm::raw_svector_ostream str(path);
+        toolchain::raw_svector_ostream str(path);
 
         // Build the higherThan portion of the path (PGD -> cur).
         buildHigherThanPath(cur, visitedFrom, str);
@@ -1514,7 +1506,7 @@ static PrecedenceGroupDecl *lookupPrecedenceGroupForRelation(
       .getSingleOrDiagnose(rel.NameLoc);
 }
 
-void swift::validatePrecedenceGroup(PrecedenceGroupDecl *PGD) {
+void language::validatePrecedenceGroup(PrecedenceGroupDecl *PGD) {
   assert(PGD && "Cannot validate a null precedence group!");
   if (PGD->isInvalid())
     return;
@@ -1780,7 +1772,7 @@ static ParamDecl *getOriginalParamFromAccessor(AbstractStorageDecl *storage,
   auto *subscript = cast<SubscriptDecl>(storage);
   auto *subscriptParams = subscript->getIndices();
 
-  auto where = llvm::find_if(*accessorParams,
+  auto where = toolchain::find_if(*accessorParams,
                               [param](ParamDecl *other) {
                                 return other == param;
                               });
@@ -1857,7 +1849,7 @@ IsImplicitlyUnwrappedOptionalRequest::evaluate(Evaluator &evaluator,
       // declarations are IUOs; instead, it explicitly sets the bit itself when
       // it imports the declaration's type. For most declarations this is done
       // greedily, but for VarDecls, it is deferred until `getInterfaceType()`
-      // is called for the first time. (See apple/swift#61026.)
+      // is called for the first time. (See apple/language#61026.)
       //
       // Force the interface type, then see if a result for this request is now
       // cached.
@@ -2013,7 +2005,7 @@ FunctionOperatorRequest::evaluate(Evaluator &evaluator, FuncDecl *FD) const {
 
     SmallString<128> insertion;
     {
-      llvm::raw_svector_ostream str(insertion);
+      toolchain::raw_svector_ostream str(insertion);
       assert(FD->isUnaryOperator() || FD->isBinaryOperator());
       if (FD->isUnaryOperator()) {
         if (FD->getAttrs().hasAttribute<PrefixAttr>())
@@ -2040,7 +2032,7 @@ FunctionOperatorRequest::evaluate(Evaluator &evaluator, FuncDecl *FD) const {
 ///   or extension. We check if its a valid member operator.
 /// - Otherwise, 'decl' is a member or top-level operator. We check if it
 ///   is a suitable witness for the given conforming type.
-bool swift::isMemberOperator(FuncDecl *decl, Type selfTy) {
+bool language::isMemberOperator(FuncDecl *decl, Type selfTy) {
   // Check that member operators reference the type of 'Self'.
   if (decl->isInvalid())
     return true;
@@ -2160,11 +2152,11 @@ ResultTypeRequest::evaluate(Evaluator &evaluator, ValueDecl *decl) const {
         clangFn, decl->getDeclContext());
     if (returnType)
       return *returnType;
-    // Mark the imported Swift function as unavailable.
+    // Mark the imported Codira function as unavailable.
     // That will ensure that the function will not be
-    // usable from Swift, even though it is imported.
+    // usable from Codira, even though it is imported.
     if (!decl->isUnavailable()) {
-      StringRef unavailabilityMsgRef = "return type is unavailable in Swift";
+      StringRef unavailabilityMsgRef = "return type is unavailable in Codira";
       auto ua = AvailableAttr::createUniversallyUnavailable(
           ctx, unavailabilityMsgRef);
       decl->getAttrs().add(ua);
@@ -2218,7 +2210,7 @@ ParamSpecifierRequest::evaluate(Evaluator &evaluator,
       case SelfAccessKind::NonMutating:
         return ParamSpecifier::Default;
       }
-      llvm_unreachable("nonexhaustive switch");
+      toolchain_unreachable("nonexhaustive switch");
     } else {
       return (selfParam.getParameterFlags().isInOut()
               ? ParamSpecifier::InOut
@@ -2251,13 +2243,20 @@ ParamSpecifierRequest::evaluate(Evaluator &evaluator,
 
   auto typeRepr = param->getTypeRepr();
 
-  if (!typeRepr && !param->isImplicit()) {
-    // Untyped closure parameter.
-    return ParamSpecifier::Default;
-  }
+  if (!typeRepr) {
+    if (!param->isImplicit()) {
+      // Untyped closure parameter.
+      return ParamSpecifier::Default;
+    }
 
-  assert(typeRepr != nullptr && "Should call setSpecifier() on "
-         "synthesized parameter declarations");
+    if (param->isInvalid()) {
+      // Invalid parse.
+      return ParamSpecifier::Default;
+    }
+
+    ASSERT(false && "Should call setSpecifier() on "
+           "synthesized parameter declarations");
+  }
 
   // Look through top-level pack expansions.  These specifiers are
   // part of what's repeated.
@@ -2295,7 +2294,7 @@ ParamSpecifierRequest::evaluate(Evaluator &evaluator,
         && param->isDefaultArgument()) {
       auto &ctx = param->getASTContext();
       ctx.Diags.diagnose(param->getStructuralDefaultExpr()->getLoc(),
-                         swift::diag::cannot_provide_default_value_inout,
+                         language::diag::cannot_provide_default_value_inout,
                          param->getName());
       return ParamSpecifier::Default;
     }
@@ -2412,6 +2411,13 @@ static void maybeAddParameterIsolation(AnyFunctionType::ExtInfoBuilder &infoBuil
     infoBuilder = infoBuilder.withIsolation(FunctionTypeIsolation::forParameter());
 }
 
+std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>
+getLifetimeDependencies(ASTContext &context, EnumElementDecl *enumElemDecl) {
+  return evaluateOrDefault(context.evaluator,
+                           LifetimeDependenceInfoRequest{enumElemDecl},
+                           std::nullopt);
+}
+
 Type
 InterfaceTypeRequest::evaluate(Evaluator &eval, ValueDecl *D) const {
   auto &Context = D->getASTContext();
@@ -2433,7 +2439,8 @@ InterfaceTypeRequest::evaluate(Evaluator &eval, ValueDecl *D) const {
   case DeclKind::Module:
   case DeclKind::OpaqueType:
   case DeclKind::MacroExpansion:
-    llvm_unreachable("should not get here");
+  case DeclKind::Using:
+    toolchain_unreachable("should not get here");
     return Type();
 
   case DeclKind::GenericTypeParam: {
@@ -2700,13 +2707,25 @@ InterfaceTypeRequest::evaluate(Evaluator &eval, ValueDecl *D) const {
       resultTy = FunctionType::get(argTy, resultTy, info);
     }
 
+    auto lifetimeDependenceInfo = getLifetimeDependencies(Context, EED);
+
     // FIXME: Verify ExtInfo state is correct, not working by accident.
     if (auto genericSig = ED->getGenericSignature()) {
-      GenericFunctionType::ExtInfo info;
-      resultTy = GenericFunctionType::get(genericSig, {selfTy}, resultTy, info);
+      GenericFunctionType::ExtInfoBuilder infoBuilder;
+      if (lifetimeDependenceInfo.has_value()) {
+        infoBuilder =
+            infoBuilder.withLifetimeDependencies(*lifetimeDependenceInfo);
+      }
+      resultTy = GenericFunctionType::get(genericSig, {selfTy}, resultTy,
+                                          infoBuilder.build());
+
     } else {
-      FunctionType::ExtInfo info;
-      resultTy = FunctionType::get({selfTy}, resultTy, info);
+      FunctionType::ExtInfoBuilder infoBuilder;
+      if (lifetimeDependenceInfo.has_value()) {
+        infoBuilder =
+            infoBuilder.withLifetimeDependencies(*lifetimeDependenceInfo);
+      }
+      resultTy = FunctionType::get({selfTy}, resultTy, infoBuilder.build());
     }
 
     return resultTy;
@@ -2731,7 +2750,7 @@ InterfaceTypeRequest::evaluate(Evaluator &eval, ValueDecl *D) const {
     }
   }
   }
-  llvm_unreachable("invalid decl kind");
+  toolchain_unreachable("invalid decl kind");
 }
 
 NamedPattern *
@@ -2936,7 +2955,7 @@ static ArrayRef<Decl *> evaluateMembersRequest(
     }
   }
 
-  if (nominal) {
+  if (nominal && !isa<ProtocolDecl>(nominal)) {
     // If the type conforms to Encodable or Decodable, even via an extension,
     // the CodingKeys enum is synthesized as a member of the type itself.
     // Force it into existence.
@@ -3149,28 +3168,28 @@ ImplicitKnownProtocolConformanceRequest::evaluate(Evaluator &evaluator,
   case KnownProtocolKind::BitwiseCopyable:
     return deriveImplicitBitwiseCopyableConformance(nominal);
   default:
-    llvm_unreachable("non-implicitly derived KnownProtocol");
+    toolchain_unreachable("non-implicitly derived KnownProtocol");
   }
 }
 
-std::optional<llvm::ArrayRef<LifetimeDependenceInfo>>
+std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>
 LifetimeDependenceInfoRequest::evaluate(Evaluator &evaluator,
-                                        AbstractFunctionDecl *decl) const {
+                                        ValueDecl *decl) const {
   return LifetimeDependenceInfo::get(decl);
 }
 
 ArrayRef<IfConfigClauseRangeInfo> SourceFile::getIfConfigClauseRanges() const {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   if (!IfConfigClauseRanges.IsSorted) {
     IfConfigClauseRanges.Ranges.clear();
 
     BridgedIfConfigClauseRangeInfo *regions;
-    intptr_t numRegions = swift_ASTGen_configuredRegions(
+    intptr_t numRegions = language_ASTGen_configuredRegions(
         getASTContext(), getExportedSourceFile(), &regions);
     IfConfigClauseRanges.Ranges.reserve(numRegions);
     for (intptr_t i = 0; i != numRegions; ++i)
       IfConfigClauseRanges.Ranges.push_back(regions[i].unbridged());
-    swift_ASTGen_freeConfiguredRegions(regions, numRegions);
+    language_ASTGen_freeConfiguredRegions(regions, numRegions);
 
     IfConfigClauseRanges.IsSorted = true;
   }
@@ -3178,14 +3197,14 @@ ArrayRef<IfConfigClauseRangeInfo> SourceFile::getIfConfigClauseRanges() const {
   if (!IfConfigClauseRanges.IsSorted) {
     auto &SM = getASTContext().SourceMgr;
     // Sort the ranges if we need to.
-    llvm::sort(
+    toolchain::sort(
         IfConfigClauseRanges.Ranges, [&](const IfConfigClauseRangeInfo &lhs,
                                          const IfConfigClauseRangeInfo &rhs) {
           return SM.isBeforeInBuffer(lhs.getStartLoc(), rhs.getStartLoc());
         });
 
     // Be defensive and eliminate duplicates in case we've parsed twice.
-    auto newEnd = llvm::unique(
+    auto newEnd = toolchain::unique(
         IfConfigClauseRanges.Ranges, [&](const IfConfigClauseRangeInfo &lhs,
                                          const IfConfigClauseRangeInfo &rhs) {
           if (lhs.getStartLoc() != rhs.getStartLoc())
@@ -3211,7 +3230,7 @@ SourceFile::getIfConfigClausesWithin(SourceRange outer) const {
 
   // First let's find the first #if that is after the outer start loc.
   auto ranges = getIfConfigClauseRanges();
-  auto lower = llvm::lower_bound(
+  auto lower = toolchain::lower_bound(
       ranges, outer.Start,
       [&](const IfConfigClauseRangeInfo &range, SourceLoc loc) {
         return SM.isBeforeInBuffer(range.getStartLoc(), loc);
@@ -3221,12 +3240,12 @@ SourceFile::getIfConfigClausesWithin(SourceRange outer) const {
     return {};
   }
   // Next let's find the first #if that's after the outer end loc.
-  auto upper = llvm::upper_bound(
+  auto upper = toolchain::upper_bound(
       ranges, outer.End,
       [&](SourceLoc loc, const IfConfigClauseRangeInfo &range) {
         return SM.isBeforeInBuffer(loc, range.getStartLoc());
       });
-  return llvm::ArrayRef(lower, upper - lower);
+  return toolchain::ArrayRef(lower, upper - lower);
 }
 
 //----------------------------------------------------------------------------//
@@ -3317,7 +3336,7 @@ SourceLoc PrettyPrintDeclRequest::evaluate(Evaluator &eval, const Decl *decl) co
 
   std::string bufferName;
   {
-    llvm::raw_string_ostream out(bufferName);
+    toolchain::raw_string_ostream out(bufferName);
     for (auto iter = nameComponents.rbegin(); iter != nameComponents.rend(); ++iter) {
       out << *iter;
 
@@ -3347,10 +3366,10 @@ SourceLoc PrettyPrintDeclRequest::evaluate(Evaluator &eval, const Decl *decl) co
 
   // Render the buffer contents.
   ASTContext &ctx = decl->getASTContext();
-  llvm::SmallString<128> bufferContents;
+  toolchain::SmallString<128> bufferContents;
   uint64_t targetDeclOffsetInBuffer;
   {
-    llvm::raw_svector_ostream out(bufferContents);
+    toolchain::raw_svector_ostream out(bufferContents);
 
     // Produce the enclosing types.
     unsigned indent = 0;
@@ -3362,7 +3381,7 @@ SourceLoc PrettyPrintDeclRequest::evaluate(Evaluator &eval, const Decl *decl) co
     // Print this declaration.
     TrackingPrinter printer(decl, out);
     printer.setIndent(indent);
-    llvm::SaveAndRestore<bool> isPrettyPrinting(
+    toolchain::SaveAndRestore<bool> isPrettyPrinting(
         ctx.Diags.IsPrettyPrintingDecl, true);
     auto options = PrintOptions::printForDiagnostics(
         getBufferAccessLevel(decl),

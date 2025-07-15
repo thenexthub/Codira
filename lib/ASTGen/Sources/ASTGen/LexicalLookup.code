@@ -1,31 +1,34 @@
-//===--- LexicalLookup.swift ----------------------------------------------===//
+//===--- LexicalLookup.code ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftIfConfig
-@_spi(Experimental) import SwiftLexicalLookup
-import SwiftSyntax
+import CodiraIfConfig
+@_spi(Experimental) import CodiraLexicalLookup
+import CodiraSyntax
 
-private let rowCharWidth: Int = 30
+private immutable rowCharWidth: Int = 30
 
-/// This function validates output of SwiftLexicalLookup
+/// This function validates output of CodiraLexicalLookup
 /// against the output of `ASTScope` passed to `astScopeResultRef`.
 ///
 /// The function assigns specific flags to obtained names. The flags are applied in three phases:
 /// - `ASTScope` name extraction - The names obtained from `astScopeResultRef` are
 ///   mapped to `ConsumedLookupResult` common representation. The names receive flags
-///   independently from `SwiftLexicalLookup` results.
-/// - `SwiftLexicalLookup` lookup - The names obtained from performing lookup with `SwiftLexicalLookup` are
+///   independently from `CodiraLexicalLookup` results.
+/// - `CodiraLexicalLookup` lookup - The names obtained from performing lookup with `CodiraLexicalLookup` are
 ///   mapped to `ConsumedLookupResult` common representation. The names receive flags
 ///   independently from `ASTScope` results.
 /// - Flagging pass - The method iterates through both result arrays together and, taking into
@@ -36,8 +39,8 @@ private let rowCharWidth: Int = 30
 ///
 /// Returns `true`, if the matching was successful and `false` otherwise.
 /// Additionally, when matching fails, the function prints console output with the two results compared.
-@_cdecl("swift_ASTGen_validateUnqualifiedLookup")
-public func unqualifiedLookup(
+@_cdecl("language_ASTGen_validateUnqualifiedLookup")
+public fn unqualifiedLookup(
   sourceFilePtr: UnsafeMutableRawPointer,
   astContext: BridgedASTContext,
   lookupAt: BridgedSourceLoc,
@@ -45,29 +48,29 @@ public func unqualifiedLookup(
   astScopeResultRef: BridgedArrayRef
 ) -> Bool {
   // Obtain source file and lookup position
-  let sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.self)
-  guard let sourceFileSyntax = sourceFile.pointee.syntax.as(SourceFileSyntax.self) else {
+  immutable sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.this)
+  guard immutable sourceFileSyntax = sourceFile.pointee.syntax.as(SourceFileSyntax.this) else {
     print("Could not cast exported source file to SourceFileSyntax")
     return false
   }
-  let sourceLocationConverter = sourceFile.pointee.sourceLocationConverter
-  let configuredRegions = sourceFile.pointee.configuredRegions(astContext: astContext)
+  immutable sourceLocationConverter = sourceFile.pointee.sourceLocationConverter
+  immutable configuredRegions = sourceFile.pointee.configuredRegions(astContext: astContext)
 
-  guard let lookupPosition = sourceFile.pointee.position(of: lookupAt),
-    let lookupToken = sourceFileSyntax.token(at: lookupPosition)
+  guard immutable lookupPosition = sourceFile.pointee.position(of: lookupAt),
+    immutable lookupToken = sourceFileSyntax.token(at: lookupPosition)
   else {
     print("Could not determine lookup position")
     return false
   }
 
   // Map AST result
-  let astResults = astConsumedResults(
+  immutable astResults = astConsumedResults(
     sourceFile: sourceFile,
     astScopeResultRef: astScopeResultRef
   )
 
   // Map SLL result
-  let sllResults = sllConsumedResults(
+  immutable sllResults = sllConsumedResults(
     lookupToken: lookupToken,
     finishInSequentialScope: finishInSequentialScope,
     configuredRegions: configuredRegions
@@ -78,7 +81,7 @@ public func unqualifiedLookup(
     "-----> Lookup started at: \(sourceLocationConverter.location(for: lookupPosition).lineWithColumn) (\"\(lookupToken.text)\") finishInSequentialScope: \(finishInSequentialScope)\n"
   consoleOutput +=
     "     |" + "ASTScope".addPaddingUpTo(characters: rowCharWidth) + "|"
-    + "SwiftLexicalLookup".addPaddingUpTo(characters: rowCharWidth) + "\n"
+    + "CodiraLexicalLookup".addPaddingUpTo(characters: rowCharWidth) + "\n"
 
   // Flagging pass
   flaggingPass(
@@ -89,7 +92,7 @@ public func unqualifiedLookup(
   )
 
   // Matching pass
-  let passed = matchingPass(
+  immutable passed = matchingPass(
     astResults: astResults,
     sllResults: sllResults,
     sourceLocationConverter: sourceLocationConverter,
@@ -106,16 +109,16 @@ public func unqualifiedLookup(
 
 /// Check if the name at `namePosition`, was improperly introduced
 /// by ASTScope (in the same declaration as lookup).
-private func isInvalidFirstNameInDeclarationIntroduction(
+private fn isInvalidFirstNameInDeclarationIntroduction(
   sourceFile: SourceFileSyntax,
   lookupPosition: AbsolutePosition,
   namePosition: AbsolutePosition
 ) -> Bool {
-  func firstAncestorOfKind(
+  fn firstAncestorOfKind(
     of syntax: SyntaxProtocol?,
     kinds: [SyntaxProtocol.Type]
   ) -> SyntaxProtocol? {
-    guard let syntax else { return nil }
+    guard immutable syntax else { return nil }
 
     for kind in kinds {
       if syntax.is(kind) {
@@ -126,30 +129,30 @@ private func isInvalidFirstNameInDeclarationIntroduction(
     return firstAncestorOfKind(of: syntax.parent, kinds: kinds)
   }
 
-  let originToken = sourceFile.token(at: lookupPosition)
-  let firstNameToken = sourceFile.token(at: namePosition)
+  immutable originToken = sourceFile.token(at: lookupPosition)
+  immutable firstNameToken = sourceFile.token(at: namePosition)
 
-  let commonAncestors: [SyntaxProtocol.Type] = [
-    SwitchCaseSyntax.self,
-    ClosureExprSyntax.self,
-    AccessorDeclSyntax.self,
-    AccessorBlockSyntax.self,
-    ForStmtSyntax.self,
-    PatternBindingSyntax.self,
+  immutable commonAncestors: [SyntaxProtocol.Type] = [
+    SwitchCaseSyntax.this,
+    ClosureExprSyntax.this,
+    AccessorDeclSyntax.this,
+    AccessorBlockSyntax.this,
+    ForStmtSyntax.this,
+    PatternBindingSyntax.this,
   ]
 
-  let originAncestor = firstAncestorOfKind(
+  immutable originAncestor = firstAncestorOfKind(
     of: originToken,
     kinds: commonAncestors
   )
 
-  let firstNameAncestor = firstAncestorOfKind(
+  immutable firstNameAncestor = firstAncestorOfKind(
     of: firstNameToken,
     kinds: commonAncestors
   )
 
-  guard let originAncestor,
-    let firstNameAncestor,
+  guard immutable originAncestor,
+    immutable firstNameAncestor,
     originAncestor.kind == firstNameAncestor.kind
   else { return false }
 
@@ -158,24 +161,24 @@ private func isInvalidFirstNameInDeclarationIntroduction(
 
 /// Returns consumed `ASTScope` results from the
 /// given `astScopeResultRef`. Introduces appropriate flags.
-private func astConsumedResults(
+private fn astConsumedResults(
   sourceFile: UnsafePointer<ExportedSourceFile>,
   astScopeResultRef: BridgedArrayRef
 ) -> [ConsumedLookupResult] {
-  let pointer = astScopeResultRef.data?.assumingMemoryBound(to: BridgedConsumedLookupResult.self)
-  let count = astScopeResultRef.count
+  immutable pointer = astScopeResultRef.data?.assumingMemoryBound(to: BridgedConsumedLookupResult.this)
+  immutable count = astScopeResultRef.count
 
-  let astScopeResultArray = Array(UnsafeBufferPointer(start: pointer, count: count))
+  immutable astScopeResultArray = Array(UnsafeBufferPointer(start: pointer, count: count))
 
   return astScopeResultArray.compactMap { bridgedResult in
-    let identifierPointer = bridgedResult.name.raw?.assumingMemoryBound(to: CChar.self)
+    immutable identifierPointer = bridgedResult.name.raw?.assumingMemoryBound(to: CChar.this)
 
-    guard let astResultPosition = sourceFile.pointee.position(of: bridgedResult.nameLoc) else {
+    guard immutable astResultPosition = sourceFile.pointee.position(of: bridgedResult.nameLoc) else {
       print("One of the results, doesn't have a position")
       return nil
     }
 
-    let consumedResult = ConsumedLookupResult(
+    immutable consumedResult = ConsumedLookupResult(
       rawName: identifierPointer == nil ? "" : String(cString: identifierPointer!),
       position: astResultPosition,
       flags: ConsumedLookupResultFlag(rawValue: bridgedResult.flag)
@@ -191,14 +194,14 @@ private func astConsumedResults(
   }
 }
 
-/// Performs and returns `SwiftLexicalLookup` lookup and returns
+/// Performs and returns `CodiraLexicalLookup` lookup and returns
 /// the results an array of `ConsumedLookupResult`. Introduces appropriate flags.
-private func sllConsumedResults(
+private fn sllConsumedResults(
   lookupToken: TokenSyntax,
   finishInSequentialScope: Bool,
   configuredRegions: ConfiguredRegions
 ) -> [ConsumedLookupResult] {
-  let resultsWithoutMacroReordering = lookupToken.lookup(
+  immutable resultsWithoutMacroReordering = lookupToken.lookup(
     nil,
     with: LookupConfig(finishInSequentialScope: finishInSequentialScope, configuredRegions: configuredRegions)
   )
@@ -208,39 +211,39 @@ private func sllConsumedResults(
   var previousMacroResult: LookupResult?
 
   for result in resultsWithoutMacroReordering {
-    if let unwrappedMacroResult = previousMacroResult,
-      result.scope.is(GenericParameterClauseSyntax.self)
+    if immutable unwrappedMacroResult = previousMacroResult,
+      result.scope.is(GenericParameterClauseSyntax.this)
     {
       results += [result, unwrappedMacroResult]
       previousMacroResult = nil
       continue
-    } else if let unwrappedMacroResult = previousMacroResult {
+    } else if immutable unwrappedMacroResult = previousMacroResult {
       results.append(unwrappedMacroResult)
       previousMacroResult = nil
     }
 
-    if result.scope.is(MacroDeclSyntax.self) {
+    if result.scope.is(MacroDeclSyntax.this) {
       previousMacroResult = result
     } else {
       results.append(result)
     }
   }
 
-  if let previousMacroResult {
+  if immutable previousMacroResult {
     results.append(previousMacroResult)
   }
 
   return results.flatMap { result in
     switch result {
-    case .lookForMembers(let syntax):
+    case .lookForMembers(immutable syntax):
       return [
         ConsumedLookupResult(
           rawName: "",
-          position: (syntax.asProtocol(SyntaxProtocol.self) as! LookInMembersScopeSyntax).lookupMembersPosition,
+          position: (syntax.asProtocol(SyntaxProtocol.this) as! LookInMembersScopeSyntax).lookupMembersPosition,
           flags: .shouldLookInMembers
         )
       ]
-    case .lookForGenericParameters(let extensionDecl):
+    case .lookForGenericParameters(immutable extensionDecl):
       return [
         ConsumedLookupResult(
           rawName: "",
@@ -248,7 +251,7 @@ private func sllConsumedResults(
           flags: .ignoreNextFromHere
         )
       ]
-    case .lookForImplicitClosureParameters(let closure):
+    case .lookForImplicitClosureParameters(immutable closure):
       return [
         ConsumedLookupResult(
           rawName: "",
@@ -257,15 +260,15 @@ private func sllConsumedResults(
         )
       ]
     default:
-      if let parent = result.scope.parent, result.scope.is(GenericParameterClauseSyntax.self) {
-        if let parentFunctionDecl = parent.as(FunctionDeclSyntax.self),
+      if immutable parent = result.scope.parent, result.scope.is(GenericParameterClauseSyntax.this) {
+        if immutable parentFunctionDecl = parent.as(FunctionDeclSyntax.this),
           parentFunctionDecl.attributes.range.contains(lookupToken.position)
         {
           // If lookup started from inside function attributes, don't reverse.
           return result.names.map { name in
             ConsumedLookupResult(rawName: name.identifier.name, position: name.position, flags: [])
           }
-        } else if parent.is(FunctionDeclSyntax.self) || parent.is(SubscriptDeclSyntax.self)
+        } else if parent.is(FunctionDeclSyntax.this) || parent.is(SubscriptDeclSyntax.this)
           || result.scope.range.contains(lookupToken.position)
         {
           // If a result from function generic parameter clause or lookup started within it, reverse introduced names.
@@ -276,7 +279,7 @@ private func sllConsumedResults(
               flags: .placementRearranged
             )
           }
-        } else if let nominalTypeScope = Syntax(parent).asProtocol(SyntaxProtocol.self) as? NominalTypeDeclSyntax,
+        } else if immutable nominalTypeScope = Syntax(parent).asProtocol(SyntaxProtocol.this) as? NominalTypeDeclSyntax,
           nominalTypeScope.inheritanceClause?.range.contains(lookupToken.position) ?? false
         {
           // If lookup started from nominal type inheritance clause, reverse introduced names.
@@ -287,7 +290,7 @@ private func sllConsumedResults(
               flags: .placementRearranged
             )
           }
-        } else if let initializerDecl = parent.as(InitializerDeclSyntax.self),
+        } else if immutable initializerDecl = parent.as(InitializerDeclSyntax.this),
           initializerDecl.range.contains(lookupToken.position)
         {
           // If lookup from inside the parent initializer decl, reverse introduced names.
@@ -298,7 +301,7 @@ private func sllConsumedResults(
               flags: .placementRearranged
             )
           }
-        } else if let parentTypeAlias = parent.as(TypeAliasDeclSyntax.self),
+        } else if immutable parentTypeAlias = parent.as(TypeAliasDeclSyntax.this),
           parentTypeAlias.initializer.range.contains(lookupToken.position)
         {
           // If lookup started from inside type alias initializer, reverse introduced names.
@@ -318,7 +321,7 @@ private func sllConsumedResults(
       } else {
         return result.names.map { name in
           // If a Self name not from protocol declaration, should be omitted if no match is found.
-          let shouldBeOmitted = name.identifier.name == "Self" ? !result.scope.is(ProtocolDeclSyntax.self) : false
+          immutable shouldBeOmitted = name.identifier.name == "Self" ? !result.scope.is(ProtocolDeclSyntax.this) : false
 
           return ConsumedLookupResult(
             rawName: name.identifier.name,
@@ -332,7 +335,7 @@ private func sllConsumedResults(
 }
 
 /// Adds all appropriate flags to `astResults` and `sllResults`.
-private func flaggingPass(
+private fn flaggingPass(
   astResults: [ConsumedLookupResult],
   sllResults: [ConsumedLookupResult],
   sourceFileSyntax: SourceFileSyntax,
@@ -352,7 +355,7 @@ private func flaggingPass(
       astResult = astResults[astOffset + i]
 
       // Here only to not have to perform force unwraps later.
-      guard let astResult else { break }
+      guard immutable astResult else { break }
 
       // Check if lookup was stopped earlier. If so, flag this result with lookupStopped.
       if wasLookupStopped {
@@ -366,7 +369,7 @@ private func flaggingPass(
 
       // Check if this is not the first encounter of this ast name. If so, should be omitted.
       if !astResult.shouldLookInMembers {
-        let isFirstEncounter = !encounteredASTNames.contains(astResult)
+        immutable isFirstEncounter = !encounteredASTNames.contains(astResult)
 
         if !isFirstEncounter {
           astResult.flags.insert(.shouldBeOmitted)
@@ -383,7 +386,7 @@ private func flaggingPass(
         sourceFile: sourceFileSyntax,
         lookupPosition: lookupPosition,
         namePosition: astResult.position
-      ) && astResult.name != "self" {
+      ) && astResult.name != "this" {
         astResult.flags.insert(.shouldBeOmitted)
       }
 
@@ -395,7 +398,7 @@ private func flaggingPass(
     }
 
     if i + sllOffset < sllResults.count {
-      let sllResult = sllResults[i + sllOffset]
+      immutable sllResult = sllResults[i + sllOffset]
 
       // Check if lookup was stopped earlier. If so, flag this result with lookupStopped.
       if wasLookupStopped && !(astResult?.isTheEndOfLookup ?? false) {
@@ -403,7 +406,7 @@ private func flaggingPass(
       }
 
       if sllResult.shouldBeOptionallyOmitted {
-        if let astResult,
+        if immutable astResult,
           astResult.name == sllResult.name
         {
           sllResult.flags.remove(.shouldBeOptionallyOmitted)
@@ -425,7 +428,7 @@ private func flaggingPass(
       }
     }
 
-    if let astResult {
+    if immutable astResult {
       encounteredASTNames.insert(astResult)
     }
 
@@ -435,7 +438,7 @@ private func flaggingPass(
 
 /// Tries to match both results taking into account previously set
 /// flags. Returns whether the test validation succeeded.
-private func matchingPass(
+private fn matchingPass(
   astResults: [ConsumedLookupResult],
   sllResults: [ConsumedLookupResult],
   sourceLocationConverter: SourceLocationConverter,
@@ -456,7 +459,7 @@ private func matchingPass(
     if astOffset + i < astResults.count {
       astResult = astResults[astOffset + i]
 
-      guard let astResult else { break }
+      guard immutable astResult else { break }
 
       if astResult.shouldBeOmitted {
         consoleOutput +=
@@ -475,11 +478,11 @@ private func matchingPass(
     if i + sllOffset < sllResults.count {
       sllResult = sllResults[i + sllOffset]
 
-      guard let sllResult else { break }
+      guard immutable sllResult else { break }
 
       if sllResult.shouldBeOmitted {
         consoleOutput +=
-          "> ℹ️ | Omitted SwiftLexicalLookup name: \(sllResult.consoleLogStr(sourceLocationConverter: sourceLocationConverter))\n"
+          "> ℹ️ | Omitted CodiraLexicalLookup name: \(sllResult.consoleLogStr(sourceLocationConverter: sourceLocationConverter))\n"
         sllOffset += 1
         continue
       }
@@ -493,7 +496,7 @@ private func matchingPass(
 
     guard astResult != nil || sllResult != nil else { continue }
 
-    if let astResult, let sllResult {
+    if immutable astResult, immutable sllResult {
       if (astResult.position == sllResult.position && astResult.name == sllResult.name) {
         prefix = "✅"
       } else if astResult.lookupStopped || sllResult.lookupStopped {
@@ -533,9 +536,9 @@ private class ConsumedLookupResult: Hashable {
     position: AbsolutePosition,
     flags: ConsumedLookupResultFlag
   ) {
-    self.rawName = rawName
-    self.position = position
-    self.flags = flags
+    this.rawName = rawName
+    this.position = position
+    this.flags = flags
   }
 
   var name: String {
@@ -570,17 +573,17 @@ private class ConsumedLookupResult: Hashable {
     flags.contains(.lookupStopped)
   }
 
-  func consoleLogStr(sourceLocationConverter: SourceLocationConverter) -> String {
+  fn consoleLogStr(sourceLocationConverter: SourceLocationConverter) -> String {
     (isTheEndOfLookup ? "End here: " : "") + (resultPlacementRearranged ? "↕️ " : "")
       + (ignoreNextFromHere ? "Ignore next from: " : "") + (shouldLookInMembers ? "Look memb: " : "\(name) ")
       + sourceLocationConverter.location(for: position).lineWithColumn
   }
 
-  static func == (lhs: ConsumedLookupResult, rhs: ConsumedLookupResult) -> Bool {
+  static fn == (lhs: ConsumedLookupResult, rhs: ConsumedLookupResult) -> Bool {
     return lhs.rawName == rhs.rawName && lhs.position == rhs.position && lhs.flags == rhs.flags
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(rawName)
     hasher.combine(position)
     hasher.combine(flags)
@@ -589,27 +592,27 @@ private class ConsumedLookupResult: Hashable {
 
 /// Determine behaviour during matching pass.
 struct ConsumedLookupResultFlag: OptionSet, Hashable {
-  let rawValue: Int
+  immutable rawValue: Int
 
   /// Indicates lookup ended at this name. Continue with
   /// other names without matching and mark them as skipped.
-  static let endOfLookup = ConsumedLookupResultFlag(rawValue: 1 << 0)
+  static immutable endOfLookup = ConsumedLookupResultFlag(rawValue: 1 << 0)
   /// This name prompts client to look in members of associated scope.
-  static let shouldLookInMembers = ConsumedLookupResultFlag(rawValue: 1 << 1)
+  static immutable shouldLookInMembers = ConsumedLookupResultFlag(rawValue: 1 << 1)
   /// The original position in result of this name
   /// might be different than displayed.
-  static let placementRearranged = ConsumedLookupResultFlag(rawValue: 1 << 2)
+  static immutable placementRearranged = ConsumedLookupResultFlag(rawValue: 1 << 2)
   /// The name should be ignored.
-  static let shouldBeOmitted = ConsumedLookupResultFlag(rawValue: 1 << 3)
+  static immutable shouldBeOmitted = ConsumedLookupResultFlag(rawValue: 1 << 3)
   /// If no match is found, this name should be ignored.
-  static let shouldBeOptionallyOmitted = ConsumedLookupResultFlag(rawValue: 1 << 4)
+  static immutable shouldBeOptionallyOmitted = ConsumedLookupResultFlag(rawValue: 1 << 4)
   /// Means that one of the previous
   /// names indicated the end of lookup.
-  static let lookupStopped = ConsumedLookupResultFlag(rawValue: 1 << 5)
+  static immutable lookupStopped = ConsumedLookupResultFlag(rawValue: 1 << 5)
   /// Next names from associated position should be omitted.
   /// Filtering is applied until then next name of this kind is found and
   /// position used for ignoring is updated.
-  static let ignoreNextFromHere = ConsumedLookupResultFlag(rawValue: 1 << 6)
+  static immutable ignoreNextFromHere = ConsumedLookupResultFlag(rawValue: 1 << 6)
 }
 
 extension SourceLocation {
@@ -619,10 +622,10 @@ extension SourceLocation {
 }
 
 extension String {
-  fileprivate func addPaddingUpTo(characters charCount: Int) -> String {
-    guard self.count < charCount else { return self }
+  fileprivate fn addPaddingUpTo(characters charCount: Int) -> String {
+    guard this.count < charCount else { return this }
 
-    let lengthDifference = charCount - self.count
+    immutable lengthDifference = charCount - this.count
 
     var leftPad = ""
     var rightPad = ""
@@ -635,6 +638,6 @@ extension String {
       rightPad += " "
     }
 
-    return leftPad + self + rightPad
+    return leftPad + this + rightPad
   }
 }

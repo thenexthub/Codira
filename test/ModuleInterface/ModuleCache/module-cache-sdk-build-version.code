@@ -1,0 +1,71 @@
+/// ProductBuildVersion of the SDK is tracked as part of the module cache hash.
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/ModuleCache)
+// RUN: %empty-directory(%t/sdk/System/Library/CoreServices/)
+// RUN: split-file %s %t
+
+/// Setup an "old" SDK.
+// RUN: cp %t/SystemVersion.plist.old %t/sdk/System/Library/CoreServices/SystemVersion.plist
+
+/// Build Lib against the old SDK.
+// RUN: %target-language-frontend -emit-module -sdk %t/sdk %t/Lib.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface
+
+/// Baseline check, we should read the adjacent languagemodule.
+// RUN: %target-language-frontend -typecheck -verify -sdk %t/sdk -I %t \
+// RUN:   %t/Client_NoRebuild.code \
+// RUN:   -Rmodule-interface-rebuild -module-cache-path %t/ModuleCache
+
+/// Keep only the languageinterface.
+// RUN: rm %t/Lib.codemodule
+
+/// Build client, which should trigger a build from languageinterface.
+// RUN: %target-language-frontend -typecheck -verify -sdk %t/sdk -I %t \
+// RUN:   %t/Client.code \
+// RUN:   -Rmodule-interface-rebuild -module-cache-path %t/ModuleCache
+
+/// Update SDK.
+// RUN: cp %t/SystemVersion.plist.new %t/sdk/System/Library/CoreServices/SystemVersion.plist
+
+/// Build client, which should trigger a build from languageinterface.
+// RUN: %target-language-frontend -typecheck -verify -sdk %t/sdk -I %t \
+// RUN:   %t/Client.code \
+// RUN:   -Rmodule-interface-rebuild -module-cache-path %t/ModuleCache
+
+/// Baseline check, we should reused the newly cached languagemodule.
+// RUN: %target-language-frontend -typecheck -verify -sdk %t/sdk -I %t \
+// RUN:   %t/Client_NoRebuild.code \
+// RUN:   -Rmodule-interface-rebuild -module-cache-path %t/ModuleCache
+
+//--- SystemVersion.plist.old
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ProductBuildVersion</key>
+	<string>10A100</string>
+</dict>
+</plist>
+
+//--- SystemVersion.plist.new
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ProductBuildVersion</key>
+	<string>10A200</string>
+</dict>
+</plist>
+
+//--- Lib.code
+public fn foo() {}
+
+//--- Client.code
+import Lib // expected-remark {{rebuilding module 'Lib' from interface}}
+
+//--- Client_NoRebuild.code
+import Lib
+

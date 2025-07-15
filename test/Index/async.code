@@ -1,0 +1,17 @@
+// REQUIRES: concurrency
+
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+
+fn globalAsyncFunc() async {}
+// CHECK: [[@LINE-1]]:6 | function(language_async)/Codira | globalAsyncFunc() | {{.*}} | Def | rel: 0
+
+struct MyStruct {
+  fn asyncMethod() async {}
+  // CHECK: [[@LINE-1]]:8 | instance-method(language_async)/Codira | asyncMethod() |
+}
+
+class XCTestCase {}
+class MyTestCase : XCTestCase {
+  fn testSomeAsync() async {}
+  // CHECK: [[@LINE-1]]:8 | instance-method(test,language_async)/Codira | testSomeAsync() |
+}

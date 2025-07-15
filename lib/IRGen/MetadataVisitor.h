@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP helper class for preparing the common metadata of all metadata
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_METADATAVISITOR_H
-#define SWIFT_IRGEN_METADATAVISITOR_H
+#ifndef LANGUAGE_IRGEN_METADATAVISITOR_H
+#define LANGUAGE_IRGEN_METADATAVISITOR_H
 
 namespace language {
 namespace irgen {

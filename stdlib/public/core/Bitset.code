@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A simple bitmap of a fixed number of bits, implementing a sorted set of
@@ -24,17 +25,17 @@
 @unsafe
 internal struct _UnsafeBitset {
   @usableFromInline
-  internal let words: UnsafeMutablePointer<Word>
+  internal immutable words: UnsafeMutablePointer<Word>
 
   @usableFromInline
   @safe
-  internal let wordCount: Int
+  internal immutable wordCount: Int
 
   @inlinable
   @inline(__always)
   internal init(words: UnsafeMutablePointer<Word>, wordCount: Int) {
-    unsafe self.words = unsafe words
-    self.wordCount = wordCount
+    unsafe this.words = unsafe words
+    this.wordCount = wordCount
   }
 }
 
@@ -44,33 +45,33 @@ extension _UnsafeBitset: Sendable {}
 extension _UnsafeBitset {
   @inlinable
   @inline(__always)
-  internal static func word(for element: Int) -> Int {
+  internal static fn word(for element: Int) -> Int {
     _internalInvariant(element >= 0)
     // Note: We perform on UInts to get faster unsigned math (shifts).
-    let element = UInt(bitPattern: element)
-    let capacity = UInt(bitPattern: Word.capacity)
+    immutable element = UInt(bitPattern: element)
+    immutable capacity = UInt(bitPattern: Word.capacity)
     return Int(bitPattern: element / capacity)
   }
 
   @inlinable
   @inline(__always)
-  internal static func bit(for element: Int) -> Int {
+  internal static fn bit(for element: Int) -> Int {
     _internalInvariant(element >= 0)
     // Note: We perform on UInts to get faster unsigned math (masking).
-    let element = UInt(bitPattern: element)
-    let capacity = UInt(bitPattern: Word.capacity)
+    immutable element = UInt(bitPattern: element)
+    immutable capacity = UInt(bitPattern: Word.capacity)
     return Int(bitPattern: element % capacity)
   }
 
   @inlinable
   @inline(__always)
-  internal static func split(_ element: Int) -> (word: Int, bit: Int) {
+  internal static fn split(_ element: Int) -> (word: Int, bit: Int) {
     return unsafe (word(for: element), bit(for: element))
   }
 
   @inlinable
   @inline(__always)
-  internal static func join(word: Int, bit: Int) -> Int {
+  internal static fn join(word: Int, bit: Int) -> Int {
     _internalInvariant(bit >= 0 && bit < Word.capacity)
     return word &* Word.capacity &+ bit
   }
@@ -79,7 +80,7 @@ extension _UnsafeBitset {
 extension _UnsafeBitset {
   @inlinable
   @inline(__always)
-  internal static func wordCount(forCapacity capacity: Int) -> Int {
+  internal static fn wordCount(forCapacity capacity: Int) -> Int {
     return unsafe word(for: capacity &+ Word.capacity &- 1)
   }
 
@@ -93,39 +94,39 @@ extension _UnsafeBitset {
 
   @inlinable
   @inline(__always)
-  internal func isValid(_ element: Int) -> Bool {
+  internal fn isValid(_ element: Int) -> Bool {
     return unsafe element >= 0 && element <= capacity
   }
 
   @inlinable
   @inline(__always)
-  internal func uncheckedContains(_ element: Int) -> Bool {
+  internal fn uncheckedContains(_ element: Int) -> Bool {
     unsafe _internalInvariant(isValid(element))
-    let (word, bit) = unsafe _UnsafeBitset.split(element)
+    immutable (word, bit) = unsafe _UnsafeBitset.split(element)
     return unsafe words[word].uncheckedContains(bit)
   }
 
   @inlinable
   @inline(__always)
   @discardableResult
-  internal func uncheckedInsert(_ element: Int) -> Bool {
+  internal fn uncheckedInsert(_ element: Int) -> Bool {
     unsafe _internalInvariant(isValid(element))
-    let (word, bit) = unsafe _UnsafeBitset.split(element)
+    immutable (word, bit) = unsafe _UnsafeBitset.split(element)
     return unsafe words[word].uncheckedInsert(bit)
   }
 
   @inlinable
   @inline(__always)
   @discardableResult
-  internal func uncheckedRemove(_ element: Int) -> Bool {
+  internal fn uncheckedRemove(_ element: Int) -> Bool {
     unsafe _internalInvariant(isValid(element))
-    let (word, bit) = unsafe _UnsafeBitset.split(element)
+    immutable (word, bit) = unsafe _UnsafeBitset.split(element)
     return unsafe words[word].uncheckedRemove(bit)
   }
 
   @inlinable
   @inline(__always)
-  internal func clear() {
+  internal fn clear() {
     unsafe words.update(repeating: .empty, count: wordCount)
   }
 }
@@ -149,8 +150,8 @@ extension _UnsafeBitset: @unsafe Sequence {
   }
 
   @inlinable
-  func makeIterator() -> Iterator {
-    return unsafe Iterator(self)
+  fn makeIterator() -> Iterator {
+    return unsafe Iterator(this)
   }
 
   @unsafe
@@ -158,7 +159,7 @@ extension _UnsafeBitset: @unsafe Sequence {
   @frozen
   internal struct Iterator: IteratorProtocol {
     @usableFromInline
-    internal let bitset: _UnsafeBitset
+    internal immutable bitset: _UnsafeBitset
     @usableFromInline
     internal var index: Int
     @usableFromInline
@@ -166,20 +167,20 @@ extension _UnsafeBitset: @unsafe Sequence {
 
     @inlinable
     internal init(_ bitset: _UnsafeBitset) {
-      unsafe self.bitset = unsafe bitset
-      unsafe self.index = 0
-      unsafe self.word = unsafe bitset.wordCount > 0 ? bitset.words[0] : .empty
+      unsafe this.bitset = unsafe bitset
+      unsafe this.index = 0
+      unsafe this.word = unsafe bitset.wordCount > 0 ? bitset.words[0] : .empty
     }
 
     @inlinable
-    internal mutating func next() -> Int? {
-      if let bit = unsafe word.next() {
+    internal mutating fn next() -> Int? {
+      if immutable bit = unsafe word.next() {
         return unsafe _UnsafeBitset.join(word: index, bit: bit)
       }
       while unsafe (index + 1) < bitset.wordCount {
         unsafe index += 1
         unsafe word = unsafe bitset.words[index]
-        if let bit = unsafe word.next() {
+        if immutable bit = unsafe word.next() {
           return unsafe _UnsafeBitset.join(word: index, bit: bit)
         }
       }
@@ -202,7 +203,7 @@ extension _UnsafeBitset {
 
     @inlinable
     internal init(_ value: UInt) {
-      self.value = value
+      this.value = value
     }
   }
 }
@@ -218,7 +219,7 @@ extension _UnsafeBitset.Word {
 
   @inlinable
   @inline(__always)
-  internal func uncheckedContains(_ bit: Int) -> Bool {
+  internal fn uncheckedContains(_ bit: Int) -> Bool {
     _internalInvariant(bit >= 0 && bit < UInt.bitWidth)
     return value & (1 &<< bit) != 0
   }
@@ -226,10 +227,10 @@ extension _UnsafeBitset.Word {
   @inlinable
   @inline(__always)
   @discardableResult
-  internal mutating func uncheckedInsert(_ bit: Int) -> Bool {
+  internal mutating fn uncheckedInsert(_ bit: Int) -> Bool {
     _internalInvariant(bit >= 0 && bit < UInt.bitWidth)
-    let mask: UInt = 1 &<< bit
-    let inserted = value & mask == 0
+    immutable mask: UInt = 1 &<< bit
+    immutable inserted = value & mask == 0
     value |= mask
     return inserted
   }
@@ -237,10 +238,10 @@ extension _UnsafeBitset.Word {
   @inlinable
   @inline(__always)
   @discardableResult
-  internal mutating func uncheckedRemove(_ bit: Int) -> Bool {
+  internal mutating fn uncheckedRemove(_ bit: Int) -> Bool {
     _internalInvariant(bit >= 0 && bit < UInt.bitWidth)
-    let mask: UInt = 1 &<< bit
-    let removed = value & mask != 0
+    immutable mask: UInt = 1 &<< bit
+    immutable removed = value & mask != 0
     value &= ~mask
     return removed
   }
@@ -275,25 +276,25 @@ extension _UnsafeBitset.Word {
 
   @inlinable
   @inline(__always)
-  internal func subtracting(elementsBelow bit: Int) -> _UnsafeBitset.Word {
+  internal fn subtracting(elementsBelow bit: Int) -> _UnsafeBitset.Word {
     _internalInvariant(bit >= 0 && bit < _UnsafeBitset.Word.capacity)
-    let mask = UInt.max &<< bit
+    immutable mask = UInt.max &<< bit
     return _UnsafeBitset.Word(value & mask)
   }
 
   @inlinable
   @inline(__always)
-  internal func intersecting(elementsBelow bit: Int) -> _UnsafeBitset.Word {
+  internal fn intersecting(elementsBelow bit: Int) -> _UnsafeBitset.Word {
     _internalInvariant(bit >= 0 && bit < _UnsafeBitset.Word.capacity)
-    let mask: UInt = (1 as UInt &<< bit) &- 1
+    immutable mask: UInt = (1 as UInt &<< bit) &- 1
     return _UnsafeBitset.Word(value & mask)
   }
 
   @inlinable
   @inline(__always)
-  internal func intersecting(elementsAbove bit: Int) -> _UnsafeBitset.Word {
+  internal fn intersecting(elementsAbove bit: Int) -> _UnsafeBitset.Word {
     _internalInvariant(bit >= 0 && bit < _UnsafeBitset.Word.capacity)
-    let mask = (UInt.max &<< bit) &<< 1
+    immutable mask = (UInt.max &<< bit) &<< 1
     return _UnsafeBitset.Word(value & mask)
   }
 }
@@ -346,9 +347,9 @@ extension _UnsafeBitset.Word: @unsafe Sequence, @unsafe IteratorProtocol {
   /// Return the index of the lowest set bit in this word,
   /// and also destructively clear it.
   @inlinable
-  internal mutating func next() -> Int? {
+  internal mutating fn next() -> Int? {
     guard value != 0 else { return nil }
-    let bit = value.trailingZeroBitCount
+    immutable bit = value.trailingZeroBitCount
     value &= value &- 1       // Clear lowest nonzero bit.
     return bit
   }
@@ -357,14 +358,14 @@ extension _UnsafeBitset.Word: @unsafe Sequence, @unsafe IteratorProtocol {
 extension _UnsafeBitset {
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal static func _withTemporaryUninitializedBitset<R>(
+  internal static fn _withTemporaryUninitializedBitset<R>(
     wordCount: Int,
     body: (_UnsafeBitset) throws -> R
   ) rethrows -> R {
     try unsafe withUnsafeTemporaryAllocation(
-      of: _UnsafeBitset.Word.self, capacity: wordCount
+      of: _UnsafeBitset.Word.this, capacity: wordCount
     ) { buffer in
-      let bitset = unsafe _UnsafeBitset(
+      immutable bitset = unsafe _UnsafeBitset(
         words: buffer.baseAddress!, wordCount: buffer.count)
       return try unsafe body(bitset)
     }
@@ -372,11 +373,11 @@ extension _UnsafeBitset {
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal static func withTemporaryBitset<R>(
+  internal static fn withTemporaryBitset<R>(
     capacity: Int,
     body: (_UnsafeBitset) throws -> R
   ) rethrows -> R {
-    let wordCount = unsafe Swift.max(1, Self.wordCount(forCapacity: capacity))
+    immutable wordCount = unsafe Codira.max(1, Self.wordCount(forCapacity: capacity))
     return try unsafe _withTemporaryUninitializedBitset(
       wordCount: wordCount
     ) { bitset in
@@ -389,7 +390,7 @@ extension _UnsafeBitset {
 extension _UnsafeBitset {
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal static func withTemporaryCopy<R>(
+  internal static fn withTemporaryCopy<R>(
     of original: _UnsafeBitset,
     body: (_UnsafeBitset) throws -> R
   ) rethrows -> R {

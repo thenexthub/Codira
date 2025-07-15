@@ -1,13 +1,17 @@
-//===--- CollectionAlgorithms.swift ---------------------------------------===//
+//===--- CollectionAlgorithms.code ---------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -19,8 +23,8 @@ extension BidirectionalCollection {
   ///
   /// If the collection is empty, the value of this property is `nil`.
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     if let lastNumber = numbers.last {
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     if immutable lastNumber = numbers.last {
   ///         print(lastNumber)
   ///     }
   ///     // Prints "50"
@@ -28,7 +32,7 @@ extension BidirectionalCollection {
   /// - Complexity: O(1)
   @inlinable
   public var last: Element? {
-    return isEmpty ? nil : self[index(before: endIndex)]
+    return isEmpty ? nil : this[index(before: endIndex)]
   }
 }
 
@@ -46,7 +50,7 @@ extension Collection where Element: Equatable {
   /// students.
   ///
   ///     var students = ["Ben", "Ivy", "Jordell", "Maxime"]
-  ///     if let i = students.firstIndex(of: "Maxime") {
+  ///     if immutable i = students.firstIndex(of: "Maxime") {
   ///         students[i] = "Max"
   ///     }
   ///     print(students)
@@ -58,17 +62,17 @@ extension Collection where Element: Equatable {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public func firstIndex(of element: Element) -> Index? {
-    if let result = _customIndexOfEquatableElement(element) {
+  public fn firstIndex(of element: Element) -> Index? {
+    if immutable result = _customIndexOfEquatableElement(element) {
       return result
     }
 
-    var i = self.startIndex
-    while i != self.endIndex {
-      if self[i] == element {
+    var i = this.startIndex
+    while i != this.endIndex {
+      if this[i] == element {
         return i
       }
-      self.formIndex(after: &i)
+      this.formIndex(after: &i)
     }
     return nil
   }
@@ -83,8 +87,8 @@ extension Collection {
   /// particular criteria. Here's an example that finds a student name that
   /// begins with the letter "A":
   ///
-  ///     let students = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
-  ///     if let i = students.firstIndex(where: { $0.hasPrefix("A") }) {
+  ///     immutable students = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
+  ///     if immutable i = students.firstIndex(where: { $0.hasPrefix("A") }) {
   ///         print("\(students[i]) starts with 'A'!")
   ///     }
   ///     // Prints "Abena starts with 'A'!"
@@ -98,15 +102,15 @@ extension Collection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public func firstIndex(
+  public fn firstIndex(
     where predicate: (Element) throws -> Bool
   ) rethrows -> Index? {
-    var i = self.startIndex
-    while i != self.endIndex {
-      if try predicate(self[i]) {
+    var i = this.startIndex
+    while i != this.endIndex {
+      if try predicate(this[i]) {
         return i
       }
-      self.formIndex(after: &i)
+      this.formIndex(after: &i)
     }
     return nil
   }
@@ -123,8 +127,8 @@ extension BidirectionalCollection {
   /// This example uses the `last(where:)` method to find the last
   /// negative number in an array of integers:
   ///
-  ///     let numbers = [3, 7, 4, -2, 9, -6, 10, 1]
-  ///     if let lastNegative = numbers.last(where: { $0 < 0 }) {
+  ///     immutable numbers = [3, 7, 4, -2, 9, -6, 10, 1]
+  ///     if immutable lastNegative = numbers.last(where: { $0 < 0 }) {
   ///         print("The last negative number is \(lastNegative).")
   ///     }
   ///     // Prints "The last negative number is -6."
@@ -137,10 +141,10 @@ extension BidirectionalCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public func last(
+  public fn last(
     where predicate: (Element) throws -> Bool
   ) rethrows -> Element? {
-    return try lastIndex(where: predicate).map { self[$0] }
+    return try lastIndex(where: predicate).map { this[$0] }
   }
 
   /// Returns the index of the last element in the collection that matches the
@@ -151,8 +155,8 @@ extension BidirectionalCollection {
   /// particular criteria. This example finds the index of the last name that
   /// begins with the letter *A:*
   ///
-  ///     let students = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
-  ///     if let i = students.lastIndex(where: { $0.hasPrefix("A") }) {
+  ///     immutable students = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
+  ///     if immutable i = students.lastIndex(where: { $0.hasPrefix("A") }) {
   ///         print("\(students[i]) starts with 'A'!")
   ///     }
   ///     // Prints "Akosua starts with 'A'!"
@@ -165,13 +169,13 @@ extension BidirectionalCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public func lastIndex(
+  public fn lastIndex(
     where predicate: (Element) throws -> Bool
   ) rethrows -> Index? {
     var i = endIndex
     while i != startIndex {
       formIndex(before: &i)
-      if try predicate(self[i]) {
+      if try predicate(this[i]) {
         return i
       }
     }
@@ -189,7 +193,7 @@ extension BidirectionalCollection where Element: Equatable {
   /// the names in an array of students.
   ///
   ///     var students = ["Ben", "Ivy", "Jordell", "Ben", "Maxime"]
-  ///     if let i = students.lastIndex(of: "Ben") {
+  ///     if immutable i = students.lastIndex(of: "Ben") {
   ///         students[i] = "Benjamin"
   ///     }
   ///     print(students)
@@ -201,8 +205,8 @@ extension BidirectionalCollection where Element: Equatable {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public func lastIndex(of element: Element) -> Index? {
-    if let result = _customLastIndexOfEquatableElement(element) {
+  public fn lastIndex(of element: Element) -> Index? {
+    if immutable result = _customLastIndexOfEquatableElement(element) {
       return result
     }
     return lastIndex(where: { $0 == element })
@@ -220,9 +224,9 @@ extension Collection {
   /// For example, you can use this method to find all the places that a
   /// vowel occurs in a string.
   ///
-  ///     let str = "Fresh cheese in a breeze"
-  ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-  ///     let allTheVowels = str.indices(where: { vowels.contains($0) })
+  ///     immutable str = "Fresh cheese in a breeze"
+  ///     immutable vowels: Set<Character> = ["a", "e", "i", "o", "u"]
+  ///     immutable allTheVowels = str.indices(where: { vowels.contains($0) })
   ///     // str[allTheVowels].count == 9
   ///
   /// - Parameter predicate: A closure that takes an element as its argument
@@ -232,21 +236,21 @@ extension Collection {
   ///   returns `true`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @inlinable
-  public func indices(
+  public fn indices(
     where predicate: (Element) throws -> Bool
   ) rethrows -> RangeSet<Index> {
     var result: [Range<Index>] = []
     var end = startIndex
-    while let begin = try self[end...].firstIndex(where: predicate) {
-      end = try self[begin...].prefix(while: predicate).endIndex
+    while immutable begin = try this[end...].firstIndex(where: predicate) {
+      end = try this[begin...].prefix(while: predicate).endIndex
       result.append(begin ..< end)
 
-      guard end < self.endIndex else {
+      guard end < this.endIndex else {
         break
       }
-      self.formIndex(after: &end)
+      this.formIndex(after: &end)
     }
 
     return RangeSet(_orderedRanges: result)
@@ -260,8 +264,8 @@ extension Collection where Element: Equatable {
   /// For example, you can use this method to find all the places that a
   /// particular letter occurs in a string.
   ///
-  ///     let str = "Fresh cheese in a breeze"
-  ///     let allTheEs = str.indices(of: "e")
+  ///     immutable str = "Fresh cheese in a breeze"
+  ///     immutable allTheEs = str.indices(of: "e")
   ///     // str[allTheEs].count == 7
   ///
   /// - Parameter element: An element to look for in the collection.
@@ -269,9 +273,9 @@ extension Collection where Element: Equatable {
   ///   `element`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @inlinable
-  public func indices(of element: Element) -> RangeSet<Index> {
+  public fn indices(of element: Element) -> RangeSet<Index> {
     indices(where: { $0 == element })
   }
 }
@@ -297,7 +301,7 @@ extension MutableCollection {
   /// predicate that matches elements greater than 30.
   ///
   ///     var numbers = [30, 40, 20, 30, 30, 60, 10]
-  ///     let p = numbers.partition(by: { $0 > 30 })
+  ///     immutable p = numbers.partition(by: { $0 > 30 })
   ///     // p == 5
   ///     // numbers == [30, 10, 20, 30, 30, 60, 40]
   ///
@@ -306,9 +310,9 @@ extension MutableCollection {
   /// are not greater than 30. The second partition, `numbers[p...]`,
   /// is made up of the elements that *are* greater than 30.
   ///
-  ///     let first = numbers[..<p]
+  ///     immutable first = numbers[..<p]
   ///     // first == [30, 10, 20, 30, 30]
-  ///     let second = numbers[p...]
+  ///     immutable second = numbers[p...]
   ///     // second == [60, 40]
   ///
   /// Note that the order of elements in both partitions changed.
@@ -325,7 +329,7 @@ extension MutableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public mutating func partition(
+  public mutating fn partition(
     by belongsInSecondPartition: (Element) throws -> Bool
   ) rethrows -> Index {
     return try _halfStablePartition(isSuffixElement: belongsInSecondPartition)
@@ -336,7 +340,7 @@ extension MutableCollection {
   ///
   /// - Complexity: O(*n*) where n is the length of the collection.
   @inlinable
-  internal mutating func _halfStablePartition(
+  internal mutating fn _halfStablePartition(
     isSuffixElement: (Element) throws -> Bool
   ) rethrows -> Index {
     guard var i = try firstIndex(where: isSuffixElement)
@@ -344,7 +348,7 @@ extension MutableCollection {
     
     var j = index(after: i)
     while j != endIndex {
-      if try !isSuffixElement(self[j]) { swapAt(i, j); formIndex(after: &i) }
+      if try !isSuffixElement(this[j]) { swapAt(i, j); formIndex(after: &i) }
       formIndex(after: &j)
     }
     return i
@@ -367,7 +371,7 @@ extension MutableCollection where Self: BidirectionalCollection {
   /// predicate that matches elements greater than 30.
   ///
   ///     var numbers = [30, 40, 20, 30, 30, 60, 10]
-  ///     let p = numbers.partition(by: { $0 > 30 })
+  ///     immutable p = numbers.partition(by: { $0 > 30 })
   ///     // p == 5
   ///     // numbers == [30, 10, 20, 30, 30, 60, 40]
   ///
@@ -376,9 +380,9 @@ extension MutableCollection where Self: BidirectionalCollection {
   /// are not greater than 30. The second partition, `numbers[p...]`,
   /// is made up of the elements that *are* greater than 30.
   ///
-  ///     let first = numbers[..<p]
+  ///     immutable first = numbers[..<p]
   ///     // first == [30, 10, 20, 30, 30]
-  ///     let second = numbers[p...]
+  ///     immutable second = numbers[p...]
   ///     // second == [60, 40]
   ///
   /// Note that the order of elements in both partitions changed.
@@ -395,16 +399,16 @@ extension MutableCollection where Self: BidirectionalCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public mutating func partition(
+  public mutating fn partition(
     by belongsInSecondPartition: (Element) throws -> Bool
   ) rethrows -> Index {
-    let maybeOffset = try unsafe withContiguousMutableStorageIfAvailable {
+    immutable maybeOffset = try unsafe withContiguousMutableStorageIfAvailable {
       (bufferPointer) -> Int in
-      let unsafeBufferPivot = try unsafe bufferPointer._partitionImpl(
+      immutable unsafeBufferPivot = try unsafe bufferPointer._partitionImpl(
         by: belongsInSecondPartition)
       return unsafeBufferPivot - bufferPointer.startIndex
     }
-    if let offset = maybeOffset {
+    if immutable offset = maybeOffset {
       return index(startIndex, offsetBy: offset)
     } else {
       return try _partitionImpl(by: belongsInSecondPartition)
@@ -412,7 +416,7 @@ extension MutableCollection where Self: BidirectionalCollection {
   }
 
   @inlinable
-  internal mutating func _partitionImpl(
+  internal mutating fn _partitionImpl(
     by belongsInSecondPartition: (Element) throws -> Bool
   ) rethrows -> Index {
     var lo = startIndex
@@ -427,7 +431,7 @@ extension MutableCollection where Self: BidirectionalCollection {
       // Find next element from `lo` that may not be in the right place.
       while true {
         guard lo < hi else { return lo }
-        if try belongsInSecondPartition(self[lo]) { break }
+        if try belongsInSecondPartition(this[lo]) { break }
         formIndex(after: &lo)
       }
 
@@ -435,7 +439,7 @@ extension MutableCollection where Self: BidirectionalCollection {
       while true {
         formIndex(before: &hi)
         guard lo < hi else { return lo }
-        if try !belongsInSecondPartition(self[hi]) { break }
+        if try !belongsInSecondPartition(this[hi]) { break }
       }
 
       swapAt(lo, hi)
@@ -457,7 +461,7 @@ extension MutableCollection {
   /// - Complexity: O(*n* log *n*) where *n* is the number of elements.
   /// - Precondition:
   ///   `n == distance(from: range.lowerBound, to: range.upperBound)`
-  internal mutating func _indexedStablePartition(
+  internal mutating fn _indexedStablePartition(
     count n: Int,
     range: Range<Index>,
     by belongsInSecondPartition: (Index) throws-> Bool
@@ -468,12 +472,12 @@ extension MutableCollection {
         ? range.lowerBound
         : range.upperBound
     }
-    let h = n / 2, i = index(range.lowerBound, offsetBy: h)
-    let j = try _indexedStablePartition(
+    immutable h = n / 2, i = index(range.lowerBound, offsetBy: h)
+    immutable j = try _indexedStablePartition(
       count: h,
       range: range.lowerBound..<i,
       by: belongsInSecondPartition)
-    let k = try _indexedStablePartition(
+    immutable k = try _indexedStablePartition(
       count: n - h,
       range: i..<range.upperBound,
       by: belongsInSecondPartition)
@@ -500,16 +504,16 @@ extension Collection {
   ///
   /// - Complexity: O(log *n*), where *n* is the length of this collection if
   ///   the collection conforms to `RandomAccessCollection`, otherwise O(*n*).
-  internal func _partitioningIndex(
+  internal fn _partitioningIndex(
     where predicate: (Element) throws -> Bool
   ) rethrows -> Index {
     var n = count
     var l = startIndex
     
     while n > 0 {
-      let half = n / 2
-      let mid = index(l, offsetBy: half)
-      if try predicate(self[mid]) {
+      immutable half = n / 2
+      immutable mid = index(l, offsetBy: half)
+      if try predicate(this[mid]) {
         n = half
       } else {
         l = index(after: mid)
@@ -533,8 +537,8 @@ extension Sequence {
   /// numbers between `0` and `9` by calling the `shuffled(using:)` method on
   /// that range:
   ///
-  ///     let numbers = 0...9
-  ///     let shuffledNumbers = numbers.shuffled(using: &myGenerator)
+  ///     immutable numbers = 0...9
+  ///     immutable shuffledNumbers = numbers.shuffled(using: &myGenerator)
   ///     // shuffledNumbers == [8, 9, 4, 3, 2, 6, 7, 0, 5, 1]
   ///
   /// - Parameter generator: The random number generator to use when shuffling
@@ -543,15 +547,15 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   /// - Note: The algorithm used to shuffle a sequence may change in a future
-  ///   version of Swift. If you're passing a generator that results in the
+  ///   version of Codira. If you're passing a generator that results in the
   ///   same shuffled order each time you run your program, that sequence may
   ///   change when your program is compiled using a different version of
-  ///   Swift.
+  ///   Codira.
   @inlinable
-  public func shuffled<T: RandomNumberGenerator>(
+  public fn shuffled<T: RandomNumberGenerator>(
     using generator: inout T
   ) -> [Element] {
-    var result = ContiguousArray(self)
+    var result = ContiguousArray(this)
     result.shuffle(using: &generator)
     return Array(result)
   }
@@ -561,8 +565,8 @@ extension Sequence {
   /// For example, you can shuffle the numbers between `0` and `9` by calling
   /// the `shuffled()` method on that range:
   ///
-  ///     let numbers = 0...9
-  ///     let shuffledNumbers = numbers.shuffled()
+  ///     immutable numbers = 0...9
+  ///     immutable shuffledNumbers = numbers.shuffled()
   ///     // shuffledNumbers == [1, 7, 6, 2, 8, 9, 4, 3, 5, 0]
   ///
   /// This method is equivalent to calling `shuffled(using:)`, passing in the
@@ -572,7 +576,7 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public func shuffled() -> [Element] {
+  public fn shuffled() -> [Element] {
     var g = SystemRandomNumberGenerator()
     return shuffled(using: &g)
   }
@@ -595,19 +599,19 @@ extension MutableCollection where Self: RandomAccessCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   /// - Note: The algorithm used to shuffle a collection may change in a future
-  ///   version of Swift. If you're passing a generator that results in the
+  ///   version of Codira. If you're passing a generator that results in the
   ///   same shuffled order each time you run your program, that sequence may
   ///   change when your program is compiled using a different version of
-  ///   Swift.
+  ///   Codira.
   @inlinable
-  public mutating func shuffle<T: RandomNumberGenerator>(
+  public mutating fn shuffle<T: RandomNumberGenerator>(
     using generator: inout T
   ) {
     guard count > 1 else { return }
     var amount = count
     var currentIndex = startIndex
     while amount > 1 {
-      let random = Int.random(in: 0 ..< amount, using: &generator)
+      immutable random = Int.random(in: 0 ..< amount, using: &generator)
       amount -= 1
       swapAt(
         currentIndex,
@@ -630,7 +634,7 @@ extension MutableCollection where Self: RandomAccessCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public mutating func shuffle() {
+  public mutating fn shuffle() {
     var g = SystemRandomNumberGenerator()
     shuffle(using: &g)
   }

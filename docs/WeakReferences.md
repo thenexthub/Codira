@@ -11,8 +11,8 @@ support feature which can be exploited in the standard library.
 
 _**Warning**_
 
-This document was used in planning Swift 1.0; it has not been kept up to
-date and does not describe the current or planned behavior of Swift.
+This document was used in planning Codira 1.0; it has not been kept up to
+date and does not describe the current or planned behavior of Codira.
 
 ## Reference Graphs
 
@@ -241,7 +241,7 @@ should be addressed with the same language feature.
 
 ### Back references
 
-Given that Swift is not cycle-collecting, far and away the most
+Given that Codira is not cycle-collecting, far and away the most
 important use case in the static reference graph is that of the
 *back-reference*: a reference *R* to an object which holds a strong
 reference (possibly indirectly) to the object holding *R*. Examples
@@ -297,7 +297,7 @@ to service multiple lookups between collections.
 It is likely that users implementing weak data structures would prefer a
 highly flexible infrastructure centered around resurrection and
 notifications of reaching a zero refcount than a more rigid system built
-directly into the language. Since the Swift model is built around
+directly into the language. Since the Codira model is built around
 statically-inserted operations rather than a memory scanner, this is
 much more workable.
 
@@ -330,14 +330,14 @@ limitations and problems:
 ### Optimization
 
 Functions often create a large number of temporary references. In a
-reference-counting environment like Swift, these references require the
+reference-counting environment like Codira, these references require the
 implementation to implicitly perform operations to increment and
 decrement the reference count. These operations can be quite fast, but
 they are not free, and our experience has been that the accumulated cost
 can be quite significant. A straightforward local static analysis can
 eliminate many operations, but many others will be blocked by
 abstraction barriers, chiefly dynamically-dispatched calls. Therefore,
-if Swift is to allow precise performance control, it is important to be
+if Codira is to allow precise performance control, it is important to be
 able to allow motivated users to selectively control the emission of
 reference-counting operations.
 
@@ -528,8 +528,8 @@ places.
 These implicit conversions require some thought. Consider code like the
 following:
 
-```swift
-func moveToWindow(_ newWindow : Window) {
+```language
+fn moveToWindow(_ newWindow : Window) {
   var oldWindow = self.window   // an @unowned back reference
   oldWindow.hide()              // might remove the UI's strong reference
   oldWindow.remove(self)
@@ -549,8 +549,8 @@ semantics of the code you\'d get from copy-pasting the generic code and
 substituting the arguments wherever they\'re written. But if a generic
 argument can be `@unowned T`, then this won\'t be true; consider:
 
-```swift
-func foo<T>(x : T) {
+```language
+fn foo<T>(x : T) {
   var y = x
   ...
 }
@@ -610,10 +610,10 @@ the change-over occurs. For more on this, see the library section.
 
 ### `weak`-Capable Types
 
-Swift reference types can naturally be made to support any kind of
+Codira reference types can naturally be made to support any kind of
 semantics, and I\'m taking it on faith that we could enhance ObjC
 objects to support whatever extended semantics we want. There are,
-however, certain Swift value types which have reference-like semantics
+however, certain Codira value types which have reference-like semantics
 that it could be useful to extend `weak` (and/or `unowned`) to:
 
 -   Being able to conveniently form an optional back-reference seems
@@ -658,7 +658,7 @@ struct Reference {
   size_t Reserved[2];
 };
 
-void swift_registerReference(struct Reference *reference,
+void language_registerReference(struct Reference *reference,
                              size_t flags);
 ```
 
@@ -690,7 +690,7 @@ each other or with other refcount operations on the referent.
 The operations on references are as follows:
 
 ```c
-void *swift_readReference(struct Reference *reference);
+void *language_readReference(struct Reference *reference);
 ```
 
 This operation atomically either produces a strong reference to the
@@ -699,7 +699,7 @@ finalized (or if the referent is `null`). The reference must currently
 be registered with the runtime:
 
 ```c
-void swift_writeReference(struct Reference *reference,
+void language_writeReference(struct Reference *reference,
                           void *newReferent);
 ```
 
@@ -709,7 +709,7 @@ currently be registered with the runtime. The reference keeps the same
 flags and reference queue:
 
 ```c
-void swift_unregisterReference(struct Reference *Reference);
+void language_unregisterReference(struct Reference *Reference);
 ```
 
 This operation clears a reference, removes it from its reference queue
@@ -722,20 +722,20 @@ amount of native implementation:
 
 ```c
 struct ReferenceQueue;
-struct ReferenceQueue *swift_createReferenceQueue(void);
+struct ReferenceQueue *language_createReferenceQueue(void);
 ```
 
 Allocate a new reference queue:
 
 ```c
-void swift_destroyReferenceQueue(struct ReferenceQueue *queue);
+void language_destroyReferenceQueue(struct ReferenceQueue *queue);
 ```
 
 Destroy a reference queue. There must not be any references with this
 queue currently registered with the runtime:
 
 ```c
-struct Reference *swift_pollReferenceQueue(struct ReferenceQueue *queue);
+struct Reference *language_pollReferenceQueue(struct ReferenceQueue *queue);
 ```
 
 ## Proposed Rules for Captures within Closures
@@ -797,7 +797,7 @@ anything to optimize for in the grammar, it\'s this.
 
 I propose this fairly obvious syntax:
 
-```swift
+```language
 button1.setAction { unowned(self).tapOut() }
 button2.setAction { if (weak(self)) { weak(self).swapIn() } }
 ```
@@ -821,7 +821,7 @@ value (at the time the closure is invoked).
 
 Therefore I also suggest a closely-related form of decoration:
 
-```swift
+```language
 button3.setAction { capture(self.model).addProfitStep() }
 ```
 
@@ -831,7 +831,7 @@ All of these kinds of decorated references are equivalent to adding a
 so-attributed `capture` declaration (see below) with a nonce identifier
 to the top of the closure:
 
-```swift
+```language
 button1.setAction {
   capture @unowned _V1 = self
   _V1.tapOut()
@@ -864,7 +864,7 @@ refinement to work as expected, as seen above with the `weak` capture.
 It also guarantees the elimination of some redundant computation, such
 as with the `state` property in this example:
 
-```swift
+```language
 resetButton.setAction {
   log("resetting state to " + capture(self.state))
   capture(self.model).setState(capture(self.state))
@@ -886,7 +886,7 @@ This feature generalizes the above, removing some redundancy in large
 closures and adding a small amount of expressive power.
 
 A `capture` declaration can only appear in a closure: an anonymous
-closure expression or `func` declaration that appears directly within a
+closure expression or `fn` declaration that appears directly within a
 function. (By \"directly\" I mean not within, say, a local type
 declaration within the function). `capture` will need to at least become
 a context-sensitive keyword.
@@ -911,7 +911,7 @@ in the enclosing context. Since the expression is evaluated in the
 enclosing context, it cannot refer to \"previous\" captures; otherwise
 we could have some awkward ambiguities. I think we should reserve the
 right to not execute an initializer if the closure will never be called;
-this is more important for local `func` declarations than for anonymous
+this is more important for local `fn` declarations than for anonymous
 closure expressions.
 
 The fields introduced by `capture` declarations should be immutable by
@@ -1003,7 +1003,7 @@ The motivation for this prohibition is that the intent of such captures
 is actually quite ambiguous and/or dangerous. Consider the following
 code:
 
-```swift
+```language
 async { doSomething(); GUI.sync { unowned(view).fireCompleted() } }
 ```
 

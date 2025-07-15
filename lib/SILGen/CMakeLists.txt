@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftSILGen STATIC
+add_language_host_library(languageSILGen STATIC
   ArgumentSource.cpp
   Cleanup.cpp
   Condition.cpp
@@ -11,7 +11,7 @@ add_swift_host_library(swiftSILGen STATIC
   SwitchEnumBuilder.cpp
   SILGen.cpp
   SILGenApply.cpp
-  SILGenBackDeploy.cpp
+  SILGenAvailability.cpp
   SILGenBridging.cpp
   SILGenBuilder.cpp
   SILGenBuiltin.cpp
@@ -39,8 +39,8 @@ add_swift_host_library(swiftSILGen STATIC
   SILGenThunk.cpp
   SILGenTopLevel.cpp
   SILGenType.cpp)
-target_link_libraries(swiftSILGen PRIVATE
-  swiftSerialization
-  swiftSIL)
+target_link_libraries(languageSILGen PRIVATE
+  languageSerialization
+  languageSIL)
 
-set_swift_llvm_is_available(swiftSILGen)
+set_language_toolchain_is_available(languageSILGen)

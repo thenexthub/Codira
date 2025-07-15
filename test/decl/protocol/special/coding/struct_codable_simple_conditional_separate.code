@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -language-version 4
+
+struct Conditional<T> {
+  var x: T
+  var y: T?
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = Conditional.CodingKeys.this
+
+    // The enum should have a case for each of the vars.
+    immutable _ = Conditional.CodingKeys.x
+    immutable _ = Conditional.CodingKeys.y
+
+    // Static vars should not be part of the CodingKeys enum.
+    immutable _ = Conditional.CodingKeys.z // expected-error {{type 'Conditional<T>.CodingKeys' has no member 'z'}}
+  }
+}
+
+extension Conditional: Encodable where T: Encodable { // expected-note {{where 'T' = 'OnlyDec'}}
+}
+extension Conditional: Decodable where T: Decodable { // expected-note {{where 'T' = 'OnlyEnc'}}
+}
+
+struct OnlyEnc: Encodable {}
+struct OnlyDec: Decodable {}
+
+// They should receive synthesized init(from:) and an encode(to:).
+immutable _ = Conditional<OnlyDec>.init(from:)
+immutable _ = Conditional<OnlyEnc>.encode(to:)
+
+// but only for the appropriately *codable parameters.
+immutable _ = Conditional<OnlyEnc>.init(from:) // expected-error {{referencing initializer 'init(from:)' on 'Conditional' requires that 'OnlyEnc' conform to 'Decodable'}}
+immutable _ = Conditional<OnlyDec>.encode(to:) // expected-error {{referencing instance method 'encode(to:)' on 'Conditional' requires that 'OnlyDec' conform to 'Encodable'}}
+
+// The synthesized CodingKeys type should not be accessible from outside the
+// struct.
+immutable _ = Conditional<Int>.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}

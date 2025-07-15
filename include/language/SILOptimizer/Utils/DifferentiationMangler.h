@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_UTILS_DIFFERENTIATIONMANGLER_H
-#define SWIFT_SIL_UTILS_DIFFERENTIATIONMANGLER_H
+#ifndef LANGUAGE_SIL_UTILS_DIFFERENTIATIONMANGLER_H
+#define LANGUAGE_SIL_UTILS_DIFFERENTIATIONMANGLER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ASTMangler.h"
@@ -59,4 +60,4 @@ public:
 } // end namespace Mangle
 } // end namespace language
 
-#endif /* SWIFT_SIL_UTILS_DIFFERENTIATIONMANGLER_H */
+#endif /* LANGUAGE_SIL_UTILS_DIFFERENTIATIONMANGLER_H */

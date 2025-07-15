@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file has utility code for extending a generic signature with opened
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_LOCAL_ARCHETYPE_REQUIREMENT_COLLECTOR_H
-#define SWIFT_AST_LOCAL_ARCHETYPE_REQUIREMENT_COLLECTOR_H
+#ifndef LANGUAGE_AST_LOCAL_ARCHETYPE_REQUIREMENT_COLLECTOR_H
+#define LANGUAGE_AST_LOCAL_ARCHETYPE_REQUIREMENT_COLLECTOR_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/GenericSignature.h"
@@ -84,4 +85,4 @@ SubstitutionMap buildSubstitutionMapWithCapturedEnvironments(
 
 }
 
-#endif // SWIFT_AST_LOCAL_ARCHETYPE_REQUIREMENT_COLLECTOR_H
+#endif // LANGUAGE_AST_LOCAL_ARCHETYPE_REQUIREMENT_COLLECTOR_H

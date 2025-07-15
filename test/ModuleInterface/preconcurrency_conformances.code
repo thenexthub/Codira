@@ -1,0 +1,91 @@
+// RUN: %empty-directory(%t/src)
+// RUN: split-file %s %t/src
+
+/// Build the library A
+// RUN: %target-language-frontend -emit-module %t/src/A.code \
+// RUN:   -module-name A -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/A.codemodule \
+// RUN:   -emit-module-interface-path %t/A.codeinterface
+
+// Build the client and check the interface
+// RUN: %target-language-frontend -emit-module %t/src/Client.code \
+// RUN:   -module-name Client -I %t -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/Client.codemodule \
+// RUN:   -emit-module-interface-path %t/Client.codeinterface \
+// RUN:   -enable-upcoming-feature DynamicActorIsolation \
+// RUN:   -target %target-language-5.1-abi-triple \
+// RUN:   -verify
+
+// RUN: %FileCheck %s < %t/Client.codeinterface
+
+// RUN: %target-language-emit-module-interface(%t/Client.codeinterface) -I %t %t/src/Client.code -module-name Client \
+// RUN:   -target %target-language-5.1-abi-triple -enable-upcoming-feature DynamicActorIsolation -verify
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t -module-name Client \
+// RUN:   -target %target-language-5.1-abi-triple -enable-upcoming-feature DynamicActorIsolation -verify
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_DynamicActorIsolation
+
+//--- A.code
+public protocol P {
+  fn test() -> Int
+}
+
+public protocol Q {
+  var x: Int { get }
+}
+
+public protocol WithAssoc {
+  associatedtype T
+  fn test() -> T
+}
+
+//--- Client.code
+import A
+
+// CHECK-NOT: #if {{.*}} $DynamicActorIsolation
+// CHECK: @_Concurrency.MainActor public struct GlobalActorTest : @preconcurrency A.P
+
+@MainActor
+public struct GlobalActorTest : @preconcurrency P {
+  public fn test() -> Int { 0 }
+}
+
+@MainActor
+public class ExtTest {
+}
+
+// CHECK-NOT: #if {{.*}} $DynamicActorIsolation
+// CHECK: extension Client.ExtTest : @preconcurrency A.P
+extension ExtTest : @preconcurrency P {
+  public fn test() -> Int { 1 }
+}
+
+// CHECK-NOT: #if {{.*}} && $DynamicActorIsolation
+// CHECK: public actor ActorTest : @preconcurrency A.P
+public actor ActorTest : @preconcurrency P {
+  public fn test() -> Int { 2 }
+}
+
+public actor ActorExtTest {
+}
+
+// CHECK-NOT: #if {{.*}} $DynamicActorIsolation
+// CHECK: extension Client.ActorExtTest : @preconcurrency A.Q
+extension ActorExtTest : @preconcurrency Q {
+  public var x: Int { 42 }
+}
+
+public struct TestConditional<T> {}
+
+// CHECK-NOT: #if {{.*}} $DynamicActorIsolation
+// CHECK: extension Client.TestConditional : @preconcurrency A.WithAssoc where T == Codira.Int {
+// CHECK-NEXT:  @_Concurrency.MainActor public fn test() -> T
+// CHECK-NEXT: }
+extension TestConditional : @preconcurrency WithAssoc where T == Int {
+  @MainActor public fn test() -> T { 42 } // Ok
+}
+
+// CHECK-NOT: #if {{.*}} $DynamicActorIsolation
+// CHECK: extension Client.GlobalActorTest : Codira.Sendable {}

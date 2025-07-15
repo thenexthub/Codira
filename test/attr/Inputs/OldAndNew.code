@@ -1,0 +1,31 @@
+// CHECK: @available(language 5.0)
+// CHECK-NEXT: fn fiveOnly() -> Int
+@available(language, introduced: 5.0)
+public fn fiveOnly() -> Int {
+  return 4
+}
+
+// CHECK: @available(language 5.0)
+// CHECK-NEXT: @available(macOS 10.1, *)
+// CHECK-NEXT: fn fiveOnlyWithMac() -> Int
+@available(language, introduced: 5.0)
+@available(macOS, introduced: 10.1)
+public fn fiveOnlyWithMac() -> Int {
+  return 4
+}
+
+// CHECK: @available(language 5.0)
+// CHECK-NEXT: @available(macOS 10.1, *)
+// CHECK-NEXT: fn fiveOnlyWithMac2() -> Int
+@available(macOS, introduced: 10.1)
+@available(language, introduced: 5.0)
+public fn fiveOnlyWithMac2() -> Int {
+  return 4
+}
+
+// CHECK: @available(language, introduced: 4.0, obsoleted: 5.0)
+// CHECK-NEXT: fn fourOnly() -> Int
+@available(language, introduced: 4.0, obsoleted: 5.0)
+public fn fourOnly() -> Int {
+  return 3
+}

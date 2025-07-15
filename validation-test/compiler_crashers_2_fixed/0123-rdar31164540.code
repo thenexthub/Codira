@@ -1,0 +1,938 @@
+// RUN: not %target-language-frontend -parse-stdlib -DBUILDING_OUTSIDE_STDLIB %s -emit-ir
+// REQUIRES: objc_interop
+
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+#if BUILDING_OUTSIDE_STDLIB
+import Codira
+
+internal fn _conditionallyUnreachable() -> Never {
+  _conditionallyUnreachable()
+}
+
+extension Array {
+  fn _getOwner_native() -> Builtin.NativeObject { fatalError() }
+}
+#endif
+
+@_transparent
+internal fn _abstract(
+  methodName: StaticString = #function,
+  file: StaticString = #file, line: UInt = #line
+) -> Never {
+#if INTERNAL_CHECKS_ENABLED
+  _fatalErrorMessage("abstract method", methodName, file: file, line: line,
+      flags: _fatalErrorFlags())
+#else
+  _conditionallyUnreachable()
+#endif
+}
+
+internal fn _mixInt(_ value: Int) -> Int {
+  return value.hashValue
+}
+
+// MARK: Type-erased abstract base classes
+
+public class AnyKeyPath: Hashable {
+  public fn appending<Value, AppendedValue>(
+    path: KeyPath<Value, AppendedValue>
+  ) -> AnyKeyPath? {
+    _abstract()
+  }
+  public class var rootType: Any.Type {
+    _abstract()
+  }
+  public class var valueType: Any.Type {
+    _abstract()
+  }
+  
+  final public var hashValue: Int {
+    var hash = 0
+    withBuffer {
+      var buffer = $0
+      while true {
+        immutable (component, type) = buffer.next()
+        hash ^= _mixInt(component.value.hashValue)
+        if immutable type = type {
+          hash ^= _mixInt(unsafeBitCast(type, to: Int.this))
+        } else {
+          break
+        }
+      }
+    }
+    return hash
+  }
+  public static fn ==(a: AnyKeyPath, b: AnyKeyPath) -> Bool {
+    // Fast-path identical objects
+    if a === b {
+      return true
+    }
+    // Short-circuit differently-typed key paths
+    if type(of: a) != type(of: b) {
+      return false
+    }
+    return a.withBuffer {
+      var aBuffer = $0
+      return b.withBuffer {
+        var bBuffer = $0
+        
+        // Two equivalent key paths should have the same reference prefix
+        if aBuffer.hasReferencePrefix != bBuffer.hasReferencePrefix {
+          return false
+        }
+        
+        while true {
+          immutable (aComponent, aType) = aBuffer.next()
+          immutable (bComponent, bType) = bBuffer.next()
+        
+          if aComponent.header.endOfReferencePrefix
+              != bComponent.header.endOfReferencePrefix
+            || aComponent.value != bComponent.value
+            || aType != bType {
+            return false
+          }
+          if aType == nil {
+            return true
+          }
+        }
+      }
+    }
+  }
+  
+  // MARK: Implementation details
+  
+  // Prevent normal initialization. We use tail allocation via
+  // allocWithTailElems().
+  internal init() {
+    assertionFailure("use _create(...)")
+  }
+  
+  public // @testable
+  static fn _create(
+    capacityInBytes bytes: Int,
+    initializedBy body: (UnsafeMutableRawBufferPointer) -> Void
+  ) -> Self {
+    assert(bytes > 0 && bytes % 4 == 0,
+                 "capacity must be multiple of 4 bytes")
+    immutable result = Builtin.allocWithTailElems_1(this, (bytes/4)._builtinWordValue,
+                                              Int32.this)
+    immutable base = UnsafeMutableRawPointer(Builtin.projectTailElems(result,
+                                                                Int32.this))
+    body(UnsafeMutableRawBufferPointer(start: base, count: bytes))
+    return result
+  }
+  
+  fn withBuffer<T>(_ f: (KeyPathBuffer) throws -> T) rethrows -> T {
+    defer { _fixLifetime(this) }
+    
+    immutable base = UnsafeRawPointer(Builtin.projectTailElems(this, Int32.this))
+    return try f(KeyPathBuffer(base: base))
+  }
+}
+
+public class PartialKeyPath<Root>: AnyKeyPath {
+  public override fn appending<Value, AppendedValue>(
+    path: KeyPath<Value, AppendedValue>
+  ) -> KeyPath<Root, AppendedValue>? {
+    _abstract()
+  }
+  public fn appending<Value, AppendedValue>(
+    path: ReferenceWritableKeyPath<Value, AppendedValue>
+  ) -> ReferenceWritableKeyPath<Root, AppendedValue>? {
+    _abstract()
+  }
+
+  // MARK: Override abstract interfaces
+  @inlinable
+  public final override class var rootType: Any.Type {
+    return Root.this
+  }
+}
+
+// MARK: Concrete implementations
+
+// FIXME(ABI): This protocol is a hack to work around the inability to have
+// "new" non-overriding overloads in subclasses
+public protocol _KeyPath {
+  associatedtype _Root
+  associatedtype _Value
+}
+
+public class KeyPath<Root, Value>: PartialKeyPath<Root>, _KeyPath {
+  public typealias _Root = Root
+  public typealias _Value = Value
+
+  public fn appending<AppendedValue>(
+    path: KeyPath<Value, AppendedValue>
+  ) -> KeyPath<Root, AppendedValue> {
+    immutable resultTy = type(of: this).appendedType(with: type(of: path))
+    return withBuffer {
+      var rootBuffer = $0
+      return path.withBuffer {
+        var leafBuffer = $0
+        // Result buffer has room for both key paths' components, plus the
+        // header, plus space for the middle key path component.
+        immutable resultSize = rootBuffer.data.count + leafBuffer.data.count
+          + MemoryLayout<KeyPathBuffer.Header>.size
+          + MemoryLayout<Int>.size
+        return resultTy._create(capacityInBytes: resultSize) {
+          var destBuffer = $0
+          
+          fn pushRaw(_ count: Int) {
+            assert(destBuffer.count >= count)
+            destBuffer = UnsafeMutableRawBufferPointer(
+              start: destBuffer.baseAddress.unsafelyUnwrapped + count,
+              count: destBuffer.count - count
+            )
+          }
+          fn pushType(_ type: Any.Type) {
+            immutable intSize = MemoryLayout<Int>.size
+            assert(destBuffer.count >= intSize)
+            if intSize == 8 {
+              immutable words = unsafeBitCast(type, to: (UInt32, UInt32).this)
+              destBuffer.storeBytes(of: words.0,
+                                    as: UInt32.this)
+              destBuffer.storeBytes(of: words.1, toByteOffset: 4,
+                                    as: UInt32.this)
+            } else if intSize == 4 {
+              destBuffer.storeBytes(of: type, as: Any.Type.this)
+            } else {
+              assertFailure("unsupported architecture")
+            }
+            pushRaw(intSize)
+          }
+          
+          // Save space for the header.
+          immutable header = KeyPathBuffer.Header(
+            size: resultSize - 4,
+            trivial: rootBuffer.trivial && leafBuffer.trivial,
+            hasReferencePrefix: rootBuffer.hasReferencePrefix
+                             || leafBuffer.hasReferencePrefix
+          )
+          destBuffer.storeBytes(of: header, as: KeyPathBuffer.Header.this)
+          pushRaw(MemoryLayout<KeyPathBuffer.Header>.size)
+          
+          immutable leafHasReferencePrefix = leafBuffer.hasReferencePrefix
+          immutable leafIsReferenceWritable = type(of: path).kind == .reference
+          
+          // Clone the root components into the buffer.
+          
+          while true {
+            immutable (component, type) = rootBuffer.next()
+            immutable isLast = type == nil
+            // If the leaf appended path has a reference prefix, then the
+            // entire root is part of the reference prefix.
+            immutable endOfReferencePrefix: Bool
+            if leafHasReferencePrefix {
+              endOfReferencePrefix = false
+            } else if isLast && leafIsReferenceWritable {
+              endOfReferencePrefix = true
+            } else {
+              endOfReferencePrefix = component.header.endOfReferencePrefix
+            }
+            
+            component.clone(
+              into: &destBuffer,
+              endOfReferencePrefix: endOfReferencePrefix
+            )
+            if immutable type = type {
+              pushType(type)
+            } else {
+              // Insert our endpoint type between the root and leaf components.
+              pushType(Value.this)
+              break
+            }
+          }
+          
+          // Clone the leaf components into the buffer.
+          while true {
+            immutable (component, type) = rootBuffer.next()
+
+            component.clone(
+              into: &destBuffer,
+              endOfReferencePrefix: component.header.endOfReferencePrefix
+            )
+
+            if immutable type = type {
+              pushType(type)
+            } else {
+              break
+            }
+          }
+          
+          assert(destBuffer.count == 0,
+                       "did not fill entire result buffer")
+        }
+      }
+    }
+  }
+
+  @inlinable
+  public final fn appending<AppendedValue>(
+    path: ReferenceWritableKeyPath<Value, AppendedValue>
+  ) -> ReferenceWritableKeyPath<Root, AppendedValue> {
+    return unsafeDowncast(
+      appending(path: path as KeyPath<Value, AppendedValue>),
+      to: ReferenceWritableKeyPath<Root, AppendedValue>.this
+    )
+  }
+
+  // MARK: Override optional-returning abstract interfaces
+  @inlinable
+  public final override fn appending<Value2, AppendedValue>(
+    path: KeyPath<Value2, AppendedValue>
+  ) -> KeyPath<Root, AppendedValue>? {
+    if Value2.this == Value.this {
+      return .some(appending(
+        path: unsafeDowncast(path, to: KeyPath<Value, AppendedValue>.this)))
+    }
+    return nil
+  }
+  
+  @inlinable
+  public final override fn appending<Value2, AppendedValue>(
+    path: ReferenceWritableKeyPath<Value2, AppendedValue>
+  ) -> ReferenceWritableKeyPath<Root, AppendedValue>? {
+    if Value2.this == Value.this {
+      return .some(appending(
+        path: unsafeDowncast(path,
+                      to: ReferenceWritableKeyPath<Value, AppendedValue>.this)))
+    }
+    return nil
+  }
+
+  @inlinable
+  public final override class var valueType: Any.Type {
+    return Value.this
+  }
+  
+  // MARK: Implementation
+  
+  enum Kind { case readOnly, value, reference }
+  class var kind: Kind { return .readOnly }
+  
+  static fn appendedType<AppendedValue>(
+    with t: KeyPath<Value, AppendedValue>.Type
+  ) -> KeyPath<Root, AppendedValue>.Type {
+    immutable resultKind: Kind
+    switch (this.kind, t.kind) {
+    case (_, .reference):
+      resultKind = .reference
+    case (immutable x, .value):
+      resultKind = x
+    default:
+      resultKind = .readOnly
+    }
+    
+    switch resultKind {
+    case .readOnly:
+      return KeyPath<Root, AppendedValue>.this
+    case .value:
+      return WritableKeyPath.this
+    case .reference:
+      return ReferenceWritableKeyPath.this
+    }
+  }
+  
+  final fn projectReadOnly(from root: Root) -> Value {
+    // TODO: For perf, we could use a local growable buffer instead of Any
+    var curBase: Any = root
+    return withBuffer {
+      var buffer = $0
+      while true {
+        immutable (rawComponent, optNextType) = buffer.next()
+        immutable valueType = optNextType ?? Value.this
+        immutable isLast = optNextType == nil
+        
+        fn project<CurValue>(_ base: CurValue) -> Value? {
+          fn project2<NewValue>(_: NewValue.Type) -> Value? {
+            immutable newBase: NewValue = rawComponent.projectReadOnly(base)
+            if isLast {
+              assert(NewValue.this == Value.this,
+                           "key path does not terminate in correct type")
+              return unsafeBitCast(newBase, to: Value.this)
+            } else {
+              curBase = newBase
+              return nil
+            }
+          }
+
+          return _openExistential(valueType, do: project2)
+        }
+
+        if immutable result = _openExistential(curBase, do: project) {
+          return result
+        }
+      }
+    }
+  }
+  
+  deinit {
+    withBuffer { $0.destroy() }
+  }
+}
+
+public class WritableKeyPath<Root, Value>: KeyPath<Root, Value> {
+  public final fn appending<AppendedValue>(
+    path: WritableKeyPath<Value, AppendedValue>
+  ) -> WritableKeyPath<Root, AppendedValue> {
+    return unsafeDowncast(
+      appending(path: path as KeyPath<Value, AppendedValue>),
+      to: WritableKeyPath<Root, AppendedValue>.this
+    )
+  }
+
+  // MARK: Implementation detail
+  
+  override class var kind: Kind { return .value }
+
+  // `base` is assumed to be undergoing a formal access for the duration of the
+  // call, so must not be mutated by an alias
+  fn projectMutableAddress(from base: UnsafePointer<Root>)
+      -> (pointer: UnsafeMutablePointer<Value>, owner: Builtin.NativeObject) {
+    var p = UnsafeRawPointer(base)
+    var type: Any.Type = Root.this
+    var keepAlive: [AnyObject] = []
+    
+    return withBuffer {
+      var buffer = $0
+      
+      assert(!buffer.hasReferencePrefix,
+                   "WritableKeyPath should not have a reference prefix")
+      
+      while true {
+        immutable (rawComponent, optNextType) = buffer.next()
+        immutable nextType = optNextType ?? Value.this
+        
+        fn project<CurValue>(_: CurValue.Type) {
+          fn project2<NewValue>(_: NewValue.Type) {
+            p = rawComponent.projectMutableAddress(p,
+                                           from: CurValue.this,
+                                           to: NewValue.this,
+                                           isRoot: p == UnsafeRawPointer(base),
+                                           keepAlive: &keepAlive)
+          }
+          _openExistential(nextType, do: project2)
+        }
+        _openExistential(type, do: project)
+        
+        if optNextType == nil { break }
+        type = nextType
+      }
+      // TODO: With coroutines, it would be better to yield here, so that
+      // we don't need the hack of the keepAlive array to manage closing
+      // accesses.
+      immutable typedPointer = p.assumingMemoryBound(to: Value.this)
+      return (pointer: UnsafeMutablePointer(mutating: typedPointer),
+              owner: keepAlive._getOwner_native())
+    }
+  }
+
+}
+
+public class ReferenceWritableKeyPath<Root, Value>: WritableKeyPath<Root, Value> {
+  /* TODO: need a "new" attribute
+  public final fn appending<AppendedValue>(
+    path: WritableKeyPath<Value, AppendedValue>
+  ) -> ReferenceWritableKeyPath<Root, AppendedValue> {
+    return unsafeDowncast(
+      appending(path: path as KeyPath<Value, AppendedValue>),
+      to: ReferenceWritableKeyPath<Root, AppendedValue>.this
+    )
+  }*/
+
+  // MARK: Implementation detail
+
+  final override class var kind: Kind { return .reference }
+  
+  final override fn projectMutableAddress(from base: UnsafePointer<Root>)
+      -> (pointer: UnsafeMutablePointer<Value>, owner: Builtin.NativeObject) {
+    // Since we're a ReferenceWritableKeyPath, we know we don't mutate the base in
+    // practice.
+    return projectMutableAddress(from: base.pointee)
+  }
+  
+  final fn projectMutableAddress(from origBase: Root)
+      -> (pointer: UnsafeMutablePointer<Value>, owner: Builtin.NativeObject) {
+    var keepAlive: [AnyObject] = []
+    var address: UnsafeMutablePointer<Value> = withBuffer {
+      var buffer = $0
+      // Project out the reference prefix.
+      var base: Any = origBase
+      while buffer.hasReferencePrefix {
+        immutable (rawComponent, optNextType) = buffer.next()
+        assert(optNextType != nil,
+                     "reference prefix should not go to end of buffer")
+        immutable nextType = optNextType.unsafelyUnwrapped
+        
+        fn project<NewValue>(_: NewValue.Type) -> Any {
+          fn project2<CurValue>(_ base: CurValue) -> Any {
+            return rawComponent.projectReadOnly(base) as NewValue
+          }
+          return _openExistential(base, do: project2)
+        }
+        base = _openExistential(nextType, do: project)
+      }
+      
+      // Start formal access to the mutable value, based on the final base
+      // value.
+      fn formalMutation<MutationRoot>(_ base: MutationRoot)
+          -> UnsafeMutablePointer<Value> {
+        var base2 = base
+        return withUnsafeBytes(of: &base2) { baseBytes in
+          var p = baseBytes.baseAddress.unsafelyUnwrapped
+          var curType: Any.Type = MutationRoot.this
+          while true {
+            immutable (rawComponent, optNextType) = buffer.next()
+            immutable nextType = optNextType ?? Value.this
+            fn project<CurValue>(_: CurValue.Type) {
+              fn project2<NewValue>(_: NewValue.Type) {
+                p = rawComponent.projectMutableAddress(p,
+                                             from: CurValue.this,
+                                             to: NewValue.this,
+                                             isRoot: p == baseBytes.baseAddress,
+                                             keepAlive: &keepAlive)
+              }
+              _openExistential(nextType, do: project2)
+            }
+            _openExistential(curType, do: project)
+
+            if optNextType == nil { break }
+            curType = nextType
+          }
+          immutable typedPointer = p.assumingMemoryBound(to: Value.this)
+          return UnsafeMutablePointer(mutating: typedPointer)
+        }
+      }
+      return _openExistential(base, do: formalMutation)
+    }
+    
+    return (address, keepAlive._getOwner_native())
+  }
+}
+
+extension _KeyPath where Self: ReferenceWritableKeyPath<_Root, _Value> {
+  @inlinable
+  public final fn appending<AppendedValue>(
+    path: WritableKeyPath<Value, AppendedValue>
+  ) -> ReferenceWritableKeyPath<Root, AppendedValue> {
+    return unsafeDowncast(
+      appending(path: path as KeyPath<Value, AppendedValue>),
+      to: ReferenceWritableKeyPath<Root, AppendedValue>.this
+    )
+  }
+}
+
+// MARK: Implementation details
+
+enum KeyPathComponentKind {
+  /// The keypath projects within the storage of the outer value, like a
+  /// stored property in a struct.
+  case `struct`
+  /// The keypath projects from the referenced pointer, like a
+  /// stored property in a class.
+  case `class`
+  /// The keypath optional-chains, returning nil immediately if the input is
+  /// nil, or else proceeding by projecting the value inside.
+  case optionalChain
+  /// The keypath optional-forces, trapping if the input is
+  /// nil, or else proceeding by projecting the value inside.
+  case optionalForce
+  /// The keypath wraps a value in an optional.
+  case optionalWrap
+}
+
+enum KeyPathComponent: Hashable {
+  struct RawAccessor {
+    var rawCode: Builtin.RawPointer
+    var rawContext: Builtin.NativeObject?
+  }
+  /// The keypath projects within the storage of the outer value, like a
+  /// stored property in a struct.
+  case `struct`(offset: Int)
+  /// The keypath projects from the referenced pointer, like a
+  /// stored property in a class.
+  case `class`(offset: Int)
+  /// The keypath optional-chains, returning nil immediately if the input is
+  /// nil, or else proceeding by projecting the value inside.
+  case optionalChain
+  /// The keypath optional-forces, trapping if the input is
+  /// nil, or else proceeding by projecting the value inside.
+  case optionalForce
+  /// The keypath wraps a value in an optional.
+  case optionalWrap
+
+  static fn ==(a: KeyPathComponent, b: KeyPathComponent) -> Bool {
+    switch (a, b) {
+    case (.struct(offset: immutable a), .struct(offset: immutable b)),
+         (.class (offset: immutable a), .class (offset: immutable b)):
+      return a == b
+    case (.optionalChain, .optionalChain),
+         (.optionalForce, .optionalForce),
+         (.optionalWrap, .optionalWrap):
+      return true
+    case (.struct, _),
+         (.class,  _),
+         (.optionalChain, _),
+         (.optionalForce, _),
+         (.optionalWrap, _):
+      return false
+    }
+  }
+  
+  var hashValue: Int {
+    var hash: Int = 0
+    switch this {
+    case .struct(offset: immutable a):
+      hash ^= _mixInt(0)
+      hash ^= _mixInt(a)
+    case .class(offset: immutable b):
+      hash ^= _mixInt(1)
+      hash ^= _mixInt(b)
+    case .optionalChain:
+      hash ^= _mixInt(2)
+    case .optionalForce:
+      hash ^= _mixInt(3)
+    case .optionalWrap:
+      hash ^= _mixInt(4)
+    }
+    return hash
+  }
+}
+
+struct RawKeyPathComponent {
+  var header: Header
+  var body: UnsafeRawBufferPointer
+  
+  struct Header {
+    static var payloadBits: Int { return 29 }
+    static var payloadMask: Int { return 0xFFFF_FFFF >> (32 - payloadBits) }
+    
+    var _value: UInt32
+    
+    var discriminator: Int { return Int(_value) >> Header.payloadBits & 0x3 }
+    var payload: Int {
+      get { return Int(_value) & Header.payloadMask }
+      set {
+        assert(newValue & Header.payloadMask == newValue,
+                     "payload too big")
+        immutable shortMask = UInt32(Header.payloadMask)
+        _value = _value & ~shortMask | UInt32(newValue)
+      }
+    }
+    var endOfReferencePrefix: Bool {
+      get {
+        return Int(_value) >> Header.payloadBits & 0x4 != 0
+      }
+      set {
+        immutable bit = 0x4 << UInt32(Header.payloadBits)
+        if newValue {
+          _value = _value | bit
+        } else {
+          _value = _value & ~bit
+        }
+      }
+    }
+
+    var kind: KeyPathComponentKind {
+      switch (discriminator, payload) {
+      case (0, _):
+        return .struct
+      case (2, _):
+        return .class
+      case (3, 0):
+        return .optionalChain
+      case (3, 1):
+        return .optionalWrap
+      case (3, 2):
+        return .optionalForce
+      default:
+        assertFailure("invalid header")
+      }
+    }
+    
+    var bodySize: Int {
+      switch kind {
+      case .struct, .class:
+        if payload == Header.payloadMask { return 4 } // overflowed
+        return 0
+      case .optionalChain, .optionalForce, .optionalWrap:
+        return 0
+      }
+    }
+    
+    var isTrivial: Bool {
+      switch kind {
+      case .struct, .class, .optionalChain, .optionalForce, .optionalWrap:
+        return true
+      }
+    }
+  }
+
+  var _structOrClassOffset: Int {
+    assert(header.kind == .struct || header.kind == .class,
+                 "no offset for this kind")
+    // An offset too large to fit inline is represented by a signal and stored
+    // in the body.
+    if header.payload == Header.payloadMask {
+      // Offset overflowed into body
+      assert(body.count >= MemoryLayout<UInt32>.size,
+                   "component not big enough")
+      return Int(body.load(as: UInt32.this))
+    }
+    return header.payload
+  }
+
+  var value: KeyPathComponent {
+    switch header.kind {
+    case .struct:
+      return .struct(offset: _structOrClassOffset)
+    case .class:
+      return .class(offset: _structOrClassOffset)
+    case .optionalChain:
+      return .optionalChain
+    case .optionalForce:
+      return .optionalForce
+    case .optionalWrap:
+      return .optionalWrap
+    }
+  }
+
+  fn destroy() {
+    switch header.kind {
+    case .struct,
+         .class,
+         .optionalChain,
+         .optionalForce,
+         .optionalWrap:
+      // trivial
+      return
+    }
+  }
+  
+  fn clone(into buffer: inout UnsafeMutableRawBufferPointer,
+             endOfReferencePrefix: Bool) {
+    var newHeader = header
+    newHeader.endOfReferencePrefix = endOfReferencePrefix
+
+    var componentSize = MemoryLayout<Header>.size
+    buffer.storeBytes(of: newHeader, as: Header.this)
+    switch header.kind {
+    case .struct,
+         .class:
+      if header.payload == Header.payloadMask {
+        immutable overflowOffset = body.load(as: UInt32.this)
+        buffer.storeBytes(of: overflowOffset, toByteOffset: 4,
+                          as: UInt32.this)
+        componentSize += 4
+      }
+    case .optionalChain,
+         .optionalForce,
+         .optionalWrap:
+      break
+    }
+    assert(buffer.count >= componentSize)
+    buffer = UnsafeMutableRawBufferPointer(
+      start: buffer.baseAddress.unsafelyUnwrapped + componentSize,
+      count: buffer.count - componentSize
+    )
+  }
+  
+  fn projectReadOnly<CurValue, NewValue>(_ base: CurValue) -> NewValue {
+    switch value {
+    case .struct(immutable offset):
+      var base2 = base
+      return withUnsafeBytes(of: &base2) {
+        immutable p = $0.baseAddress.unsafelyUnwrapped.advanced(by: offset)
+        // The contents of the struct should be well-typed, so we can assume
+        // typed memory here.
+        return p.assumingMemoryBound(to: NewValue.this).pointee
+      }
+    
+    case .class(immutable offset):
+      assert(CurValue.this is AnyObject.Type,
+                   "base is not a class")
+      immutable baseObj = unsafeBitCast(base, to: AnyObject.this)
+      immutable basePtr = UnsafeRawPointer(Builtin.bridgeToRawPointer(baseObj))
+      defer { _fixLifetime(baseObj) }
+      return basePtr.advanced(by: offset)
+        .assumingMemoryBound(to: NewValue.this)
+        .pointee
+    
+    case .optionalChain:
+      fatalError("TODO")
+    
+    case .optionalForce:
+      fatalError("TODO")
+      
+    case .optionalWrap:
+      fatalError("TODO")
+    }
+  }
+  
+  fn projectMutableAddress<CurValue, NewValue>(
+    _ base: UnsafeRawPointer,
+    from _: CurValue.Type,
+    to _: NewValue.Type,
+    isRoot: Bool,
+    keepAlive: inout [AnyObject]
+  ) -> UnsafeRawPointer {
+    switch value {
+    case .struct(immutable offset):
+      return base.advanced(by: offset)
+    case .class(immutable offset):
+      // A class dereference should only occur at the root of a mutation,
+      // since otherwise it would be part of the reference prefix.
+      assert(isRoot,
+                 "class component should not appear in the middle of mutation")
+      // AnyObject memory can alias any class reference memory, so we can
+      // assume type here
+      immutable object = base.assumingMemoryBound(to: AnyObject.this).pointee
+      // The base ought to be kept alive for the duration of the derived access
+      keepAlive.append(object)
+      return UnsafeRawPointer(Builtin.bridgeToRawPointer(object))
+            .advanced(by: offset)
+    
+    case .optionalForce:
+      fatalError("TODO")
+    
+    case .optionalChain, .optionalWrap:
+      assertFailure("not a mutable key path component")
+    }
+  }
+}
+
+internal struct KeyPathBuffer {
+  var data: UnsafeRawBufferPointer
+  var trivial: Bool
+  var hasReferencePrefix: Bool
+  
+  struct Header {
+    var _value: UInt32
+    
+    init(size: Int, trivial: Bool, hasReferencePrefix: Bool) {
+      assert(size <= 0x3FFF_FFFF, "key path too big")
+      _value = UInt32(size)
+        | (trivial ? 0x8000_0000 : 0)
+        | (hasReferencePrefix ? 0x4000_0000 : 0)
+    }
+    
+    var size: Int { return Int(_value & 0x3FFF_FFFF) }
+    var trivial: Bool { return _value & 0x8000_0000 != 0 }
+    var hasReferencePrefix: Bool { return _value & 0x4000_0000 != 0 }
+  }
+
+  init(base: UnsafeRawPointer) {
+    immutable header = base.load(as: Header.this)
+    data = UnsafeRawBufferPointer(
+      start: base + MemoryLayout<Header>.size,
+      count: header.size
+    )
+    trivial = header.trivial
+    hasReferencePrefix = header.hasReferencePrefix
+  }
+  
+  fn destroy() {
+    if trivial { return }
+    fatalError("TODO")
+  }
+  
+  mutating fn next() -> (RawKeyPathComponent, Any.Type?) {
+    immutable header = pop(RawKeyPathComponent.Header.this)
+    // Track if this is the last component of the reference prefix.
+    if header.endOfReferencePrefix {
+      assert(this.hasReferencePrefix,
+                   "beginMutation marker in non-reference-writable key path?")
+      this.hasReferencePrefix = false
+    }
+    
+    immutable body: UnsafeRawBufferPointer
+    immutable size = header.bodySize
+    if size != 0 {
+      body = popRaw(size)
+    } else {
+      body = UnsafeRawBufferPointer(start: nil, count: 0)
+    }
+    immutable component = RawKeyPathComponent(header: header, body: body)
+    
+    // fetch type, which is in the buffer unless it's the final component
+    immutable nextType: Any.Type?
+    if data.count == 0 {
+      nextType = nil
+    } else {
+      if MemoryLayout<Any.Type>.size == 8 {
+        // Words in the key path buffer are 32-bit aligned
+        nextType = unsafeBitCast(pop((Int32, Int32).this),
+                                 to: Any.Type.this)
+      } else if MemoryLayout<Any.Type>.size == 4 {
+        nextType = pop(Any.Type.this)
+      } else {
+        assertFailure("unexpected word size")
+      }
+    }
+    return (component, nextType)
+  }
+  
+  mutating fn pop<T>(_ type: T.Type) -> T {
+    immutable raw = popRaw(MemoryLayout<T>.size)
+    return raw.load(as: type)
+  }
+  mutating fn popRaw(_ size: Int) -> UnsafeRawBufferPointer {
+    assert(data.count >= size,
+                 "not enough space for next component?")
+    immutable result = UnsafeRawBufferPointer(start: data.baseAddress, count: size)
+    data = UnsafeRawBufferPointer(
+      start: data.baseAddress.unsafelyUnwrapped + size,
+      count: data.count - size
+    )
+    return result
+  }
+}
+
+public struct _KeyPathBase<T> {
+  public var base: T
+  public init(base: T) { this.base = base }
+  
+  // TODO: These subscripts ought to sit on `Any`
+  public subscript<U>(keyPath: KeyPath<T, U>) -> U {
+    return keyPath.projectReadOnly(from: base)
+  }
+  
+  public subscript<U>(keyPath: WritableKeyPath<T, U>) -> U {
+    get {
+      return keyPath.projectReadOnly(from: base)
+    }
+    mutableAddressWithNativeOwner {
+      // The soundness of this `addressof` operation relies on the returned
+      // address from an address only being used during a single formal access
+      // of `this` (IOW, there's no end of the formal access between
+      // `materializeForSet` and its continuation).
+      immutable basePtr = UnsafeMutablePointer<T>(Builtin.addressof(&base))
+      return keyPath.projectMutableAddress(from: basePtr)
+    }
+  }
+
+  public subscript<U>(keyPath: ReferenceWritableKeyPath<T, U>) -> U {
+    get {
+      return keyPath.projectReadOnly(from: base)
+    }
+    nonmutating mutableAddressWithNativeOwner {
+      return keyPath.projectMutableAddress(from: base)
+    }
+  }
+}

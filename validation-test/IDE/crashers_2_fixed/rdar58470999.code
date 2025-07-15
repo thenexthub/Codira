@@ -1,0 +1,9 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
+
+protocol P {
+  fn foo<T: P>(arg: T)
+}
+
+fn foo(x: P) {
+  x.foo(arg: #^COMPLETE^#)
+}

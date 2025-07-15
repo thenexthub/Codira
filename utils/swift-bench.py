@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-# ===--- swift-bench.py ------------------------------*- coding: utf-8 -*-===//
+# ===--- language-bench.py ------------------------------*- coding: utf-8 -*-===//
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
-# This file implements a test harness for running Swift performance benchmarks.
+# This file implements a test harness for running Codira performance benchmarks.
 #
-# Its input is a set of swift files, containing functions named 'bench_*' that
+# Its input is a set of language files, containing functions named 'bench_*' that
 # take no arguments and returns Int. The harness makes a separate test from
 # each of these functions, runs all the tests and reports aggregate results.
 #
@@ -40,16 +40,16 @@ import subprocess
 import sys
 
 
-# This regular expression is looking for Swift functions named `bench_*`
-# that take no arguments and return an Int.  The Swift code for such
+# This regular expression is looking for Codira functions named `bench_*`
+# that take no arguments and return an Int.  The Codira code for such
 # a function is:
 #
-#     func bench_myname() {
+#     fn bench_myname() {
 #         // function body goes here
 #     }
 BENCH_RE = re.compile(
     r"^\s*"             # whitespace at the start of the line
-    r"func\s+"          # 'func' keyword, which must be followed by
+    r"fn\s+"          # 'fn' keyword, which must be followed by
                         # at least one space
     r"bench_([a-zA-Z0-9_]+)\s*"
                         # name of the function
@@ -76,7 +76,7 @@ def pstdev(sample):
     return math.sqrt(inner)
 
 
-class SwiftBenchHarness(object):
+class CodiraBenchHarness(object):
     sources = []
     verbose_level = 0
     compiler = ""
@@ -105,7 +105,7 @@ class SwiftBenchHarness(object):
         parser.add_argument("files", help="input files", nargs='+')
         parser.add_argument(
             '-c', '--compiler',
-            help="compiler to use", default="swiftc")
+            help="compiler to use", default="languagec")
         parser.add_argument(
             '-t', '--timelimit',
             help="Time limit for every test", type=int)
@@ -136,14 +136,14 @@ class SwiftBenchHarness(object):
         self.log("Processing source file: %s." % name, 2)
 
         header = """
-@_silgen_name("mach_absolute_time") func __mach_absolute_time__() -> UInt64
+@_silgen_name("mach_absolute_time") fn __mach_absolute_time__() -> UInt64
 @_silgen_name("opaqueGetInt32")
-func _opaqueGetInt32(x: Int) -> Int
+fn _opaqueGetInt32(x: Int) -> Int
 @_silgen_name("opaqueGetInt64")
-func _opaqueGetInt64(x: Int) -> Int
+fn _opaqueGetInt64(x: Int) -> Int
 
 @inline(never)
-public func getInt(x: Int) -> Int {
+public fn getInt(x: Int) -> Int {
 #if arch(i386) || arch(arm) || arch(arm64_32)|| arch(powerpc)
   return _opaqueGetInt32(x)
 #elseif arch(x86_64) || arch(arm64) || arch(powerpc64) || \
@@ -154,9 +154,9 @@ arch(powerpc64le) || arch(s390x)
 #endif
 }
 @inline(never)
-func False() -> Bool { return getInt(1) == 0 }
+fn False() -> Bool { return getInt(1) == 0 }
 @inline(never)
-func Consume(x: Int) { if False() { println(x) } }
+fn Consume(x: Int) { if False() { println(x) } }
 """
         before_bench = """
 @inline(never)
@@ -165,7 +165,7 @@ func Consume(x: Int) { if False() { println(x) } }
   if False() { return 0 }
 """
         main_begin = """
-func main() {
+fn main() {
   var N = 1
   var name = ""
   if CommandLine.arguments.count > 1 {
@@ -424,7 +424,7 @@ class TestResults(object):
 
 
 def main():
-    harness = SwiftBenchHarness()
+    harness = CodiraBenchHarness()
     harness.parse_arguments()
     harness.process_sources()
     harness.compile_sources()

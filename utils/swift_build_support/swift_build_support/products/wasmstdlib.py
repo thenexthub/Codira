@@ -1,20 +1,24 @@
-# swift_build_support/products/wasmstdlib.py --------------------*- python -*-
+# language_build_support/products/wasmstdlib.py --------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-# Copyright (c) 2023 Apple Inc. and the Swift project authors
-# Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
+
 #
 # ----------------------------------------------------------------------------
 
 import os
 
 from . import cmake_product
-from . import llvm
-from . import swift
+from . import toolchain
+from . import language
 from . import wasisysroot
 from . import wasmkit
 from .. import cmake
@@ -24,7 +28,7 @@ from .. import shell
 class WasmStdlib(cmake_product.CMakeProduct):
     @classmethod
     def product_source_name(cls):
-        return "swift"
+        return "language"
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -44,41 +48,43 @@ class WasmStdlib(cmake_product.CMakeProduct):
         self._build(host_target, 'wasm32-wasi', 'wasi-wasm32')
 
     def _build(self, host_target, target_triple, short_triple):
-        llvm_build_dir = self._configure_llvm(target_triple, short_triple)
-        llvm_cmake_dir = os.path.join(llvm_build_dir, 'lib', 'cmake', 'llvm')
-        self._build_stdlib(host_target, target_triple, llvm_cmake_dir)
+        toolchain_build_dir = self._configure_toolchain(target_triple, short_triple)
+        toolchain_cmake_dir = os.path.join(toolchain_build_dir, 'lib', 'cmake', 'toolchain')
+        self._build_stdlib(host_target, target_triple, toolchain_cmake_dir)
 
-    def _configure_llvm(self, target_triple, short_triple):
+    def _configure_toolchain(self, target_triple, short_triple):
         # Configure LLVM for WebAssembly target independently
         # from the native LLVM build to turn off zlib and libxml2
         build_root = os.path.dirname(self.build_dir)
         build_dir = os.path.join(
-            build_root, 'llvm-%s' % short_triple)
-        llvm_source_dir = os.path.join(
-            os.path.dirname(self.source_dir), 'llvm-project', 'llvm')
+            build_root, 'toolchain-%s' % short_triple)
+        toolchain_source_dir = os.path.join(
+            os.path.dirname(self.source_dir), 'toolchain-project', 'toolchain')
         cmake_options = cmake.CMakeOptions()
         cmake_options.define('CMAKE_BUILD_TYPE:STRING', self._build_variant)
         # compiler-rt for WebAssembly target is not installed in the host toolchain
         # so skip compiler health checks here.
         cmake_options.define('CMAKE_C_COMPILER_WORKS:BOOL', 'TRUE')
         cmake_options.define('CMAKE_CXX_COMPILER_WORKS:BOOL', 'TRUE')
-        cmake_options.define('LLVM_COMPILER_CHECKED:BOOL', 'TRUE')
-        cmake_options.define('LLVM_ENABLE_ZLIB:BOOL', 'FALSE')
-        cmake_options.define('LLVM_ENABLE_LIBXML2:BOOL', 'FALSE')
-        cmake_options.define('LLVM_ENABLE_LIBEDIT:BOOL', 'FALSE')
-        cmake_options.define('LLVM_ENABLE_TERMINFO:BOOL', 'FALSE')
+        cmake_options.define('TOOLCHAIN_COMPILER_CHECKED:BOOL', 'TRUE')
+        cmake_options.define('TOOLCHAIN_ENABLE_ZLIB:BOOL', 'FALSE')
+        cmake_options.define('TOOLCHAIN_ENABLE_LIBXML2:BOOL', 'FALSE')
+        cmake_options.define('TOOLCHAIN_ENABLE_LIBEDIT:BOOL', 'FALSE')
+        cmake_options.define('TOOLCHAIN_ENABLE_TERMINFO:BOOL', 'FALSE')
+        if self.args.build_runtime_with_host_compiler:
+            cmake_options.define('CMAKE_ASM_COMPILER:PATH', self.toolchain.cc)
 
-        llvm_cmake = cmake.CMake(
-            self.args, self.toolchain, prefer_native_toolchain=True)
+        toolchain_cmake = cmake.CMake(
+            self.args, self.toolchain, prefer_native_toolchain=not self.args.build_runtime_with_host_compiler)
         # Only configure LLVM, not build it because we just need
         # LLVM CMake functionalities
         shell.call(["env", self.toolchain.cmake, "-B", build_dir]
-                   + list(llvm_cmake.common_options(self))
+                   + list(toolchain_cmake.common_options(self))
                    + list(cmake_options)
-                   + [llvm_source_dir])
+                   + [toolchain_source_dir])
         return build_dir
 
-    def _build_stdlib(self, host_target, target_triple, llvm_cmake_dir):
+    def _build_stdlib(self, host_target, target_triple, toolchain_cmake_dir):
         self.cmake_options.define('CMAKE_INSTALL_PREFIX:PATH', '/usr')
         self.cmake_options.define('CMAKE_BUILD_TYPE:STRING', self._build_variant)
         # Teach about the WebAssembly target. UNIX is explicitly set to TRUE
@@ -88,98 +94,111 @@ class WasmStdlib(cmake_product.CMakeProduct):
         self.cmake_options.define('CMAKE_SYSTEM_PROCESSOR:STRING', 'wasm32')
         self.cmake_options.define('UNIX:BOOL', 'TRUE')
         self.cmake_options.define(
-            'SWIFT_STDLIB_BUILD_TYPE:STRING', self._build_variant)
+            'LANGUAGE_STDLIB_BUILD_TYPE:STRING', self._build_variant)
 
-        # Toolchain configuration
-        toolchain_path = self.native_toolchain_path(host_target)
-        # Explicitly set the CMake AR and RANLIB to force it to use llvm-ar/llvm-ranlib
-        # instead of the system ar/ranlib, which usually don't support WebAssembly
-        # object files.
-        self.cmake_options.define('CMAKE_AR:STRING', os.path.join(
-            toolchain_path, 'bin', 'llvm-ar'))
-        self.cmake_options.define('CMAKE_RANLIB:STRING', os.path.join(
-            toolchain_path, 'bin', 'llvm-ranlib'))
-        self.cmake_options.define(
-            'SWIFT_NATIVE_CLANG_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
-        self.cmake_options.define(
-            'SWIFT_NATIVE_SWIFT_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
-        self.cmake_options.define(
-            'SWIFT_NATIVE_LLVM_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
-        self.cmake_options.define(
-            'BOOTSTRAPPING_MODE:STRING', 'CROSSCOMPILE')
-        self.cmake_options.define(
-            'SWIFT_BUILD_RUNTIME_WITH_HOST_COMPILER:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_WASI_SYSROOT_PATH:STRING',
+        if self.args.build_runtime_with_host_compiler:
+            self.cmake_options.define('LANGUAGE_BUILD_RUNTIME_WITH_HOST_COMPILER:BOOL', "TRUE")
+            self.cmake_options.define(
+                'LANGUAGE_NATIVE_CLANG_TOOLS_PATH:STRING', os.path.dirname(self.toolchain.cc))
+            self.cmake_options.define(
+                'LANGUAGE_NATIVE_LANGUAGE_TOOLS_PATH:STRING', os.path.dirname(self.toolchain.codec))
+            self.cmake_options.define(
+                'LANGUAGE_NATIVE_TOOLCHAIN_TOOLS_PATH:STRING', os.path.dirname(self.toolchain.toolchain_ar))
+        else:
+            # Toolchain configuration
+            toolchain_path = self.native_toolchain_path(host_target)
+            # Explicitly set the CMake AR and RANLIB to force it to use toolchain-ar/toolchain-ranlib
+            # instead of the system ar/ranlib, which usually don't support WebAssembly
+            # object files.
+            self.cmake_options.define('CMAKE_AR:STRING', os.path.join(
+                toolchain_path, 'bin', 'toolchain-ar'))
+            self.cmake_options.define('CMAKE_RANLIB:STRING', os.path.join(
+                toolchain_path, 'bin', 'toolchain-ranlib'))
+            self.cmake_options.define(
+                'LANGUAGE_NATIVE_CLANG_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
+            self.cmake_options.define(
+                'LANGUAGE_NATIVE_LANGUAGE_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
+            self.cmake_options.define(
+                'LANGUAGE_NATIVE_TOOLCHAIN_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
+            self.cmake_options.define(
+                'BOOTSTRAPPING_MODE:STRING', 'CROSSCOMPILE')
+            self.cmake_options.define(
+                'LANGUAGE_BUILD_RUNTIME_WITH_HOST_COMPILER:BOOL', 'FALSE')
+
+        self.cmake_options.define('LANGUAGE_WASI_SYSROOT_PATH:STRING',
                                   self._wasi_sysroot_path(target_triple))
 
         # compiler-rt for WebAssembly target is not installed in the host toolchain
         # so skip compiler health checks here.
         self.cmake_options.define('CMAKE_C_COMPILER_WORKS:BOOL', 'TRUE')
         self.cmake_options.define('CMAKE_CXX_COMPILER_WORKS:BOOL', 'TRUE')
-        self.cmake_options.define('CMAKE_Swift_COMPILER_WORKS:BOOL', 'TRUE')
-        self.cmake_options.define('LLVM_COMPILER_CHECKED:BOOL', 'TRUE')
+        self.cmake_options.define('CMAKE_Codira_COMPILER_WORKS:BOOL', 'TRUE')
+        self.cmake_options.define('TOOLCHAIN_COMPILER_CHECKED:BOOL', 'TRUE')
 
-        self.cmake_options.define('LLVM_DIR:PATH', llvm_cmake_dir)
+        self.cmake_options.define('TOOLCHAIN_DIR:PATH', toolchain_cmake_dir)
 
         # Standalone stdlib configuration
-        self.cmake_options.define('SWIFT_INCLUDE_TOOLS:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_INCLUDE_DOCS:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_BUILD_REMOTE_MIRROR:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_BUILD_SOURCEKIT:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_INCLUDE_TOOLS:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_INCLUDE_DOCS:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_BUILD_REMOTE_MIRROR:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_BUILD_SOURCEKIT:BOOL', 'FALSE')
 
         # Stdlib configuration
-        self.cmake_options.define('SWIFT_PRIMARY_VARIANT_SDK:STRING', 'WASI')
-        self.cmake_options.define('SWIFT_PRIMARY_VARIANT_ARCH:STRING', 'wasm32')
-        self.cmake_options.define('SWIFT_SDKS:STRING', 'WASI')
+        self.cmake_options.define('LANGUAGE_PRIMARY_VARIANT_SDK:STRING', 'WASI')
+        self.cmake_options.define('LANGUAGE_PRIMARY_VARIANT_ARCH:STRING', 'wasm32')
+        self.cmake_options.define('LANGUAGE_SDKS:STRING', 'WASI')
         # Build only static stdlib
-        self.cmake_options.define('SWIFT_BUILD_STATIC_STDLIB:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_BUILD_DYNAMIC_STDLIB:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_BUILD_STATIC_SDK_OVERLAY:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_BUILD_STATIC_STDLIB:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_BUILD_DYNAMIC_STDLIB:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_BUILD_STATIC_SDK_OVERLAY:BOOL', 'TRUE')
         # TODO: Turn off library evolution once we establish a good way to teach
-        # libraries including swift-testing whether to use the stable ABI.
-        self.cmake_options.define('SWIFT_STDLIB_STABLE_ABI:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_STDLIB_TRACING:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_STDLIB_HAS_ASLR:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_STDLIB_CONCURRENCY_TRACING:BOOL', 'FALSE')
+        # libraries including language-testing whether to use the stable ABI.
+        self.cmake_options.define('LANGUAGE_STDLIB_STABLE_ABI:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_STDLIB_TRACING:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_STDLIB_HAS_ASLR:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_STDLIB_CONCURRENCY_TRACING:BOOL', 'FALSE')
         self.cmake_options.define(
-            'SWIFT_STDLIB_INSTALL_PARENT_MODULE_FOR_SHIMS:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_RUNTIME_CRASH_REPORTER_CLIENT:BOOL', 'FALSE')
+            'LANGUAGE_STDLIB_INSTALL_PARENT_MODULE_FOR_SHIMS:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_RUNTIME_CRASH_REPORTER_CLIENT:BOOL', 'FALSE')
         self.cmake_options.define(
-            'SWIFT_STDLIB_SINGLE_THREADED_CONCURRENCY:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_DISPATCH:BOOL', 'FALSE')
+            'LANGUAGE_STDLIB_SINGLE_THREADED_CONCURRENCY:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_DISPATCH:BOOL', 'FALSE')
         self.cmake_options.define(
-            'SWIFT_STDLIB_SUPPORTS_BACKTRACE_REPORTING:BOOL', 'FALSE')
-        self.cmake_options.define('SWIFT_STDLIB_HAS_DLADDR:BOOL', 'FALSE')
+            'LANGUAGE_STDLIB_SUPPORTS_BACKTRACE_REPORTING:BOOL', 'FALSE')
+        self.cmake_options.define('LANGUAGE_STDLIB_HAS_DLADDR:BOOL', 'FALSE')
         self.cmake_options.define(
-            'SWIFT_STDLIB_COMPACT_ABSOLUTE_FUNCTION_POINTER:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_EXPERIMENTAL_DISTRIBUTED:BOOL', 'TRUE')
+            'LANGUAGE_STDLIB_COMPACT_ABSOLUTE_FUNCTION_POINTER:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_EXPERIMENTAL_DISTRIBUTED:BOOL', 'TRUE')
         self.cmake_options.define(
-            'SWIFT_ENABLE_EXPERIMENTAL_STRING_PROCESSING:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_PATH_TO_STRING_PROCESSING_SOURCE:PATH',
+            'LANGUAGE_ENABLE_EXPERIMENTAL_STRING_PROCESSING:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_PATH_TO_STRING_PROCESSING_SOURCE:PATH',
                                   os.path.join(self.source_dir, '..',
-                                               'swift-experimental-string-processing'))
-        self.cmake_options.define('SWIFT_ENABLE_EXPERIMENTAL_CXX_INTEROP:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_SYNCHRONIZATION:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_VOLATILE:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_EXPERIMENTAL_OBSERVATION:BOOL', 'TRUE')
+                                               'language-experimental-string-processing'))
+        self.cmake_options.define('LANGUAGE_ENABLE_EXPERIMENTAL_CXX_INTEROP:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_SYNCHRONIZATION:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_VOLATILE:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_EXPERIMENTAL_OBSERVATION:BOOL', 'TRUE')
 
-        self.cmake_options.define('SWIFT_SHOULD_BUILD_EMBEDDED_STDLIB:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_SHOULD_BUILD_EMBEDDED_STDLIB:BOOL', 'TRUE')
         self.cmake_options.define(
-            'SWIFT_SHOULD_BUILD_EMBEDDED_STDLIB_CROSS_COMPILING', 'TRUE')
+            'LANGUAGE_SHOULD_BUILD_EMBEDDED_STDLIB_CROSS_COMPILING', 'TRUE')
         self.cmake_options.define(
-            'SWIFT_SDK_embedded_ARCH_wasm32-unknown-wasip1_PATH:PATH',
+            'LANGUAGE_SDK_embedded_ARCH_wasm32_PATH:PATH',
+            self._wasi_sysroot_path("wasm32-wasi"))
+        self.cmake_options.define(
+            'LANGUAGE_SDK_embedded_ARCH_wasm32-unknown-wasip1_PATH:PATH',
             self._wasi_sysroot_path("wasm32-wasi"))
 
         self.add_extra_cmake_options()
 
         # Test configuration
-        self.cmake_options.define('SWIFT_INCLUDE_TESTS:BOOL', 'TRUE')
-        self.cmake_options.define('SWIFT_ENABLE_SOURCEKIT_TESTS:BOOL', 'FALSE')
-        lit_test_paths = ['IRGen', 'stdlib', 'Concurrency/Runtime', 'embedded/wasm']
+        self.cmake_options.define('LANGUAGE_INCLUDE_TESTS:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_SOURCEKIT_TESTS:BOOL', 'FALSE')
+        lit_test_paths = ['IRGen', 'stdlib', 'Concurrency/Runtime', 'embedded']
         lit_test_paths = [os.path.join(
             self.build_dir, 'test-wasi-wasm32', path) for path in lit_test_paths]
-        self.cmake_options.define('SWIFT_LIT_TEST_PATHS:STRING',
+        self.cmake_options.define('LANGUAGE_LIT_TEST_PATHS:STRING',
                                   ';'.join(lit_test_paths))
         test_driver_options = [
             # compiler-rt is not installed in the final toolchain, so use one
@@ -187,37 +206,37 @@ class WasmStdlib(cmake_product.CMakeProduct):
             '-Xclang-linker', '-resource-dir=' + self._wasi_sysroot_path(target_triple),
         ]
         # Leading space is needed to separate from other options
-        self.cmake_options.define('SWIFT_DRIVER_TEST_OPTIONS:STRING',
+        self.cmake_options.define('LANGUAGE_DRIVER_TEST_OPTIONS:STRING',
                                   ' ' + ' '.join(test_driver_options))
 
         # Configure with WebAssembly target variant, and build with just-built toolchain
         self.build_with_cmake([], self._build_variant, [],
-                              prefer_native_toolchain=True)
+                              prefer_native_toolchain=not self.args.build_runtime_with_host_compiler)
 
     def add_extra_cmake_options(self):
-        self.cmake_options.define('SWIFT_THREADING_PACKAGE:STRING', 'none')
+        self.cmake_options.define('LANGUAGE_THREADING_PACKAGE:STRING', 'none')
 
     def test(self, host_target):
         build_root = os.path.dirname(self.build_dir)
         bin_paths = [
-            os.path.join(self._host_swift_build_dir(host_target), 'bin'),
-            os.path.join(self._host_llvm_build_dir(host_target), 'bin'),
+            os.path.join(self._host_language_build_dir(host_target), 'bin'),
+            os.path.join(self._host_toolchain_build_dir(host_target), 'bin'),
             os.environ['PATH']
         ]
         wasmkit_build_path = os.path.join(
             build_root, '%s-%s' % ('wasmkit', host_target))
         wasmkit_bin_path = wasmkit.WasmKit.cli_file_path(wasmkit_build_path)
         if not os.path.exists(wasmkit_bin_path) or not self.should_test_executable():
-            test_target = "check-swift-only_non_executable-wasi-wasm32-custom"
+            test_target = "check-language-only_non_executable-wasi-wasm32-custom"
         else:
-            test_target = "check-swift-wasi-wasm32-custom"
+            test_target = "check-language-wasi-wasm32-custom"
             bin_paths = [os.path.dirname(wasmkit_bin_path)] + bin_paths
 
         env = {
             'PATH': os.path.pathsep.join(bin_paths),
             # FIXME: WasmKit takes too long to run these exhaustive tests for now
             'LIT_FILTER_OUT':
-                '(Concurrency/Runtime/clock.swift|stdlib/StringIndex.swift)',
+                '(Concurrency/Runtime/clock.code|stdlib/StringIndex.code)',
         }
         self.test_with_cmake(None, [test_target], self._build_variant, [], test_env=env)
 
@@ -228,13 +247,13 @@ class WasmStdlib(cmake_product.CMakeProduct):
     def _build_variant(self):
         return self.args.build_variant
 
-    def _host_llvm_build_dir(self, host_target):
+    def _host_toolchain_build_dir(self, host_target):
         build_root = os.path.dirname(self.build_dir)
-        return os.path.join('..', build_root, '%s-%s' % ('llvm', host_target))
+        return os.path.join('..', build_root, '%s-%s' % ('toolchain', host_target))
 
-    def _host_swift_build_dir(self, host_target):
+    def _host_language_build_dir(self, host_target):
         build_root = os.path.dirname(self.build_dir)
-        return os.path.join('..', build_root, '%s-%s' % ('swift', host_target))
+        return os.path.join('..', build_root, '%s-%s' % ('language', host_target))
 
     def _wasi_sysroot_path(self, target_triple):
         build_root = os.path.dirname(self.build_dir)
@@ -245,11 +264,11 @@ class WasmStdlib(cmake_product.CMakeProduct):
 
     @classmethod
     def get_dependencies(cls):
-        return [llvm.LLVM,
+        return [toolchain.LLVM,
                 wasisysroot.WASILibc,
                 wasisysroot.WasmLLVMRuntimeLibs,
                 wasmkit.WasmKit,
-                swift.Swift]
+                language.Codira]
 
 
 class WasmThreadsStdlib(WasmStdlib):
@@ -261,12 +280,12 @@ class WasmThreadsStdlib(WasmStdlib):
         return False
 
     def add_extra_cmake_options(self):
-        self.cmake_options.define('SWIFT_THREADING_PACKAGE:STRING', 'pthreads')
-        self.cmake_options.define('SWIFT_STDLIB_EXTRA_C_COMPILE_FLAGS:STRING',
+        self.cmake_options.define('LANGUAGE_THREADING_PACKAGE:STRING', 'pthreads')
+        self.cmake_options.define('LANGUAGE_STDLIB_EXTRA_C_COMPILE_FLAGS:STRING',
                                   '-mthread-model;posix;-pthread;'
                                   '-ftls-model=local-exec')
-        self.cmake_options.define('SWIFT_STDLIB_EXTRA_SWIFT_COMPILE_FLAGS:STRING',
+        self.cmake_options.define('LANGUAGE_STDLIB_EXTRA_LANGUAGE_COMPILE_FLAGS:STRING',
                                   '-Xcc;-matomics;-Xcc;-mbulk-memory;'
                                   '-Xcc;-mthread-model;-Xcc;posix;'
                                   '-Xcc;-pthread;-Xcc;-ftls-model=local-exec')
-        self.cmake_options.define('SWIFT_ENABLE_WASI_THREADS:BOOL', 'TRUE')
+        self.cmake_options.define('LANGUAGE_ENABLE_WASI_THREADS:BOOL', 'TRUE')

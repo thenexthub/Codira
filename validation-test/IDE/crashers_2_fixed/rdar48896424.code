@@ -1,0 +1,17 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
+
+class Foo<T> {
+}
+
+extension Foo where T: Comparable {
+  fn foo() {}
+}
+
+protocol P {
+  typealias alias = Foo
+}
+protocol P {}
+
+fn Test() {
+  P.alias.#^COMPLETE^#
+}

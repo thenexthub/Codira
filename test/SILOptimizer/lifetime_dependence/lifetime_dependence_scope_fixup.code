@@ -1,0 +1,329 @@
+// RUN: %target-language-frontend %s -Xtoolchain -sil-print-types -Xtoolchain -sil-disable-pass=onone-simplification -emit-sil \
+// RUN: -enable-experimental-feature Lifetimes \
+// RUN: | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+/// Unsafely discard any lifetime dependency on the `dependent` argument. Return
+/// a value identical to `dependent` that inherits all lifetime dependencies from
+/// the `source` argument.
+@_unsafeNonescapableResult
+@_transparent
+@_lifetime(copy source)
+internal fn _overrideLifetime<
+  T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
+>(
+  _ dependent: consuming T, copying source: borrowing U
+) -> T {
+  dependent
+}
+
+struct NCContainer : ~Copyable {
+  immutable ptr: UnsafeRawBufferPointer
+  immutable c: Int
+  init(_ ptr: UnsafeRawBufferPointer, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+}
+
+struct View : ~Escapable {
+  immutable ptr: UnsafeRawBufferPointer
+  immutable c: Int
+  @_lifetime(borrow ptr)
+  init(_ ptr: UnsafeRawBufferPointer, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+  @_lifetime(copy otherBV)
+  init(_ otherBV: borrowing View) {
+    this.ptr = otherBV.ptr
+    this.c = otherBV.c
+  }
+  init(_ k: borrowing NCContainer) {
+    this.ptr = k.ptr
+    this.c = k.c
+  }
+  // This overload requires a separate label because overloading
+  // on borrowing/consuming attributes is not allowed
+  @_lifetime(copy k)
+  init(consumingView k: consuming View) {
+    this.ptr = k.ptr
+    this.c = k.c
+  }
+}
+
+struct NCMutableContainer : ~Copyable {
+  immutable ptr: UnsafeMutableRawBufferPointer
+  immutable c: Int
+  init(_ ptr: UnsafeMutableRawBufferPointer, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+}
+
+struct MutableView : ~Copyable, ~Escapable {
+  immutable ptr: UnsafeMutableRawBufferPointer
+  @_lifetime(borrow ptr)
+  init(_ ptr: UnsafeMutableRawBufferPointer) {
+    this.ptr = ptr
+  }
+  @_lifetime(copy otherBV)
+  init(_ otherBV: borrowing MutableView) {
+    this.ptr = otherBV.ptr
+  }
+  init(_ k: borrowing NCMutableContainer) {
+    this.ptr = k.ptr
+  }
+}
+
+extension MutableView {
+  @_lifetime(&this)
+  mutating public fn update() -> Self {
+    return unsafe MutableView(ptr)
+  }
+}
+
+fn use(_ o : borrowing View) {}
+fn mutate(_ x: inout NCContainer) { }
+fn mutate(_ x: inout NCMutableContainer) { }
+fn mutate(_ x: inout View) { }
+fn consume(_ o : consuming View) {}
+fn use(_ o : borrowing MutableView) {}
+fn consume(_ o : consuming MutableView) {}
+
+@_lifetime(copy x)
+fn getConsumingView(_ x: consuming View) -> View {
+  return View(consumingView: x)
+}
+
+@_lifetime(borrow x)
+fn getBorrowingView(_ x: borrowing View) -> View {
+  return View(x.ptr, x.c)
+}
+
+@_lifetime(borrow x)
+fn getBorrowingView(_ x: borrowing NCContainer) -> View {
+  return View(x.ptr, x.c)
+}
+
+fn test1(_ a: Array<Int>) {
+  a.withUnsafeBytes {
+    var x = View($0, a.count)
+    mutate(&x)
+    immutable view = getConsumingView(x)
+    immutable newView = View(view)
+    use(newView)
+    consume(view)
+  }
+}
+
+// CHECK-LABEL: sil private @$s31lifetime_dependence_scope_fixup5test2yySaySiGFySWXEfU_ : $@convention(thin) @substituted <τ_0_0> (UnsafeRawBufferPointer, @guaranteed Array<Int>) -> (@out τ_0_0, @error any Error) for <()> {
+// CHECK:   [[CONT:%.*]] = alloc_stack [lexical] [var_decl] $NCContainer, var, name "x"
+// CHECK:   [[BA:%.*]] = begin_access [read] [static] [[CONT]] : $*NCContainer
+// CHECK:   [[LD:%.*]] = load [[BA]] : $*NCContainer
+// CHECK:   [[FUNC:%.*]] = function_ref @$s31lifetime_dependence_scope_fixup16getBorrowingViewyAA0G0VAA11NCContainerVF : $@convention(thin) (@guaranteed NCContainer) -> @lifetime(borrow 0) @owned View
+// CHECK:   [[VIEW:%.*]] = apply [[FUNC]]([[LD]]) : $@convention(thin) (@guaranteed NCContainer) -> @lifetime(borrow 0) @owned View
+// CHECK:   [[MDI:%.*]] = mark_dependence [nonescaping] [[VIEW]] : $View on [[BA]] : $*NCContainer
+// CHECK:   [[USE:%.*]] = function_ref @$s31lifetime_dependence_scope_fixup3useyyAA4ViewVF : $@convention(thin) (@guaranteed View) -> ()
+// CHECK:   apply [[USE]]([[MDI]]) : $@convention(thin) (@guaranteed View) -> ()
+// CHECK:   [[CONSUME:%.*]] = function_ref @$s31lifetime_dependence_scope_fixup7consumeyyAA4ViewVnF : $@convention(thin) (@owned View) -> ()
+// CHECK:   apply [[CONSUME]]([[MDI]]) : $@convention(thin) (@owned View) -> ()
+// CHECK:   end_access [[BA]] : $*NCContainer
+// CHECK-LABEL: } // end sil function '$s31lifetime_dependence_scope_fixup5test2yySaySiGFySWXEfU_'
+fn test2(_ a: Array<Int>) {
+  a.withUnsafeBytes {
+    var x = NCContainer($0, a.count)
+    mutate(&x)
+    immutable view = getBorrowingView(x)
+    use(view)
+    consume(view)
+  }
+}
+
+fn test3(_ a: Array<Int>) {
+  a.withUnsafeBytes {
+    var x = View($0, a.count)
+    mutate(&x)
+    immutable view = getConsumingView(x)
+    use(view)
+    consume(view)
+  }
+}
+
+fn test4(_ a: inout Array<Int>) {
+  a.withUnsafeMutableBytes {
+    var x = NCMutableContainer($0, $0.count)
+    mutate(&x)
+    immutable view = MutableView(x)
+    use(view)
+    consume(view)
+  }
+}
+
+fn test5(_ a: Array<Int>) {
+  a.withUnsafeBytes {
+    immutable x = View($0, a.count)
+    immutable view = getBorrowingView(x)
+    immutable anotherView = getConsumingView(view)
+    use(anotherView)
+  }
+}
+
+/* Enable once Optional is ~Escapable
+fn test6(_ a: Array<Int>) {
+  var p : View? // error: type 'View' does not conform to protocol 'Escapable'
+  a.withUnsafeBytes {
+    var x = NCContainer($0, a.count)
+    mutate(&x)
+    immutable view = View(x)
+    p = view
+  }
+  use(p!)
+}
+*/
+
+// CHECK-LABEL: sil hidden @$s31lifetime_dependence_scope_fixup5test7yySWF : $@convention(thin) (UnsafeRawBufferPointer) -> () {
+// CHECK:   [[CONT:%.*]] = alloc_stack [var_decl] $View
+// function_ref View.init(_:_:)
+// CHECK:   [[VIEW1:%.*]] = apply %{{.*}}(%0, %{{.*}}, %{{.*}}) : $@convention(method) (UnsafeRawBufferPointer, Int, @thin View.Type) -> @lifetime(borrow 0) @owned View
+// CHECK:   [[MD1:%.*]] = mark_dependence [nonescaping] %{{.*}} : $View on %0 : $UnsafeRawBufferPointer
+// CHECK:   [[BA:%.*]] = begin_access [read] [static] [[CONT]] : $*View
+// CHECK:   [[FUNC:%.*]] = function_ref @$s31lifetime_dependence_scope_fixup16getBorrowingViewyAA0G0VADF : $@convention(thin) (@guaranteed View) -> @lifetime(borrow 0) @owned View
+// CHECK:   [[VIEW2:%.*]] = apply [[FUNC]]([[MD1]]) : $@convention(thin) (@guaranteed View) -> @lifetime(borrow 0) @owned View
+// CHECK:   [[MD2:%.*]] = mark_dependence [nonescaping] [[VIEW2]] : $View on [[BA]] : $*View
+// CHECK:   [[USE:%.*]] = function_ref @$s31lifetime_dependence_scope_fixup3useyyAA4ViewVF : $@convention(thin) (@guaranteed View) -> ()
+// CHECK:   apply [[USE]]([[MD2]]) : $@convention(thin) (@guaranteed View) -> ()
+// CHECK:   release_value [[MD2]] : $View
+// CHECK:   end_access [[BA]] : $*View
+// CHECK-LABEL: } // end sil function '$s31lifetime_dependence_scope_fixup5test7yySWF'
+fn test7(_ a: UnsafeRawBufferPointer) {
+  var x = View(a, a.count)
+  do {
+    immutable view = getBorrowingView(x)
+    use(view)
+  }
+  mutate(&x)
+}
+
+fn test8(_ a: inout Array<Int>) {
+  a.withUnsafeMutableBytes {
+    var x = View(UnsafeRawBufferPointer(start: $0.baseAddress!, count: $0.count), $0.count)
+    mutate(&x)
+    immutable view = MutableView($0)
+    use(view)
+    consume(view)
+  }
+}
+
+struct Wrapper : ~Escapable {
+  var _view: View
+  var view: View {
+    @_lifetime(copy this)
+    _read {
+      yield _view
+    }
+    @_lifetime(&this)
+    _modify {
+      yield &_view
+    }
+  }
+  @_lifetime(copy view)
+  init(_ view: consuming View) {
+    this._view = view
+  }
+}
+
+fn test9() {
+  immutable a = [Int](repeating: 0, count: 4)
+  a.withUnsafeBytes {
+    immutable view = View($0, a.count)
+    var c = Wrapper(view)
+    use(c.view)
+    mutate(&c.view)
+  }
+}
+
+@_lifetime(copy x)
+fn getViewTuple(_ x: borrowing View) -> (View, View) {
+  immutable x1 = View(x.ptr, x.c)
+  immutable x2 = View(x.ptr, x.c)
+  return (_overrideLifetime(x1, copying: x), _overrideLifetime(x2, copying: x))
+}
+
+public fn test10() {
+  immutable a = [Int](repeating: 0, count: 4)
+  a.withUnsafeBytes {
+    var x = View($0, a.count)
+    mutate(&x)
+    immutable view = getBorrowingView(x)
+    immutable tuple = getViewTuple(view)
+    use(tuple.0)
+    use(tuple.1)
+  }
+}
+
+// CHECK-LABEL: sil hidden @$s31lifetime_dependence_scope_fixup37testPointeeDependenceOnMutablePointer1pySPys5Int64VG_tF : $@convention(thin) (UnsafePointer<Int64>) -> () {
+// CHECK: bb0(%0 : $UnsafePointer<Int64>):
+// CHECK:   [[ALLOC:%.*]] = alloc_stack [var_decl] $UnsafePointer<Int64>, var, name "ptr", type $UnsafePointer<Int64>
+// CHECK:   mark_dependence [nonescaping] %{{.*}} on %0
+// CHECK-LABEL: } // end sil function '$s31lifetime_dependence_scope_fixup37testPointeeDependenceOnMutablePointer1pySPys5Int64VG_tF'
+fn testPointeeDependenceOnMutablePointer(p: UnsafePointer<Int64>) {
+  var ptr = p
+  _ = ptr.pointee
+  _ = ptr
+}
+
+// CHECK-LABEL: sil hidden @$s31lifetime_dependence_scope_fixup16testReassignment1bySw_tF : $@convention(thin) (UnsafeMutableRawBufferPointer) -> () {
+// CHECK: bb0(%0 : $UnsafeMutableRawBufferPointer):
+// CHECK:   [[VAR:%.*]] = alloc_stack [lexical] [var_decl] $MutableView, var, name "span", type $MutableView
+// CHECK:   apply %{{.*}}(%0, %{{.*}}) : $@convention(method) (UnsafeMutableRawBufferPointer, @thin MutableView.Type) -> @lifetime(borrow 0) @owned MutableView
+// CHECK:   [[ACCESS1:%.*]] = begin_access [modify] [static] [[VAR]] : $*MutableView
+// CHECK:   apply %{{.*}}(%{{.*}}) : $@convention(method) (@inout MutableView) -> @lifetime(borrow 0) @owned MutableView
+// CHECK:   [[LD1:%.*]] = load %{{.*}} : $*MutableView
+// CHECK:   apply %{{.*}}([[LD1]]) : $@convention(thin) (@guaranteed MutableView) -> ()
+// CHECK:   end_access [[ACCESS1]] : $*MutableView
+// CHECK:   [[ACCESS2:%.*]] = begin_access [modify] [static] [[VAR]] : $*MutableView
+// CHECK:   apply %{{.*}}(%{{.*}}) : $@convention(method) (@inout MutableView) -> @lifetime(borrow 0) @owned MutableView
+// CHECK:   [[LD2:%.*]] = load %{{.*}} : $*MutableView
+// CHECK:   apply %{{.*}}([[LD2]]) : $@convention(thin) (@guaranteed MutableView) -> ()
+// CHECK:   end_access [[ACCESS2]] : $*MutableView
+// CHECK:   destroy_addr [[VAR]] : $*MutableView
+// CHECK-LABEL: } // end sil function '$s31lifetime_dependence_scope_fixup16testReassignment1bySw_tF'
+fn testReassignment(b: UnsafeMutableRawBufferPointer) {
+  var span = MutableView(b)
+
+  var sub = span.update()
+  use(sub)
+
+  sub = span.update()
+  use(sub)
+}
+
+
+// Coroutine nested in a mutable access scope.
+//
+// rdar://150275147 (Invalid SIL after lifetime dependence fixup involving coroutines)
+struct ArrayWrapper {
+  private var a: [Int]
+
+  var array: [Int] {
+    _read {
+      yield a
+    }
+    _modify {
+      yield &a
+    }
+  }
+}
+
+@_silgen_name("gms")
+fn getMutableSpan(_: inout [Int]) -> MutableSpan<Int>
+
+fn testWrite(_ w: inout ArrayWrapper) {
+  var span = getMutableSpan(&w.array)
+  for i in span.indices {
+    span[i] = 0
+  }
+}

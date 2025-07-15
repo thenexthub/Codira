@@ -1,0 +1,38 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -emit-silgen
+
+// https://github.com/apple/language/issues/53417
+
+fn block1(_ f: @convention(block) @autoclosure () -> Int) -> Void {}
+block1(1)
+
+fn c1(_ f: @convention(c) @autoclosure () -> Int) -> Void {}
+c1(1)
+
+fn language1(_ f: @convention(language) @autoclosure () -> Int) -> Void {} // OK
+language1(1)
+
+fn thin1(_ f: @convention(thin) @autoclosure () -> Int) -> Void {} // OK
+thin1(1)
+
+fn block2(_ f: @autoclosure @convention(block) () -> Int) -> Void {}
+block2(1)
+
+fn c2(_ f: @autoclosure @convention(c) () -> Int) -> Void {}
+c2(1)
+
+fn language2(_ f: @autoclosure @convention(language) () -> Int) -> Void {} // OK
+language2(1)
+
+fn thin2(_ f: @autoclosure @convention(thin) () -> Int) -> Void {} // OK
+thin2(1)

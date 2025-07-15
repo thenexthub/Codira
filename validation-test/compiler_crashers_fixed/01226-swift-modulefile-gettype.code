@@ -1,0 +1,32 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+f> {
+}
+fn c<g>() -> (g, g -> g) -> g {
+e n e.v = {
+}
+{
+g) {
+k  }
+}
+f c {
+}
+class e: c{  class fn v {}
+fn d(g: Int = m) {
+}
+immutable n = d
+class n {
+}(v, h)
+f d : d {
+}
+fn d<i>() -

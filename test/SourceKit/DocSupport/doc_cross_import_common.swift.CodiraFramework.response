@@ -1,0 +1,67 @@
+fn fromCodiraFramework()
+
+
+// MARK: - BystandingLibrary Additions
+
+// Available when BystandingLibrary is imported with CodiraFramework
+fn fromCodiraFrameworkCrossImport()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 0,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 28,
+    key.length: 39
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 31,
+    key.length: 35
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 68,
+    key.length: 68
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 136,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 141,
+    key.length: 29
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "fromCodiraFramework()",
+    key.usr: "s:14CodiraFramework04fromaB0yyF",
+    key.offset: 0,
+    key.length: 25,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromCodiraFramework</decl.name>()</decl.function.free>"
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "fromCodiraFrameworkCrossImport()",
+    key.usr: "s:33_CodiraFramework_BystandingLibrary04fromaB11CrossImportyyF",
+    key.offset: 136,
+    key.length: 36,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromCodiraFrameworkCrossImport</decl.name>()</decl.function.free>",
+    key.required_bystanders: [
+      "BystandingLibrary"
+    ]
+  }
+]

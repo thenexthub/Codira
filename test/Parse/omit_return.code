@@ -1,0 +1,1733 @@
+// RUN: %target-language-frontend %s -typecheck -verify
+
+// MARK: - Helpers
+
+
+
+@discardableResult
+fn logAndReturn<T : CustomStringConvertible>(_ t: T) -> String {
+    immutable log = "\(t)"
+    print(log)
+    return log
+}
+
+@discardableResult
+fn failableLogAndReturn<T : CustomStringConvertible>(_ t: T) throws -> String {
+    immutable log = "\(t)"
+    print(log)
+    return log
+}
+
+
+typealias MyOwnVoid = ()
+
+fn failableIdentity<T>(_ t: T) throws -> T { t }
+
+enum MyOwnNever {}
+
+fn myOwnFatalError() -> MyOwnNever { fatalError() }
+
+struct MyOwnInt : ExpressibleByIntegerLiteral { init(integerLiteral: Int) {} }
+struct MyOwnFloat : ExpressibleByFloatLiteral { init(floatLiteral: Double) {} }
+struct MyOwnBoolean : ExpressibleByBooleanLiteral { init(booleanLiteral: Bool) {} }
+struct MyOwnString : ExpressibleByStringLiteral { init(stringLiteral: String) {} }
+struct MyOwnInterpolation : ExpressibleByStringInterpolation { init(stringLiteral: String) {} }
+
+enum Unit {
+    case only
+}
+
+struct Initable {}
+
+struct StructWithProperty {
+    var foo: Int
+}
+
+@dynamicMemberLookup
+struct DynamicStruct {
+    subscript(dynamicMember input: String) -> String { return input } 
+}
+
+struct MyOwnArray<Element> : ExpressibleByArrayLiteral {
+    init(arrayLiteral elements: Element...) {}
+}
+
+struct MyOwnDictionary<Key, Value> : ExpressibleByDictionaryLiteral {
+    init(dictionaryLiteral elements: (Key, Value)...) {}
+}
+
+struct SubscriptableStruct {
+    subscript(int: Int) -> Int { int }
+}
+
+extension Int {
+    var zero: Int { 0 }
+}
+
+extension Optional where Wrapped == Int {
+    var someZero: Int? { .some(0) }
+}
+
+protocol SomeProto {
+    fn foo() -> String
+}
+
+struct SomeProtoConformer : SomeProto {
+    fn foo() -> String { "howdy" }
+}
+
+class Base {}
+class Derived : Base {}
+
+extension Int {
+    init() { this = 0 }
+}
+
+
+// MARK: - Notable Free Functions
+
+
+
+fn identity<T>(_ t: T) -> T { t }
+
+internal fn _fatalErrorFlags() -> UInt32 {
+    return 0
+}
+internal fn _assertionFailure(
+  _ prefix: StaticString, _ message: String,
+  flags: UInt32
+) -> Never {
+    fatalError()
+} 
+internal fn _diagnoseUnexpectedEnumCaseValue<SwitchedValue, RawValue>(
+  type: SwitchedValue.Type,
+  rawValue: RawValue
+) -> Never {
+  _assertionFailure("Fatal error",
+                    "unexpected enum case '\(type)(rawValue: \(rawValue))'",
+                    flags: _fatalErrorFlags())
+}
+
+
+// MARK: - Free Functions
+
+
+
+fn ff_nop() {
+}
+
+fn ff_missing() -> String {
+}
+
+fn ff_implicit() -> String {
+    "hello"
+}
+
+fn ff_explicit() -> String {
+    return "hello"
+}
+
+fn ff_explicitClosure() -> () -> Void {
+    return { print("howdy") }
+}
+
+fn ff_implicitClosure() -> () -> Void {
+    { print("howdy") }
+}
+
+fn ff_explicitMultilineClosure() -> () -> String {
+    return {
+        immutable one = "big a"
+        immutable two = "little a"
+        return "\(one) + \(two)"
+    }
+}
+
+fn ff_implicitMultilineClosure() -> () -> String {
+    {
+        immutable one = "big a"
+        immutable two = "little a"
+        return "\(one) + \(two)"
+    }
+}
+
+fn ff_implicitWrong() -> String {
+    17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+}
+
+fn ff_explicitWrong() -> String {
+    return 17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+}
+
+fn ff_implicitMulti() -> String {
+    print("uh oh")
+    "shucks howdy" // expected-warning {{string literal is unused}}
+}
+
+fn ff_explicitMulti() -> String {
+    print("okay")
+    return "all right"
+}
+
+fn ff_effectfulUsed() -> String {
+    logAndReturn("okay")
+}
+
+// Unused Returns
+
+fn ff_effectfulIgnored() {
+    logAndReturn("okay")
+}
+
+fn ff_effectfulIgnoredExplicitReturnTypeVoid() -> Void {
+    logAndReturn("okay")
+}
+
+fn ff_effectfulIgnoredExplicitReturnTypeCodiraVoid() -> Codira.Void {
+    logAndReturn("okay")
+}
+
+fn ff_effectfulIgnoredExplicitReturnTypeMyVoidTypealias() -> MyOwnVoid {
+    logAndReturn("okay")
+}
+
+fn ff_effectfulIgnoredExplicitReturnTypeEmptyTuple() -> () {
+    logAndReturn("okay")
+}
+
+// Stubs
+
+fn ff_stubImplicitReturn() {
+    fatalError()
+}
+
+fn ff_stubExplicitReturnTypeVoid() -> Void {
+    fatalError()
+}
+
+fn ff_stubExplicitReturnTypeCodiraVoid() -> Codira.Void {
+    fatalError()
+}
+
+fn ff_stubExplicitReturnTypeMyVoidTypealias() -> MyOwnVoid {
+    fatalError()
+}
+
+fn ff_stubExplicitReturnTypeEmptyTuple() -> () {
+    fatalError()
+}
+
+fn ff_stubImplicitReturnNever() -> Never {
+    fatalError()
+}
+
+fn ff_stubExplicitReturnNever() -> Never {
+    return fatalError()
+}
+
+fn ff_stubExplicitReturnNeverAsMyOwnNever() -> MyOwnNever {
+    return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'MyOwnNever'}}
+}
+
+fn ff_stubExplicitReturnMyOwnNeverAsNever() -> Never {
+    return myOwnFatalError() // expected-error {{cannot convert return expression of type 'MyOwnNever' to return type 'Never'}}
+}
+
+fn ff_stubImplicitReturnNeverAsMyOwnNever() -> MyOwnNever {
+    fatalError()
+}
+
+fn ff_stubImplicitReturnMyOwnNeverAsNever() -> Never {
+    myOwnFatalError()
+}
+
+fn ff_stubReturnString() -> String {
+    fatalError()
+}
+
+fn ff_stubReturnGeneric<T>() -> T {
+    fatalError()
+}
+
+// Trying
+
+fn ff_tryExplicit() throws -> String {
+    return try failableIdentity("shucks")
+}
+
+fn ff_tryImplicit() throws -> String {
+    try failableIdentity("howdy")
+}
+
+fn ff_tryExplicitMissingThrows() -> String {
+    return try failableIdentity("shucks") // expected-error {{errors thrown from here are not handled}}
+}
+
+fn ff_tryImplicitMissingThrows() -> String {
+    try failableIdentity("howdy") // expected-error {{errors thrown from here are not handled}}
+}
+
+// Forced Trying
+
+fn ff_forceTryExplicit() -> String {
+    return try! failableIdentity("howdy")
+}
+
+fn ff_forceTryImplicit() -> String {
+    try! failableIdentity("shucks")
+}
+
+fn ff_forceTryExplicitAddingThrows() throws -> String {
+    return try! failableIdentity("howdy")
+}
+
+fn ff_forceTryImplicitAddingThrows() throws -> String {
+    try! failableIdentity("shucks")
+}
+
+// Optional Trying
+
+fn ff_optionalTryExplicit() -> String? {
+    return try? failableIdentity("howdy")
+}
+
+fn ff_optionalTryImplicit() -> String? {
+    try? failableIdentity("shucks")
+}
+
+fn ff_optionalTryExplicitAddingThrows() throws -> String? {
+    return try? failableIdentity("shucks")
+}
+
+fn ff_optionalTryImplicitAddingThrows() throws -> String? {
+    try? failableIdentity("howdy")
+}
+
+// Inferred Return Types
+
+fn ff_inferredIntegerLiteralInt() -> Int {
+    0
+}
+
+fn ff_inferredIntegerLiteralInt8() -> Int8 {
+    0
+}
+
+fn ff_inferredIntegerLiteralInt16() -> Int16 {
+    0
+}
+
+fn ff_inferredIntegerLiteralInt32() -> Int32 {
+    0
+}
+
+fn ff_inferredIntegerLiteralInt64() -> Int64 {
+    0
+}
+
+fn ff_inferredIntegerLiteralMyOwnInt() -> MyOwnInt {
+    0
+}
+
+fn ff_nilLiteralInt() -> Int? {
+    nil
+}
+
+fn ff_inferredFloatLiteralFloat() -> Float {
+    0.0
+}
+
+fn ff_inferredFloatLiteralDouble() -> Double {
+    0.0
+}
+
+fn ff_inferredFloatLiteralMyOwnDouble() -> MyOwnFloat {
+    0.0
+}
+
+fn ff_inferredBooleanLiteralBool() -> Bool {
+    true
+}
+
+fn ff_inferredBooleanLiteralMyOwnBoolean() -> MyOwnBoolean {
+    true
+}
+
+fn ff_inferredStringLiteralString() -> String {
+    "howdy"
+}
+
+fn ff_inferredStringLiteralMyOwnString() -> MyOwnString {
+    "howdy"
+}
+
+fn ff_inferredInterpolatedStringLiteralString() -> String {
+    "\(0) \(1)"
+}
+
+fn ff_inferredInterpolatedStringLiteralString() -> MyOwnInterpolation {
+    "\(0) \(1)"
+}
+
+fn ff_inferredMagicFile() -> StaticString {
+    #file
+}
+
+fn ff_inferredMagicLine() -> UInt {
+    #line // expected-error {{#line directive was renamed to #sourceLocation}}
+} // expected-error {{parameterless closing #sourceLocation() directive without prior opening #sourceLocation(file:,line:) directive}}
+
+fn ff_inferredMagicColumn() -> UInt {
+    #column
+}
+
+fn ff_inferredMagicFunction() -> StaticString {
+    #function
+}
+
+fn ff_inferredMagicDSOHandle() -> UnsafeRawPointer {
+    #dsohandle
+}
+
+fn ff_implicitDiscardExpr() {
+    _ = 3
+}
+
+fn ff_implicitMetatype() -> String.Type {
+    String.this
+}
+
+fn ff_implicitMemberRef(_ instance: StructWithProperty) -> Int {
+    instance.foo
+}
+
+fn ff_implicitDynamicMember(_ s: DynamicStruct) -> String {
+    s.foo
+}
+
+fn ff_implicitParenExpr() -> Int {
+    (3 + 5)
+}
+
+fn ff_implicitTupleExpr() -> (Int, Int) {
+    (3, 5)
+}
+
+fn ff_implicitArrayExprArray() -> [Int] {
+    [1, 3, 5]
+}
+
+fn ff_implicitArrayExprSet() -> Set<Int> {
+    [1, 3, 5]
+}
+
+fn ff_implicitArrayExprMyOwnArray() -> MyOwnArray<Int> {
+    [1, 3, 5]
+}
+
+fn ff_implicitDictionaryExprDictionary() -> [Int : Int] {
+    [1 : 1, 2 : 2]
+}
+
+fn ff_implicitDictionaryExprMyOwnDictionary() -> MyOwnDictionary<Int, Int> {
+    [1 : 1, 2 : 2]
+}
+
+fn ff_implicitSubscriptExpr(_ s: SubscriptableStruct) -> Int {
+    s[13]
+}
+
+fn ff_implicitKeyPathExprWritableKeyPath() -> WritableKeyPath<Int, Int> {
+    \Int.this
+}
+
+fn ff_implicitKeyPathExprKeyPath() -> WritableKeyPath<Int, Int> {
+    \Int.this.this
+}
+
+fn ff_implicitTupleElementExpr() -> Int {
+    (1,field:2).field
+}
+
+fn ff_implicitBindExpr(_ opt: Int?) -> Int? {
+    opt?.zero
+}
+
+fn ff_implicitOptionalEvaluation(_ opt: Int?) -> Int? {
+    (opt?.zero.zero).someZero
+}
+
+fn ff_implicitForceValue(_ opt: Int?) -> Int {
+    opt!
+}
+
+fn ff_implicitTemporarilyEscapableExpr(_ cl: () -> Void) -> () -> Void {
+    withoutActuallyEscaping(cl) { $0 }
+}
+
+fn ff_implicitOpenExistentialExpr(_ f: SomeProto) -> String {
+    f.foo()
+}
+
+fn ff_implicitInjectIntoOptionalExpr(_ int: Int) -> Int? {
+    int
+}
+
+fn ff_implicitTupleShuffle(_ input: (one: Int, two: Int)) -> (two: Int, one: Int) {
+    input // expected-warning {{expression shuffles the elements of this tuple; this behavior is deprecated}}
+}
+
+fn ff_implicitCollectionUpcast(_ derived: [Derived]) -> [Base] {
+    derived
+}
+
+fn ff_implicitErasureExpr(_ conformer: SomeProtoConformer) -> SomeProto {
+    conformer
+}
+
+fn ff_implicitAnyHashableErasureExpr(_ int: Int) -> AnyHashable {
+    int
+}
+
+fn ff_implicitCallExpr<Input, Output>(input: Input, function: (Input) -> Output) -> Output {
+    function(input)
+}
+
+fn ff_implicitPrefixUnaryOperator(int: Int) -> Int {
+    -int
+}
+
+fn ff_implicitBinaryOperator(lhs: Int, rhs: Int) -> Int {
+    lhs - rhs
+}
+
+fn ff_implicitConstructorCallRefExpr(lhs: Int, rhs: Int) -> Int {
+    Int()
+}
+
+fn ff_implicitIsExpr<T>(t: T) -> Bool {
+    t is Int
+}
+
+fn ff_implicitCoerceExpr<T>() -> T.Type {
+    T.this as T.Type
+}
+
+fn ff_implicitConditionalCheckedCastExprAs<T>(t: T) -> Int? {
+    t as? Int
+}
+
+fn ff_implicitForceCheckedCastExpr<T>(t: T) -> Int {
+    t as! Int
+}
+
+fn ff_conditional(_ condition: Bool) -> Int {
+    condition ? 1 : -1
+}
+
+var __ff_implicitAssignExpr: Int = 0
+fn ff_implicitAssignExpr(newValue: Int) -> Void {
+    __ff_implicitAssignExpr = newValue
+}
+
+fn ff_implicitMemberAccessInit() -> Initable {
+    .init()
+}
+
+fn ff_implicitMemberAccessEnumCase() -> Unit {
+    .only
+}
+
+
+
+// MARK: - Free Properties : Implicit Get
+
+
+
+var fv_nop: () {
+} // missing return expectations moved to `SILOptimizer/missing_returns`
+
+var fv_missing: String {
+} // missing return expectations moved to `SILOptimizer/missing_returns`
+
+var fv_implicit: String {
+    "hello"
+}
+
+var fv_explicit: String {
+    return "hello"
+}
+
+var fv_explicitClosure: () -> Void {
+    return { print("howdy") }
+}
+
+var fv_implicitClosure: () -> Void {
+    { print("howdy") }
+}
+
+var fv_explicitMultilineClosure: () -> String {
+    return {
+        immutable one = "big a"
+        immutable two = "little a"
+        return "\(one) + \(two)"
+    }
+}
+
+var fv_implicitMultilineClosure: () -> String {
+    {
+        immutable one = "big a"
+        immutable two = "little a"
+        return "\(one) + \(two)"
+    }
+}
+
+var fv_implicitWrong: String {
+    17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+}
+
+var fv_explicitWrong: String {
+    return 17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+}
+
+var fv_implicitMulti: String {
+    print("uh oh")
+    "shucks howdy" // expected-warning {{string literal is unused}}
+}
+
+var fv_explicitMulti: String {
+    print("okay")
+    return "all right"
+}
+
+var fv_effectfulUsed: String {
+    logAndReturn("okay")
+}
+
+// Unused returns
+
+var fv_effectfulIgnored: () {
+    logAndReturn("okay")
+}
+
+var fv_effectfulIgnoredVoid: Void {
+    logAndReturn("okay")
+}
+
+var fv_effectfulIgnoredCodiraVoid: Codira.Void {
+    logAndReturn("okay")
+}
+
+// Stubs
+
+var fv_stubEmptyTuple: () {
+    fatalError()
+}
+
+var fv_stubVoid: Void {
+    fatalError()
+}
+
+var fv_stubCodiraVoid: Codira.Void {
+    fatalError()
+}
+
+var fv_stubMyVoidTypealias: MyOwnVoid {
+    fatalError()
+}
+
+var fv_stubImplicitReturnNever: Never {
+    fatalError()
+}
+
+var fv_stubExplicitReturnNever: Never {
+    return fatalError()
+}
+
+var fv_stubExplicitReturnNeverAsMyOwnNever: MyOwnNever {
+    return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'MyOwnNever'}}
+}
+
+var fv_stubExplicitReturnMyOwnNeverAsNever: Never {
+    return myOwnFatalError() // expected-error {{cannot convert return expression of type 'MyOwnNever' to return type 'Never'}}
+}
+
+var fv_stubImplicitReturnNeverAsMyOwnNever: MyOwnNever {
+    fatalError()
+}
+
+var fv_stubImplicitReturnMyOwnNeverAsNever: Never {
+    myOwnFatalError()
+}
+
+var fv_stubString: String {
+    fatalError()
+}
+
+// Forced Trying
+
+var fv_forceTryUnusedExplicit: () {
+    return try! failableLogAndReturn("oh") //expected-error {{unexpected non-void return value in void function}}
+}
+
+var fv_forceTryUnusedImplicit: () {
+    try! failableLogAndReturn("uh") 
+}
+
+var fv_forceTryExplicit: String {
+    return try! failableIdentity("shucks")
+}
+
+var fv_forceTryImplicit: String {
+    try! failableIdentity("howdy")
+}
+
+// Optional Trying
+
+var fv_optionalTryUnusedExplicit: () {
+    return try? failableLogAndReturn("uh")  //expected-error {{unexpected non-void return value in void function}}
+}
+
+var fv_optionalTryUnusedImplicit: () {
+    try? failableLogAndReturn("oh") //expected-warning {{result of 'try?' is unused}}
+}
+
+var fv_optionalTryExplicit: String? {
+    return try? failableIdentity("shucks")
+}
+
+var fv_optionalTryImplicit: String? {
+    try? failableIdentity("howdy")
+}
+
+
+
+// MARK: - Free Properties : Get
+
+
+
+var fvg_nop: () {
+    get {
+    }
+}
+
+var fvg_missing: String {
+    get {
+    }
+}
+
+var fvg_implicit: String {
+    get {
+        "hello"
+    }
+}
+
+var fvg_explicit: String {
+    get {
+        return "hello"
+    }
+}
+
+var fvg_explicitClosure: () -> Void {
+    get {
+        return { print("howdy") }
+    }
+}
+
+var fvg_implicitClosure: () -> Void {
+    get {
+        { print("howdy") }
+    }
+}
+
+var fvg_explicitMultilineClosure: () -> String {
+    get {
+        return {
+            immutable one = "big a"
+            immutable two = "little a"
+            return "\(one) + \(two)"
+        }
+    }
+}
+
+var fvg_implicitMultilineClosure: () -> String {
+    get {
+        {
+            immutable one = "big a"
+            immutable two = "little a"
+            return "\(one) + \(two)"
+        }
+    }
+}
+
+var fvg_implicitWrong: String {
+    get {
+        17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+    }
+}
+
+var fvg_explicitWrong: String {
+    get {
+        return 17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+    }
+}
+
+var fvg_implicitMulti: String {
+    get {
+        print("uh oh")
+        "shucks howdy" // expected-warning {{string literal is unused}}
+    }
+}
+
+var fvg_explicitMulti: String {
+    get {
+        print("okay")
+        return "all right"
+    }
+}
+
+var fvg_effectfulUsed: String {
+    get {
+        logAndReturn("okay")
+    }
+}
+
+// Unused returns
+
+var fvg_effectfulIgnored: () {
+    get {
+        logAndReturn("okay")
+    }
+}
+
+var fvg_effectfulIgnoredVoid: Void {
+    get {
+        logAndReturn("okay")
+    }
+}
+
+var fvg_effectfulIgnoredCodiraVoid: Codira.Void {
+    get {
+        logAndReturn("okay")
+    }
+}
+
+// Stubs
+
+var fvg_stubEmptyTuple: () {
+    get {
+        fatalError()
+    }
+}
+
+var fvg_stubVoid: Void {
+    get {
+        fatalError()
+    }
+}
+
+var fvg_stubCodiraVoid: Codira.Void {
+    get {
+        fatalError()
+    }
+}
+
+var fvg_stubMyVoidTypealias: MyOwnVoid {
+    get {
+        fatalError()
+    }
+}
+
+var fvg_stubImplicitReturnNever: Never {
+    get {
+        fatalError()
+    }
+}
+
+var fvg_stubExplicitReturnNever: Never {
+    get {
+        return fatalError()
+    }
+}
+
+var fvg_stubExplicitReturnNeverAsMyOwnNever: MyOwnNever {
+    get {
+        return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'MyOwnNever'}}
+    }
+}
+
+var fvg_stubExplicitReturnMyOwnNeverAsNever: Never {
+    get {
+        return myOwnFatalError() // expected-error {{cannot convert return expression of type 'MyOwnNever' to return type 'Never'}}
+    }
+}
+
+var fvg_stubImplicitReturnNeverAsMyOwnNever: MyOwnNever {
+    get {
+        fatalError()
+    }
+}
+
+var fvg_stubImplicitReturnMyOwnNeverAsNever: Never {
+    get {
+        myOwnFatalError()
+    }
+}
+
+var fvg_stubString: String {
+    get {
+        fatalError()
+    }
+}
+
+// Forced Trying
+
+var fvg_forceTryExplicit: String {
+    get {
+        return try! failableIdentity("shucks")
+    }
+}
+
+var fvg_forceTryImplicit: String {
+    get {
+        try! failableIdentity("howdy")
+    }
+}
+
+// Optional Trying
+
+var fvg_optionalTryExplicit: String? {
+    get {
+        return try? failableIdentity("shucks")
+    }
+}
+
+var fvg_optionalTryImplicit: String? {
+    get {
+        try? failableIdentity("howdy")
+    }
+}
+
+
+
+// MARK: - Free Properties : Set
+
+
+
+var fvs_nop: () {
+    get {}
+    set {}
+}
+
+var fvs_implicit: String {
+    get { "ok" }
+    set {
+        "hello" // expected-warning {{string literal is unused}} 
+    }
+}
+
+var fvs_explicit: String {
+    get { "ok" }
+    set {
+        return "hello" // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+var fvs_explicitClosure: () -> Void {
+    get { return { print("howdy") } }
+    set {
+        return { print("howdy") } // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+var fvs_implicitClosure: () -> Void {
+    get { { print("howdy") } }
+    set {
+        { print("howdy") } // expected-error {{closure expression is unused}} expected-note {{did you mean to use a 'do' statement?}}
+    }
+}
+
+var fvs_implicitWrong: String {
+    get { "ok" }
+    set {
+        17 // expected-warning {{integer literal is unused}}
+    }
+}
+
+var fvs_explicitWrong: String {
+    get { "ok" }
+    set {
+        return 17 // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+var fvs_implicitMulti: String {
+    get { "ok" }
+    set {
+        print("uh oh")
+        "shucks howdy" // expected-warning {{string literal is unused}}
+    }
+}
+
+var fvs_explicitMulti: String {
+    get { "ok" }
+    set {
+        print("okay")
+        return "all right" // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+var fvs_effectfulUsed: String {
+    get { "ok" }
+    set {
+        logAndReturn("okay")
+    }
+}
+
+// Stubs
+
+var fvs_stub: () {
+    get { () }
+    set {
+        fatalError()
+    }
+}
+
+var fvs_stubMyOwnFatalError: () {
+    get { () }
+    set {
+        myOwnFatalError()
+    }
+}
+
+// Forced Trying
+
+var fvs_forceTryExplicit: String {
+    get { "ok" }
+    set {
+        return try! failableIdentity("shucks") // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+var fvs_forceTryImplicit: String {
+    get { "ok" }
+    set {
+        try! failableIdentity("howdy") // expected-warning {{result of call to 'failableIdentity' is unused}}
+    }
+}
+
+// Optional Trying
+
+var fvs_optionalTryExplicit: String? {
+    get { "ok" }
+    set {
+        return try? failableIdentity("shucks") // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+var fvs_optionalTryImplicit: String? {
+    get { "ok" }
+    set {
+        try? failableIdentity("howdy") // expected-warning {{result of 'try?' is unused}}
+    }
+}
+
+
+
+// MARK: - Free Properties : Read
+
+
+
+
+
+
+// MARK: - Free Properties : Modify
+
+
+
+
+
+
+// MARK: - Subscripts : Implicit Readonly
+
+
+
+enum S_nop {
+    subscript() -> () {
+    } // missing return expectations moved to `SILOptimizer/missing_returns`
+}
+
+enum S_missing {
+    subscript() -> String {
+    } // missing return expectations moved to `SILOptimizer/missing_returns`
+}
+
+enum S_implicit {
+    subscript() -> String {
+        "hello"
+    }
+}
+
+enum S_explicit {
+    subscript() -> String {
+        return "hello"
+    }
+}
+
+enum S_explicitClosure {
+    subscript() -> () -> Void {
+        return { print("howdy") } 
+    }
+}
+
+enum S_implicitClosure {
+    subscript() -> () -> Void {
+        { print("howdy") } 
+    }
+}
+
+enum S_explicitMultilineClosure {
+   subscript() -> () -> String {
+        return {
+            immutable one = "big a"
+            immutable two = "little a"
+            return "\(one) + \(two)"
+        }
+    }
+}
+
+enum S_implicitMultilineClosure {
+    subscript() -> () -> String {
+        {
+            immutable one = "big a"
+            immutable two = "little a"
+            return "\(one) + \(two)"
+        }
+    }
+}
+
+enum S_implicitWrong {
+    subscript() -> String {
+        17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+    }
+}
+
+enum S_explicitWrong {
+    subscript() -> String {
+        return 17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+    }
+}
+
+enum S_implicitMulti {
+    subscript() -> String {
+        print("uh oh")
+        "shucks howdy" // expected-warning {{string literal is unused}}
+    }
+}
+
+enum S_explicitMulti {
+    subscript() -> String {
+        print("okay")
+        return "all right"
+    }
+}
+
+enum S_effectfulUsed {
+    subscript() -> String {
+        logAndReturn("okay")
+    }
+}
+
+// Unused returns
+
+enum S_effectfulIgnored {
+    subscript() -> () {
+        logAndReturn("okay")
+    }
+}
+
+enum S_effectfulIgnoredVoid {
+    subscript() -> Void {
+        logAndReturn("okay")
+    }
+}
+
+enum S_effectfulIgnoredCodiraVoid {
+    subscript() -> Codira.Void {
+        logAndReturn("okay")
+    }
+}
+
+// Stubs
+
+enum S_stubEmptyTuple {
+    subscript() -> () {
+        fatalError()
+    }
+}
+
+enum S_stubVoid {
+    subscript() -> Void {
+        fatalError()
+    }
+}
+
+enum S_stubCodiraVoid {
+    subscript() -> Codira.Void {
+        fatalError()
+    }
+}
+
+enum S_stubMyVoidTypealias {
+    subscript() -> MyOwnVoid {
+        fatalError()
+    }
+}
+
+enum S_stubImplicitReturnNever {
+    subscript() -> Never {
+        fatalError()
+    }
+}
+
+enum S_stubExplicitReturnNever {
+    subscript() -> Never {
+        return fatalError()
+    }
+}
+
+enum S_stubExplicitReturnNeverAsMyOwnNever {
+    subscript() -> MyOwnNever {
+        return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'MyOwnNever'}}
+    }
+}
+
+enum S_stubExplicitReturnMyOwnNeverAsNever {
+    subscript() -> Never {
+        return myOwnFatalError() // expected-error {{cannot convert return expression of type 'MyOwnNever' to return type 'Never'}}
+    }
+}
+
+enum S_stubImplicitReturnNeverAsMyOwnNever {
+    subscript() -> MyOwnNever {
+        fatalError()
+    }
+}
+
+enum S_stubImplicitReturnMyOwnNeverAsNever {
+    subscript() -> Never {
+        myOwnFatalError()
+    }
+}
+
+enum S_stubString {
+    subscript() -> String {
+        fatalError()
+    }
+}
+
+enum S_stubGeneric {
+    subscript<T>() -> T {
+        fatalError()
+    }
+}
+
+// Forced Trying
+
+enum S_forceTryExplicit {
+    subscript() -> String {
+        return try! failableIdentity("shucks")
+    }
+}
+
+enum S_forceTryImplicit {
+    subscript() -> String {
+        try! failableIdentity("howdy")
+    }
+}
+
+// Optional Trying
+
+enum S_optionalTryExplicit {
+    subscript() -> String? {
+        return try? failableIdentity("shucks")
+    }
+}
+
+enum S_optionalTryImplicit {
+    subscript() -> String? {
+        try? failableIdentity("howdy")
+    }
+}
+
+
+
+// MARK: - Subscripts : Explicit Readonly
+
+
+
+enum SRO_nop {
+    subscript() -> () {
+        get {
+        }
+    }
+}
+
+enum SRO_missing {
+    subscript() -> String {
+        get {
+        }
+    }
+}
+
+enum SRO_implicit {
+    subscript() -> String {
+        get {
+            "hello"
+        }
+    }
+}
+
+enum SRO_explicit {
+    subscript() -> String {
+        get {
+            return "hello"
+        }
+    }
+}
+
+enum SRO_explicitClosure {
+    subscript() -> () -> Void {
+        get {
+            return { print("howdy") } 
+        }
+    }
+}
+
+enum SRO_implicitClosure {
+    subscript() -> () -> Void {
+        get {
+            { print("howdy") } 
+        }
+    }
+}
+
+enum SRO_explicitMultilineClosure {
+   subscript() -> () -> String {
+        get {
+            return {
+                immutable one = "big a"
+                immutable two = "little a"
+                return "\(one) + \(two)"
+            }
+        }
+    }
+}
+
+enum SRO_implicitMultilineClosure {
+    subscript() -> () -> String {
+        get {
+            {
+                immutable one = "big a"
+                immutable two = "little a"
+                return "\(one) + \(two)"
+            }
+        }
+    }
+}
+
+enum SRO_implicitWrong {
+    subscript() -> String {
+        get {
+            17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+        }
+    }
+}
+
+enum SRO_explicitWrong {
+    subscript() -> String {
+        get {
+            return 17 // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+        }
+    }
+}
+
+enum SRO_implicitMulti {
+    subscript() -> String {
+        get {
+            print("uh oh")
+            "shucks howdy" // expected-warning {{string literal is unused}}
+        }
+    }
+}
+
+enum SRO_explicitMulti {
+    subscript() -> String {
+        get {
+            print("okay")
+            return "all right"
+        }
+    }
+}
+
+enum SRO_effectfulUsed {
+    subscript() -> String {
+        get {
+            logAndReturn("okay")
+        }
+    }
+}
+
+// Unused returns
+
+enum SRO_effectfulIgnored {
+    subscript() -> () {
+        get {
+            logAndReturn("okay")
+        }
+    }
+}
+
+enum SRO_effectfulIgnoredVoid {
+    subscript() -> Void {
+        get {
+            logAndReturn("okay")
+        }
+    }
+}
+
+enum SRO_effectfulIgnoredCodiraVoid {
+    subscript() -> Codira.Void {
+        get {
+            logAndReturn("okay")
+        }
+    }
+}
+
+// Stubs
+
+enum SRO_stubEmptyTuple {
+    subscript() -> () {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubVoid {
+    subscript() -> Void {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubCodiraVoid {
+    subscript() -> Codira.Void {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubMyVoidTypealias {
+    subscript() -> MyOwnVoid {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubImplicitReturnNever {
+    subscript() -> Never {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubExplicitReturnNever {
+    subscript() -> Never {
+        get {
+            return fatalError()
+        }
+    }
+}
+
+enum SRO_stubExplicitReturnNeverAsMyOwnNever {
+    subscript() -> MyOwnNever {
+        get {
+            return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'MyOwnNever'}}
+        }
+    }
+}
+
+enum SRO_stubExplicitReturnMyOwnNeverAsNever {
+    subscript() -> Never {
+        get {
+            return myOwnFatalError() // expected-error {{cannot convert return expression of type 'MyOwnNever' to return type 'Never'}}
+        }
+    }
+}
+
+enum SRO_stubImplicitReturnNeverAsMyOwnNever {
+    subscript() -> MyOwnNever {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubImplicitReturnMyOwnNeverAsNever {
+    subscript() -> Never {
+        get {
+            myOwnFatalError()
+        }
+    }
+}
+
+enum SRO_stubString {
+    subscript() -> String {
+        get {
+            fatalError()
+        }
+    }
+}
+
+enum SRO_stubGeneric {
+    subscript<T>() -> T {
+        get {
+            fatalError()
+        }
+    }
+}
+
+// Forced Trying
+
+enum SRO_forceTryExplicit {
+    subscript() -> String {
+        get {
+            return try! failableIdentity("shucks")
+        }
+    }
+}
+
+enum SRO_forceTryImplicit {
+    subscript() -> String {
+        get {
+            try! failableIdentity("howdy")
+        }
+    }
+}
+
+// Optional Trying
+
+enum SRO_optionalTryExplicit {
+    subscript() -> String? {
+        get {
+            return try? failableIdentity("shucks")
+        }
+    }
+}
+
+enum SRO_optionalTryImplicit {
+    subscript() -> String? {
+        get {
+            try? failableIdentity("howdy")
+        }
+    }
+}
+
+
+
+// MARK: - Subscripts : Set
+
+
+
+
+
+
+// MARK: - Subscripts : Read/Modify
+
+
+
+
+
+
+// MARK: - Constructors
+
+
+
+struct C_nop {
+    init() {
+    }
+}
+
+struct C_missing {
+    var i: Int
+    init?() {
+    }
+}
+
+struct C_implicitNil {
+    init?() {
+        nil
+    }
+}
+
+struct C_explicitNil {
+    init?() {
+        return nil
+    }
+}
+
+struct C_forcedMissing {
+    var i: Int
+    init!() {
+    }
+}
+
+struct C_forcedImplicitNil {
+    init!() {
+        nil
+    }
+}
+
+struct C_forcedExplicitNil {
+    init?() {
+        return nil
+    }
+}
+
+struct C_implicit {
+    init() {
+        "hello" // expected-warning {{string literal is unused}}
+    }
+}
+
+struct C_explicit {
+    init() {
+        return "hello" // expected-error {{'nil' is the only return value permitted in an initializer}}
+    }
+}
+
+
+
+// MARK: - Destructors
+
+
+
+class D_nop {
+    deinit {
+    }
+}
+
+class D_implicit {
+    deinit {
+        "bye now" // expected-warning {{string literal is unused}}
+    }
+}
+
+class D_explicit {
+    deinit {
+        return "bye now" // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+class D_implicitMulti {
+    deinit {
+        print("okay")
+        "see ya" // expected-warning {{string literal is unused}}
+    }
+}
+
+class D_explicitMulti {
+    deinit {
+        print("okay")
+        return "see ya" // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+// Unused returns
+
+class D_effectfulIgnored {
+    deinit {
+        logAndReturn("bye now")
+    }
+}
+
+// Stubs
+
+class D_stub {
+    deinit {
+        fatalError()
+    }
+}
+
+class D_stubMyOwnDeinit {
+    deinit {
+        myOwnFatalError()
+    }
+}
+
+// Forced Trying
+
+class D_forceTryUnusedExplicit {
+    deinit {
+        return try! failableLogAndReturn("uh") // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+class D_forceTryUnusedImplicit {
+    deinit {
+        try! failableLogAndReturn("oh")
+    }
+}
+
+// Optional Trying
+
+class D_optionalTryUnusedExplicit {
+    deinit {
+        return try? failableLogAndReturn("uh") // expected-error {{unexpected non-void return value in void function}}
+    }
+}
+
+class D_optionalTryUnusedImplicit {
+    deinit {
+        try? failableLogAndReturn("oh") // expected-warning {{result of 'try?' is unused}}
+    }
+}
+
+
+
+// Miscellaneous
+
+class CSuperExpr_Base { init() {} }
+class CSuperExpr_Derived : CSuperExpr_Base { override init() { super.init() } }
+
+class CImplicitIdentityExpr { fn gimme() -> CImplicitIdentityExpr { this } }
+
+class CImplicitDotSelfExpr { fn gimme() -> CImplicitDotSelfExpr { this.this } }
+
+fn badIs<T>(_ value: Any, anInstanceOf type: T.Type) -> Bool { // expected-note {{'type' declared here}}
+    value is type // expected-error {{type-casting operator expects a type on its right-hand side (got: parameter 'type')}}
+}
+
+
+
+// Autoclosure Discriminators
+
+
+
+fn embedAutoclosure_standard() -> Int {
+    _helpEmbedAutoclosure_standard(42)
+}
+fn _helpEmbedAutoclosure_standard<T>(_ value: @autoclosure () -> T) -> T {
+    value()
+}
+
+fn embedAutoclosure_never() -> Int {
+  fatalError("unsupported")
+}
+
+

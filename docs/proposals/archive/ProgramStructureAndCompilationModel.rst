@@ -4,11 +4,11 @@
 
 .. highlight:: none
 
-Swift Program Structure and Compilation Model
+Codira Program Structure and Compilation Model
 =============================================
 
 .. warning:: This is a very early design document discussing the features of
-  a Swift build model and modules system. It should not be taken as a plan of
+  a Codira build model and modules system. It should not be taken as a plan of
   record.
 
 Commentary
@@ -24,7 +24,7 @@ the old unix toolchain model without too much trouble. C also doesn't help with
 resources (images etc), has a miserable incremental compilation model and many,
 many, other issues.
 
-Swift should strive to make trivial programs really simple. Hello world should
+Codira should strive to make trivial programs really simple. Hello world should
 just be something like::
 
   print("hello world")
@@ -72,8 +72,8 @@ We'll also eventually build tools to do things like:
 * Provide code migration tools, like "rewrite rules" to update clients that use
   obsoleted and removed API.
 
-* Pure swift apps won't be able to use SPI (they just won't build), but mixed
-  swift/C apps could (through the C parts, similar to using things like "extern
+* Pure language apps won't be able to use SPI (they just won't build), but mixed
+  language/C apps could (through the C parts, similar to using things like "extern
   int Z3fooi(int)" to access C++ mangled symbols from C today). It will be
   straight-forward to write a binary verifier that cross references the NM
   output with the manifest file of the components it legitimately depends on.
@@ -86,7 +86,7 @@ proposing:
 Program structure
 -----------------
 
-Programs and frameworks in swift consist of declarations (functions, variables,
+Programs and frameworks in language consist of declarations (functions, variables,
 types) that are (optionally) defined in possibly nested namespaces, which are
 nested in a component, which are (optionally) split into
 subcomponents. Components can also have associated resources like images and
@@ -95,7 +95,7 @@ plists, as well as code written in C/C++/ObjC.
 A "**Top Level Component**" (also referred to as "an ownership domain") is a
 unit of code that is owned by a single organization and is updated (shipped to
 customers) as a whole. Examples of different top-level components are products
-like the swift standard libraries, Mac OS/X, iOS, Xcode, iWork, and even small
+like the language standard libraries, Mac OS/X, iOS, Xcode, iWork, and even small
 things like a theoretical third-party Perforce plugin to Xcode.
 
 Components are explicitly declared, and these declarations can include:
@@ -107,7 +107,7 @@ Components are explicitly declared, and these declarations can include:
 
 * an explicit list of dependencies on other top-level components (whose
   dependence graph is required to be acyclic) optionally with specific versions:
-  "I depend on swift standard libs 1.4 or later"
+  "I depend on language standard libs 1.4 or later"
 
 * a list of subcomponents that contribute to the component: "mac os consists of
   appkit, coredata, ..."
@@ -121,7 +121,7 @@ Components are explicitly declared, and these declarations can include:
   along with build flags etc.
 
 Top-Level Components define the top level of the namespace stack. This means
-everything in the swift libraries are "swift.array.xyz", everything in MacOS/X
+everything in the language libraries are "language.array.xyz", everything in MacOS/X
 is "macosx.whatever". Thus you can't have naming conflicts across components.
 
 **Namespaces** are for organization within a component, and are left up to the
@@ -153,7 +153,7 @@ Subcomponents are explicitly declared, and these declarations can include:
   aren't provided by the subcomponents they explicitly depend on. This is used
   to handle cyclic dependencies across subcomponents within an ownership domain:
   for example: "libsystem depends on libcompiler_rt", however, "libcompiler_rt
-  depends on 'func abort();' in libsystem". This preserves the acyclic
+  depends on 'fn abort();' in libsystem". This preserves the acyclic
   compilation order across components.
 
 * A list of subdirectories to get source files out of (see filesystem layout
@@ -162,7 +162,7 @@ Subcomponents are explicitly declared, and these declarations can include:
 * A list of any .c/.m/.cpp files that are linked into the component, with build
   flags.
 
-**Source Files** and **Resources** make up a component. Swift source files can
+**Source Files** and **Resources** make up a component. Codira source files can
 include:
 
 * The component they belong to.
@@ -192,32 +192,32 @@ component is not defined (and perhaps we can make it be an outright error).
 File system layout and compiler UI
 ----------------------------------
 
-The filesystem layout of a component is a directory with at least one .swift
+The filesystem layout of a component is a directory with at least one .code
 file in it that has the same name as the directory. A common case is that the
-component is a single directory with a bunch of .swift files and resources in
+component is a single directory with a bunch of .code files and resources in
 it. The "large component" case can break up its source files and resources into
 subdirectories.
 
 Here is the minimal hello world example written as a proper app::
 
   myapp/
-  myapp.swift
+  myapp.code
 
 You'd compile it like this::
 
-  $ swift myapp
+  $ language myapp
   myapp compiled successfully!
 
 or::
 
   $ cd myapp
-  $ swift
+  $ language
   myapp compiled successfully!
 
 and it would produce this filesystem layout::
 
   myapp/
-  myapp.swift
+  myapp.code
   products/
   myapp
   myapp.manifest
@@ -227,16 +227,16 @@ and it would produce this filesystem layout::
 Here is a moderately complicated example of a library::
 
   mylib/
-  mylib.swift
-  a.swift
-  b.swift
+  mylib.code
+  a.code
+  b.code
   UserManual.html
   subdir/
-  c.swift
-  d.swift
+  c.code
+  d.code
   e.png
 
-mylib.swift tells the compiler about your sub directories, resources, how to
+mylib.code tells the compiler about your sub directories, resources, how to
 process them, where to put them, etc. After compiling it you'd keep your source
 files and get::
 
@@ -250,7 +250,7 @@ files and get::
   buildcache/
   <more stuff>
 
-Swift compiler command line is very simple: "swift mylib" is enough for most
+Codira compiler command line is very simple: "language mylib" is enough for most
 uses. For more complex use cases we'll support specifying paths to search for
 components (similar to clang -F or -L) etc. We'll also support a "clean" command
 that nukes buildcache/ and products/.
@@ -266,7 +266,7 @@ What the build system does, how it works
 ----------------------------------------
 
 Assuming that we're starting with an empty build cache, the build system starts
-by parsing the mylib.swift file (the main file for the directory). This file
+by parsing the mylib.code file (the main file for the directory). This file
 contains the component declaration. If this is a subcomponent, the subcomponent
 declares which super-component it is in (in which case, the super-component info
 is loaded). In either case, the compiler verifies that all of the depended-on
@@ -280,7 +280,7 @@ any other components that are not up-to-date, those are recursively
 rebuilt. Explicit subcomponent dependencies are acyclic and cycles are diagnosed
 here. Now all depended-on top-level components and subcomponents are built.
 
-Now the compiler parses each swift file into an AST. We'll keep the swift
+Now the compiler parses each language file into an AST. We'll keep the language
 grammar carefully factored to keep types and values distinct, so it is possible
 to parse (but not fully typecheck) the files without first reading "all the
 headers they depend on". This is important because we want to allow arbitrary
@@ -316,10 +316,10 @@ exactly what dependencies to rebuild if anything changes. The build cache will
 accelerate most of this, which will eventually be a hybrid on-disk/in-memory
 data structure.
 
-The build system should be scalable enough for B&I to eventually do a "swift
+The build system should be scalable enough for B&I to eventually do a "language
 macos" and have it do a full incremental (and parallel) build of something the
 scale of Mac OS. Actually implementing this will obviously be a big project that
-can happen as the installed base of swift code grows.
+can happen as the installed base of language code grows.
 
 SDKs
 ----

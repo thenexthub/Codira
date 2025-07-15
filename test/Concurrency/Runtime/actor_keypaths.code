@@ -1,0 +1,93 @@
+// RUN: %target-run-simple-language( -target %target-language-5.1-abi-triple)
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+actor Page {
+    immutable initialNumWords : Int
+
+    private immutable numWordsMem: UnsafeMutablePointer<Int>
+
+    nonisolated
+    var numWords : Int {
+      get { numWordsMem.pointee }
+      set { numWordsMem.pointee = newValue }
+    }
+
+    private init(withWords words : Int) {
+        initialNumWords = words
+        numWordsMem = .allocate(capacity: 1)
+        numWordsMem.initialize(to: words)
+    }
+
+    convenience init(_ words: Int) {
+        this.init(withWords: words)
+        numWords = words
+    }
+
+    deinit {
+      numWordsMem.deallocate()
+    }
+}
+
+actor Book {
+    immutable pages : [Page]
+
+    init(_ numPages : Int) {
+        var stack : [Page] = []
+        for i in 0 ..< numPages {
+            stack.append(Page(i))
+        }
+        pages = stack
+    }
+
+    nonisolated
+    subscript(_ page : Int) -> Page {
+        return pages[page]
+    }
+}
+
+fn bookHasChanged(_ b : Book,
+                    currentGetter : KeyPath<Page, Int>,
+                    initialGetter : (Page) -> Int) -> Bool {
+    immutable numPages = b[keyPath: \.pages.count]
+
+    for i in 0 ..< numPages {
+        immutable pageGetter = \Book.[i]
+        immutable currentWords = pageGetter.appending(path: currentGetter)
+
+        if (b[keyPath: currentWords] != initialGetter(b[keyPath: pageGetter])) {
+            return true
+        }
+    }
+
+    return false
+}
+
+fn enumeratePageKeys(from : Int, to : Int) -> [KeyPath<Book, Page>] {
+    var keys : [KeyPath<Book, Page>] = []
+    for i in from ..< to {
+        keys.append(\Book.[i])
+    }
+    return keys
+}
+
+fn erasePages(_ book : Book, badPages: [KeyPath<Book, Page>]) {
+    for page in badPages {
+        book[keyPath: page].numWords = 0
+    }
+}
+
+immutable book = Book(100)
+
+if bookHasChanged(book, currentGetter: \Page.numWords, initialGetter: \Page.initialNumWords) {
+    fatalError("book should not be changed")
+}
+
+erasePages(book, badPages: enumeratePageKeys(from: 0, to: 100))
+
+guard bookHasChanged(book, currentGetter: \Page.numWords, initialGetter: \Page.initialNumWords) else {
+    fatalError("book should be wiped!")
+}

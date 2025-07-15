@@ -1,0 +1,84 @@
+// REQUIRES: language_language_parser
+
+// sandbox-exec is only avaiable in Darwin
+// REQUIRES: OS=macosx
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/plugins)
+
+// RUN: split-file %s %t
+
+//== Build the plugins
+// RUN: %host-build-language \
+// RUN:   -language-version 5 \
+// RUN:   -emit-library \
+// RUN:   -o %t/plugins/%target-library-name(MacroDefinition) \
+// RUN:   -module-name=MacroDefinition \
+// RUN:   %t/MacroDefinition.code \
+// RUN:   -g -no-toolchain-stdlib-rpath
+
+// RUN: %language-build-c-plugin -o %t/mock-plugin %t/TestPlugin.c
+
+//== Nested sandbox. Expected to fail because sandbox-exec doesn't support nested sandboxing.
+// RUN: not sandbox-exec -p '(version 1)(allow default)' \
+// RUN:   %target-language-frontend \
+// RUN:   -typecheck -verify \
+// RUN:   -language-version 5 \
+// RUN:   -external-plugin-path %t/plugins#%language-plugin-server \
+// RUN:   -load-plugin-executable %t/mock-plugin#TestPlugin \
+// RUN:   -module-name MyApp \
+// RUN:   %t/test.code
+
+//== Avoid nested sandbox by -disable-sandbox
+// RUN: sandbox-exec -p '(version 1)(allow default)' \
+// RUN:   %target-language-frontend \
+// RUN:   -disable-sandbox \
+// RUN:   -typecheck -verify \
+// RUN:   -language-version 5 \
+// RUN:   -external-plugin-path %t/plugins#%language-plugin-server \
+// RUN:   -load-plugin-executable %t/mock-plugin#TestPlugin \
+// RUN:   -module-name MyApp \
+// RUN:   %t/test.code
+
+
+//--- MacroDefinition.code
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+public struct StringifyMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "(\(argument), \(StringLiteralExprSyntax(content: argument.description)))"
+  }
+}
+
+//--- TestPlugin.c
+#include "language-c/MockPlugin/MockPlugin.h"
+
+MOCK_PLUGIN([
+  {
+    "expect": {"getCapability": {}},
+    "response": {"getCapabilityResult": {"capability": {"protocolVersion": 1}}}
+  },
+  {
+    "expect": {"expandFreestandingMacro": {
+                "macro": {"moduleName": "TestPlugin", "typeName": "TestStringMacro"}}},
+    "response": {"expandMacroResult": {"expandedSource": "\"test string\"", "diagnostics": []}}
+  }
+])
+
+//--- test.code
+@freestanding(expression) macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "MacroDefinition", type: "StringifyMacro")
+@freestanding(expression) macro testString() -> String = #externalMacro(module: "TestPlugin", type: "TestStringMacro")
+
+fn test() {
+  immutable _: String = #stringify(42).1
+  immutable _: String = #testString
+}

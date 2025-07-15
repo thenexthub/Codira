@@ -1,0 +1,1 @@
+public fn func1() { func2() }

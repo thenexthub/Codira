@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the constraint-based type checker, anchored by the
@@ -41,12 +42,13 @@
 #include "language/Sema/CSFix.h"
 #include "language/Sema/ConstraintGraph.h"
 #include "language/Sema/IDETypeChecking.h"
+#include "language/Sema/PreparedOverload.h"
 #include "language/Sema/SolutionResult.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Format.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Format.h"
 #include <cmath>
 
 using namespace language;
@@ -58,7 +60,7 @@ using namespace inference;
 ExpressionTimer::ExpressionTimer(AnchorType Anchor, ConstraintSystem &CS,
                                  unsigned thresholdInSecs)
     : Anchor(Anchor), Context(CS.getASTContext()),
-      StartTime(llvm::TimeRecord::getCurrentTime()),
+      StartTime(toolchain::TimeRecord::getCurrentTime()),
       ThresholdInSecs(thresholdInSecs),
       PrintDebugTiming(CS.getASTContext().TypeCheckerOpts.DebugTimeExpressions),
       PrintWarning(true) {}
@@ -85,15 +87,15 @@ ExpressionTimer::~ExpressionTimer() {
 
   if (PrintDebugTiming) {
     // Round up to the nearest 100th of a millisecond.
-    llvm::errs() << llvm::format("%0.2f", std::ceil(elapsed * 100000) / 100)
+    toolchain::errs() << toolchain::format("%0.2f", std::ceil(elapsed * 100000) / 100)
                  << "ms\t";
     if (auto *E = Anchor.dyn_cast<Expr *>()) {
-      E->getLoc().print(llvm::errs(), Context.SourceMgr);
+      E->getLoc().print(toolchain::errs(), Context.SourceMgr);
     } else {
       auto *locator = Anchor.get<ConstraintLocator *>();
-      locator->dump(&Context.SourceMgr, llvm::errs());
+      locator->dump(&Context.SourceMgr, toolchain::errs());
     }
-    llvm::errs() << "\n";
+    toolchain::errs() << "\n";
   }
 
   if (!PrintWarning)
@@ -144,9 +146,18 @@ ConstraintSystem::~ConstraintSystem() {
 void ConstraintSystem::startExpressionTimer(ExpressionTimer::AnchorType anchor) {
   ASSERT(!Timer);
 
-  unsigned timeout = getASTContext().TypeCheckerOpts.ExpressionTimeoutThreshold;
-  if (timeout == 0)
-    return;
+  const auto &opts = getASTContext().TypeCheckerOpts;
+  unsigned timeout = opts.ExpressionTimeoutThreshold;
+
+  // If either the timeout is set, or we're asked to emit warnings,
+  // start the timer. Otherwise, don't start the timer, it's needless
+  // overhead.
+  if (timeout == 0) {
+    if (opts.WarnLongExpressionTypeChecking == 0)
+      return;
+
+    timeout = ExpressionTimer::NoLimit;
+  }
 
   Timer.emplace(anchor, *this, timeout);
 }
@@ -164,12 +175,14 @@ void ConstraintSystem::incrementLeafScopes() {
 
 bool ConstraintSystem::hasFreeTypeVariables() {
   // Look for any free type variables.
-  return llvm::any_of(TypeVariables, [](const TypeVariableType *typeVar) {
+  return toolchain::any_of(TypeVariables, [](const TypeVariableType *typeVar) {
     return !typeVar->getImpl().hasRepresentativeOrFixed();
   });
 }
 
 void ConstraintSystem::addTypeVariable(TypeVariableType *typeVar) {
+  ASSERT(!PreparingOverload);
+
   TypeVariables.insert(typeVar);
 
   // Notify the constraint graph.
@@ -298,6 +311,8 @@ void ConstraintSystem::removeConversionRestriction(
 }
 
 void ConstraintSystem::addFix(ConstraintFix *fix) {
+  ASSERT(!PreparingOverload);
+
   bool inserted = Fixes.insert(fix);
   ASSERT(inserted);
 
@@ -334,14 +349,14 @@ void ConstraintSystem::recordAppliedDisjunction(
 static std::tuple<char, ObjCSelector, CanType>
 getDynamicResultSignature(ValueDecl *decl) {
   // Handle functions.
-  if (auto func = dyn_cast<AbstractFunctionDecl>(decl)) {
+  if (auto fn = dyn_cast<AbstractFunctionDecl>(decl)) {
     // Strip `@Sendable` and `any Sendable` because it should be
     // possible to add them without affecting lookup results and
     // shadowing. All of the declarations that are processed here
     // are `@objc` and hence `@preconcurrency`.
-    auto type = func->getMethodInterfaceType()->stripConcurrency(
+    auto type = fn->getMethodInterfaceType()->stripConcurrency(
         /*recursive=*/true, /*dropGlobalActor=*/false);
-    return std::make_tuple(func->isStatic(), func->getObjCSelector(),
+    return std::make_tuple(fn->isStatic(), fn->getObjCSelector(),
                            type->getCanonicalType());
   }
 
@@ -361,7 +376,7 @@ getDynamicResultSignature(ValueDecl *decl) {
                            ty->getCanonicalType());
   }
 
-  llvm_unreachable("Not a valid @objc member");
+  toolchain_unreachable("Not a valid @objc member");
 }
 
 LookupResult &ConstraintSystem::lookupMember(Type base, DeclNameRef name,
@@ -386,7 +401,7 @@ LookupResult &ConstraintSystem::lookupMember(Type base, DeclNameRef name,
     return *result;
 
   // We are performing dynamic lookup. Filter out redundant results early.
-  llvm::DenseMap<std::tuple<char, ObjCSelector, CanType>, ValueDecl *> known;
+  toolchain::DenseMap<std::tuple<char, ObjCSelector, CanType>, ValueDecl *> known;
   bool anyRemovals = false;
   for (const auto &entry : *result) {
     auto *decl = entry.getValueDecl();
@@ -448,13 +463,13 @@ ConstraintSystem::getAlternativeLiteralTypes(KnownProtocolKind kind,
 }
 
 bool ConstraintSystem::containsIDEInspectionTarget(ASTNode node) const {
-  return swift::containsIDEInspectionTarget(node.getSourceRange(),
+  return language::containsIDEInspectionTarget(node.getSourceRange(),
                                             Context.SourceMgr);
 }
 
 bool ConstraintSystem::containsIDEInspectionTarget(
     const ArgumentList *args) const {
-  return swift::containsIDEInspectionTarget(args->getSourceRange(),
+  return language::containsIDEInspectionTarget(args->getSourceRange(),
                                             Context.SourceMgr);
 }
 
@@ -602,7 +617,7 @@ ConstraintLocator *ConstraintSystem::getConstraintLocator(
   assert(summaryFlags == ConstraintLocator::getSummaryFlagsForPath(path));
 
   // Check whether a locator with this anchor + path already exists.
-  llvm::FoldingSetNodeID id;
+  toolchain::FoldingSetNodeID id;
   ConstraintLocator::Profile(id, anchor, path);
   void *insertPos = nullptr;
   auto locator = ConstraintLocators.FindNodeOrInsertPos(id, insertPos);
@@ -673,7 +688,7 @@ ConstraintLocator *ConstraintSystem::getImplicitValueConversionLocator(
     // diagnostics that `ExprRewriter` won't be able to re-construct
     // during solution application.
     if (!path.empty() && path.back().is<LocatorPathElt::TupleElement>()) {
-      path.erase(llvm::remove_if(path,
+      path.erase(toolchain::remove_if(path,
                                  [](const LocatorPathElt &elt) {
                                    return elt.is<LocatorPathElt::TupleType>();
                                  }),
@@ -687,9 +702,9 @@ ConstraintLocator *ConstraintSystem::getImplicitValueConversionLocator(
 
 ConstraintLocator *ConstraintSystem::getCalleeLocator(
     ConstraintLocator *locator, bool lookThroughApply,
-    llvm::function_ref<Type(Expr *)> getType,
-    llvm::function_ref<Type(Type)> simplifyType,
-    llvm::function_ref<std::optional<SelectedOverload>(ConstraintLocator *)>
+    toolchain::function_ref<Type(Expr *)> getType,
+    toolchain::function_ref<Type(Type)> simplifyType,
+    toolchain::function_ref<std::optional<SelectedOverload>(ConstraintLocator *)>
         getOverloadFor) {
   if (locator->findLast<LocatorPathElt::ImplicitConversion>())
     return locator;
@@ -733,7 +748,9 @@ ConstraintLocator *ConstraintSystem::getCalleeLocator(
   }
 
   if (locator->isLastElement<LocatorPathElt::ArgumentAttribute>()) {
-    return getConstraintLocator(anchor, path.drop_back());
+    auto argLoc = getConstraintLocator(anchor, path.drop_back());
+    return getCalleeLocator(argLoc, lookThroughApply, getType, simplifyType,
+                            getOverloadFor);
   }
 
   // If we have a locator that starts with a key path component element, we
@@ -756,7 +773,7 @@ ConstraintLocator *ConstraintSystem::getCalleeLocator(
       // For a property, the choice is just given by the component.
       return getConstraintLocator(anchor, *componentElt);
     case ComponentKind::TupleElement:
-      llvm_unreachable("Not implemented by CSGen");
+      toolchain_unreachable("Not implemented by CSGen");
       break;
     case ComponentKind::UnresolvedApply:
     case ComponentKind::Apply:
@@ -889,7 +906,14 @@ ConstraintSystem::openAnyExistentialType(Type type,
 }
 
 void ConstraintSystem::recordOpenedExistentialType(
-    ConstraintLocator *locator, ExistentialArchetypeType *opened) {
+    ConstraintLocator *locator,
+    ExistentialArchetypeType *opened,
+    PreparedOverloadBuilder *preparedOverload) {
+  if (preparedOverload) {
+    preparedOverload->openedExistentialType(opened);
+    return;
+  }
+
   bool inserted = OpenedExistentialTypes.insert({locator, opened}).second;
   ASSERT(inserted);
 
@@ -949,7 +973,7 @@ void ConstraintSystem::recordPackElementExpansion(
 /// of the given expression.
 static void extendDepthMap(
    Expr *expr,
-   llvm::DenseMap<Expr *, std::pair<unsigned, Expr *>> &depthMap) {
+   toolchain::DenseMap<Expr *, std::pair<unsigned, Expr *>> &depthMap) {
   // If we already have an entry in the map, we don't need to update it. This
   // avoids invalidating previous entries when solving a smaller component of a
   // larger AST node, e.g during conjunction solving.
@@ -960,11 +984,11 @@ static void extendDepthMap(
     SmallVector<ClosureExpr *, 4> Closures;
 
   public:
-    llvm::DenseMap<Expr *, std::pair<unsigned, Expr *>> &DepthMap;
+    toolchain::DenseMap<Expr *, std::pair<unsigned, Expr *>> &DepthMap;
     unsigned Depth = 0;
 
     explicit RecordingTraversal(
-        llvm::DenseMap<Expr *, std::pair<unsigned, Expr *>> &depthMap)
+        toolchain::DenseMap<Expr *, std::pair<unsigned, Expr *>> &depthMap)
         : DepthMap(depthMap) {}
 
     MacroWalking getMacroWalkingBehavior() const override {
@@ -1012,7 +1036,7 @@ static void extendDepthMap(
         // For return statements, treat the parent of the return expression
         // as the closure itself.
         if (RS->hasResult() && !Closures.empty()) {
-          llvm::SaveAndRestore<ParentTy> SavedParent(Parent, Closures.back());
+          toolchain::SaveAndRestore<ParentTy> SavedParent(Parent, Closures.back());
           auto E = RS->getResult();
           E->walk(*this);
           return Action::SkipNode(S);
@@ -1065,6 +1089,7 @@ std::optional<Type> ConstraintSystem::isSetType(Type type) {
 
 Type ConstraintSystem::getFixedTypeRecursive(Type type, TypeMatchOptions &flags,
                                              bool wantRValue) {
+  ASSERT(!PreparingOverload);
 
   if (wantRValue)
     type = type->getRValueType();
@@ -1123,7 +1148,7 @@ TypeVariableType *ConstraintSystem::isRepresentativeFor(
   auto &CG = const_cast<ConstraintSystem *>(this)->getConstraintGraph();
   auto &result = CG[typeVar];
   auto equivalence = result.getEquivalenceClass();
-  auto member = llvm::find_if(equivalence, [=](TypeVariableType *eq) {
+  auto member = toolchain::find_if(equivalence, [=](TypeVariableType *eq) {
     auto *loc = eq->getImpl().getLocator();
     if (!loc)
       return false;
@@ -1141,7 +1166,7 @@ TypeVariableType *ConstraintSystem::isRepresentativeFor(
 static std::optional<std::pair<VarDecl *, Type>>
 getPropertyWrapperInformationFromOverload(
     SelectedOverload resolvedOverload, DeclContext *DC,
-    llvm::function_ref<std::optional<std::pair<VarDecl *, Type>>(VarDecl *)>
+    toolchain::function_ref<std::optional<std::pair<VarDecl *, Type>>(VarDecl *)>
         getInformation) {
   if (auto *decl =
           dyn_cast_or_null<VarDecl>(resolvedOverload.choice.getDeclOrNull())) {
@@ -1417,11 +1442,6 @@ FunctionType::ExtInfo ClosureEffectsRequest::evaluate(
   bool async = expr->getAsyncLoc().isValid();
   bool sendable = expr->getAttrs().hasAttribute<SendableAttr>();
 
-  // `@concurrent` attribute is only valid on asynchronous function types.
-  if (expr->getAttrs().hasAttribute<ConcurrentAttr>()) {
-    async = true;
-  }
-
   if (throws || async) {
     return ASTExtInfoBuilder()
       .withThrows(throws, /*FIXME:*/Type())
@@ -1435,18 +1455,24 @@ FunctionType::ExtInfo ClosureEffectsRequest::evaluate(
   if (!body)
     return ASTExtInfoBuilder().withSendable(sendable).build();
 
+  // `@concurrent` attribute is only valid on asynchronous function types.
+  bool asyncFromAttr = false;
+  if (expr->getAttrs().hasAttribute<ConcurrentAttr>()) {
+    asyncFromAttr = true;
+  }
+
   auto throwFinder = FindInnerThrows(expr);
   body->walk(throwFinder);
   return ASTExtInfoBuilder()
       .withThrows(throwFinder.foundThrow(), /*FIXME:*/Type())
-      .withAsync(bool(findAsyncNode(expr)))
+      .withAsync(asyncFromAttr || bool(findAsyncNode(expr)))
       .withSendable(sendable)
       .build();
 }
 
 bool ConstraintSystem::isAsynchronousContext(DeclContext *dc) {
-  if (auto func = dyn_cast<AbstractFunctionDecl>(dc))
-    return func->isAsyncContext();
+  if (auto fn = dyn_cast<AbstractFunctionDecl>(dc))
+    return fn->isAsyncContext();
 
   if (auto closure = dyn_cast<ClosureExpr>(dc)) {
     return evaluateOrDefault(
@@ -1508,7 +1534,7 @@ void ConstraintSystem::buildDisjunctionForOptionalVsUnderlying(
   auto *bindToUnderlying = Constraint::create(*this, ConstraintKind::Bind,
                                               boundTy, underlyingType, locator);
 
-  llvm::SmallVector<Constraint *, 2> choices = {bindToOptional,
+  toolchain::SmallVector<Constraint *, 2> choices = {bindToOptional,
                                                 bindToUnderlying};
 
   // Create the disjunction
@@ -1519,7 +1545,7 @@ namespace {
 
 struct TypeSimplifier {
   ConstraintSystem &CS;
-  llvm::function_ref<Type(TypeVariableType *)> GetFixedTypeFn;
+  toolchain::function_ref<Type(TypeVariableType *)> GetFixedTypeFn;
 
   struct ActivePackExpansion {
     bool isPackExpansion = false;
@@ -1528,7 +1554,7 @@ struct TypeSimplifier {
   SmallVector<ActivePackExpansion, 4> ActivePackExpansions;
 
   TypeSimplifier(ConstraintSystem &CS,
-                 llvm::function_ref<Type(TypeVariableType *)> getFixedTypeFn)
+                 toolchain::function_ref<Type(TypeVariableType *)> getFixedTypeFn)
     : CS(CS), GetFixedTypeFn(getFixedTypeFn) {}
 
   std::optional<Type> operator()(TypeBase *type) {
@@ -1695,7 +1721,7 @@ struct TypeSimplifier {
             auto elementAssocTy = arrayProto->getAssociatedTypeMembers()[0];
 
             if (proto == arrayProto && assocType == elementAssocTy) {
-              return lookupBaseType->isArrayType();
+              return lookupBaseType->getInlineArrayElementType();
             }
           }
 
@@ -1727,11 +1753,13 @@ struct TypeSimplifier {
 } // end anonymous namespace
 
 Type ConstraintSystem::simplifyTypeImpl(Type type,
-    llvm::function_ref<Type(TypeVariableType *)> getFixedTypeFn) {
+    toolchain::function_ref<Type(TypeVariableType *)> getFixedTypeFn) {
   return type.transformRec(TypeSimplifier(*this, getFixedTypeFn));
 }
 
 Type ConstraintSystem::simplifyType(Type type) {
+  ASSERT(!PreparingOverload);
+
   if (!type->hasTypeVariable())
     return type;
 
@@ -1761,7 +1789,7 @@ Type Solution::simplifyType(Type type, bool wantInterfaceType) const {
   if (wantInterfaceType)
     type = type->mapTypeOutOfContext();
 
-  if (!(type->hasTypeVariable() || type->hasPlaceholder()))
+  if (!type->hasTypeVariableOrPlaceholder())
     return type;
 
   // Map type variables to fixed types from bindings.
@@ -1779,16 +1807,28 @@ Type Solution::simplifyType(Type type, bool wantInterfaceType) const {
       });
   ASSERT(!(wantInterfaceType && resolvedType->hasPrimaryArchetype()));
 
-  // Placeholders shouldn't be reachable through a solution, they are only
-  // useful to determine what went wrong exactly.
-  if (resolvedType->hasPlaceholder()) {
-    return resolvedType.transformRec([&](Type type) -> std::optional<Type> {
-      if (type->isPlaceholder())
-        return Type(cs.getASTContext().TheUnresolvedType);
-      return std::nullopt;
-    });
+  // We may have type variables and placeholders left over. These are solver
+  // allocated so cannot escape this function. Turn them into UnresolvedType.
+  // - Type variables may still be present from unresolved pack expansions where
+  //   e.g the count type is a hole, so the pattern may never become a
+  //   concrete type.
+  // - Placeholders may be present for any holes.
+  if (resolvedType->hasTypeVariableOrPlaceholder()) {
+    auto &ctx = cs.getASTContext();
+    resolvedType =
+        resolvedType.transformRec([&](Type type) -> std::optional<Type> {
+          if (!type->hasTypeVariableOrPlaceholder())
+            return type;
+
+          auto *typePtr = type.getPointer();
+          if (isa<TypeVariableType>(typePtr) || isa<PlaceholderType>(typePtr))
+            return Type(ctx.TheUnresolvedType);
+
+          return std::nullopt;
+        });
   }
 
+  ASSERT(!resolvedType->getRecursiveProperties().isSolverAllocated());
   return resolvedType;
 }
 
@@ -1841,7 +1881,7 @@ Type Solution::simplifyTypeForCodeCompletion(Type Ty) const {
     std::vector<std::pair<TypeVariableType *, Type>> bindings(
         typeBindings.begin(), typeBindings.end());
     // Make sure we iterate the bindings in a deterministic order.
-    llvm::sort(bindings, [](const std::pair<TypeVariableType *, Type> &lhs,
+    toolchain::sort(bindings, [](const std::pair<TypeVariableType *, Type> &lhs,
                             const std::pair<TypeVariableType *, Type> &rhs) {
       return lhs.first->getID() < rhs.first->getID();
     });
@@ -1990,10 +2030,10 @@ DeclName OverloadChoice::getName() const {
     case OverloadChoiceKind::MaterializePack:
     case OverloadChoiceKind::TupleIndex:
     case OverloadChoiceKind::ExtractFunctionIsolation:
-      llvm_unreachable("no name!");
+      toolchain_unreachable("no name!");
   }
 
-  llvm_unreachable("Unhandled OverloadChoiceKind in switch.");
+  toolchain_unreachable("Unhandled OverloadChoiceKind in switch.");
 }
 
 std::optional<IUOReferenceKind>
@@ -2029,7 +2069,7 @@ OverloadChoice::getIUOReferenceKind(ConstraintSystem &cs,
 
 SolutionResult ConstraintSystem::salvage() {
   if (isDebugMode()) {
-    llvm::errs() << "---Attempting to salvage and emit diagnostics---\n";
+    toolchain::errs() << "---Attempting to salvage and emit diagnostics---\n";
   }
 
   setPhase(ConstraintSystemPhase::Diagnostics);
@@ -2084,7 +2124,7 @@ SolutionResult ConstraintSystem::salvage() {
     // If there are multiple solutions, try to diagnose an ambiguity.
     if (viable.size() > 1) {
       if (isDebugMode()) {
-        auto &log = llvm::errs();
+        auto &log = toolchain::errs();
         log << "---Ambiguity error: " << viable.size()
             << " solutions found---\n";
         int i = 0;
@@ -2180,7 +2220,7 @@ static void diagnoseOperatorAmbiguity(ConstraintSystem &cs,
     // If arguments to all parameters have been fixed then there is nothing
     // to note about in this overload.
     std::set<unsigned> fixedParams;
-    llvm::for_each(solution.Fixes, [&](const ConstraintFix *fix) {
+    toolchain::for_each(solution.Fixes, [&](const ConstraintFix *fix) {
       auto *locator = fix->getLocator();
       if (getAsExpr(locator->getAnchor()) != applyExpr)
         return;
@@ -2203,10 +2243,10 @@ static void diagnoseOperatorAmbiguity(ConstraintSystem &cs,
 
   DE.diagnose(anchor->getLoc(), diag::suggest_partial_overloads,
               /*isResult=*/false, operatorName.str(),
-              llvm::join(parameters, ", "));
+              toolchain::join(parameters, ", "));
 }
 
-std::string swift::describeGenericType(ValueDecl *GP, bool includeName) {
+std::string language::describeGenericType(ValueDecl *GP, bool includeName) {
   if (!GP)
     return "";
 
@@ -2221,8 +2261,8 @@ std::string swift::describeGenericType(ValueDecl *GP, bool includeName) {
   if (!parent)
     return "";
 
-  llvm::SmallString<64> result;
-  llvm::raw_svector_ostream OS(result);
+  toolchain::SmallString<64> result;
+  toolchain::raw_svector_ostream OS(result);
 
   OS << Decl::getDescriptiveKindName(GP->getDescriptiveKind());
 
@@ -2241,8 +2281,8 @@ std::string swift::describeGenericType(ValueDecl *GP, bool includeName) {
 
 /// Special handling of conflicts associated with generic arguments.
 ///
-/// func foo<T>(_: T, _: T) {}
-/// func bar(x: Int, y: Float) {
+/// fn foo<T>(_: T, _: T) {}
+/// fn bar(x: Int, y: Float) {
 ///   foo(x, y)
 /// }
 ///
@@ -2254,14 +2294,14 @@ static bool diagnoseConflictingGenericArguments(ConstraintSystem &cs,
   if (!diff.overloads.empty())
     return false;
 
-  bool noFixes = llvm::all_of(solutions, [](const Solution &solution) -> bool {
+  bool noFixes = toolchain::all_of(solutions, [](const Solution &solution) -> bool {
      const auto score = solution.getFixedScore();
      return score.Data[SK_Fix] == 0 && solution.Fixes.empty();
   });
 
   bool allMismatches =
-      llvm::all_of(solutions, [](const Solution &solution) -> bool {
-        return llvm::all_of(
+      toolchain::all_of(solutions, [](const Solution &solution) -> bool {
+        return toolchain::all_of(
             solution.Fixes, [](const ConstraintFix *fix) -> bool {
               return fix->getKind() == FixKind::AllowArgumentTypeMismatch ||
                      fix->getKind() == FixKind::AllowFunctionTypeMismatch ||
@@ -2277,7 +2317,7 @@ static bool diagnoseConflictingGenericArguments(ConstraintSystem &cs,
 
   auto &DE = cs.getASTContext().Diags;
 
-  llvm::SmallDenseMap<TypeVariableType *,
+  toolchain::SmallDenseMap<TypeVariableType *,
                       std::pair<GenericTypeParamType *, SourceLoc>, 4>
       genericParams;
   // Consider all representative type variables across all solutions.
@@ -2292,7 +2332,7 @@ static bool diagnoseConflictingGenericArguments(ConstraintSystem &cs,
         // but it's possible that generic parameter is equated to
         // some other type e.g.
         //
-        // func foo<T>(_: T) -> T {}
+        // fn foo<T>(_: T) -> T {}
         //
         // In this case when reference to function `foo` is "opened"
         // type variable representing `T` would be equated to
@@ -2305,7 +2345,7 @@ static bool diagnoseConflictingGenericArguments(ConstraintSystem &cs,
     }
   }
 
-  llvm::SmallDenseMap<std::pair<GenericTypeParamType *, SourceLoc>,
+  toolchain::SmallDenseMap<std::pair<GenericTypeParamType *, SourceLoc>,
                       SmallVector<Type, 4>>
       conflicts;
 
@@ -2313,7 +2353,7 @@ static bool diagnoseConflictingGenericArguments(ConstraintSystem &cs,
     auto *typeVar = entry.first;
     auto GP = entry.second;
 
-    swift::SmallSetVector<Type, 4> arguments;
+    language::SmallSetVector<Type, 4> arguments;
     for (const auto &solution : solutions) {
       auto type = solution.typeBindings.lookup(typeVar);
       // Type variables gathered from a solution's type binding context may not
@@ -2365,12 +2405,12 @@ static bool diagnoseConflictingGenericArguments(ConstraintSystem &cs,
 
     // If there are any substitutions that are not fully resolved
     // solutions cannot be considered conflicting for the given parameter.
-    if (llvm::any_of(conflictingArguments,
+    if (toolchain::any_of(conflictingArguments,
                      [](const auto &arg) { return arg->hasPlaceholder(); }))
       continue;
 
-    llvm::SmallString<64> arguments;
-    llvm::raw_svector_ostream OS(arguments);
+    toolchain::SmallString<64> arguments;
+    toolchain::raw_svector_ostream OS(arguments);
 
     interleave(
         conflictingArguments,
@@ -2415,7 +2455,7 @@ diagnoseAmbiguityWithEphemeralPointers(ConstraintSystem &cs,
       continue;
     }
 
-    if (!llvm::all_of(solution.Fixes, [](const ConstraintFix *fix) {
+    if (!toolchain::all_of(solution.Fixes, [](const ConstraintFix *fix) {
           return fix->getKind() == FixKind::TreatEphemeralAsNonEphemeral;
         }))
       return false;
@@ -2455,7 +2495,7 @@ static bool diagnoseAmbiguityWithContextualType(
   // If right-hand side of the conversion (result of the AST node)
   // is the same across all of the solutions let's diagnose it as if
   // it it as a single failure.
-  if (llvm::all_of(
+  if (toolchain::all_of(
           aggregateFix,
           [&](const std::pair<const Solution *, const ConstraintFix *> &entry) {
             return resultType->isEqual(getResultType(entry));
@@ -2473,7 +2513,7 @@ static bool diagnoseAmbiguityWithContextualType(
   auto *calleeLocator = solution.getCalleeLocator(locator);
 
   auto result =
-      llvm::find_if(solutionDiff.overloads,
+      toolchain::find_if(solutionDiff.overloads,
                     [&calleeLocator](const SolutionDiff::OverloadDiff &entry) {
                       return entry.locator == calleeLocator;
                     });
@@ -2536,7 +2576,7 @@ static bool diagnoseAmbiguityWithGenericRequirements(
   // we can diagnose this an a single error.
   bool hasNonDeclOverloads = false;
 
-  llvm::SmallSet<ValueDecl *, 4> overloadChoices;
+  toolchain::SmallSet<ValueDecl *, 4> overloadChoices;
   for (const auto &entry : aggregate) {
     const auto &solution = *entry.first;
     auto *calleeLocator = solution.getCalleeLocator(entry.second->getLocator());
@@ -2594,7 +2634,7 @@ static bool diagnoseAmbiguity(
 
   auto &DE = cs.getASTContext().Diags;
 
-  llvm::SmallPtrSet<ValueDecl *, 4> localAmbiguity;
+  toolchain::SmallPtrSet<ValueDecl *, 4> localAmbiguity;
   {
     for (auto &entry : aggregateFix) {
       const auto &solution = entry.first;
@@ -2620,7 +2660,7 @@ static bool diagnoseAmbiguity(
 
   {
     auto fixKind = aggregateFix.front().second->getKind();
-    if (llvm::all_of(
+    if (toolchain::all_of(
             aggregateFix, [&](const std::pair<const Solution *,
                                               const ConstraintFix *> &entry) {
               auto &fix = entry.second;
@@ -2671,8 +2711,8 @@ static bool diagnoseAmbiguity(
       DE.diagnose(anchor->getLoc(), diag::no_overloads_match_exactly_in_call,
                   /*isApplication=*/false, decl, name.isSpecial());
     } else {
-      bool isApplication = llvm::any_of(solutions, [&](const auto &S) {
-          return llvm::any_of(S.argumentLists, [&](const auto &pair) {
+      bool isApplication = toolchain::any_of(solutions, [&](const auto &S) {
+          return toolchain::any_of(S.argumentLists, [&](const auto &pair) {
             return pair.first->getAnchor() == commonAnchor;
           });
       });
@@ -2684,7 +2724,7 @@ static bool diagnoseAmbiguity(
 
     // Produce candidate notes
     SmallPtrSet<ValueDecl *, 4> distinctChoices;
-    llvm::SmallSet<CanType, 4> candidateTypes;
+    toolchain::SmallSet<CanType, 4> candidateTypes;
     for (const auto &solution : solutions) {
       auto overload = solution.getOverloadChoice(commonCalleeLocator);
       auto *decl = overload.choice.getDecl();
@@ -2715,7 +2755,7 @@ static bool diagnoseAmbiguity(
       if (fixes.size() == 1) {
         diagnosed &= fixes.front()->diagnose(solution, /*asNote*/ true);
       } else if (!fixes.empty() &&
-                 llvm::all_of(fixes, [&](const ConstraintFix *fix) {
+                 toolchain::all_of(fixes, [&](const ConstraintFix *fix) {
                    // Ignore coercion fixes in this context, to
                    // focus on the argument mismatches.
                    if (fix->getLocator()->isForCoercion())
@@ -2734,7 +2774,7 @@ static bool diagnoseAmbiguity(
             type->lookThroughAllOptionalTypes()->getAs<AnyFunctionType>();
         assert(fn);
 
-        auto first = llvm::find_if(fixes, [&](const ConstraintFix *fix) {
+        auto first = toolchain::find_if(fixes, [&](const ConstraintFix *fix) {
           return fix->getLocator()
               ->findLast<LocatorPathElt::ApplyArgument>()
               .has_value();
@@ -2778,11 +2818,11 @@ using FixInContext = std::pair<const Solution *, const ConstraintFix *>;
 // Attempts to diagnose function call ambiguities of types inferred for a result
 // generic parameter from contextual type and a closure argument that
 // conflicting infer a different type for the same argument. Example:
-//   func callit<T>(_ f: () -> T) -> T {
+//   fn callit<T>(_ f: () -> T) -> T {
 //     f()
 //   }
 //
-//   func context() -> Int {
+//   fn context() -> Int {
 //     callit {
 //       print("hello")
 //     }
@@ -2834,7 +2874,7 @@ static bool diagnoseContextualFunctionCallGenericAmbiguity(
   }
 
   auto *args = AE->getArgs();
-  llvm::SmallVector<ClosureExpr *, 2> closureArguments;
+  toolchain::SmallVector<ClosureExpr *, 2> closureArguments;
   for (auto i : indices(*args)) {
     auto *closure = getAsExpr<ClosureExpr>(args->getExpr(i));
     if (!closure)
@@ -2859,11 +2899,11 @@ static bool diagnoseContextualFunctionCallGenericAmbiguity(
   // So let's try to collect the set of fixed types for the generic parameter
   // from all the closure contextual fix/solutions and if there are more than
   // one fixed type diagnose it.
-  swift::SmallSetVector<Type, 4> genericParamInferredTypes;
+  language::SmallSetVector<Type, 4> genericParamInferredTypes;
   for (auto &fix : contextualFixes)
     genericParamInferredTypes.insert(fix.first->getFixedType(resultTypeVar));
 
-  if (llvm::all_of(allFixes, [&](FixInContext fix) {
+  if (toolchain::all_of(allFixes, [&](FixInContext fix) {
         auto fixLocator = fix.second->getLocator();
         if (fixLocator->isForContextualType())
           return true;
@@ -2887,8 +2927,8 @@ static bool diagnoseContextualFunctionCallGenericAmbiguity(
       return false;
 
     auto &DE = cs.getASTContext().Diags;
-    llvm::SmallString<64> arguments;
-    llvm::raw_svector_ostream OS(arguments);
+    toolchain::SmallString<64> arguments;
+    toolchain::raw_svector_ostream OS(arguments);
     interleave(
         genericParamInferredTypes,
         [&](Type argType) { OS << "'" << argType << "'"; },
@@ -2920,14 +2960,14 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
     return true;
 
   if (auto bestScore = solverState->BestScore) {
-    solutions.erase(llvm::remove_if(solutions,
+    solutions.erase(toolchain::remove_if(solutions,
                                     [&](const Solution &solution) {
                                       return solution.getFixedScore() >
                                              *bestScore;
                                     }),
                     solutions.end());
 
-    if (llvm::all_of(solutions, [&](const Solution &solution) {
+    if (toolchain::all_of(solutions, [&](const Solution &solution) {
           auto score = solution.getFixedScore();
           return score.Data[SK_Fix] == 0 && solution.Fixes.empty();
         }))
@@ -2942,7 +2982,7 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
 
   if (isDebugMode()) {
     auto indent = solverState->getCurrentIndent();
-    auto &log = llvm::errs().indent(indent);
+    auto &log = toolchain::errs().indent(indent);
     log << "--- Ambiguity: Considering #" << solutions.size()
         << " solutions with fixes ---\n";
     int i = 0;
@@ -2956,8 +2996,8 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
 
   // If there either no fixes at all or all of the are warnings,
   // let's diagnose this as regular ambiguity.
-  if (llvm::all_of(solutions, [](const Solution &solution) {
-        return llvm::all_of(solution.Fixes, [](const ConstraintFix *fix) {
+  if (toolchain::all_of(solutions, [](const Solution &solution) {
+        return toolchain::all_of(solution.Fixes, [](const ConstraintFix *fix) {
           return !fix->isFatal();
         });
       })) {
@@ -2973,7 +3013,7 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
   // d. Diagnose remaining (uniqued based on kind + locator) fixes
   //    iff they appear in all of the solutions.
 
-  llvm::SmallSetVector<FixInContext, 4> fixes;
+  toolchain::SmallSetVector<FixInContext, 4> fixes;
   for (auto &solution : solutions) {
     for (auto *fix : solution.Fixes) {
       // If the fix doesn't affect the solution score, it is not the
@@ -2987,9 +3027,9 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
     }
   }
 
-  llvm::MapVector<ConstraintLocator *, SmallVector<FixInContext, 4>>
+  toolchain::MapVector<ConstraintLocator *, SmallVector<FixInContext, 4>>
       fixesByCallee;
-  llvm::SmallVector<FixInContext, 4> contextualFixes;
+  toolchain::SmallVector<FixInContext, 4> contextualFixes;
 
   for (const auto &entry : fixes) {
     const auto &solution = *entry.first;
@@ -3009,7 +3049,7 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
   bool diagnosed = false;
 
   // All of the fixes which have been considered already.
-  llvm::SmallSetVector<FixInContext, 4> consideredFixes;
+  toolchain::SmallSetVector<FixInContext, 4> consideredFixes;
 
   for (const auto &ambiguity : solutionDiff.overloads) {
     auto fixes = fixesByCallee.find(ambiguity.locator);
@@ -3037,10 +3077,10 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
   {
     // Aggregates fixes fixes attached to `buildExpression` and `buildBlock`
     // methods at the particular source location.
-    llvm::MapVector<SourceLoc, SmallVector<FixInContext, 4>>
+    toolchain::MapVector<SourceLoc, SmallVector<FixInContext, 4>>
         builderMethodRequirementFixes;
 
-    llvm::MapVector<ConstraintLocator *, SmallVector<FixInContext, 4>>
+    toolchain::MapVector<ConstraintLocator *, SmallVector<FixInContext, 4>>
         perCalleeRequirementFixes;
 
     for (const auto &entry : fixes) {
@@ -3085,7 +3125,7 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
     }
   }
 
-  llvm::MapVector<std::pair<FixKind, ConstraintLocator *>,
+  toolchain::MapVector<std::pair<FixKind, ConstraintLocator *>,
                   SmallVector<FixInContext, 4>>
       fixesByKind;
 
@@ -3097,8 +3137,8 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
   // If leftover fix is contained in all of the solutions let's
   // diagnose it as ambiguity.
   for (const auto &entry : fixesByKind) {
-    if (llvm::all_of(solutions, [&](const Solution &solution) -> bool {
-          return llvm::any_of(
+    if (toolchain::all_of(solutions, [&](const Solution &solution) -> bool {
+          return toolchain::any_of(
               solution.Fixes, [&](const ConstraintFix *fix) -> bool {
                 return std::make_pair(fix->getKind(), fix->getLocator()) ==
                        entry.first;
@@ -3119,7 +3159,7 @@ bool ConstraintSystem::diagnoseAmbiguityWithFixes(
 /// Determine the number of distinct overload choices in the
 /// provided set.
 static unsigned countDistinctOverloads(ArrayRef<OverloadChoice> choices) {
-  llvm::SmallPtrSet<void *, 4> uniqueChoices;
+  toolchain::SmallPtrSet<void *, 4> uniqueChoices;
   for (auto choice : choices) {
     uniqueChoices.insert(choice.getOpaqueChoiceSimple());
   }
@@ -3161,13 +3201,13 @@ static DeclName getOverloadChoiceName(ArrayRef<OverloadChoice> choices) {
 /// Extend the given index map with all of the subexpressions in the given
 /// expression.
 static void extendPreorderIndexMap(
-    Expr *expr, llvm::DenseMap<Expr *, unsigned> &indexMap) {
+    Expr *expr, toolchain::DenseMap<Expr *, unsigned> &indexMap) {
   class RecordingTraversal : public ASTWalker {
   public:
-    llvm::DenseMap<Expr *, unsigned> &IndexMap;
+    toolchain::DenseMap<Expr *, unsigned> &IndexMap;
     unsigned Index = 0;
 
-    explicit RecordingTraversal(llvm::DenseMap<Expr *, unsigned> &indexMap)
+    explicit RecordingTraversal(toolchain::DenseMap<Expr *, unsigned> &indexMap)
       : IndexMap(indexMap) { }
 
     MacroWalking getMacroWalkingBehavior() const override {
@@ -3204,7 +3244,7 @@ bool ConstraintSystem::diagnoseAmbiguity(ArrayRef<Solution> solutions) {
   // Heuristically, all other things being equal, we should complain about the
   // ambiguous expression that (1) is deepest, (2) comes earliest in the
   // expression, or (3) has the most overloads.
-  llvm::DenseMap<Expr *, unsigned> indexMap;
+  toolchain::DenseMap<Expr *, unsigned> indexMap;
   for (auto expr : InputExprs) {
     extendPreorderIndexMap(expr, indexMap);
   }
@@ -3433,7 +3473,7 @@ void constraints::simplifyLocator(ASTNode &anchor,
     }
 
     case ConstraintLocator::ApplyArgToParam:
-      llvm_unreachable("Cannot appear without ApplyArgument");
+      toolchain_unreachable("Cannot appear without ApplyArgument");
 
     case ConstraintLocator::DynamicCallable: {
       path = path.slice(1);
@@ -3527,7 +3567,7 @@ void constraints::simplifyLocator(ASTNode &anchor,
         path = path.slice(1);
         continue;
       }
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
     case ConstraintLocator::Member:
       if (isExpr<UnresolvedDotExpr>(anchor)) {
@@ -3862,7 +3902,7 @@ bool constraints::hasAppliedSelf(ConstraintSystem &cs,
 }
 
 bool constraints::hasAppliedSelf(const OverloadChoice &choice,
-                                 llvm::function_ref<Type(Type)> getFixedType) {
+                                 toolchain::function_ref<Type(Type)> getFixedType) {
   auto *decl = choice.getDeclOrNull();
   if (!decl)
     return false;
@@ -3897,7 +3937,7 @@ void ConstraintSystem::generateOverloadConstraints(
     ArrayRef<OverloadChoice> choices, DeclContext *useDC,
     ConstraintLocator *locator, std::optional<unsigned> favoredIndex,
     bool requiresFix,
-    llvm::function_ref<ConstraintFix *(unsigned, const OverloadChoice &)>
+    toolchain::function_ref<ConstraintFix *(unsigned, const OverloadChoice &)>
         getFix) {
   auto recordChoice = [&](SmallVectorImpl<Constraint *> &choices,
                           unsigned index, const OverloadChoice &overload,
@@ -4184,7 +4224,7 @@ Solution::getFunctionArgApplyInfo(ConstraintLocator *locator) const {
     // If variadic generics are not involved, interface type should
     // always match applied type.
     if (auto *fn = fnInterfaceType->getAs<AnyFunctionType>()) {
-      if (llvm::none_of(fn->getParams(), [&](const auto &param) {
+      if (toolchain::none_of(fn->getParams(), [&](const auto &param) {
             return param.getPlainType()->hasParameterPack();
           })) {
         assert(fn->getNumParams() == fnType->getNumParams() &&
@@ -4532,7 +4572,7 @@ ConstraintSystem::isConversionEphemeral(ConversionRestrictionKind conversion,
     // parameter.
     return ConversionEphemeralness::NonEphemeral;
   }
-  llvm_unreachable("invalid conversion restriction kind");
+  toolchain_unreachable("invalid conversion restriction kind");
 }
 
 Expr *ConstraintSystem::buildAutoClosureExpr(Expr *expr,
@@ -4648,7 +4688,7 @@ ValueDecl *ConstraintSystem::findResolvedMemberRef(ConstraintLocator *locator) {
   return choice.getDecl();
 }
 
-void SyntacticElementTargetKey::dump() const { dump(llvm::errs()); }
+void SyntacticElementTargetKey::dump() const { dump(toolchain::errs()); }
 
 void SyntacticElementTargetKey::dump(raw_ostream &OS) const {
   switch (kind) {
@@ -4693,7 +4733,7 @@ void SyntacticElementTargetKey::dump(raw_ostream &OS) const {
     storage.functionRef->printContext(OS);
     return;
   }
-  llvm_unreachable("invalid statement kind");
+  toolchain_unreachable("invalid statement kind");
 }
 
 /// Given a specific expression and the remnants of the failed constraint
@@ -4704,7 +4744,7 @@ void SyntacticElementTargetKey::dump(raw_ostream &OS) const {
 void ConstraintSystem::diagnoseFailureFor(SyntacticElementTarget target) {
   setPhase(ConstraintSystemPhase::Diagnostics);
 
-  SWIFT_DEFER { setPhase(ConstraintSystemPhase::Finalization); };
+  LANGUAGE_DEFER { setPhase(ConstraintSystemPhase::Finalization); };
 
   auto &DE = getASTContext().Diags;
 
@@ -4886,7 +4926,7 @@ getRequirementInfo(ConstraintSystem &cs, ConstraintLocator *reqLocator) {
 
   auto substitutions = cs.getOpenedTypes(baseLoc);
   auto replacement =
-      llvm::find_if(substitutions, [&GP](const OpenedType &entry) {
+      toolchain::find_if(substitutions, [&GP](const OpenedType &entry) {
         auto *typeVar = entry.second;
         return typeVar->getImpl().getGenericParameter() == GP;
       });
@@ -4947,17 +4987,17 @@ bool ConstraintSystem::isReadOnlyKeyPathComponent(
   // get any special power from being formed in certain contexts, such
   // as the ability to assign to `let`s in initialization contexts, so
   // we pass null for the DC to `isSettable` here.)
-  if (!getASTContext().isSwiftVersionAtLeast(5)) {
+  if (!getASTContext().isCodiraVersionAtLeast(5)) {
     // As a source-compatibility measure, continue to allow
     // WritableKeyPaths to be formed in the same conditions we did
     // in previous releases even if we should not be able to set
     // the value in this context.
-    if (!storage->isSettableInSwift(DC)) {
+    if (!storage->isSettableInCodira(DC)) {
       // A non-settable component makes the key path read-only, unless
       // a reference-writable component shows up later.
       return true;
     }
-  } else if (!storage->isSettableInSwift(nullptr) ||
+  } else if (!storage->isSettableInCodira(nullptr) ||
              !storage->isSetterAccessibleFrom(DC)) {
     // A non-settable component makes the key path read-only, unless
     // a reference-writable component shows up later.
@@ -4989,9 +5029,9 @@ bool ConstraintSystem::isArgumentGenericFunction(Type argType, Expr *argExpr) {
       // If the overload choice is a generic function, then we have a generic
       // function reference.
       auto choice = selectedOverload->choice;
-      if (auto func =
+      if (auto fn =
               dyn_cast_or_null<AbstractFunctionDecl>(choice.getDeclOrNull())) {
-        if (func->isGeneric())
+        if (fn->isGeneric())
           return true;
       }
 
@@ -5013,8 +5053,8 @@ bool ConstraintSystem::isArgumentGenericFunction(Type argType, Expr *argExpr) {
     if (!decl)
       continue;
 
-    if (auto func = dyn_cast<AbstractFunctionDecl>(decl))
-      if (func->isGeneric())
+    if (auto fn = dyn_cast<AbstractFunctionDecl>(decl))
+      if (fn->isGeneric())
         return true;
   }
 
@@ -5030,7 +5070,7 @@ ConstraintSystem::lookupConformance(Type type, ProtocolDecl *protocol) {
     return cachedConformance->second;
 
   auto conformance =
-      swift::lookupConformance(type, protocol, /*allowMissing=*/true);
+      language::lookupConformance(type, protocol, /*allowMissing=*/true);
   Conformances[cacheKey] = conformance;
   return conformance;
 }
@@ -5127,7 +5167,7 @@ ConstraintSystem::inferKeyPathLiteralCapability(KeyPathExpr *keyPath) {
     case KeyPathExpr::Component::Kind::Subscript: {
       if (!isKnownSendability(component))
         return delay();
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     }
     case KeyPathExpr::Component::Kind::Member:
     case KeyPathExpr::Component::Kind::UnresolvedMember: {
@@ -5174,9 +5214,9 @@ ConstraintSystem::inferKeyPathLiteralCapability(KeyPathExpr *keyPath) {
         break;
 
       case ActorIsolation::Erased:
-        llvm_unreachable("storage cannot have opaque isolation");
+        toolchain_unreachable("storage cannot have opaque isolation");
 
-      // A reference to an actor isolated state makes key path non-Sendable.
+      // A reference to an actor-isolated state makes key path non-Sendable.
       case ActorIsolation::ActorInstance:
       case ActorIsolation::GlobalActor:
         isSendable = false;
@@ -5214,11 +5254,11 @@ ConstraintSystem::inferKeyPathLiteralCapability(KeyPathExpr *keyPath) {
       break;
 
     case KeyPathExpr::Component::Kind::TupleElement:
-      llvm_unreachable("not implemented");
+      toolchain_unreachable("not implemented");
       break;
 
     case KeyPathExpr::Component::Kind::DictionaryKey:
-      llvm_unreachable("DictionaryKey only valid in #keyPath");
+      toolchain_unreachable("DictionaryKey only valid in #keyPath");
       break;
     }
   }
@@ -5274,7 +5314,7 @@ TypeVarBindingProducer::TypeVarBindingProducer(BindingSet &bindings)
     // regardless). To be viable the binding has to come from `bind`
     // or `equal` constraint (i.e. same-type constraint or explicit
     // generic argument) and be fully resolved.
-    llvm::copy_if(bindings.Bindings, std::back_inserter(viableBindings),
+    toolchain::copy_if(bindings.Bindings, std::back_inserter(viableBindings),
                   [&](const Binding &binding) {
                     auto *source = binding.getSource();
                     if (source->getKind() == ConstraintKind::Bind ||
@@ -5442,7 +5482,7 @@ bool constraints::isResultBuilderMethodReference(ASTContext &ctx,
       {ctx.Id_buildBlock, ctx.Id_buildExpression, ctx.Id_buildPartialBlock,
        ctx.Id_buildFinalResult, ctx.Id_buildIf});
 
-  return llvm::any_of(builderMethods, [&](const Identifier &methodId) {
+  return toolchain::any_of(builderMethods, [&](const Identifier &methodId) {
     return UDE->getName().compare(DeclNameRef(methodId)) == 0;
   });
 }

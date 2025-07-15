@@ -1,4 +1,4 @@
-//===--- swift-reflection-test.c - Reflection testing application ---------===//
+//===--- language-reflection-test.c - Reflection testing application ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // This file supports performing target-specific remote reflection tests
-// on live swift executables.
+// on live language executables.
 //===----------------------------------------------------------------------===//
 
 #define SECTIONS_PER_INFO 6
 
-#include "language/SwiftRemoteMirror/SwiftRemoteMirror.h"
+#include "language/CodiraRemoteMirror/CodiraRemoteMirror.h"
 #include "language/Demangling/ManglingMacros.h"
 #include "messages.h"
 #include "overrides.h"
@@ -56,7 +57,7 @@
 
 typedef struct PipeMemoryReaderPage {
   struct PipeMemoryReaderPage *Next;
-  swift_addr_t BaseAddress;
+  language_addr_t BaseAddress;
   uint64_t Size;
   char *Data;
 } PipeMemoryReaderPage;
@@ -196,11 +197,11 @@ static int PipeMemoryReader_queryDataLayout(void *Context,
     case DLQ_GetLeastValidPointerValue: {
       uint64_t *result = (uint64_t *)outBuffer;
       if (applePlatform && (sizeof(void *) == 8)) {
-        // Swift reserves the first 4GiB on Apple 64-bit platforms
+        // Codira reserves the first 4GiB on Apple 64-bit platforms
         *result = 0x100000000;
         return 1;
       } else {
-        // Swift reserves the first 4KiB everywhere else
+        // Codira reserves the first 4KiB everywhere else
         *result = 0x1000;
       }
       return 1;
@@ -221,7 +222,7 @@ static void PipeMemoryReader_freeBytes(void *reader_context, const void *bytes,
 }
 
 static
-const void *PipeMemoryReader_readBytes(void *Context, swift_addr_t Address,
+const void *PipeMemoryReader_readBytes(void *Context, language_addr_t Address,
                                        uint64_t Size, void **outFreeContext) {
   PipeMemoryReader *Reader = (PipeMemoryReader *)Context;
 
@@ -287,7 +288,7 @@ const void *PipeMemoryReader_readBytes(void *Context, swift_addr_t Address,
 }
 
 static
-swift_addr_t PipeMemoryReader_getSymbolAddress(void *Context,
+language_addr_t PipeMemoryReader_getSymbolAddress(void *Context,
                                                const char *SymbolName,
                                                uint64_t Length) {
   const PipeMemoryReader *Reader = (const PipeMemoryReader *)Context;
@@ -376,7 +377,7 @@ void destroyPipeMemoryReader(PipeMemoryReader *Reader) {
 
 #if defined(__APPLE__) && defined(__MACH__)
 static void
-PipeMemoryReader_receiveImages(SwiftReflectionContextRef RC,
+PipeMemoryReader_receiveImages(CodiraReflectionContextRef RC,
                                        const PipeMemoryReader *Reader) {
   int WriteFD = PipeMemoryReader_getParentWriteFD(Reader);
   write(WriteFD, REQUEST_IMAGES, 2);
@@ -395,7 +396,7 @@ PipeMemoryReader_receiveImages(SwiftReflectionContextRef RC,
 
   for (size_t i = 0; i < NumReflectionInfos; ++i) {
     DEBUG_LOG("Adding image at 0x%" PRIxPTR, Images[i].Start);
-    swift_reflection_addImage(RC, Images[i].Start);
+    language_reflection_addImage(RC, Images[i].Start);
   }
 
   free(Images);
@@ -403,37 +404,37 @@ PipeMemoryReader_receiveImages(SwiftReflectionContextRef RC,
 
 #else
 
-static swift_reflection_section_t
+static language_reflection_section_t
 makeLocalSection(const void *Buffer,
-                 swift_remote_reflection_section_t Section) {
+                 language_remote_reflection_section_t Section) {
   if (Section.Size == 0) {
-    swift_reflection_section_t LS = {NULL, NULL};
+    language_reflection_section_t LS = {NULL, NULL};
     return LS;
   }
 
-  swift_reflection_section_t LS = {(void *)Buffer,
+  language_reflection_section_t LS = {(void *)Buffer,
                                    (void *)((uint8_t *)Buffer + Section.Size)};
   return LS;
 }
 
-static swift_reflection_mapping_info_t makeNonContiguousReflectionInfo(
-    swift_remote_reflection_section_t *remote_sections,
-    swift_reflection_section_t *local_sections) {
-  swift_reflection_section_mapping_t sections[SECTIONS_PER_INFO];
+static language_reflection_mapping_info_t makeNonContiguousReflectionInfo(
+    language_remote_reflection_section_t *remote_sections,
+    language_reflection_section_t *local_sections) {
+  language_reflection_section_mapping_t sections[SECTIONS_PER_INFO];
   for (size_t i = 0; i < SECTIONS_PER_INFO; ++i) {
-    swift_reflection_section_mapping_t section = {local_sections[i],
+    language_reflection_section_mapping_t section = {local_sections[i],
                                                            remote_sections[i]};
     sections[i] = section;
   }
 
-  swift_reflection_mapping_info_t ReflectionMappingInfo = {
+  language_reflection_mapping_info_t ReflectionMappingInfo = {
       sections[0], sections[1], sections[2],
       sections[3], sections[4], sections[5]};
 
   return ReflectionMappingInfo;
 }
 
-static swift_remote_reflection_section_t
+static language_remote_reflection_section_t
 makeRemoteSection(const PipeMemoryReader *Reader) {
   uintptr_t Start;
   size_t Size;
@@ -441,7 +442,7 @@ makeRemoteSection(const PipeMemoryReader *Reader) {
   PipeMemoryReader_collectBytesFromPipe(Reader, &Start, sizeof(Start));
   PipeMemoryReader_collectBytesFromPipe(Reader, &Size, sizeof(Size));
 
-  swift_remote_reflection_section_t RS = {Start, Size};
+  language_remote_reflection_section_t RS = {Start, Size};
   DEBUG_LOG("Making remote section with Start = 0x%" PRIxPTR
             " End = 0x%" PRIxPTR " and  Size = %lu",
             RS.StartAddress, RS.StartAddress + RS.Size, RS.Size);
@@ -451,7 +452,7 @@ makeRemoteSection(const PipeMemoryReader *Reader) {
 
 static const void *PipeMemoryReader_readRemoteSection(
     const PipeMemoryReader *Reader,
-    swift_remote_reflection_section_t *RemoteSection, void **outFreeContext) {
+    language_remote_reflection_section_t *RemoteSection, void **outFreeContext) {
 
   const void *Buffer =
       PipeMemoryReader_readBytes((void *)Reader, RemoteSection->StartAddress,
@@ -463,7 +464,7 @@ static const void *PipeMemoryReader_readRemoteSection(
 }
 
 static void
-PipeMemoryReader_receiveReflectionInfo(SwiftReflectionContextRef RC,
+PipeMemoryReader_receiveReflectionInfo(CodiraReflectionContextRef RC,
                                        const PipeMemoryReader *Reader) {
   int WriteFD = PipeMemoryReader_getParentWriteFD(Reader);
   write(WriteFD, REQUEST_REFLECTION_INFO, 2);
@@ -474,9 +475,9 @@ PipeMemoryReader_receiveReflectionInfo(SwiftReflectionContextRef RC,
   if (NumReflectionInfos == 0)
     return;
 
-  swift_remote_reflection_section_t *RemoteSections =
+  language_remote_reflection_section_t *RemoteSections =
       calloc(NumReflectionInfos * SECTIONS_PER_INFO,
-             sizeof(swift_remote_reflection_section_t));
+             sizeof(language_remote_reflection_section_t));
   if (RemoteSections == NULL)
     errnoAndExit("malloc failed");
 
@@ -487,9 +488,9 @@ PipeMemoryReader_receiveReflectionInfo(SwiftReflectionContextRef RC,
     RemoteSections[i] = makeRemoteSection(Reader);
   }
   // Now pull in the remote sections into our address space.
-  swift_reflection_section_t *LocalSections =
+  language_reflection_section_t *LocalSections =
       calloc(NumReflectionInfos * SECTIONS_PER_INFO,
-             sizeof(swift_reflection_section_t));
+             sizeof(language_reflection_section_t));
   for (size_t i = 0; i < NumReflectionInfos * SECTIONS_PER_INFO; ++i) {
     void *outFreeContext = NULL;
     const void *Buffer = PipeMemoryReader_readRemoteSection(
@@ -500,9 +501,9 @@ PipeMemoryReader_receiveReflectionInfo(SwiftReflectionContextRef RC,
   // Finally, we zip them in a complete reflection info, with a stride of 6.
   for (size_t i = 0; i < NumReflectionInfos * SECTIONS_PER_INFO;
        i += SECTIONS_PER_INFO) {
-    swift_reflection_mapping_info_t Info =
+    language_reflection_mapping_info_t Info =
         makeNonContiguousReflectionInfo(&RemoteSections[i], &LocalSections[i]);
-    swift_reflection_addReflectionMappingInfo(RC, Info);
+    language_reflection_addReflectionMappingInfo(RC, Info);
   }
 
   free(RemoteSections);
@@ -510,7 +511,7 @@ PipeMemoryReader_receiveReflectionInfo(SwiftReflectionContextRef RC,
 }
 #endif
 
-uint64_t PipeMemoryReader_getStringLength(void *Context, swift_addr_t Address) {
+uint64_t PipeMemoryReader_getStringLength(void *Context, language_addr_t Address) {
   const PipeMemoryReader *Reader = (const PipeMemoryReader *)Context;
   int WriteFD = PipeMemoryReader_getParentWriteFD(Reader);
   uintptr_t TargetAddress = (uintptr_t)Address;
@@ -521,7 +522,7 @@ uint64_t PipeMemoryReader_getStringLength(void *Context, swift_addr_t Address) {
   return Length;
 }
 
-int reflectHeapObject(SwiftReflectionContextRef RC,
+int reflectHeapObject(CodiraReflectionContextRef RC,
                        const PipeMemoryReader *Reader) {
   uintptr_t instance = PipeMemoryReader_receiveInstanceAddress(Reader);
   if (instance == 0) {
@@ -532,14 +533,14 @@ int reflectHeapObject(SwiftReflectionContextRef RC,
   printf("Instance pointer in child address space: 0x%lx\n",
          instance);
 
-  swift_typeref_t TR = swift_reflection_typeRefForInstance(RC, instance);
+  language_typeref_t TR = language_reflection_typeRefForInstance(RC, instance);
 
   printf("Type reference:\n");
-  swift_reflection_dumpTypeRef(TR);
+  language_reflection_dumpTypeRef(TR);
   printf("\n");
 
   printf("Type info:\n");
-  swift_reflection_dumpInfoForInstance(RC, instance);
+  language_reflection_dumpInfoForInstance(RC, instance);
 
   printf("\n");
 
@@ -548,11 +549,11 @@ int reflectHeapObject(SwiftReflectionContextRef RC,
 }
 
 int reflectExistentialImpl(
-    SwiftReflectionContextRef RC, const PipeMemoryReader *Reader,
-    swift_typeref_t MockExistentialTR,
-    int (*ProjectExistentialFn)(SwiftReflectionContextRef, swift_addr_t,
-                                swift_typeref_t, swift_typeref_t *,
-                                swift_addr_t *)) {
+    CodiraReflectionContextRef RC, const PipeMemoryReader *Reader,
+    language_typeref_t MockExistentialTR,
+    int (*ProjectExistentialFn)(CodiraReflectionContextRef, language_addr_t,
+                                language_typeref_t, language_typeref_t *,
+                                language_addr_t *)) {
   uintptr_t instance = PipeMemoryReader_receiveInstanceAddress(Reader);
   if (instance == 0) {
     // Child has no more instances to examine
@@ -561,22 +562,22 @@ int reflectExistentialImpl(
   }
   printf("Instance pointer in child address space: 0x%lx\n", instance);
 
-  swift_typeref_t InstanceTypeRef;
-  swift_addr_t StartOfInstanceData = 0;
+  language_typeref_t InstanceTypeRef;
+  language_addr_t StartOfInstanceData = 0;
 
   if (!ProjectExistentialFn(RC, instance, MockExistentialTR, &InstanceTypeRef,
                             &StartOfInstanceData)) {
-    printf("swift_reflection_projectExistential failed.\n");
+    printf("language_reflection_projectExistential failed.\n");
     PipeMemoryReader_sendDoneMessage(Reader);
     return 0;
   }
 
   printf("Type reference:\n");
-  swift_reflection_dumpTypeRef(InstanceTypeRef);
+  language_reflection_dumpTypeRef(InstanceTypeRef);
   printf("\n");
 
   printf("Type info:\n");
-  swift_reflection_dumpInfoForTypeRef(RC, InstanceTypeRef);
+  language_reflection_dumpInfoForTypeRef(RC, InstanceTypeRef);
   printf("\n");
 
   printf("Start of instance data: 0x%" PRIx64 "\n", StartOfInstanceData);
@@ -586,26 +587,26 @@ int reflectExistentialImpl(
   return 1;
 }
 
-int reflectExistential(SwiftReflectionContextRef RC,
+int reflectExistential(CodiraReflectionContextRef RC,
                        const PipeMemoryReader *Reader,
-                       swift_typeref_t MockExistentialTR) {
+                       language_typeref_t MockExistentialTR) {
   return reflectExistentialImpl(RC, Reader, MockExistentialTR,
-                                swift_reflection_projectExistential);
+                                language_reflection_projectExistential);
 }
 
-int reflectExistentialAndUnwrapClass(SwiftReflectionContextRef RC,
+int reflectExistentialAndUnwrapClass(CodiraReflectionContextRef RC,
                                      const PipeMemoryReader *Reader,
-                                     swift_typeref_t MockExistentialTR) {
+                                     language_typeref_t MockExistentialTR) {
   return reflectExistentialImpl(
       RC, Reader, MockExistentialTR,
-      swift_reflection_projectExistentialAndUnwrapClass);
+      language_reflection_projectExistentialAndUnwrapClass);
 }
 
-int reflectEnum(SwiftReflectionContextRef RC,
+int reflectEnum(CodiraReflectionContextRef RC,
                 const PipeMemoryReader *Reader) {
   static const char Name[] = MANGLING_PREFIX_STR "ypD";
-  swift_typeref_t AnyTR
-    = swift_reflection_typeRefForMangledTypeName(
+  language_typeref_t AnyTR
+    = language_reflection_typeRefForMangledTypeName(
       RC, Name, sizeof(Name)-1);
 
   uintptr_t AnyInstance = PipeMemoryReader_receiveInstanceAddress(Reader);
@@ -614,12 +615,12 @@ int reflectEnum(SwiftReflectionContextRef RC,
     PipeMemoryReader_sendDoneMessage(Reader);
     return 0;
   }
-  swift_typeref_t EnumTypeRef;
-  swift_addr_t EnumInstance = 0;
-  if (!swift_reflection_projectExistential(RC, AnyInstance, AnyTR,
+  language_typeref_t EnumTypeRef;
+  language_addr_t EnumInstance = 0;
+  if (!language_reflection_projectExistential(RC, AnyInstance, AnyTR,
                                            &EnumTypeRef,
                                            &EnumInstance)) {
-    printf("swift_reflection_projectExistential failed.\n");
+    printf("language_reflection_projectExistential failed.\n");
     PipeMemoryReader_sendDoneMessage(Reader);
     return 0;
   }
@@ -628,40 +629,40 @@ int reflectEnum(SwiftReflectionContextRef RC,
          (uintptr_t)EnumInstance);
 
   printf("Type reference:\n");
-  swift_reflection_dumpTypeRef(EnumTypeRef);
+  language_reflection_dumpTypeRef(EnumTypeRef);
   printf("\n");
 
   printf("Type info:\n");
-  swift_reflection_dumpInfoForTypeRef(RC, EnumTypeRef);
+  language_reflection_dumpInfoForTypeRef(RC, EnumTypeRef);
   printf("\n");
 
   printf("Enum value:\n");
-  swift_typeinfo_t InstanceTypeInfo = swift_reflection_infoForTypeRef(RC, EnumTypeRef);
-  if (InstanceTypeInfo.Kind != SWIFT_NO_PAYLOAD_ENUM
-      && InstanceTypeInfo.Kind != SWIFT_SINGLE_PAYLOAD_ENUM
-      && InstanceTypeInfo.Kind != SWIFT_MULTI_PAYLOAD_ENUM) {
+  language_typeinfo_t InstanceTypeInfo = language_reflection_infoForTypeRef(RC, EnumTypeRef);
+  if (InstanceTypeInfo.Kind != LANGUAGE_NO_PAYLOAD_ENUM
+      && InstanceTypeInfo.Kind != LANGUAGE_SINGLE_PAYLOAD_ENUM
+      && InstanceTypeInfo.Kind != LANGUAGE_MULTI_PAYLOAD_ENUM) {
     // Enums with a single payload case and no non-payload cases
     // can get rewritten by the compiler to just the payload
     // type.
-    swift_reflection_dumpInfoForTypeRef(RC, EnumTypeRef);
+    language_reflection_dumpInfoForTypeRef(RC, EnumTypeRef);
     PipeMemoryReader_sendDoneMessage(Reader);
     return 1;
   }
 
   int CaseIndex;
-  if (!swift_reflection_projectEnumValue(RC, EnumInstance, EnumTypeRef, &CaseIndex)) {
-    printf("swift_reflection_projectEnumValue failed.\n\n");
+  if (!language_reflection_projectEnumValue(RC, EnumInstance, EnumTypeRef, &CaseIndex)) {
+    printf("language_reflection_projectEnumValue failed.\n\n");
     PipeMemoryReader_sendDoneMessage(Reader);
     return 1; // <<< Test cases also verify failures, so this must "succeed"
   }
   if ((unsigned)CaseIndex > InstanceTypeInfo.NumFields) {
-    printf("swift_reflection_projectEnumValue returned invalid case.\n\n");
+    printf("language_reflection_projectEnumValue returned invalid case.\n\n");
     PipeMemoryReader_sendDoneMessage(Reader);
     return 0;
   }
 
-  swift_childinfo_t CaseInfo
-    = swift_reflection_childOfTypeRef(RC, EnumTypeRef, CaseIndex);
+  language_childinfo_t CaseInfo
+    = language_reflection_childOfTypeRef(RC, EnumTypeRef, CaseIndex);
 
   if (CaseInfo.TR == 0) {
     // Enum case has no payload
@@ -670,7 +671,7 @@ int reflectEnum(SwiftReflectionContextRef RC,
   } else {
     printf("(enum_value name=%s index=%llu\n",
            CaseInfo.Name, (unsigned long long)CaseIndex);
-    swift_reflection_dumpTypeRef(CaseInfo.TR);
+    language_reflection_dumpTypeRef(CaseInfo.TR);
     printf(")\n");
   }
   printf("\n");
@@ -678,11 +679,11 @@ int reflectEnum(SwiftReflectionContextRef RC,
   return 1;
 }
 
-int reflectEnumValue(SwiftReflectionContextRef RC,
+int reflectEnumValue(CodiraReflectionContextRef RC,
                      const PipeMemoryReader *Reader) {
   static const char Name[] = MANGLING_PREFIX_STR "ypD";
-  swift_typeref_t AnyTR
-    = swift_reflection_typeRefForMangledTypeName(
+  language_typeref_t AnyTR
+    = language_reflection_typeRefForMangledTypeName(
       RC, Name, sizeof(Name)-1);
 
   uintptr_t AnyInstance = PipeMemoryReader_receiveInstanceAddress(Reader);
@@ -691,45 +692,45 @@ int reflectEnumValue(SwiftReflectionContextRef RC,
     PipeMemoryReader_sendDoneMessage(Reader);
     return 0;
   }
-  swift_typeref_t EnumTypeRef;
-  swift_addr_t EnumInstance = 0;
-  if (!swift_reflection_projectExistential(RC, AnyInstance, AnyTR,
+  language_typeref_t EnumTypeRef;
+  language_addr_t EnumInstance = 0;
+  if (!language_reflection_projectExistential(RC, AnyInstance, AnyTR,
                                            &EnumTypeRef,
                                            &EnumInstance)) {
-    printf("swift_reflection_projectExistential failed.\n");
+    printf("language_reflection_projectExistential failed.\n");
     PipeMemoryReader_sendDoneMessage(Reader);
     return 0;
   }
 
   printf("Type reference:\n");
-  swift_reflection_dumpTypeRef(EnumTypeRef);
+  language_reflection_dumpTypeRef(EnumTypeRef);
 
   printf("Value: ");
   int parens = 0;
   // Walk into successively nested enum types...
   while (EnumTypeRef != 0) {
-    swift_typeinfo_t EnumTypeInfo = swift_reflection_infoForTypeRef(RC, EnumTypeRef);
+    language_typeinfo_t EnumTypeInfo = language_reflection_infoForTypeRef(RC, EnumTypeRef);
     switch (EnumTypeInfo.Kind) {
-    case SWIFT_NO_PAYLOAD_ENUM:
-    case SWIFT_SINGLE_PAYLOAD_ENUM:
-    case SWIFT_MULTI_PAYLOAD_ENUM:
+    case LANGUAGE_NO_PAYLOAD_ENUM:
+    case LANGUAGE_SINGLE_PAYLOAD_ENUM:
+    case LANGUAGE_MULTI_PAYLOAD_ENUM:
     {
       int CaseIndex;
-      if (!swift_reflection_projectEnumValue(RC, EnumInstance, EnumTypeRef, &CaseIndex)) {
-        printf("swift_reflection_projectEnumValue failed.\n\n");
+      if (!language_reflection_projectEnumValue(RC, EnumInstance, EnumTypeRef, &CaseIndex)) {
+        printf("language_reflection_projectEnumValue failed.\n\n");
         PipeMemoryReader_sendDoneMessage(Reader);
         return 1; // <<< Test cases rely on detecting this, so must "succeed"
       }
       if ((unsigned)CaseIndex > EnumTypeInfo.NumFields) {
-        printf("swift_reflection_projectEnumValue returned invalid case.\n\n");
+        printf("language_reflection_projectEnumValue returned invalid case.\n\n");
         PipeMemoryReader_sendDoneMessage(Reader);
         return 0;
       }
-      swift_childinfo_t CaseInfo
-        = swift_reflection_childOfTypeRef(RC, EnumTypeRef, CaseIndex);
+      language_childinfo_t CaseInfo
+        = language_reflection_childOfTypeRef(RC, EnumTypeRef, CaseIndex);
       printf(".%s", CaseInfo.Name);
 
-      if (EnumTypeInfo.Kind == SWIFT_NO_PAYLOAD_ENUM || CaseInfo.TR == 0) {
+      if (EnumTypeInfo.Kind == LANGUAGE_NO_PAYLOAD_ENUM || CaseInfo.TR == 0) {
         // No payload here, so end the walk
         EnumTypeRef = 0;
       } else {
@@ -738,7 +739,7 @@ int reflectEnumValue(SwiftReflectionContextRef RC,
         parens += 1;
         EnumTypeRef = CaseInfo.TR; // Walk into payload to see if it's an enum
 
-        if (CaseInfo.Kind == SWIFT_STRONG_REFERENCE) { // Maybe an indirect enum?
+        if (CaseInfo.Kind == LANGUAGE_STRONG_REFERENCE) { // Maybe an indirect enum?
           // Get the pointer value from the target
           void *outFreeContext = NULL;
           // !!! FIXME !!! obtain the pointer by properly projecting the enum value
@@ -752,15 +753,15 @@ int reflectEnumValue(SwiftReflectionContextRef RC,
 #pragma clang diagnostic pop
 
           // Indirect enum stores the payload as the first field of a closure context
-          swift_typeinfo_t TI = swift_reflection_infoForInstance(RC, instance);
-          if (TI.Kind == SWIFT_CLOSURE_CONTEXT) {
+          language_typeinfo_t TI = language_reflection_infoForInstance(RC, instance);
+          if (TI.Kind == LANGUAGE_CLOSURE_CONTEXT) {
             // Yep, it's an indirect enum.  Let's follow the pointer...
             // TODO: Could we get here if we have an enum whose payload is a closure?
-            swift_childinfo_t CaseInfo
-              = swift_reflection_childOfInstance(RC, instance, 0);
-            if (CaseInfo.Kind == SWIFT_NO_PAYLOAD_ENUM
-                || CaseInfo.Kind == SWIFT_SINGLE_PAYLOAD_ENUM
-                || CaseInfo.Kind == SWIFT_MULTI_PAYLOAD_ENUM) {
+            language_childinfo_t CaseInfo
+              = language_reflection_childOfInstance(RC, instance, 0);
+            if (CaseInfo.Kind == LANGUAGE_NO_PAYLOAD_ENUM
+                || CaseInfo.Kind == LANGUAGE_SINGLE_PAYLOAD_ENUM
+                || CaseInfo.Kind == LANGUAGE_MULTI_PAYLOAD_ENUM) {
               // Found the indirect enum storage, loop to print it out.
               EnumTypeRef = CaseInfo.TR;
               EnumInstance = instance + CaseInfo.Offset;
@@ -792,17 +793,17 @@ int reflectEnumValue(SwiftReflectionContextRef RC,
 
 }
 
-static int reflectAsyncTaskInstance(SwiftReflectionContextRef RC,
+static int reflectAsyncTaskInstance(CodiraReflectionContextRef RC,
                                     uintptr_t AsyncTaskInstance,
                                     const PipeMemoryReader *Reader,
                                     unsigned indentLevel) {
   indented_printf(indentLevel, "Async task %#" PRIx64 "\n",
                   (uint64_t)AsyncTaskInstance);
 
-  swift_async_task_info_t TaskInfo =
-      swift_reflection_asyncTaskInfo(RC, AsyncTaskInstance);
+  language_async_task_info_t TaskInfo =
+      language_reflection_asyncTaskInfo(RC, AsyncTaskInstance);
   if (TaskInfo.Error) {
-    printf("swift_reflection_asyncTaskInfo failed: %s\n", TaskInfo.Error);
+    printf("language_reflection_asyncTaskInfo failed: %s\n", TaskInfo.Error);
   } else {
     indented_printf(indentLevel, "id %" PRIu64 "\n", TaskInfo.Id);
     indented_printf(indentLevel, "enqueuePriority %u\n",
@@ -812,10 +813,10 @@ static int reflectAsyncTaskInstance(SwiftReflectionContextRef RC,
 
       // The memory for ChildTasks is only valid until the next Remote Mirror
       // call, so we need to copy it.
-      swift_reflection_ptr_t *ChildTasks =
-          calloc(TaskInfo.ChildTaskCount, sizeof(swift_reflection_ptr_t));
+      language_reflection_ptr_t *ChildTasks =
+          calloc(TaskInfo.ChildTaskCount, sizeof(language_reflection_ptr_t));
       memcpy(ChildTasks, TaskInfo.ChildTasks,
-             TaskInfo.ChildTaskCount * sizeof(swift_reflection_ptr_t));
+             TaskInfo.ChildTaskCount * sizeof(language_reflection_ptr_t));
 
       for (unsigned i = 0; i < TaskInfo.ChildTaskCount; i++)
         reflectAsyncTaskInstance(RC, ChildTasks[i], Reader, indentLevel + 1);
@@ -827,29 +828,29 @@ static int reflectAsyncTaskInstance(SwiftReflectionContextRef RC,
     }
   }
 
-  swift_async_task_slab_return_t SlabPtrResult =
-      swift_reflection_asyncTaskSlabPointer(RC, AsyncTaskInstance);
+  language_async_task_slab_return_t SlabPtrResult =
+      language_reflection_asyncTaskSlabPointer(RC, AsyncTaskInstance);
   if (SlabPtrResult.Error) {
-    printf("swift_reflection_asyncTaskSlabPointer failed: %s\n",
+    printf("language_reflection_asyncTaskSlabPointer failed: %s\n",
            SlabPtrResult.Error);
   } else {
-    swift_reflection_ptr_t SlabPtr = SlabPtrResult.SlabPtr;
+    language_reflection_ptr_t SlabPtr = SlabPtrResult.SlabPtr;
     while (SlabPtr) {
       indented_printf(indentLevel, "  Slab pointer %#" PRIx64 "\n",
                       (uint64_t)SlabPtr);
-      swift_async_task_slab_allocations_return_t AllocationsResult =
-          swift_reflection_asyncTaskSlabAllocations(RC, SlabPtr);
+      language_async_task_slab_allocations_return_t AllocationsResult =
+          language_reflection_asyncTaskSlabAllocations(RC, SlabPtr);
       if (AllocationsResult.Error) {
         indented_printf(
             indentLevel,
-            "swift_reflection_asyncTaskSlabAllocations failed: %s\n",
+            "language_reflection_asyncTaskSlabAllocations failed: %s\n",
             AllocationsResult.Error);
         SlabPtr = 0;
       } else {
         indented_printf(indentLevel, "    Slab size %" PRIu64 "\n",
                         (uint64_t)AllocationsResult.SlabSize);
         for (unsigned i = 0; i < AllocationsResult.ChunkCount; i++) {
-          swift_async_task_allocation_chunk_t Chunk =
+          language_async_task_allocation_chunk_t Chunk =
               AllocationsResult.Chunks[i];
           indented_printf(indentLevel,
                           "    Chunk at %#" PRIx64 " length %u kind %u\n",
@@ -867,7 +868,7 @@ static int reflectAsyncTaskInstance(SwiftReflectionContextRef RC,
   return 1;
 }
 
-int reflectAsyncTask(SwiftReflectionContextRef RC,
+int reflectAsyncTask(CodiraReflectionContextRef RC,
                      const PipeMemoryReader *Reader) {
   uintptr_t AsyncTaskInstance = PipeMemoryReader_receiveInstanceAddress(Reader);
   int result = reflectAsyncTaskInstance(RC, AsyncTaskInstance, Reader, 0);
@@ -875,13 +876,13 @@ int reflectAsyncTask(SwiftReflectionContextRef RC,
   return result;
 }
 
-int logString(SwiftReflectionContextRef RC, const PipeMemoryReader *Reader) {
+int logString(CodiraReflectionContextRef RC, const PipeMemoryReader *Reader) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-qual"
   void *Context = (void *)Reader;
 #pragma clang diagnostic pop
 
-  swift_addr_t StringPointer = PipeMemoryReader_receiveInstanceAddress(Context);
+  language_addr_t StringPointer = PipeMemoryReader_receiveInstanceAddress(Context);
   uint64_t StringLength =
       PipeMemoryReader_getStringLength(Context, StringPointer);
 
@@ -922,8 +923,8 @@ int doDumpHeapInstance(const char *BinaryFilename, PipeMemoryReader *Reader) {
     default: { // Parent
       close(PipeMemoryReader_getChildReadFD(Reader));
       close(PipeMemoryReader_getChildWriteFD(Reader));
-      SwiftReflectionContextRef RC =
-          swift_reflection_createReflectionContextWithDataLayout(
+      CodiraReflectionContextRef RC =
+          language_reflection_createReflectionContextWithDataLayout(
               (void *)Reader, PipeMemoryReader_queryDataLayout,
               PipeMemoryReader_freeBytes, PipeMemoryReader_readBytes,
               PipeMemoryReader_getStringLength,
@@ -951,7 +952,7 @@ int doDumpHeapInstance(const char *BinaryFilename, PipeMemoryReader *Reader) {
           break;
         case Existential: {
           static const char Name[] = MANGLING_PREFIX_STR "ypD";
-          swift_typeref_t AnyTR = swift_reflection_typeRefForMangledTypeName(
+          language_typeref_t AnyTR = language_reflection_typeRefForMangledTypeName(
               RC, Name, sizeof(Name) - 1);
           uint8_t ShouldUnwrap =
               PipeMemoryReader_receiveShouldUnwrapExistential(Reader);
@@ -969,7 +970,7 @@ int doDumpHeapInstance(const char *BinaryFilename, PipeMemoryReader *Reader) {
         }
         case ErrorExistential: {
           static const char ErrorName[] = MANGLING_PREFIX_STR "s5Error_pD";
-          swift_typeref_t ErrorTR = swift_reflection_typeRefForMangledTypeName(
+          language_typeref_t ErrorTR = language_reflection_typeRefForMangledTypeName(
               RC, ErrorName, sizeof(ErrorName) - 1);
           uint8_t ShouldUnwrap =
               PipeMemoryReader_receiveShouldUnwrapExistential(Reader);
@@ -1014,7 +1015,7 @@ int doDumpHeapInstance(const char *BinaryFilename, PipeMemoryReader *Reader) {
           break;
         }
         case None:
-          swift_reflection_destroyReflectionContext(RC);
+          language_reflection_destroyReflectionContext(RC);
           printf("Done.\n");
           return EXIT_SUCCESS;
         }
@@ -1027,20 +1028,20 @@ int doDumpHeapInstance(const char *BinaryFilename, PipeMemoryReader *Reader) {
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <dlfcn.h>
-static unsigned long long computeClassIsSwiftMask(void) {
-  uintptr_t *objc_debug_swift_stable_abi_bit_ptr =
-    (uintptr_t *)dlsym(RTLD_DEFAULT, "objc_debug_swift_stable_abi_bit");
-  return objc_debug_swift_stable_abi_bit_ptr ?
-           *objc_debug_swift_stable_abi_bit_ptr : 1;
+static unsigned long long computeClassIsCodiraMask(void) {
+  uintptr_t *objc_debug_language_stable_abi_bit_ptr =
+    (uintptr_t *)dlsym(RTLD_DEFAULT, "objc_debug_language_stable_abi_bit");
+  return objc_debug_language_stable_abi_bit_ptr ?
+           *objc_debug_language_stable_abi_bit_ptr : 1;
 }
 #else
-static unsigned long long computeClassIsSwiftMask(void) {
+static unsigned long long computeClassIsCodiraMask(void) {
   return 1;
 }
 #endif
 
 void printUsageAndExit() {
-  fprintf(stderr, "swift-reflection-test <binary filename>\n");
+  fprintf(stderr, "language-reflection-test <binary filename>\n");
   exit(EXIT_FAILURE);
 }
 
@@ -1054,13 +1055,13 @@ int main(int argc, char *argv[]) {
   // FIXME(compnerd) weak linking is not permitted on PE/COFF, we should fall
   // back to GetProcAddress to see if the symbol is present.
 #else
-  // swift_reflection_classIsSwiftMask is weak linked so we can work
+  // language_reflection_classIsCodiraMask is weak linked so we can work
   // with older Remote Mirror dylibs.
-  if (&swift_reflection_classIsSwiftMask != NULL)
-    swift_reflection_classIsSwiftMask = computeClassIsSwiftMask();
+  if (&language_reflection_classIsCodiraMask != NULL)
+    language_reflection_classIsCodiraMask = computeClassIsCodiraMask();
 #endif
 
-  uint16_t Version = swift_reflection_getSupportedMetadataVersion();
+  uint16_t Version = language_reflection_getSupportedMetadataVersion();
   printf("Metadata version: %u\n", Version);
 
   PipeMemoryReader Pipe = createPipeMemoryReader();

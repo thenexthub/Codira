@@ -1,0 +1,5 @@
+fn localCodiraFunc() -> Int {}
+
+struct MyStruct {
+  fn myStructMethod() {}
+}

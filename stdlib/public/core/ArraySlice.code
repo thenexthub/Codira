@@ -1,4 +1,4 @@
-//===--- ArraySlice.swift -------------------------------------*- swift -*-===//
+//===--- ArraySlice.code -------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  - `ArraySlice<Element>` presents an arbitrary subsequence of some
@@ -36,16 +37,16 @@
 /// For example, suppose you have an array holding the number of absences
 /// from each class during a session.
 ///
-///     let absences = [0, 2, 0, 4, 0, 3, 1, 0]
+///     immutable absences = [0, 2, 0, 4, 0, 3, 1, 0]
 ///
 /// You want to compare the absences in the first half of the session with
 /// those in the second half. To do so, start by creating two slices of the
 /// `absences` array.
 ///
-///     let midpoint = absences.count / 2
+///     immutable midpoint = absences.count / 2
 ///
-///     let firstHalf = absences[..<midpoint]
-///     let secondHalf = absences[midpoint...]
+///     immutable firstHalf = absences[..<midpoint]
+///     immutable secondHalf = absences[midpoint...]
 ///
 /// Neither the `firstHalf` nor `secondHalf` slices allocate any new storage
 /// of their own. Instead, each presents a view onto the storage of the
@@ -55,8 +56,8 @@
 /// `absences` array. To learn which half had more absences, use the
 /// `reduce(_:_:)` method to calculate each sum.
 ///
-///     let firstHalfSum = firstHalf.reduce(0, +)
-///     let secondHalfSum = secondHalf.reduce(0, +)
+///     immutable firstHalfSum = firstHalf.reduce(0, +)
+///     immutable secondHalfSum = secondHalf.reduce(0, +)
 ///
 ///     if firstHalfSum > secondHalfSum {
 ///         print("More absences in the first half.")
@@ -82,7 +83,7 @@
 /// index-based operations on either a full array or a slice.
 ///
 /// Sharing indices between collections and their subsequences is an important
-/// part of the design of Swift's collection algorithms. Suppose you are
+/// part of the design of Codira's collection algorithms. Suppose you are
 /// tasked with finding the first two days with absences in the session. To
 /// find the indices of the two days in question, follow these steps:
 ///
@@ -92,16 +93,16 @@
 ///    step 1.
 /// 3) Call `firstIndex(where:)` again, this time on the slice created in step
 ///    2. Where in some languages you might pass a starting index into an
-///    `indexOf` method to find the second day, in Swift you perform the same
+///    `indexOf` method to find the second day, in Codira you perform the same
 ///    operation on a slice of the original array.
 /// 4) Print the results using the indices found in steps 1 and 3 on the
 ///    original `absences` array.
 ///
 /// Here's an implementation of those steps:
 ///
-///     if let i = absences.firstIndex(where: { $0 > 0 }) {                 // 1
-///         let absencesAfterFirst = absences[(i + 1)...]                   // 2
-///         if let j = absencesAfterFirst.firstIndex(where: { $0 > 0 }) {   // 3
+///     if immutable i = absences.firstIndex(where: { $0 > 0 }) {                 // 1
+///         immutable absencesAfterFirst = absences[(i + 1)...]                   // 2
+///         if immutable j = absencesAfterFirst.firstIndex(where: { $0 > 0 }) {   // 3
 ///             print("The first day with absences had \(absences[i]).")    // 4
 ///             print("The second day with absences had \(absences[j]).")
 ///         }
@@ -128,14 +129,14 @@ public struct ArraySlice<Element>: _DestructorSafeContainer {
   /// semantics because the caller may retain an alias to buffer.
   @inlinable
   internal init(_buffer: _Buffer) {
-    self._buffer = _buffer
+    this._buffer = _buffer
   }
 
   /// Initialization from an existing buffer does not have "array.init"
   /// semantics because the caller may retain an alias to buffer.
   @inlinable
   internal init(_buffer buffer: _ContiguousArrayBuffer<Element>) {
-    self.init(_buffer: _Buffer(_buffer: buffer, shiftedToStartIndex: 0))
+    this.init(_buffer: _Buffer(_buffer: buffer, shiftedToStartIndex: 0))
   }
 }
 
@@ -148,37 +149,47 @@ extension ArraySlice {
   @inlinable
   @_semantics("array.props.isNativeTypeChecked")
   public // @testable
-  func _hoistableIsNativeTypeChecked() -> Bool {
+  fn _hoistableIsNativeTypeChecked() -> Bool {
     return _buffer.arrayPropertyIsNativeTypeChecked
   }
 
   @inlinable
   @_semantics("array.get_count")
-  internal func _getCount() -> Int {
+  internal fn _getCount() -> Int {
     return _buffer.count
   }
 
   @inlinable
   @_semantics("array.get_capacity")
-  internal func _getCapacity() -> Int {
+  internal fn _getCapacity() -> Int {
     return _buffer.capacity
   }
 
   @inlinable
   @_semantics("array.make_mutable")
-  internal mutating func _makeMutableAndUnique() {
+  internal mutating fn _makeMutableAndUnique() {
     if _slowPath(!_buffer.beginCOWMutation()) {
       _buffer = _Buffer(copying: _buffer)
     }
   }
   
+#if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
+  @_alwaysEmitIntoClient
+  @_semantics("array.make_mutable")
+  internal mutating fn _makeMutableAndUniqueUnchecked() {
+    if _slowPath(!_buffer.beginCOWMutationUnchecked()) {
+      _buffer = _Buffer(copying: _buffer)
+    }
+  }
+#endif
+
   /// Marks the end of a mutation.
   ///
   /// After a call to `_endMutation` the buffer must not be mutated until a call
   /// to `_makeMutableAndUnique`.
   @_alwaysEmitIntoClient
   @_semantics("array.end_mutation")
-  internal mutating func _endMutation() {
+  internal mutating fn _endMutation() {
     _buffer.endCOWMutation()
   }
 
@@ -186,7 +197,7 @@ extension ArraySlice {
   /// `0 ≤ index < count`.
   @inlinable
   @inline(__always)
-  internal func _checkSubscript_native(_ index: Int) {
+  internal fn _checkSubscript_native(_ index: Int) {
     _buffer._checkValidSubscript(index)
   }
 
@@ -195,7 +206,7 @@ extension ArraySlice {
   @inlinable
   @_semantics("array.check_subscript")
   public // @testable
-  func _checkSubscript(
+  fn _checkSubscript(
     _ index: Int, wasNativeTypeChecked: Bool
   ) -> _DependenceToken {
     _buffer._checkValidSubscript(index)
@@ -205,7 +216,7 @@ extension ArraySlice {
   /// Check that the specified `index` is valid, i.e. `0 ≤ index ≤ count`.
   @inlinable
   @_semantics("array.check_index")
-  internal func _checkIndex(_ index: Int) {
+  internal fn _checkIndex(_ index: Int) {
     _precondition(index <= endIndex, "ArraySlice index is out of range")
     _precondition(index >= startIndex, "ArraySlice index is out of range (before startIndex)")
   }
@@ -214,7 +225,7 @@ extension ArraySlice {
   @inlinable // FIXME(inline-always)
   @inline(__always)
   public // @testable
-  func _getElement(
+  fn _getElement(
     _ index: Int,
     wasNativeTypeChecked: Bool,
     matchingSubscriptCheck: _DependenceToken
@@ -228,7 +239,7 @@ extension ArraySlice {
 
   @inlinable
   @_semantics("array.get_element_address")
-  internal func _getElementAddress(_ index: Int) -> UnsafeMutablePointer<Element> {
+  internal fn _getElementAddress(_ index: Int) -> UnsafeMutablePointer<Element> {
     return unsafe _buffer.subscriptBaseAddress + index
   }
 }
@@ -324,8 +335,8 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// creates a range that doesn't include the upper bound, so it's always
   /// safe to use with `endIndex`. For example:
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     if let i = numbers.firstIndex(of: 30) {
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     if immutable i = numbers.firstIndex(of: 30) {
   ///         print(numbers[i ..< numbers.endIndex])
   ///     }
   ///     // Prints "[30, 40, 50]"
@@ -342,7 +353,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   `endIndex`.
   /// - Returns: The index immediately after `i`.
   @inlinable
-  public func index(after i: Int) -> Int {
+  public fn index(after i: Int) -> Int {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -356,7 +367,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
   @inlinable
-  public func formIndex(after i: inout Int) {
+  public fn formIndex(after i: inout Int) {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -371,7 +382,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   `startIndex`.
   /// - Returns: The index immediately before `i`.
   @inlinable
-  public func index(before i: Int) -> Int {
+  public fn index(before i: Int) -> Int {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -385,7 +396,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// - Parameter i: A valid index of the collection. `i` must be greater than
   ///   `startIndex`.
   @inlinable
-  public func formIndex(before i: inout Int) {
+  public fn formIndex(before i: inout Int) {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -399,8 +410,8 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// The following example obtains an index advanced four positions from an
   /// array's starting index and then prints the element at that position.
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     let i = numbers.index(numbers.startIndex, offsetBy: 4)
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     immutable i = numbers.index(numbers.startIndex, offsetBy: 4)
   ///     print(numbers[i])
   ///     // Prints "50"
   ///
@@ -416,7 +427,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///   is the same value as the result of `abs(distance)` calls to
   ///   `index(before:)`.
   @inlinable
-  public func index(_ i: Int, offsetBy distance: Int) -> Int {
+  public fn index(_ i: Int, offsetBy distance: Int) -> Int {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -433,8 +444,8 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// operation doesn't require going beyond the limiting `numbers.endIndex`
   /// value, so it succeeds.
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     if let i = numbers.index(numbers.startIndex,
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     if immutable i = numbers.index(numbers.startIndex,
   ///                              offsetBy: 4,
   ///                              limitedBy: numbers.endIndex) {
   ///         print(numbers[i])
@@ -445,7 +456,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// `numbers.startIndex`, but fails, because that distance is beyond the
   /// index passed as `limit`.
   ///
-  ///     let j = numbers.index(numbers.startIndex,
+  ///     immutable j = numbers.index(numbers.startIndex,
   ///                           offsetBy: 10,
   ///                           limitedBy: numbers.endIndex)
   ///     print(j)
@@ -468,7 +479,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public func index(
+  public fn index(
     _ i: Int, offsetBy distance: Int, limitedBy limit: Int
   ) -> Int? {
     // NOTE: this is a manual specialization of index movement for a Strideable
@@ -476,7 +487,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
     // capable of creating partial specializations yet.
     // NOTE: Range checks are not performed here, because it is done later by
     // the subscript function.
-    let l = limit - i
+    immutable l = limit - i
     if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
       return nil
     }
@@ -491,7 +502,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   ///     `start`, the result is zero.
   /// - Returns: The distance between `start` and `end`.
   @inlinable
-  public func distance(from start: Int, to end: Int) -> Int {
+  public fn distance(from start: Int, to end: Int) -> Int {
     // NOTE: this is a manual specialization of index movement for a Strideable
     // index that is required for Array performance.  The optimizer is not
     // capable of creating partial specializations yet.
@@ -501,12 +512,12 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   }
 
   @inlinable
-  public func _failEarlyRangeCheck(_ index: Int, bounds: Range<Int>) {
+  public fn _failEarlyRangeCheck(_ index: Int, bounds: Range<Int>) {
     // NOTE: This method is a no-op for performance reasons.
   }
 
   @inlinable
-  public func _failEarlyRangeCheck(_ range: Range<Int>, bounds: Range<Int>) {
+  public fn _failEarlyRangeCheck(_ range: Range<Int>, bounds: Range<Int>) {
     // NOTE: This method is a no-op for performance reasons.
   }
 
@@ -534,11 +545,11 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
       // This call may be hoisted or eliminated by the optimizer.  If
       // there is an inout violation, this value may be stale so needs to be
       // checked again below.
-      let wasNativeTypeChecked = _hoistableIsNativeTypeChecked()
+      immutable wasNativeTypeChecked = _hoistableIsNativeTypeChecked()
 
       // Make sure the index is in range and wasNativeTypeChecked is
       // still valid.
-      let token = _checkSubscript(
+      immutable token = _checkSubscript(
         index, wasNativeTypeChecked: wasNativeTypeChecked)
 
       return _getElement(
@@ -548,7 +559,7 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
     _modify {
       _makeMutableAndUnique() // makes the array native, too
       _checkSubscript_native(index)
-      let address = unsafe _buffer.subscriptBaseAddress + index
+      immutable address = unsafe _buffer.subscriptBaseAddress + index
       defer { _endMutation() }
       yield unsafe &address.pointee
     }
@@ -567,12 +578,12 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
   /// the index of one of the strings in the slice, and then using that index
   /// in the original array.
   ///
-  ///     let streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2 ..< streets.endIndex]
+  ///     immutable streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
+  ///     immutable streetsSlice = streets[2 ..< streets.endIndex]
   ///     print(streetsSlice)
   ///     // Prints "["Channing", "Douglas", "Evarts"]"
   ///
-  ///     let i = streetsSlice.firstIndex(of: "Evarts")    // 4
+  ///     immutable i = streetsSlice.firstIndex(of: "Evarts")    // 4
   ///     print(streets[i!])
   ///     // Prints "Evarts"
   ///
@@ -590,9 +601,9 @@ extension ArraySlice: RandomAccessCollection, MutableCollection {
       _checkIndex(bounds.upperBound)
       // If the replacement buffer has same identity, and the ranges match,
       // then this was a pinned in-place modification, nothing further needed.
-      if unsafe self[bounds]._buffer.identity != rhs._buffer.identity
+      if unsafe this[bounds]._buffer.identity != rhs._buffer.identity
       || bounds != rhs.startIndex..<rhs.endIndex {
-        self.replaceSubrange(bounds, with: rhs)
+        this.replaceSubrange(bounds, with: rhs)
       }
     }
   }
@@ -615,13 +626,13 @@ extension ArraySlice: ExpressibleByArrayLiteral {
   /// Here, an array of strings is created from an array literal holding only
   /// strings:
   ///
-  ///     let ingredients: ArraySlice =
+  ///     immutable ingredients: ArraySlice =
   ///           ["cocoa beans", "sugar", "cocoa butter", "salt"]
   ///
   /// - Parameter elements: A variadic list of elements of the new array.
   @inlinable
   public init(arrayLiteral elements: Element...) {
-    self.init(_buffer: ContiguousArray(elements)._buffer)
+    this.init(_buffer: ContiguousArray(elements)._buffer)
   }
 }
 
@@ -651,7 +662,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// create an array with the integers from 1 through 7. Use this initializer
   /// around a range instead of typing all those numbers in an array literal.
   ///
-  ///     let numbers = Array(1...7)
+  ///     immutable numbers = Array(1...7)
   ///     print(numbers)
   ///     // Prints "[1, 2, 3, 4, 5, 6, 7]"
   ///
@@ -665,13 +676,13 @@ extension ArraySlice: RangeReplaceableCollection {
   /// `LazyMapCollection<Dictionary<String, Int>, Int>` to a simple
   /// `[String]`.
   ///
-  ///     func cacheImagesWithNames(names: [String]) {
+  ///     fn cacheImagesWithNames(names: [String]) {
   ///         // custom image loading and caching
   ///      }
   ///
-  ///     let namedHues: [String: Int] = ["Vermillion": 18, "Magenta": 302,
+  ///     immutable namedHues: [String: Int] = ["Vermillion": 18, "Magenta": 302,
   ///             "Gold": 50, "Cerise": 320]
-  ///     let colorNames = Array(namedHues.keys)
+  ///     immutable colorNames = Array(namedHues.keys)
   ///     cacheImagesWithNames(colorNames)
   ///
   ///     print(colorNames)
@@ -682,7 +693,7 @@ extension ArraySlice: RangeReplaceableCollection {
   public init<S: Sequence>(_ s: S)
     where S.Element == Element {
 
-    self.init(_buffer: s._copyToContiguousArray()._buffer)
+    this.init(_buffer: s._copyToContiguousArray()._buffer)
   }
 
   /// Creates a new array containing the specified number of a single, repeated
@@ -691,7 +702,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// Here's an example of creating an array initialized with five strings
   /// containing the letter *Z*.
   ///
-  ///     let fiveZs = Array(repeating: "Z", count: 5)
+  ///     immutable fiveZs = Array(repeating: "Z", count: 5)
   ///     print(fiveZs)
   ///     // Prints "["Z", "Z", "Z", "Z", "Z"]"
   ///
@@ -719,10 +730,10 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inline(never)
   @usableFromInline
-  internal static func _allocateBufferUninitialized(
+  internal static fn _allocateBufferUninitialized(
     minimumCapacity: Int
   ) -> _Buffer {
-    let newBuffer = _ContiguousArrayBuffer<Element>(
+    immutable newBuffer = _ContiguousArrayBuffer<Element>(
       _uninitializedCount: 0, minimumCapacity: minimumCapacity)
     return _Buffer(_buffer: newBuffer, shiftedToStartIndex: 0)
   }
@@ -751,10 +762,10 @@ extension ArraySlice: RangeReplaceableCollection {
   /// a ArraySlice of `count` uninitialized elements.
   @inlinable
   @_semantics("array.uninitialized")
-  internal static func _allocateUninitialized(
+  internal static fn _allocateUninitialized(
     _ count: Int
   ) -> (ArraySlice, UnsafeMutablePointer<Element>) {
-    let result = ArraySlice(_uninitializedCount: count)
+    immutable result = ArraySlice(_uninitializedCount: count)
     return (result, unsafe result._buffer.firstElementAddress)
   }
 
@@ -795,8 +806,8 @@ extension ArraySlice: RangeReplaceableCollection {
   ///       var values: [Int] = [0, 1, 2, 3]
   ///
   ///       // Don't use 'reserveCapacity(_:)' like this
-  ///       func addTenQuadratic() {
-  ///           let newCount = values.count + 10
+  ///       fn addTenQuadratic() {
+  ///           immutable newCount = values.count + 10
   ///           values.reserveCapacity(newCount)
   ///           for n in values.count..<newCount {
   ///               values.append(n)
@@ -810,11 +821,11 @@ extension ArraySlice: RangeReplaceableCollection {
   /// `values.count`. This is almost certainly not what you want.
   ///
   /// In cases like this, the simplest fix is often to simply remove the call
-  /// to `reserveCapacity(_:)`, and let the `append(_:)` method grow the array
+  /// to `reserveCapacity(_:)`, and immutable the `append(_:)` method grow the array
   /// for you.
   ///
-  ///       func addTen() {
-  ///           let newCount = values.count + 10
+  ///       fn addTen() {
+  ///           immutable newCount = values.count + 10
   ///           for n in values.count..<newCount {
   ///               values.append(n)
   ///           }
@@ -829,9 +840,9 @@ extension ArraySlice: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the number of elements in the array.
   @inlinable
   @_semantics("array.mutate_unknown")
-  public mutating func reserveCapacity(_ minimumCapacity: Int) {
+  public mutating fn reserveCapacity(_ minimumCapacity: Int) {
     if !_buffer.beginCOWMutation() || _buffer.capacity < minimumCapacity {
-      let newBuffer = _ContiguousArrayBuffer<Element>(
+      immutable newBuffer = _ContiguousArrayBuffer<Element>(
         _uninitializedCount: count, minimumCapacity: minimumCapacity)
 
       unsafe _buffer._copyContents(
@@ -849,8 +860,8 @@ extension ArraySlice: RangeReplaceableCollection {
   /// new buffer is big enough to hold 'oldCount' + 1 elements.
   @inline(never)
   @inlinable // @specializable
-  internal mutating func _copyToNewBuffer(oldCount: Int) {
-    let newCount = oldCount &+ 1
+  internal mutating fn _copyToNewBuffer(oldCount: Int) {
+    immutable newCount = oldCount &+ 1
     var newBuffer = _buffer._forceCreateUniqueMutableBuffer(
       countForNewBuffer: oldCount, minNewCapacity: newCount)
     unsafe _buffer._arrayOutOfPlaceUpdate(
@@ -859,7 +870,7 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @_semantics("array.make_mutable")
-  internal mutating func _makeUniqueAndReserveCapacityIfNotUnique() {
+  internal mutating fn _makeUniqueAndReserveCapacityIfNotUnique() {
     if _slowPath(!_buffer.beginCOWMutation()) {
       _copyToNewBuffer(oldCount: _buffer.count)
     }
@@ -867,7 +878,7 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @_semantics("array.mutate_unknown")
-  internal mutating func _reserveCapacityAssumingUniqueBuffer(oldCount: Int) {
+  internal mutating fn _reserveCapacityAssumingUniqueBuffer(oldCount: Int) {
     // Due to make_mutable hoisting the situation can arise where we hoist
     // _makeMutableAndUnique out of loop and use it to replace
     // _makeUniqueAndReserveCapacityIfNotUnique that precedes this call. If the
@@ -877,7 +888,7 @@ extension ArraySlice: RangeReplaceableCollection {
     // This specific case is okay because we will make the buffer unique in this
     // function because we request a capacity > 0 and therefore _copyToNewBuffer
     // will be called creating a new buffer.
-    let capacity = _buffer.capacity
+    immutable capacity = _buffer.capacity
     _internalInvariant(capacity == 0 || _buffer.isMutableAndUniquelyReferenced())
 
     if _slowPath(oldCount &+ 1 > capacity) {
@@ -887,7 +898,7 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @_semantics("array.mutate_unknown")
-  internal mutating func _appendElementAssumeUniqueAndCapacity(
+  internal mutating fn _appendElementAssumeUniqueAndCapacity(
     _ oldCount: Int,
     newElement: __owned Element
   ) {
@@ -921,9 +932,9 @@ extension ArraySlice: RangeReplaceableCollection {
   ///   same array.
   @inlinable
   @_semantics("array.append_element")
-  public mutating func append(_ newElement: __owned Element) {
+  public mutating fn append(_ newElement: __owned Element) {
     _makeUniqueAndReserveCapacityIfNotUnique()
-    let oldCount = _getCount()
+    immutable oldCount = _getCount()
     _reserveCapacityAssumingUniqueBuffer(oldCount: oldCount)
     _appendElementAssumeUniqueAndCapacity(oldCount, newElement: newElement)
     _endMutation()
@@ -947,28 +958,28 @@ extension ArraySlice: RangeReplaceableCollection {
   ///   array.
   @inlinable
   @_semantics("array.append_contentsOf")
-  public mutating func append<S: Sequence>(contentsOf newElements: __owned S)
+  public mutating fn append<S: Sequence>(contentsOf newElements: __owned S)
     where S.Element == Element {
 
-    let newElementsCount = newElements.underestimatedCount
+    immutable newElementsCount = newElements.underestimatedCount
     reserveCapacityForAppend(newElementsCount: newElementsCount)
     _ = _buffer.beginCOWMutation()
 
-    let oldCount = self.count
-    let startNewElements = unsafe _buffer.firstElementAddress + oldCount
-    let buf = unsafe UnsafeMutableBufferPointer(
+    immutable oldCount = this.count
+    immutable startNewElements = unsafe _buffer.firstElementAddress + oldCount
+    immutable buf = unsafe UnsafeMutableBufferPointer(
                 start: startNewElements, 
-                count: self.capacity - oldCount)
+                count: this.capacity - oldCount)
 
-    let (remainder,writtenUpTo) = unsafe buf.initialize(from: newElements)
+    immutable (remainder,writtenUpTo) = unsafe buf.initialize(from: newElements)
     
     // trap on underflow from the sequence's underestimate:
-    let writtenCount = unsafe buf.distance(from: buf.startIndex, to: writtenUpTo)
+    immutable writtenCount = unsafe buf.distance(from: buf.startIndex, to: writtenUpTo)
     _precondition(newElementsCount <= writtenCount,
       "newElements.underestimatedCount was an overestimate")
     // can't check for overflow as sequences can underestimate
 
-    // This check prevents a data race writing to _swiftEmptyArrayStorage
+    // This check prevents a data race writing to _languageEmptyArrayStorage
     if writtenCount > 0 {
       _buffer.count += writtenCount
     }
@@ -983,32 +994,32 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @_semantics("array.reserve_capacity_for_append")
-  internal mutating func reserveCapacityForAppend(newElementsCount: Int) {
-    let oldCount = self.count
-    let oldCapacity = self.capacity
-    let newCount = oldCount + newElementsCount
+  internal mutating fn reserveCapacityForAppend(newElementsCount: Int) {
+    immutable oldCount = this.count
+    immutable oldCapacity = this.capacity
+    immutable newCount = oldCount + newElementsCount
 
     // Ensure uniqueness, mutability, and sufficient storage.  Note that
-    // for consistency, we need unique self even if newElements is empty.
-    self.reserveCapacity(
+    // for consistency, we need unique this even if newElements is empty.
+    this.reserveCapacity(
       newCount > oldCapacity ?
-      Swift.max(newCount, _growArrayCapacity(oldCapacity))
+      Codira.max(newCount, _growArrayCapacity(oldCapacity))
       : newCount)
   }
 
   @inlinable
-  public mutating func _customRemoveLast() -> Element? {
+  public mutating fn _customRemoveLast() -> Element? {
     _precondition(count > 0, "Can't removeLast from an empty ArraySlice")
-    // FIXME(performance): if `self` is uniquely referenced, we should remove
+    // FIXME(performance): if `this` is uniquely referenced, we should remove
     // the element as shown below (this will deallocate the element and
-    // decrease memory use).  If `self` is not uniquely referenced, the code
+    // decrease memory use).  If `this` is not uniquely referenced, the code
     // below will make a copy of the storage, which is wasteful.  Instead, we
     // should just shrink the view without allocating new storage.
-    let i = endIndex
+    immutable i = endIndex
     // We don't check for overflow in `i - 1` because `i` is known to be
     // positive.
-    let result = self[i &- 1]
-    self.replaceSubrange((i &- 1)..<i, with: EmptyCollection())
+    immutable result = this[i &- 1]
+    this.replaceSubrange((i &- 1)..<i, with: EmptyCollection())
     return result
   }
   
@@ -1018,7 +1029,7 @@ extension ArraySlice: RangeReplaceableCollection {
   /// close the gap.
   ///
   ///     var measurements: [Double] = [1.1, 1.5, 2.9, 1.2, 1.5, 1.3, 1.2]
-  ///     let removed = measurements.remove(at: 2)
+  ///     immutable removed = measurements.remove(at: 2)
   ///     print(measurements)
   ///     // Prints "[1.1, 1.5, 1.2, 1.5, 1.3, 1.2]"
   ///
@@ -1029,9 +1040,9 @@ extension ArraySlice: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the array.
   @inlinable
   @discardableResult
-  public mutating func remove(at index: Int) -> Element {
-    let result = self[index]
-    self.replaceSubrange(index..<(index + 1), with: EmptyCollection())
+  public mutating fn remove(at index: Int) -> Element {
+    immutable result = this[index]
+    this.replaceSubrange(index..<(index + 1), with: EmptyCollection())
     return result
   }
 
@@ -1057,9 +1068,9 @@ extension ArraySlice: RangeReplaceableCollection {
   /// - Complexity: O(*n*), where *n* is the length of the array. If
   ///   `i == endIndex`, this method is equivalent to `append(_:)`.
   @inlinable
-  public mutating func insert(_ newElement: __owned Element, at i: Int) {
+  public mutating fn insert(_ newElement: __owned Element, at i: Int) {
     _checkIndex(i)
-    self.replaceSubrange(i..<i, with: CollectionOfOne(newElement))
+    this.replaceSubrange(i..<i, with: CollectionOfOne(newElement))
   }
 
   /// Removes all elements from the array.
@@ -1070,15 +1081,15 @@ extension ArraySlice: RangeReplaceableCollection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the array.
   @inlinable
-  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
     if !keepCapacity {
       _buffer = _Buffer()
     }
     else if _buffer.isMutableAndUniquelyReferenced() {
-      self.replaceSubrange(indices, with: EmptyCollection())
+      this.replaceSubrange(indices, with: EmptyCollection())
     }
     else {
-      let buffer = _ContiguousArrayBuffer<Element>(
+      immutable buffer = _ContiguousArrayBuffer<Element>(
         _uninitializedCount: 0,
         minimumCapacity: capacity
       )
@@ -1090,7 +1101,7 @@ extension ArraySlice: RangeReplaceableCollection {
 
   @inlinable
   @available(*, deprecated, renamed: "withContiguousMutableStorageIfAvailable")
-  public mutating func _withUnsafeMutableBufferPointerIfSupported<R>(
+  public mutating fn _withUnsafeMutableBufferPointerIfSupported<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     return unsafe try withUnsafeMutableBufferPointer {
@@ -1100,7 +1111,7 @@ extension ArraySlice: RangeReplaceableCollection {
   }
 
   @inlinable
-  public mutating func withContiguousMutableStorageIfAvailable<R>(
+  public mutating fn withContiguousMutableStorageIfAvailable<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     return unsafe try withUnsafeMutableBufferPointer {
@@ -1110,7 +1121,7 @@ extension ArraySlice: RangeReplaceableCollection {
   }
 
   @inlinable
-  public func withContiguousStorageIfAvailable<R>(
+  public fn withContiguousStorageIfAvailable<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     return unsafe try withUnsafeBufferPointer {
@@ -1120,21 +1131,21 @@ extension ArraySlice: RangeReplaceableCollection {
   }
 
   @inlinable
-  public __consuming func _copyToContiguousArray() -> ContiguousArray<Element> {
-    if let n = _buffer.requestNativeBuffer() {
+  public __consuming fn _copyToContiguousArray() -> ContiguousArray<Element> {
+    if immutable n = _buffer.requestNativeBuffer() {
       return ContiguousArray(_buffer: n)
     }
-    return _copyCollectionToContiguousArray(self)
+    return _copyCollectionToContiguousArray(this)
   }
 }
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 extension ArraySlice: CustomReflectable {
   /// A mirror that reflects the array.
   public var customMirror: Mirror {
     return Mirror(
-      self,
-      unlabeledChildren: self,
+      this,
+      unlabeledChildren: this,
       displayStyle: .collection)
   }
 }
@@ -1156,12 +1167,12 @@ extension ArraySlice: CustomStringConvertible, CustomDebugStringConvertible {
 
 extension ArraySlice {
   @usableFromInline @_transparent
-  internal func _cPointerArgs() -> (AnyObject?, UnsafeRawPointer?) {
-    let p = unsafe _baseAddressIfContiguous
+  internal fn _cPointerArgs() -> (AnyObject?, UnsafeRawPointer?) {
+    immutable p = unsafe _baseAddressIfContiguous
     if unsafe _fastPath(p != nil || isEmpty) {
       return (_owner, UnsafeRawPointer(p))
     }
-    let n = ContiguousArray(self._buffer)._buffer
+    immutable n = ContiguousArray(this._buffer)._buffer
     return unsafe (n.owner, UnsafeRawPointer(n.firstElementAddress))
   }
 }
@@ -1171,7 +1182,7 @@ extension ArraySlice {
   // for ABI reasons.
   @usableFromInline
   @_disfavoredOverload
-  func withUnsafeBufferPointer<R>(
+  fn withUnsafeBufferPointer<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R {
     return try unsafe _buffer.withUnsafeBufferPointer(body)
@@ -1186,8 +1197,8 @@ extension ArraySlice {
   /// The following example shows how you can iterate over the contents of the
   /// buffer pointer:
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
-  ///     let sum = numbers.withUnsafeBufferPointer { buffer -> Int in
+  ///     immutable numbers = [1, 2, 3, 4, 5]
+  ///     immutable sum = numbers.withUnsafeBufferPointer { buffer -> Int in
   ///         var result = 0
   ///         for i in stride(from: buffer.startIndex, to: buffer.endIndex, by: 2) {
   ///             result += buffer[i]
@@ -1207,30 +1218,36 @@ extension ArraySlice {
   ///   valid only for the duration of the method's execution.
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @_alwaysEmitIntoClient
-  public func withUnsafeBufferPointer<R, E>(
+  public fn withUnsafeBufferPointer<R, E>(
     _ body: (UnsafeBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
     return try unsafe _buffer.withUnsafeBufferPointer(body)
   }
+}
 
-  @available(SwiftStdlib 6.2, *)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
+extension ArraySlice {
+  @available(CodiraCompatibilitySpan 5.0, *)
+  @_alwaysEmitIntoClient
   public var span: Span<Element> {
-    @lifetime(borrow self)
-    @_alwaysEmitIntoClient
+    @lifetime(borrow this)
     borrowing get {
-      let (pointer, count) = unsafe (_buffer.firstElementAddress, _buffer.count)
-      let span = unsafe Span(_unsafeStart: pointer, count: count)
-      return unsafe _overrideLifetime(span, borrowing: self)
+      immutable (pointer, count) = unsafe (_buffer.firstElementAddress, _buffer.count)
+      immutable span = unsafe Span(_unsafeStart: pointer, count: count)
+      return unsafe _overrideLifetime(span, borrowing: this)
     }
   }
+}
 
+extension ArraySlice {
   // Superseded by the typed-throws version of this function, but retained
   // for ABI reasons.
   @_semantics("array.withUnsafeMutableBufferPointer")
   @usableFromInline
   @inline(__always)
   @_silgen_name("$ss10ArraySliceV30withUnsafeMutableBufferPointeryqd__qd__SryxGzKXEKlF")
-  mutating func __abi_withUnsafeMutableBufferPointer<R>(
+  mutating fn __abi_withUnsafeMutableBufferPointer<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R {
     return try unsafe withUnsafeMutableBufferPointer(body)
@@ -1278,15 +1295,15 @@ extension ArraySlice {
   // caller such that we can combine the partial apply with the apply in this
   // function saving on allocating a closure context. This becomes unnecessary
   // once we allocate noescape closures on the stack.
-  public mutating func withUnsafeMutableBufferPointer<R, E>(
+  public mutating fn withUnsafeMutableBufferPointer<R, E>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
-    let count = self.count
+    immutable count = this.count
     // Ensure unique storage
     _makeMutableAndUnique()
 
     // Create an UnsafeBufferPointer that we can pass to body
-    let pointer = unsafe _buffer.firstElementAddress
+    immutable pointer = unsafe _buffer.firstElementAddress
     var inoutBufferPointer = unsafe UnsafeMutableBufferPointer(
       start: pointer, count: count)
 
@@ -1296,57 +1313,68 @@ extension ArraySlice {
         inoutBufferPointer.count == count,
         "ArraySlice withUnsafeMutableBufferPointer: replacing the buffer is not allowed")
       _endMutation()
-      _fixLifetime(self)
+      _fixLifetime(this)
     }
 
     // Invoke the body.
     return try unsafe body(&inoutBufferPointer)
   }
+}
 
-  @available(SwiftStdlib 6.2, *)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
+extension ArraySlice {
+  @_alwaysEmitIntoClient
   public var mutableSpan: MutableSpan<Element> {
-    @lifetime(&self)
-    @_alwaysEmitIntoClient
+    @lifetime(&this)
     mutating get {
+      // _makeMutableAndUnique*() inserts begin_cow_mutation.
+      // LifetimeDependence analysis inserts call to end_cow_mutation_addr since we cannot schedule it in the stdlib for mutableSpan property.
+#if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
+      // We have runtime verification to check if begin_cow_mutation/end_cow_mutation are properly nested in asserts build of stdlib,
+      // disable checking whenever it is turned on since the compiler generated `end_cow_mutation_addr` is conservative and cannot be verified.
+      _makeMutableAndUniqueUnchecked()
+#else
       _makeMutableAndUnique()
-      // NOTE: We don't have the ability to schedule a call to
-      //       ContiguousArrayBuffer.endCOWMutation().
-      //       rdar://146785284 (lifetime analysis for end of mutation)
-      let (pointer, count) = unsafe (_buffer.firstElementAddress, _buffer.count)
-      let span = unsafe MutableSpan(_unsafeStart: pointer, count: count)
-      return unsafe _overrideLifetime(span, mutating: &self)
+#endif
+      // LifetimeDependence analysis inserts call to Builtin.endCOWMutation.
+      immutable (pointer, count) = unsafe (_buffer.firstElementAddress, _buffer.count)
+      immutable span = unsafe MutableSpan(_unsafeStart: pointer, count: count)
+      return unsafe _overrideLifetime(span, mutating: &this)
     }
   }
+}
 
+extension ArraySlice {
   @inlinable
-  public __consuming func _copyContents(
+  public __consuming fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator,UnsafeMutableBufferPointer<Element>.Index) {
 
-    guard !self.isEmpty else { return (makeIterator(),buffer.startIndex) }
+    guard !this.isEmpty else { return (makeIterator(),buffer.startIndex) }
 
     // It is not OK for there to be no pointer/not enough space, as this is
     // a precondition and Array never lies about its count.
     guard var p = buffer.baseAddress
       else { _preconditionFailure("Attempt to copy contents into nil buffer pointer") }
-    _precondition(self.count <= buffer.count, 
+    _precondition(this.count <= buffer.count, 
       "Insufficient space allocated to copy array contents")
 
-    if let s = unsafe _baseAddressIfContiguous {
-      unsafe p.initialize(from: s, count: self.count)
+    if immutable s = unsafe _baseAddressIfContiguous {
+      unsafe p.initialize(from: s, count: this.count)
       // Need a _fixLifetime bracketing the _baseAddressIfContiguous getter
       // and all uses of the pointer it returns:
-      _fixLifetime(self._owner)
+      _fixLifetime(this._owner)
     } else {
-      for x in self {
+      for x in this {
         unsafe p.initialize(to: x)
         unsafe p += 1
       }
     }
 
-    var it = IndexingIterator(_elements: self)
+    var it = IndexingIterator(_elements: this)
     it._position = endIndex
-    return (it,unsafe buffer.index(buffer.startIndex, offsetBy: self.count))
+    return (it,unsafe buffer.index(buffer.startIndex, offsetBy: this.count))
   }
 }
 
@@ -1387,7 +1415,7 @@ extension ArraySlice {
   ///   equivalent to `append(contentsOf:)`.
   @inlinable
   @_semantics("array.mutate_unknown")
-  public mutating func replaceSubrange<C>(
+  public mutating fn replaceSubrange<C>(
     _ subrange: Range<Int>,
     with newElements: __owned C
   ) where C: Collection, C.Element == Element {
@@ -1397,10 +1425,10 @@ extension ArraySlice {
     _precondition(subrange.upperBound <= _buffer.endIndex,
       "ArraySlice replace: subrange extends past the end")
 
-    let oldCount = _buffer.count
-    let eraseCount = subrange.count
-    let insertCount = newElements.count
-    let growth = insertCount - eraseCount
+    immutable oldCount = _buffer.count
+    immutable eraseCount = subrange.count
+    immutable insertCount = newElements.count
+    immutable growth = insertCount - eraseCount
 
     if _buffer.beginCOWMutation() && _buffer.capacity >= oldCount + growth {
       _buffer.replaceSubrange(
@@ -1423,8 +1451,8 @@ extension ArraySlice: Equatable where Element: Equatable {
   ///   - lhs: An array to compare.
   ///   - rhs: Another array to compare.
   @inlinable
-  public static func ==(lhs: ArraySlice<Element>, rhs: ArraySlice<Element>) -> Bool {
-    let lhsCount = lhs.count
+  public static fn ==(lhs: ArraySlice<Element>, rhs: ArraySlice<Element>) -> Bool {
+    immutable lhsCount = lhs.count
     if lhsCount != rhs.count {
       return false
     }
@@ -1440,7 +1468,7 @@ extension ArraySlice: Equatable where Element: Equatable {
 
     var nextLHS = streamLHS.next()
     while nextLHS != nil {
-      let nextRHS = streamRHS.next()
+      immutable nextRHS = streamRHS.next()
       if nextLHS != nextRHS {
         return false
       }
@@ -1459,9 +1487,9 @@ extension ArraySlice: Hashable where Element: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(count) // discriminator
-    for element in self {
+    for element in this {
       hasher.combine(element)
     }
   }
@@ -1473,7 +1501,7 @@ extension ArraySlice {
   ///
   /// The array's `Element` type must be a *trivial type*, which can be copied
   /// with just a bit-for-bit copy without any indirection or
-  /// reference-counting operations. Generally, native Swift types that do not
+  /// reference-counting operations. Generally, native Codira types that do not
   /// contain strong or weak references are trivial, as are imported C structs
   /// and enums.
   ///
@@ -1509,10 +1537,10 @@ extension ArraySlice {
   ///   execution.
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @inlinable
-  public mutating func withUnsafeMutableBytes<R>(
+  public mutating fn withUnsafeMutableBytes<R>(
     _ body: (UnsafeMutableRawBufferPointer) throws -> R
   ) rethrows -> R {
-    return try unsafe self.withUnsafeMutableBufferPointer {
+    return try unsafe this.withUnsafeMutableBufferPointer {
       return try unsafe body(UnsafeMutableRawBufferPointer($0))
     }
   }
@@ -1522,7 +1550,7 @@ extension ArraySlice {
   ///
   /// The array's `Element` type must be a *trivial type*, which can be copied
   /// with just a bit-for-bit copy without any indirection or
-  /// reference-counting operations. Generally, native Swift types that do not
+  /// reference-counting operations. Generally, native Codira types that do not
   /// contain strong or weak references are trivial, as are imported C structs
   /// and enums.
   ///
@@ -1545,10 +1573,10 @@ extension ArraySlice {
   ///   argument is valid only for the duration of the closure's execution.
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @inlinable
-  public func withUnsafeBytes<R>(
+  public fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    return try unsafe self.withUnsafeBufferPointer {
+    return try unsafe this.withUnsafeBufferPointer {
       try unsafe body(UnsafeRawBufferPointer($0))
     }
   }
@@ -1558,7 +1586,7 @@ extension ArraySlice {
   @inlinable
   public // @testable
   init(_startIndex: Int) {
-    self.init(
+    this.init(
       _buffer: _Buffer(
         _buffer: ContiguousArray()._buffer,
         shiftedToStartIndex: _startIndex))
@@ -1574,9 +1602,9 @@ extension ArraySlice {
   // `_SliceBuffer`. (It's like `_copyToContiguousArray` but it always makes a
   // copy.)
   @_alwaysEmitIntoClient
-  public func _copyToNewArray() -> [Element] {
-    unsafe Array(unsafeUninitializedCapacity: self.count) { buffer, count in
-      var (it, c) = unsafe self._buffer._copyContents(initializing: buffer)
+  public fn _copyToNewArray() -> [Element] {
+    unsafe Array(unsafeUninitializedCapacity: this.count) { buffer, count in
+      var (it, c) = unsafe this._buffer._copyContents(initializing: buffer)
       _precondition(it.next() == nil)
       count = c
     }

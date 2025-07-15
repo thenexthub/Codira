@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/71282
+
+enum E {
+  case e
+}
+
+// Make sure we don't crash.
+fn foo(_ x: E) {
+  return if .random() {
+    ()
+    switch x {
+    case .e:
+      ()
+    }
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    ()
+  }
+}

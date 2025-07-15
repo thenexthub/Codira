@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftSerialization STATIC
+add_language_host_library(languageSerialization STATIC
   Deserialization.cpp
   DeserializeSIL.cpp
   ModuleFile.cpp
@@ -11,14 +11,14 @@ add_swift_host_library(swiftSerialization STATIC
   SerializeDoc.cpp
   SerializeSIL.cpp
 
-  LLVM_LINK_COMPONENTS
+  TOOLCHAIN_LINK_COMPONENTS
     BitstreamReader
   )
-target_link_libraries(swiftSerialization PRIVATE
-  swiftClangImporter
-  swiftOption
-  swiftAST
-  swiftSIL
+target_link_libraries(languageSerialization PRIVATE
+  languageClangImporter
+  languageOption
+  languageAST
+  languageSIL
   clangIndex)
 
-set_swift_llvm_is_available(swiftSerialization)
+set_language_toolchain_is_available(languageSerialization)

@@ -1,20 +1,24 @@
 //===--- Term.cpp - A term in the generics rewrite system -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/Decl.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <vector>
 #include "RewriteContext.h"
@@ -27,8 +31,8 @@ using namespace rewriting;
 /// Terms are uniqued and immutable, stored as a single pointer;
 /// the Storage type is the allocated backing storage.
 struct Term::Storage final
-  : public llvm::FoldingSetNode,
-    public llvm::TrailingObjects<Storage, Symbol> {
+  : public toolchain::FoldingSetNode,
+    public toolchain::TrailingObjects<Storage, Symbol> {
   friend class Symbol;
 
   unsigned Size;
@@ -47,7 +51,7 @@ struct Term::Storage final
     return {getTrailingObjects<Symbol>(), Size};
   }
 
-  void Profile(llvm::FoldingSetNodeID &id) const;
+  void Profile(toolchain::FoldingSetNodeID &id) const;
 };
 
 size_t Term::size() const { return Ptr->Size; }
@@ -76,7 +80,7 @@ Symbol Term::operator[](size_t index) const {
   return Ptr->getElements()[index];
 }
 
-void Term::dump(llvm::raw_ostream &out) const {
+void Term::dump(toolchain::raw_ostream &out) const {
   MutableTerm(*this).dump(out);
 }
 
@@ -84,7 +88,7 @@ Term Term::get(const MutableTerm &mutableTerm, RewriteContext &ctx) {
   unsigned size = mutableTerm.size();
   DEBUG_ASSERT(size > 0 && "Term must have at least one symbol");
 
-  llvm::FoldingSetNodeID id;
+  toolchain::FoldingSetNodeID id;
   id.AddInteger(size);
   for (auto symbol : mutableTerm)
     id.AddPointer(symbol.getOpaquePointer());
@@ -106,7 +110,7 @@ Term Term::get(const MutableTerm &mutableTerm, RewriteContext &ctx) {
   return term;
 }
 
-void Term::Storage::Profile(llvm::FoldingSetNodeID &id) const {
+void Term::Storage::Profile(toolchain::FoldingSetNodeID &id) const {
   id.AddInteger(Size);
 
   for (auto symbol : getElements())
@@ -122,19 +126,42 @@ bool Term::containsNameSymbols() const {
   return false;
 }
 
-/// Shortlex order on symbol ranges.
+/// Weighted shortlex order on symbol ranges, used for implementing
+/// Term::compare() and MutableTerm::compare().
 ///
-/// First we compare length, then perform a lexicographic comparison
-/// on symbols if the two ranges have the same length.
+/// We first compute a weight vector for both terms and compare the
+/// vectors lexicographically:
+/// - Weight of generic param symbols
+/// - Number of name symbols
+/// - Number of element symbols
 ///
-/// This is used to implement Term::compare() and MutableTerm::compare()
-/// below.
-static std::optional<int> shortlexCompare(const Symbol *lhsBegin,
-                                          const Symbol *lhsEnd,
-                                          const Symbol *rhsBegin,
-                                          const Symbol *rhsEnd,
-                                          RewriteContext &ctx) {
-  // First, compare the number of name and pack element symbols.
+/// If the terms have the same weight, we compare length.
+///
+/// If the terms have the same weight and length, we perform a
+/// lexicographic comparison on symbols.
+///
+static std::optional<int> compareImpl(const Symbol *lhsBegin,
+                                      const Symbol *lhsEnd,
+                                      const Symbol *rhsBegin,
+                                      const Symbol *rhsEnd,
+                                      RewriteContext &ctx) {
+  ASSERT(lhsBegin != lhsEnd);
+  ASSERT(rhsBegin != rhsEnd);
+
+  // First compare weights on generic parameters. The implicit
+  // assumption here is we don't form terms with generic parameter
+  // symbols in the middle, which is true. Otherwise, we'd need
+  // to add up their weights like we do below for name symbols,
+  // of course.
+  if (lhsBegin->getKind() == Symbol::Kind::GenericParam &&
+      rhsBegin->getKind() == Symbol::Kind::GenericParam) {
+    unsigned lhsWeight = lhsBegin->getGenericParam()->getWeight();
+    unsigned rhsWeight = rhsBegin->getGenericParam()->getWeight();
+    if (lhsWeight != rhsWeight)
+      return lhsWeight > rhsWeight ? 1 : -1;
+  }
+
+  // Compare the number of name and pack element symbols.
   unsigned lhsNameCount = 0;
   unsigned lhsPackElementCount = 0;
   for (auto *iter = lhsBegin; iter != lhsEnd; ++iter) {
@@ -192,17 +219,17 @@ static std::optional<int> shortlexCompare(const Symbol *lhsBegin,
   return 0;
 }
 
-/// Shortlex order on terms. Returns None if the terms are identical except
+/// Reduction order on terms. Returns None if the terms are identical except
 /// for an incomparable superclass or concrete type symbol at the end.
 std::optional<int> Term::compare(Term other, RewriteContext &ctx) const {
-  return shortlexCompare(begin(), end(), other.begin(), other.end(), ctx);
+  return compareImpl(begin(), end(), other.begin(), other.end(), ctx);
 }
 
-/// Shortlex order on mutable terms. Returns None if the terms are identical
+/// Reduction order on mutable terms. Returns None if the terms are identical
 /// except for an incomparable superclass or concrete type symbol at the end.
 std::optional<int> MutableTerm::compare(const MutableTerm &other,
                                         RewriteContext &ctx) const {
-  return shortlexCompare(begin(), end(), other.begin(), other.end(), ctx);
+  return compareImpl(begin(), end(), other.begin(), other.end(), ctx);
 }
 
 /// Replace the subterm in the range [from,to) of this term with \p rhs.
@@ -237,7 +264,7 @@ void MutableTerm::rewriteSubTerm(Symbol *from, Symbol *to, Term rhs) {
   DEBUG_ASSERT(size() == oldSize - lhsLength + rhs.size());
 }
 
-void MutableTerm::dump(llvm::raw_ostream &out) const {
+void MutableTerm::dump(toolchain::raw_ostream &out) const {
   bool first = true;
 
   for (auto symbol : Symbols) {

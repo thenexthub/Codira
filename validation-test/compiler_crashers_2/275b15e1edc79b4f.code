@@ -1,0 +1,7 @@
+// {"signature":"language::TypeTransform<(anonymous namespace)::TypeSubstituter>::doIt(language::Type, language::TypePosition)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a: Collection where Iterator == Self
+  struct b<c: a>: IteratorProtocol {next -> c.Element? struct c: a {
+      struct Element
+        subscript(Int) Element
+        fn makeIterator -> b<Self>

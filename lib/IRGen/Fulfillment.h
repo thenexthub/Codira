@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for deriving type metadata and protocol
@@ -18,10 +19,10 @@
 // 
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_FULFILLMENT_H
-#define SWIFT_IRGEN_FULFILLMENT_H
+#ifndef LANGUAGE_IRGEN_FULFILLMENT_H
+#define LANGUAGE_IRGEN_FULFILLMENT_H
 
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/MapVector.h"
 #include "language/AST/GenericSignature.h"
 #include "language/AST/Types.h"
 #include "language/IRGen/GenericRequirement.h"
@@ -52,7 +53,7 @@ struct Fulfillment {
 };
 
 class FulfillmentMap {
-  llvm::MapVector<GenericRequirement, Fulfillment> Fulfillments;
+  toolchain::MapVector<GenericRequirement, Fulfillment> Fulfillments;
 
 public:
   struct InterestingKeysCallback {
@@ -104,6 +105,14 @@ public:
                           MetadataState metadataState,
                           unsigned sourceIndex, MetadataPath &&path,
                           const InterestingKeysCallback &interestingKeys);
+
+  /// Metadata fulfillment in tuple conformance witness thunks.
+  ///
+  /// \return true if any fulfillments were added by this search.
+  bool searchTupleTypeMetadata(IRGenModule &IGM, CanTupleType type, IsExact_t isExact,
+                               MetadataState metadataState,
+                               unsigned sourceIndex, MetadataPath &&path,
+                               const InterestingKeysCallback &interestingKeys);
 
   /// Search the given type metadata pack for useful fulfillments.
   ///
@@ -159,8 +168,8 @@ public:
   }
 
   void dump() const;
-  void print(llvm::raw_ostream &out) const;
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+  void print(toolchain::raw_ostream &out) const;
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                        const FulfillmentMap &map) {
     map.print(out);
     return out;
@@ -178,7 +187,7 @@ private:
   bool searchWitnessTable(
       IRGenModule &IGM, CanType type, ProtocolDecl *protocol, unsigned source,
       MetadataPath &&path, const InterestingKeysCallback &keys,
-      llvm::SmallPtrSetImpl<ProtocolDecl *> *interestingConformances);
+      toolchain::SmallPtrSetImpl<ProtocolDecl *> *interestingConformances);
 };
 
 }

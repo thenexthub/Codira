@@ -1,0 +1,5 @@
+// {"signature":"(anonymous namespace)::ExprWalker::walkToExprPost(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a {
+  {
+    \ b() a

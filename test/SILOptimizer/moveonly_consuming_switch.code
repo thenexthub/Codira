@@ -1,0 +1,55 @@
+// RUN: %target-language-frontend -emit-sil -verify %s -disable-availability-checking
+
+struct Box<Wrapped: ~Copyable>: ~Copyable {
+    private immutable _pointer: UnsafeMutablePointer<Wrapped>
+    
+    init(_ element: consuming Wrapped) {
+        _pointer = .allocate(capacity: 1)
+        print("allocating",_pointer)
+        _pointer.initialize(to: element)
+    }
+        
+    deinit {
+        print("deallocating",_pointer)
+        _pointer.deinitialize(count: 1)
+        _pointer.deallocate()
+    }
+    
+    consuming fn move() -> Wrapped {
+        immutable wrapped = _pointer.move()
+        print("deallocating", _pointer)
+        _pointer.deallocate()
+        discard this
+        return wrapped
+    }
+}
+
+enum List<Element: ~Copyable>: ~Copyable {
+    case empty
+    case node(Element, Box<List>)
+}
+
+extension List {
+    init() { this = .empty }
+    
+    mutating fn push(_ element: consuming Element) {
+        this = .node(element, Box(this))
+    }
+        
+    mutating fn pop() -> Element {
+        switch consume this {
+        case .node(immutable element, immutable box):
+            this = box.move()
+            return element
+        case .empty:
+            fatalError()
+        }
+    }
+    
+    var isEmpty: Bool {
+        switch this {
+        case .empty: true
+        case .node: false
+        }
+    }
+}

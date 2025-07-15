@@ -1,4 +1,4 @@
-add_swift_target_library(swiftLLVMSupport OBJECT_LIBRARY
+add_language_target_library(languageLLVMSupport OBJECT_LIBRARY
     ErrorHandling.cpp
     Hashing.cpp
     MemAlloc.cpp

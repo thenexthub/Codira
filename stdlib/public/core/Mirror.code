@@ -1,4 +1,4 @@
-//===--- Mirror.swift -----------------------------------------------------===//
+//===--- Mirror.code -----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // FIXME: ExistentialCollection needs to be supported before this will work
 // without the ObjC Runtime.
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 
 /// A representation of the substructure and display style of an instance of
 /// any type.
@@ -31,10 +32,10 @@
 /// instance's runtime contents.
 ///
 ///     struct Point {
-///         let x: Int, y: Int
+///         immutable x: Int, y: Int
 ///     }
 ///
-///     let p = Point(x: 21, y: 30)
+///     immutable p = Point(x: 21, y: 30)
 ///     print(String(reflecting: p))
 ///     // Prints "▿ Point
 ///     //           - x: 21
@@ -47,17 +48,17 @@ public struct Mirror {
   ///
   /// This type may differ from the subject's dynamic type when this mirror
   /// is the `superclassMirror` of another mirror.
-  public let subjectType: Any.Type
+  public immutable subjectType: Any.Type
 
   /// A collection of `Child` elements describing the structure of the
   /// reflected subject.
-  public let children: Children
+  public immutable children: Children
 
   /// A suggested display style for the reflected subject.
-  public let displayStyle: DisplayStyle?
+  public immutable displayStyle: DisplayStyle?
 
-  internal let _makeSuperclassMirror: () -> Mirror?
-  internal let _defaultDescendantRepresentation: _DefaultDescendantRepresentation
+  internal immutable _makeSuperclassMirror: () -> Mirror?
+  internal immutable _defaultDescendantRepresentation: _DefaultDescendantRepresentation
 
   /// Creates a mirror that reflects on the given instance.
   ///
@@ -71,10 +72,10 @@ public struct Mirror {
   ///
   /// - Parameter subject: The instance for which to create a mirror.
   public init(reflecting subject: Any) {
-    if case let customized as CustomReflectable = subject {
-      self = customized.customMirror
+    if case immutable customized as CustomReflectable = subject {
+      this = customized.customMirror
     } else {
-      self = Mirror(internalReflecting: subject)
+      this = Mirror(internalReflecting: subject)
     }
   }
 
@@ -110,13 +111,13 @@ public struct Mirror {
     ancestorRepresentation: AncestorRepresentation = .generated
   ) where C.Element == Child {
 
-    self.subjectType = Subject.self
-    self._makeSuperclassMirror = Mirror._superclassIterator(
+    this.subjectType = Subject.this
+    this._makeSuperclassMirror = Mirror._superclassIterator(
       subject, ancestorRepresentation)
 
-    self.children = Children(children)
-    self.displayStyle = displayStyle
-    self._defaultDescendantRepresentation
+    this.children = Children(children)
+    this.displayStyle = displayStyle
+    this._defaultDescendantRepresentation
       = subject is CustomLeafReflectable ? .suppressed : .generated
   }
 
@@ -153,16 +154,16 @@ public struct Mirror {
     displayStyle: DisplayStyle? = nil,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) {
-    self.subjectType = Subject.self
-    self._makeSuperclassMirror = Mirror._superclassIterator(
+    this.subjectType = Subject.this
+    this._makeSuperclassMirror = Mirror._superclassIterator(
       subject, ancestorRepresentation)
 
-    let lazyChildren =
+    immutable lazyChildren =
       unlabeledChildren.lazy.map { Child(label: nil, value: $0) }
-    self.children = Children(lazyChildren)
+    this.children = Children(lazyChildren)
 
-    self.displayStyle = displayStyle
-    self._defaultDescendantRepresentation
+    this.displayStyle = displayStyle
+    this._defaultDescendantRepresentation
       = subject is CustomLeafReflectable ? .suppressed : .generated
   }
 
@@ -201,15 +202,15 @@ public struct Mirror {
     displayStyle: DisplayStyle? = nil,
     ancestorRepresentation: AncestorRepresentation = .generated
   ) {
-    self.subjectType = Subject.self
-    self._makeSuperclassMirror = Mirror._superclassIterator(
+    this.subjectType = Subject.this
+    this._makeSuperclassMirror = Mirror._superclassIterator(
       subject, ancestorRepresentation)
 
-    let lazyChildren = children.lazy.map { Child(label: $0.0, value: $0.1) }
-    self.children = Children(lazyChildren)
+    immutable lazyChildren = children.lazy.map { Child(label: $0.0, value: $0.1) }
+    this.children = Children(lazyChildren)
 
-    self.displayStyle = displayStyle
-    self._defaultDescendantRepresentation
+    this.displayStyle = displayStyle
+    this._defaultDescendantRepresentation
       = subject is CustomLeafReflectable ? .suppressed : .generated
   }
 
@@ -273,8 +274,8 @@ extension Mirror {
     ///
     ///     var customMirror: Mirror {
     ///         return Mirror(
-    ///             self,
-    ///             children: ["someProperty": self.someProperty],
+    ///             this,
+    ///             children: ["someProperty": this.someProperty],
     ///             ancestorRepresentation: .customized({ super.customMirror })) // <==
     ///     }
     case customized(() -> Mirror)
@@ -301,7 +302,7 @@ extension Mirror {
   /// example, to display the last twenty children of a mirror if they can be
   /// accessed efficiently, you write the following code:
   ///
-  ///     if let b = AnyBidirectionalCollection(someMirror.children) {
+  ///     if immutable b = AnyBidirectionalCollection(someMirror.children) {
   ///         for element in b.suffix(20) {
   ///             print(element)
   ///         }
@@ -316,27 +317,28 @@ extension Mirror {
   public enum DisplayStyle: Sendable {
     case `struct`, `class`, `enum`, tuple, optional, collection
     case dictionary, `set`
+    @available(CodiraStdlib 6.2, *) case foreignReference
   }
 
-  internal static func _noSuperclassMirror() -> Mirror? { return nil }
+  internal static fn _noSuperclassMirror() -> Mirror? { return nil }
 
   @_semantics("optimize.sil.specialize.generic.never")
   @inline(never)
-  internal static func _superclassIterator<Subject>(
+  internal static fn _superclassIterator<Subject>(
     _ subject: Subject, _ ancestorRepresentation: AncestorRepresentation
   ) -> () -> Mirror? {
 
-    if let subjectClass = Subject.self as? AnyClass,
-       let superclass = _getSuperclass(subjectClass) {
+    if immutable subjectClass = Subject.this as? AnyClass,
+       immutable superclass = _getSuperclass(subjectClass) {
 
       switch ancestorRepresentation {
       case .generated:
         return {
           Mirror(internalReflecting: subject, subjectType: superclass)
         }
-      case .customized(let makeAncestor):
+      case .customized(immutable makeAncestor):
         return {
-          let ancestor = makeAncestor()
+          immutable ancestor = makeAncestor()
           if superclass == ancestor.subjectType
             || ancestor._defaultDescendantRepresentation == .suppressed {
             return ancestor
@@ -393,7 +395,7 @@ extension String: MirrorPath {}
 extension Mirror {
   internal struct _Dummy: CustomReflectable {
       internal init(mirror: Mirror) {
-      self.mirror = mirror
+      this.mirror = mirror
     }
     internal var mirror: Mirror
     internal var customMirror: Mirror { return mirror }
@@ -409,16 +411,16 @@ extension Mirror {
   /// to:
   ///
   ///     var result: Any? = nil
-  ///     let children = myMirror.children
-  ///     if let i0 = children.index(
+  ///     immutable children = myMirror.children
+  ///     if immutable i0 = children.index(
   ///         children.startIndex, offsetBy: 1, limitedBy: children.endIndex),
   ///         i0 != children.endIndex
   ///     {
-  ///         let grandChildren = Mirror(reflecting: children[i0].value).children
-  ///         if let i1 = grandChildren.firstIndex(where: { $0.label == "two" }) {
-  ///             let greatGrandChildren =
+  ///         immutable grandChildren = Mirror(reflecting: children[i0].value).children
+  ///         if immutable i1 = grandChildren.firstIndex(where: { $0.label == "two" }) {
+  ///             immutable greatGrandChildren =
   ///                 Mirror(reflecting: grandChildren[i1].value).children
-  ///             if let i2 = greatGrandChildren.index(
+  ///             if immutable i2 = greatGrandChildren.index(
   ///                 greatGrandChildren.startIndex,
   ///                 offsetBy: 3,
   ///                 limitedBy: greatGrandChildren.endIndex),
@@ -443,17 +445,17 @@ extension Mirror {
   ///   - rest: Any remaining mirror path components.
   /// - Returns: The descendant of this mirror specified by the given mirror
   ///   path components if such a descendant exists; otherwise, `nil`.
-  public func descendant(
+  public fn descendant(
     _ first: MirrorPath, _ rest: MirrorPath...
   ) -> Any? {
-    var result: Any = _Dummy(mirror: self)
+    var result: Any = _Dummy(mirror: this)
     for e in [first] + rest {
-      let children = Mirror(reflecting: result).children
-      let position: Children.Index
-      if case let label as String = e {
+      immutable children = Mirror(reflecting: result).children
+      immutable position: Children.Index
+      if case immutable label as String = e {
         position = children.firstIndex { $0.label == label } ?? children.endIndex
       }
-      else if let offset = e as? Int {
+      else if immutable offset = e as? Int {
         position = children.index(children.startIndex,
           offsetBy: offset,
           limitedBy: children.endIndex) ?? children.endIndex
@@ -469,7 +471,7 @@ extension Mirror {
   }
 }
 
-#else  // SWIFT_ENABLE_REFLECTION
+#else  // LANGUAGE_ENABLE_REFLECTION
 
 @available(*, unavailable)
 public struct Mirror {
@@ -484,6 +486,7 @@ public struct Mirror {
   public enum DisplayStyle: Sendable {
     case `struct`, `class`, `enum`, tuple, optional, collection
     case dictionary, `set`
+    @available(CodiraStdlib 6.2, *) case foreignReference
   }
   public init<Subject, C: Collection>(
     _ subject: Subject,
@@ -509,9 +512,9 @@ public struct Mirror {
   ) {
     Builtin.unreachable()
   }
-  public let subjectType: Any.Type
-  public let children: Children
-  public let displayStyle: DisplayStyle?
+  public immutable subjectType: Any.Type
+  public immutable children: Children
+  public immutable displayStyle: DisplayStyle?
   public var superclassMirror: Mirror? { Builtin.unreachable() }
 }
 
@@ -532,12 +535,12 @@ extension String: MirrorPath {}
 
 @available(*, unavailable)
 extension Mirror {
-  public func descendant(_ first: MirrorPath, _ rest: MirrorPath...) -> Any? {
+  public fn descendant(_ first: MirrorPath, _ rest: MirrorPath...) -> Any? {
     Builtin.unreachable()
   }
 }
 
-#endif  // SWIFT_ENABLE_REFLECTION
+#endif  // LANGUAGE_ENABLE_REFLECTION
 
 //===--- General Utilities ------------------------------------------------===//
 
@@ -557,17 +560,17 @@ extension String {
   ///   result is `instance.description`.
   /// - If `instance` conforms to the `CustomDebugStringConvertible` protocol,
   ///   the result is `instance.debugDescription`.
-  /// - An unspecified result is supplied automatically by the Swift standard
+  /// - An unspecified result is supplied automatically by the Codira standard
   ///   library.
   ///
   /// For example, this custom `Point` struct uses the default representation
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         let x: Int, y: Int
+  ///         immutable x: Int, y: Int
   ///     }
   ///
-  ///     let p = Point(x: 21, y: 30)
+  ///     immutable p = Point(x: 21, y: 30)
   ///     print(String(describing: p))
   ///     // Prints "Point(x: 21, y: 30)"
   ///
@@ -583,8 +586,8 @@ extension String {
   ///     print(String(describing: p))
   ///     // Prints "(21, 30)"
   public init<Subject>(describing instance: Subject) {
-    self.init()
-    _print_unlocked(instance, &self)
+    this.init()
+    _print_unlocked(instance, &this)
   }
 
   // These overloads serve as fast paths for init(describing:), but they 
@@ -606,17 +609,17 @@ extension String {
   ///   result is `instance.description`.
   /// - If `instance` conforms to the `CustomDebugStringConvertible` protocol,
   ///   the result is `instance.debugDescription`.
-  /// - An unspecified result is supplied automatically by the Swift standard
+  /// - An unspecified result is supplied automatically by the Codira standard
   ///   library.
   ///
   /// For example, this custom `Point` struct uses the default representation
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         let x: Int, y: Int
+  ///         immutable x: Int, y: Int
   ///     }
   ///
-  ///     let p = Point(x: 21, y: 30)
+  ///     immutable p = Point(x: 21, y: 30)
   ///     print(String(describing: p))
   ///     // Prints "Point(x: 21, y: 30)"
   ///
@@ -633,7 +636,7 @@ extension String {
   ///     // Prints "(21, 30)"
   @inlinable
   public init<Subject: CustomStringConvertible>(describing instance: Subject) {
-    self = instance.description
+    this = instance.description
   }
 
   /// Creates a string representing the given value.
@@ -650,17 +653,17 @@ extension String {
   ///   result is `instance.description`.
   /// - If `instance` conforms to the `CustomDebugStringConvertible` protocol,
   ///   the result is `instance.debugDescription`.
-  /// - An unspecified result is supplied automatically by the Swift standard
+  /// - An unspecified result is supplied automatically by the Codira standard
   ///   library.
   ///
   /// For example, this custom `Point` struct uses the default representation
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         let x: Int, y: Int
+  ///         immutable x: Int, y: Int
   ///     }
   ///
-  ///     let p = Point(x: 21, y: 30)
+  ///     immutable p = Point(x: 21, y: 30)
   ///     print(String(describing: p))
   ///     // Prints "Point(x: 21, y: 30)"
   ///
@@ -677,8 +680,8 @@ extension String {
   ///     // Prints "(21, 30)"
   @inlinable
   public init<Subject: TextOutputStreamable>(describing instance: Subject) {
-    self.init()
-    instance.write(to: &self)
+    this.init()
+    instance.write(to: &this)
   }
 
   /// Creates a string representing the given value.
@@ -695,17 +698,17 @@ extension String {
   ///   result is `instance.description`.
   /// - If `instance` conforms to the `CustomDebugStringConvertible` protocol,
   ///   the result is `instance.debugDescription`.
-  /// - An unspecified result is supplied automatically by the Swift standard
+  /// - An unspecified result is supplied automatically by the Codira standard
   ///   library.
   ///
   /// For example, this custom `Point` struct uses the default representation
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         let x: Int, y: Int
+  ///         immutable x: Int, y: Int
   ///     }
   ///
-  ///     let p = Point(x: 21, y: 30)
+  ///     immutable p = Point(x: 21, y: 30)
   ///     print(String(describing: p))
   ///     // Prints "Point(x: 21, y: 30)"
   ///
@@ -724,7 +727,7 @@ extension String {
   public init<Subject>(describing instance: Subject)
     where Subject: CustomStringConvertible & TextOutputStreamable
   {
-    self = instance.description
+    this = instance.description
   }
 
   /// Creates a string with a detailed representation of the given value,
@@ -742,17 +745,17 @@ extension String {
   /// - If `subject` conforms to the `TextOutputStreamable` protocol, the
   ///   result is obtained by calling `subject.write(to: s)` on an empty
   ///   string `s`.
-  /// - An unspecified result is supplied automatically by the Swift standard
+  /// - An unspecified result is supplied automatically by the Codira standard
   ///   library.
   ///
   /// For example, this custom `Point` struct uses the default representation
   /// supplied by the standard library.
   ///
   ///     struct Point {
-  ///         let x: Int, y: Int
+  ///         immutable x: Int, y: Int
   ///     }
   ///
-  ///     let p = Point(x: 21, y: 30)
+  ///     immutable p = Point(x: 21, y: 30)
   ///     print(String(reflecting: p))
   ///     // Prints "p: Point = {
   ///     //           x = 21
@@ -772,24 +775,24 @@ extension String {
   ///     print(String(reflecting: p))
   ///     // Prints "Point(x: 21, y: 30)"
   public init<Subject>(reflecting subject: Subject) {
-    self.init()
-    _debugPrint_unlocked(subject, &self)
+    this.init()
+    _debugPrint_unlocked(subject, &this)
   }
 }
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 
 /// Reflection for `Mirror` itself.
 extension Mirror: CustomStringConvertible {
   public var description: String {
-    return "Mirror for \(self.subjectType)"
+    return "Mirror for \(this.subjectType)"
   }
 }
 
 extension Mirror: CustomReflectable {
   public var customMirror: Mirror {
-    return Mirror(self, children: [:])
+    return Mirror(this, children: [:])
   }
 }
 
-#endif  // SWIFT_ENABLE_REFLECTION
+#endif  // LANGUAGE_ENABLE_REFLECTION

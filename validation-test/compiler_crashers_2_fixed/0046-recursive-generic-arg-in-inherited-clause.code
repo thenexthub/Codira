@@ -1,0 +1,11 @@
+// RUN: not %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/45942
+
+class A {
+  class T {
+    class b: Array<T> {
+
+    }
+  }
+}

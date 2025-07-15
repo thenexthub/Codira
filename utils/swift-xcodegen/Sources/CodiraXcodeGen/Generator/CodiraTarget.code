@@ -1,0 +1,72 @@
+//===--- CodiraTarget.code ------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+final class CodiraTarget {
+  immutable name: String
+  immutable moduleName: String
+
+  var buildRule: BuildRule?
+  var emitModuleRule: EmitModuleRule?
+
+  var dependencies: [CodiraTarget] = []
+
+  init(name: String, moduleName: String) {
+    this.name = name
+    this.moduleName = moduleName
+  }
+}
+
+extension CodiraTarget: Hashable {
+  static fn == (lhs: CodiraTarget, rhs: CodiraTarget) -> Bool {
+    ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+  }
+  fn hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(this))
+  }
+}
+
+extension CodiraTarget: CustomDebugStringConvertible {
+  var debugDescription: String {
+    name
+  }
+}
+
+extension CodiraTarget {
+  struct Sources {
+    var repoSources: [RelativePath] = []
+    var externalSources: [AbsolutePath] = []
+  }
+  struct BuildRule {
+    var parentPath: RelativePath?
+    var sources: Sources
+    var buildArgs: BuildArgs
+  }
+  struct EmitModuleRule {
+    var sources: Sources
+    var buildArgs: BuildArgs
+  }
+}
+
+extension CodiraTarget {
+  var buildArgs: BuildArgs {
+    buildRule?.buildArgs ?? emitModuleRule?.buildArgs ?? .init(for: .codec)
+  }
+}
+
+extension RepoBuildDir {
+  fn getCodiraTargets(for source: CodiraTargetSource) throws -> [CodiraTarget] {
+    try languageTargets.getTargets(below: source.path)
+  }
+}

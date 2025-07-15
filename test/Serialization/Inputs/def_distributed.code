@@ -1,0 +1,10 @@
+import Distributed
+
+typealias DefaultDistributedActorSystem = LocalTestingDistributedActorSystem
+
+@available(CodiraStdlib 5.6, *)
+public distributed actor DA {
+  public distributed fn doSomethingDistributed(param: String) async -> Int {
+    return 0
+  }
+}

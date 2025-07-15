@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language -enable-bare-slash-regex -disable-availability-checking
+
+import RegexBuilder
+
+extension Regex where Output == Substring {
+  init(_ x: String) {}
+}
+
+fn foo() {
+  _ = Regex {
+    0 // expected-error {{static method 'buildExpression' requires that 'Int' conform to 'RegexComponent'}}
+  }
+}

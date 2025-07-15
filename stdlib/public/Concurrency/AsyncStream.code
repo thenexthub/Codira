@@ -1,18 +1,18 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Swift project authors
+// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-#if !SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+#if !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
 /// An asynchronous sequence generated from a closure that calls a continuation
 /// to produce new elements.
 ///
@@ -51,8 +51,8 @@ import Swift
 ///     class QuakeMonitor {
 ///         var quakeHandler: ((Quake) -> Void)?
 ///
-///         func startMonitoring() {…}
-///         func stopMonitoring() {…}
+///         fn startMonitoring() {…}
+///         fn stopMonitoring() {…}
 ///     }
 ///
 /// To adapt this to use `async`-`await`, extend the `QuakeMonitor` to add a
@@ -74,7 +74,7 @@ import Swift
 ///
 ///     static var quakes: AsyncStream<Quake> {
 ///         AsyncStream { continuation in
-///             let monitor = QuakeMonitor()
+///             immutable monitor = QuakeMonitor()
 ///             monitor.quakeHandler = { quake in
 ///                 continuation.yield(quake)
 ///             }
@@ -96,7 +96,7 @@ import Swift
 ///     }
 ///     print("Stream finished.")
 ///
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncStream<Element> {
   /// A mechanism to interface between synchronous code and an asynchronous
   /// stream.
@@ -107,7 +107,7 @@ public struct AsyncStream<Element> {
   /// calling one of the `yield` methods, then terminate the stream normally by
   /// calling the `finish()` method.
   ///
-  /// - Note: Unlike other continuations in Swift, `AsyncStream.Continuation`
+  /// - Note: Unlike other continuations in Codira, `AsyncStream.Continuation`
   /// supports escaping.
   public struct Continuation: Sendable {
     /// A type that indicates how the stream terminated.
@@ -177,7 +177,7 @@ public struct AsyncStream<Element> {
       case bufferingNewest(Int)
     }
 
-    let storage: _Storage
+    immutable storage: _Storage
 
     /// Resume the task awaiting the next iteration point by having it return
     /// normally from its suspension point with a given element.
@@ -192,7 +192,7 @@ public struct AsyncStream<Element> {
     /// This can be called more than once and returns to the caller immediately
     /// without blocking for any awaiting consumption from the iteration.
     @discardableResult
-    public func yield(_ value: sending Element) -> YieldResult {
+    public fn yield(_ value: sending Element) -> YieldResult {
       storage.yield(value)
     }
 
@@ -202,7 +202,7 @@ public struct AsyncStream<Element> {
     /// Calling this function more than once has no effect. After calling
     /// finish, the stream enters a terminal state and doesn't produce any
     /// additional elements.
-    public func finish() {
+    public fn finish() {
       storage.finish()
     }
 
@@ -229,12 +229,12 @@ public struct AsyncStream<Element> {
   }
 
   final class _Context {
-    let storage: _Storage?
-    let produce: () async -> Element?
+    immutable storage: _Storage?
+    immutable produce: () async -> Element?
 
     init(storage: _Storage? = nil, produce: @escaping () async -> Element?) {
-      self.storage = storage
-      self.produce = produce
+      this.storage = storage
+      this.produce = produce
     }
 
     deinit {
@@ -242,7 +242,7 @@ public struct AsyncStream<Element> {
     }
   }
 
-  let context: _Context
+  immutable context: _Context
   
 
   /// Constructs an asynchronous stream for an element type, using the
@@ -271,7 +271,7 @@ public struct AsyncStream<Element> {
   /// When the `for` loop exits, the stream finishes by calling the
   /// continuation's `finish()` method.
   ///
-  ///     let stream = AsyncStream<Int>(Int.self,
+  ///     immutable stream = AsyncStream<Int>(Int.this,
   ///                                   bufferingPolicy: .bufferingNewest(5)) { continuation in
   ///         Task.detached {
   ///             for _ in 0..<100 {
@@ -288,11 +288,11 @@ public struct AsyncStream<Element> {
   ///     }
   ///
   public init(
-    _ elementType: Element.Type = Element.self,
+    _ elementType: Element.Type = Element.this,
     bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded,
     _ build: (Continuation) -> Void
   ) {
-    let storage: _Storage = .create(limit: limit)
+    immutable storage: _Storage = .create(limit: limit)
     context = _Context(storage: storage, produce: storage.next)
     build(Continuation(storage: storage))
   }
@@ -316,10 +316,10 @@ public struct AsyncStream<Element> {
   ///
   /// The following example shows an `AsyncStream` created with this
   /// initializer that produces random numbers on a one-second interval. This
-  /// example uses the Swift multiple trailing closure syntax, which omits
+  /// example uses the Codira multiple trailing closure syntax, which omits
   /// the `unfolding` parameter label.
   ///
-  ///     let stream = AsyncStream<Int> {
+  ///     immutable stream = AsyncStream<Int> {
   ///         await Task.sleep(1 * 1_000_000_000)
   ///         return Int.random(in: 1...10)
   ///     } onCancel: { @Sendable () in print("Canceled.") }
@@ -336,11 +336,11 @@ public struct AsyncStream<Element> {
     unfolding produce: @escaping @Sendable () async -> Element?,
     onCancel: (@Sendable () -> Void)? = nil
   ) {
-    let storage: _AsyncStreamCriticalStorage<Optional<() async -> Element?>>
+    immutable storage: _AsyncStreamCriticalStorage<Optional<() async -> Element?>>
       = .create(produce)
     context = _Context {
       return await withTaskCancellationHandler {
-        guard let result = await storage.value?() else {
+        guard immutable result = await storage.value?() else {
           storage.value = nil
           return nil
         }
@@ -353,7 +353,7 @@ public struct AsyncStream<Element> {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncStream: AsyncSequence {
   /// The asynchronous iterator for iterating an asynchronous stream.
   ///
@@ -362,7 +362,7 @@ extension AsyncStream: AsyncSequence {
   /// concurrent context that contends with another such call, which
   /// results in a call to `fatalError()`.
   public struct Iterator: AsyncIteratorProtocol {
-    let context: _Context
+    immutable context: _Context
 
     /// The next value from the asynchronous stream.
     ///
@@ -376,7 +376,7 @@ extension AsyncStream: AsyncSequence {
     /// If you cancel the task this iterator is running in while `next()` is
     /// awaiting a value, the `AsyncStream` terminates. In this case, `next()`
     /// might return `nil` immediately, or return `nil` on subsequent calls.
-    public mutating func next() async -> Element? {
+    public mutating fn next() async -> Element? {
       await context.produce()
     }
 
@@ -393,20 +393,20 @@ extension AsyncStream: AsyncSequence {
     /// is awaiting a value, the `AsyncStream` terminates. In this case,
     /// `next()` might return `nil` immediately, or return `nil` on
     /// subsequent calls.
-    @available(SwiftStdlib 6.0, *)
-    public mutating func next(isolation actor: isolated (any Actor)?) async -> Element? {
+    @available(CodiraStdlib 6.0, *)
+    public mutating fn next(isolation actor: isolated (any Actor)?) async -> Element? {
       await context.produce()
     }
   }
 
   /// Creates the asynchronous iterator that produces elements of this
   /// asynchronous sequence.
-  public func makeAsyncIterator() -> Iterator {
+  public fn makeAsyncIterator() -> Iterator {
     return Iterator(context: context)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncStream.Continuation {
   /// Resume the task awaiting the next iteration point by having it return
   /// normally from its suspension point with a given result's success value.
@@ -421,11 +421,11 @@ extension AsyncStream.Continuation {
   /// If you call this method repeatedly, each call returns immediately, without
   /// blocking for any awaiting consumption from the iteration.
   @discardableResult
-  public func yield(
+  public fn yield(
     with result: __shared sending Result<Element, Never>
   ) -> YieldResult {
     switch result {
-    case .success(let val):
+    case .success(immutable val):
       return storage.yield(val)
     }
   }
@@ -443,12 +443,12 @@ extension AsyncStream.Continuation {
   /// If you call this method repeatedly, each call returns immediately, without
   /// blocking for any awaiting consumption from the iteration.
   @discardableResult
-  public func yield() -> YieldResult where Element == Void {
+  public fn yield() -> YieldResult where Element == Void {
     return storage.yield(())
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncStream {
   /// Initializes a new ``AsyncStream`` and an ``AsyncStream/Continuation``.
   ///
@@ -457,61 +457,61 @@ extension AsyncStream {
   ///   - limit: The buffering policy that the stream should use.
   /// - Returns: A tuple containing the stream and its continuation. The continuation should be passed to the
   /// producer while the stream should be passed to the consumer.
-  @available(SwiftStdlib 5.1, *)
-  @backDeployed(before: SwiftStdlib 5.9)
-  public static func makeStream(
-      of elementType: Element.Type = Element.self,
+  @available(CodiraStdlib 5.1, *)
+  @backDeployed(before: CodiraStdlib 5.9)
+  public static fn makeStream(
+      of elementType: Element.Type = Element.this,
       bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded
   ) -> (stream: AsyncStream<Element>, continuation: AsyncStream<Element>.Continuation) {
     var continuation: AsyncStream<Element>.Continuation!
-    let stream = AsyncStream<Element>(bufferingPolicy: limit) { continuation = $0 }
+    immutable stream = AsyncStream<Element>(bufferingPolicy: limit) { continuation = $0 }
     return (stream: stream, continuation: continuation!)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncStream: @unchecked Sendable where Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncStream.Continuation.YieldResult: Sendable where Element: Sendable { }
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 extension AsyncStream.Continuation: Hashable {
-  @available(SwiftStdlib 6.2, *)
-  public func hash(into hasher: inout Hasher) {
+  @available(CodiraStdlib 6.2, *)
+  public fn hash(into hasher: inout Hasher) {
     return hasher.combine(ObjectIdentifier(storage))
   }
-  @available(SwiftStdlib 6.2, *)
+  @available(CodiraStdlib 6.2, *)
   public var hashValue: Int {
-    return _hashValue(for: self)
+    return _hashValue(for: this)
   }
-  @available(SwiftStdlib 6.2, *)
-  public static func == (lhs: Self, rhs: Self) -> Bool {
+  @available(CodiraStdlib 6.2, *)
+  public static fn == (lhs: Self, rhs: Self) -> Bool {
     return lhs.storage === rhs.storage
   }
 }
 
 #else
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
 public struct AsyncStream<Element> {
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public struct Continuation: Sendable {
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum Termination {
       case finished
       case cancelled
     }
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum YieldResult {
       case enqueued(remaining: Int)
       case dropped(Element)
       case terminated
     }
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public enum BufferingPolicy {
       case unbounded
@@ -519,17 +519,17 @@ public struct AsyncStream<Element> {
       case bufferingNewest(Int)
     }
     @discardableResult
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-    public func yield(_ value: sending Element) -> YieldResult {
+    public fn yield(_ value: sending Element) -> YieldResult {
       fatalError("Unavailable in task-to-thread concurrency model")
     }
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-    public func finish() {
+    public fn finish() {
       fatalError("Unavailable in task-to-thread concurrency model")
     }
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
     public var onTermination: (@Sendable (Termination) -> Void)? {
       get {
@@ -540,16 +540,16 @@ public struct AsyncStream<Element> {
       }
     }
   }
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public init(
-    _ elementType: Element.Type = Element.self,
+    _ elementType: Element.Type = Element.this,
     bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded,
     _ build: (Continuation) -> Void
   ) {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public init(
     unfolding produce: @escaping () async -> Element?, 
@@ -559,51 +559,51 @@ public struct AsyncStream<Element> {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
 extension AsyncStream {
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
   public struct Iterator {
-    @available(SwiftStdlib 5.1, *)
+    @available(CodiraStdlib 5.1, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-    public mutating func next() async -> Element? {
+    public mutating fn next() async -> Element? {
       fatalError("Unavailable in task-to-thread concurrency model")
     }
     
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-    public mutating func next(isolation actor: isolated (any Actor)?) async -> Element? {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async -> Element? {
       fatalError("Unavailable in task-to-thread concurrency model")
     }
   }
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-  public func makeAsyncIterator() -> Iterator {
+  public fn makeAsyncIterator() -> Iterator {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
 extension AsyncStream.Continuation {
   @discardableResult
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-  public func yield(
+  public fn yield(
     with result: __shared sending Result<Element, Never>
   ) -> YieldResult {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
   @discardableResult
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-  public func yield() -> YieldResult where Element == Void {
+  public fn yield() -> YieldResult where Element == Void {
     fatalError("Unavailable in task-to-thread concurrency model")
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
 extension AsyncStream: @unchecked Sendable where Element: Sendable { }
 #endif

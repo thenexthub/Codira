@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_RAW_DATA_H
-#define LLVM_SOURCEKITD_RAW_DATA_H
+#ifndef TOOLCHAIN_SOURCEKITD_RAW_DATA_H
+#define TOOLCHAIN_SOURCEKITD_RAW_DATA_H
 
 #include "sourcekitd/Internal.h"
 
@@ -24,4 +25,4 @@ VariantFunctions *getVariantFunctionsForRawData();
 
 } // end namespace sourcekitd
 
-#endif // LLVM_SOURCEKITD_RAW_DATA_H
+#endif // TOOLCHAIN_SOURCEKITD_RAW_DATA_H

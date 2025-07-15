@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_ARGSTOFRONTENDINPUTSCONVERTER_H
-#define SWIFT_FRONTEND_ARGSTOFRONTENDINPUTSCONVERTER_H
+#ifndef LANGUAGE_FRONTEND_ARGSTOFRONTENDINPUTSCONVERTER_H
+#define LANGUAGE_FRONTEND_ARGSTOFRONTENDINPUTSCONVERTER_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticEngine.h"
 #include "language/Frontend/FrontendOptions.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Option/ArgList.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Option/ArgList.h"
 #include <set>
 
 namespace language {
@@ -46,21 +47,21 @@ namespace language {
 
 class ArgsToFrontendInputsConverter {
   DiagnosticEngine &Diags;
-  const llvm::opt::ArgList &Args;
+  const toolchain::opt::ArgList &Args;
 
-  llvm::opt::Arg const *const FilelistPathArg;
-  llvm::opt::Arg const *const PrimaryFilelistPathArg;
-  llvm::opt::Arg const *const BadFileDescriptorRetryCountArg;
+  toolchain::opt::Arg const *const FilelistPathArg;
+  toolchain::opt::Arg const *const PrimaryFilelistPathArg;
+  toolchain::opt::Arg const *const BadFileDescriptorRetryCountArg;
 
   /// A place to keep alive any buffers that are loaded as part of setting up
   /// the frontend inputs.
-  SmallVector<std::unique_ptr<llvm::MemoryBuffer>, 4> ConfigurationFileBuffers;
+  SmallVector<std::unique_ptr<toolchain::MemoryBuffer>, 4> ConfigurationFileBuffers;
 
-  llvm::SetVector<StringRef> Files;
+  toolchain::SetVector<StringRef> Files;
 
 public:
   ArgsToFrontendInputsConverter(DiagnosticEngine &diags,
-                                const llvm::opt::ArgList &args);
+                                const toolchain::opt::ArgList &args);
 
   /// Produces a FrontendInputsAndOutputs object with the inputs populated from
   /// the arguments the converter was initialized with.
@@ -69,14 +70,14 @@ public:
   /// inputs will be saved here. These should only be used for debugging
   /// purposes.
   std::optional<FrontendInputsAndOutputs>
-  convert(SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> *buffers);
+  convert(SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> *buffers);
 
 private:
   bool enforceFilelistExclusion();
   bool readInputFilesFromCommandLine();
   bool readInputFilesFromFilelist();
-  bool forAllFilesInFilelist(llvm::opt::Arg const *const pathArg,
-                             llvm::function_ref<void(StringRef)> fn);
+  bool forAllFilesInFilelist(toolchain::opt::Arg const *const pathArg,
+                             toolchain::function_ref<void(StringRef)> fn);
   bool addFile(StringRef file);
   std::optional<std::set<StringRef>> readPrimaryFiles();
 
@@ -96,4 +97,4 @@ private:
 
 } // namespace language
 
-#endif /* SWIFT_FRONTEND_ARGSTOFRONTENDINPUTSCONVERTER_H */
+#endif /* LANGUAGE_FRONTEND_ARGSTOFRONTENDINPUTSCONVERTER_H */

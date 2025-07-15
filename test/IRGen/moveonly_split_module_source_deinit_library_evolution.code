@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language-dylib(%t/%target-library-name(MoveOnlySplit)) -enable-library-evolution %S/Inputs/moveonly_split_module_source_input.code -emit-module -emit-module-path %t/MoveOnlySplit.codemodule -module-name MoveOnlySplit -DTEST_LIBRARY_EVOLUTION
+// RUN: %target-codesign %t/%target-library-name(MoveOnlySplit)
+
+// RUN: %target-build-language %s -lMoveOnlySplit -I %t -L %t -o %t/main %target-rpath(%t)
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(MoveOnlySplit) | %FileCheck -check-prefix=CHECK-LIBRARY-EVOLUTION %s
+
+// REQUIRES: executable_test
+
+import MoveOnlySplit
+
+fn main() {
+    immutable server = MoveOnly() // CHECK-LIBRARY-EVOLUTION: ==> I am in the deinit resiliently!
+}
+
+main()

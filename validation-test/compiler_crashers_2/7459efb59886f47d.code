@@ -1,0 +1,4 @@
+// {"signature":"language::DerivedConformance::deriveDistributedActor(language::ValueDecl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Distributed typealias DefaultDistributedActorSystem = LocalTestingDistributedActorSystem distributed actor a{c, b

@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend %s -parse -emit-silgen
+
+// https://github.com/apple/language/issues/45855
+
+immutable function: () -> Any = { () -> Void in }

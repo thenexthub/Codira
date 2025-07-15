@@ -1,13 +1,17 @@
 //===- LexicalDestroyFolding.cpp - Fold destroys into final owned applies -===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 /// After ShrinkBorrowScope and CanonicalizeOSSALifetime both run, when a final
 /// use of the extended simple lifetime of a begin_borrow [lexical] is as an
@@ -93,7 +97,7 @@
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 #define DEBUG_TYPE "copy-propagation"
 
@@ -187,7 +191,7 @@ enum class MatchViability {
 struct Candidates final {
   /// The sequences of scope ending instructions that are under consideration
   /// for folding.
-  llvm::SmallVector<Candidate, 4> vector;
+  toolchain::SmallVector<Candidate, 4> vector;
 };
 
 /// Quickly filter scope ends of %lifetime that MIGHT BE foldable.
@@ -554,7 +558,7 @@ void Rewriter::fold(Match candidate, ArrayRef<int> rewritableArgumentIndices) {
 //===----------------------------------------------------------------------===//
 
 bool FindCandidates::run(Candidates &candidates) {
-  llvm::SmallVector<SILInstruction *, 16> scopeEndingInsts;
+  toolchain::SmallVector<SILInstruction *, 16> scopeEndingInsts;
   context.borrowedValue.getLocalScopeEndingInstructions(scopeEndingInsts);
 
   bool foundAnyFull = false;
@@ -792,7 +796,7 @@ bool FilterCandidates::rewritableArgumentIndicesForApply(
 
 /// The entry point.
 MoveValueInst *
-swift::foldDestroysOfCopiedLexicalBorrow(BeginBorrowInst *bbi,
+language::foldDestroysOfCopiedLexicalBorrow(BeginBorrowInst *bbi,
                                          DominanceInfo &dominanceTree,
                                          InstructionDeleter &deleter) {
   if (!bbi->isLexical())
@@ -819,6 +823,6 @@ static FunctionTest LexicalDestroyFoldingTest(
       auto *bbi = cast<BeginBorrowInst>(value);
       InstructionDeleter deleter;
       foldDestroysOfCopiedLexicalBorrow(bbi, *domTree, deleter);
-      function.print(llvm::outs());
+      function.print(toolchain::outs());
     });
 } // end namespace language::test

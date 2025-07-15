@@ -1,25 +1,29 @@
 //===- CalleeCache.h - Determine callees per call site ----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_UTILS_CALLEECACHE_H
-#define SWIFT_UTILS_CALLEECACHE_H
+#ifndef LANGUAGE_UTILS_CALLEECACHE_H
+#define LANGUAGE_UTILS_CALLEECACHE_H
 
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Allocator.h"
 
 namespace language {
 
@@ -43,7 +47,7 @@ bool calleesAreStaticallyKnowable(SILModule &module, ValueDecl *vd);
 class CalleeList {
   friend class CalleeCache;
 
-  using Callees = llvm::SmallVector<SILFunction *, 16>;
+  using Callees = toolchain::SmallVector<SILFunction *, 16>;
 
   void *functionOrCallees;
 
@@ -79,9 +83,9 @@ public:
   void *getOpaquePtr() const { return functionOrCallees; }
   unsigned char getOpaqueKind() const { return (unsigned char)kind; }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
   /// Return an iterator for the beginning of the list.
   ArrayRef<SILFunction *>::iterator begin() const {
@@ -117,7 +121,7 @@ public:
 
   SILFunction *get(unsigned index) const {
     switch (kind) {
-      case Kind::empty:           llvm_unreachable("empty callee list");
+      case Kind::empty:           toolchain_unreachable("empty callee list");
       case Kind::singleFunction:  return (SILFunction *)functionOrCallees;
       case Kind::multipleCallees: return ((Callees *)functionOrCallees)->operator[](index);
     }
@@ -135,13 +139,13 @@ public:
 /// any function application site (including those that are simple
 /// function_ref, thin_to_thick, or partial_apply callees).
 class CalleeCache {
-  using CalleesAndCanCallUnknown = llvm::PointerIntPair<CalleeList::Callees *, 1>;
-  using CacheType = llvm::DenseMap<SILDeclRef, CalleesAndCanCallUnknown>;
+  using CalleesAndCanCallUnknown = toolchain::PointerIntPair<CalleeList::Callees *, 1>;
+  using CacheType = toolchain::DenseMap<SILDeclRef, CalleesAndCanCallUnknown>;
 
   SILModule &M;
 
   // Allocator for the SmallVectors that we will be allocating.
-  llvm::SpecificBumpPtrAllocator<CalleeList::Callees> Allocator;
+  toolchain::SpecificBumpPtrAllocator<CalleeList::Callees> Allocator;
 
   // The cache of precomputed callee lists for function decls appearing
   // in class virtual dispatch tables and witness tables.

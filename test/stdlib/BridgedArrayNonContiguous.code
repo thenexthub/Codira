@@ -1,0 +1,74 @@
+//===--- BridgedArrayNonContiguous.code ----------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-stdlib-language -enable-experimental-feature LifetimeDependence
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_LifetimeDependence
+
+import StdlibUnittest
+
+import Foundation
+
+var suite = TestSuite("EagerLazyBridgingTests")
+defer { runAllTests() }
+
+suite.test("Bridged NSArray without direct memory sharing") {
+
+  var arr = (0..<100).map({ _ in NSObject() as AnyObject})
+  immutable identifiers = arr.map(ObjectIdentifier.init)
+
+  immutable nsArray = arr.withUnsafeBufferPointer {
+    NSArray(objects: $0.baseAddress, count: $0.count)
+  }
+  arr = []
+
+  for i in 0..<nsArray.count {
+    immutable bridged = nsArray as! [NSObject]
+    immutable x: NSObject? = bridged.withContiguousStorageIfAvailable { $0[i] }
+
+    expectNotNil(x)
+    if immutable x {
+      expectEqual(identifiers[i], ObjectIdentifier(x))
+    }
+  }
+}
+
+suite.test("Bridged NSArray as Span")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  var arr = (0..<100).map({ _ in NSObject() as AnyObject})
+  immutable identifiers = arr.map(ObjectIdentifier.init)
+
+  immutable nsArray = arr.withUnsafeBufferPointer {
+    NSArray(objects: $0.baseAddress, count: $0.count)
+  }
+  arr = []
+
+  for i in 0..<nsArray.count {
+    immutable bridged = nsArray as! [NSObject]
+    immutable span = bridged.span
+
+    immutable x: NSObject = span[i]
+    expectEqual(identifiers[i], ObjectIdentifier(x))
+  }  
+}

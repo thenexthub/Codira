@@ -1,0 +1,44 @@
+/// Check that SPI declarations can be exported from an SPI module.
+
+// RUN: %empty-directory(%t)
+// RUN: %target-typecheck-verify-language -I %t -verify-ignore-unknown -enable-library-evolution -language-version 5 -library-level spi
+
+@_spi(S) public fn spiFunc() {}
+@_spi(S) public class SPIClass {
+  public init() {}
+}
+@_spi(S) public class SPIStruct {
+  public init() {}
+}
+@_spi(S) public protocol SPIProtocol {}
+public enum PublicEnum {
+  case publicCase
+  @_spi(S) case spiCase
+}
+
+public fn useOfSPITypeOk(_ p0: SPIProtocol, p1: SPIClass) -> SPIClass { fatalError() }
+
+@inlinable
+public fn inlinable() -> SPIClass {
+  spiFunc()
+  _ = SPIClass()
+}
+
+@inlinable
+public fn inlinable(_ e: PublicEnum) {
+  switch e {
+  case .publicCase: break
+  case .spiCase: break
+  @unknown default: break
+  }
+
+  if case .spiCase = e {}
+
+  _ = PublicEnum.spiCase
+}
+
+@frozen public struct FrozenStruct {
+  public var spiInFrozen = SPIStruct()
+  var spiTypeInFrozen = SPIStruct()
+  private var spiTypeInFrozen1: SPIClass
+}

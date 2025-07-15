@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -emit-ir -target %target-cpu-apple-macosx10.15 %s
+// REQUIRES: OS=macosx
+
+protocol P {}
+
+fn one() -> some P {
+    return two()
+}
+
+fn two() -> some P {
+    return three()
+}
+
+fn three() -> some P {
+    return one()
+}

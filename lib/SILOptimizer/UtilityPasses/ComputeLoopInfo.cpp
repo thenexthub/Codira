@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-compute-loop-info"
@@ -27,4 +28,4 @@ class ComputeLoopInfo : public SILFunctionTransform {
   }
 };
 
-SILTransform *swift::createComputeLoopInfo() { return new ComputeLoopInfo(); }
+SILTransform *language::createComputeLoopInfo() { return new ComputeLoopInfo(); }

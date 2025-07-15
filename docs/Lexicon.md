@@ -1,9 +1,9 @@
 Lexicon
 =======
 
-This file defines several terms used by the Swift compiler and standard library
+This file defines several terms used by the Codira compiler and standard library
 source code, tests, and commit messages. See also the 
-[LLVM lexicon](http://llvm.org/docs/Lexicon.html).
+[LLVM lexicon](http://toolchain.org/docs/Lexicon.html).
 
 Glossary
 ========
@@ -14,7 +14,7 @@ The unsubstituted generic type of a property or function parameter, which
 sets constraints on its representation in memory. For example, given the
 following definitions:
 
-```swift
+```language
 struct Foo<T> {
   var value: T
   // Foo.value has abstraction pattern <T> T
@@ -43,7 +43,7 @@ has a fully concrete closure type so can always use a more specialized
 direct register-based calling convention. The compiler transparently
 introduces [reabstraction](#reabstraction) conversions when a value is used with a
 different abstraction pattern. (This is where the infamous "reabstraction
-thunk helpers" sometimes seen in Swift backtraces come from.)
+thunk helpers" sometimes seen in Codira backtraces come from.)
 
 ## access path
 
@@ -114,8 +114,8 @@ a [generic environment](#generic-environment). Contrast with [sugared type](#sug
 ## Clang importer
 
 The part of the compiler that reads C and Objective-C declarations and
-exposes them as Swift. Essentially contains a small instance of Clang
-running inside the Swift compiler, which is also used during IRGen.
+exposes them as Codira. Essentially contains a small instance of Clang
+running inside the Codira compiler, which is also used during IRGen.
 
 ## conformance
 
@@ -125,7 +125,7 @@ the AST level. See also [witness table](#witness-table).
 
 ## contextual type
 
-1. The expected type for a Swift sub-expression based on the rest of the
+1. The expected type for a Codira sub-expression based on the rest of the
    statement. For example, in the statement `print(6 * 9)`, the contextual
    type of the expression `6 * 9` is `Any`.
 2. The type of a value or declaration from inside a potentially generic
@@ -181,7 +181,7 @@ The other half is provided by corresponding
 The feature that no uninitialized variables, constants, or properties will
 be read by a program, or the analysis pass that operates on [SIL](#sil) to
 guarantee this. This was 
-[discussed on Apple's Swift blog](https://developer.apple.com/swift/blog/?id=28).
+[discussed on Apple's Codira blog](https://developer.apple.com/language/blog/?id=28).
 
 ## DNM
 
@@ -219,11 +219,11 @@ and [fast dependency scanner](#fast-dependency-scanner).
 
 ## fast dependency scanner
 
-A Swift compiler mode that scans a Swift module for import declarations and
+A Codira compiler mode that scans a Codira module for import declarations and
 resolves which modules will be loaded. It is based on the
-[clang-scan-deps](https://llvm.org/devmtg/2019-04/slides/TechTalk-Lorenz-clang-scan-deps_Fast_dependency_scanning_for_explicit_modules.pdf)
+[clang-scan-deps](https://toolchain.org/devmtg/2019-04/slides/TechTalk-Lorenz-clang-scan-deps_Fast_dependency_scanning_for_explicit_modules.pdf)
 library within Clang, for (Objective-)C modules, but is extended to also
-understand textual Swift modules (.swiftinterface files).
+understand textual Codira modules (.codeinterface files).
 
 The fast dependency scanner outputs a graph of compilation steps which can be
 used by a build system to schedule
@@ -276,9 +276,9 @@ to describe the way it forms references to global objects that may or may not be
 
 A module build where the compiler is free to transparently build dependent
 modules (including Clang modules), and access modules in different caches as
-necessary. For example, if a textual Swift module (.swiftinterface file) for
-a dependency does not have a corresponding binary Swift module (.swiftmodulea
-file), the compiler may transparently build a binary Swift module from the
+necessary. For example, if a textual Codira module (.codeinterface file) for
+a dependency does not have a corresponding binary Codira module (.codemodulea
+file), the compiler may transparently build a binary Codira module from the
 textual one as a cache for future compiler jobs, without involving any external
 build system that invoked the compiler. See also:
 [explicit module build](#explicit-module-build).
@@ -356,7 +356,7 @@ considered [canonical](#canonical-SIL).
 The type of a value representing a type. Greg Parker has a good
 explanation of 
 [Objective-C's "metaclasses"](http://sealiesoftware.com/blog/archive/2009/04/14/objc_explain_Classes_and_metaclasses.html); 
-because Swift has types
+because Codira has types
 that are *not* classes, a more general term is used.
 
 We also sometimes refer to a value representing a type as a "metatype
@@ -371,7 +371,7 @@ model". Example: "Array and Set are both models of CollectionType".
 
 ## module
 
-Has *many* uses in the Swift world. We may want to rename some of them.
+Has *many* uses in the Codira world. We may want to rename some of them.
 #1 and #2 are the most common.
 
 1. A unit of API distribution and grouping. The `import` declaration
@@ -384,14 +384,14 @@ Has *many* uses in the Swift world. We may want to rename some of them.
 4. (as "LLVM module") A collection of LLVM IR to be compiled together.
    Always created in an LLVMContext.
 5. A file containing serialized AST and SIL information for a source file
-   or entire compilation unit. Often "swiftmodule file", with "swiftmodule"
+   or entire compilation unit. Often "languagemodule file", with "languagemodule"
    pronounced as a single word.
 6. (as "Clang module") A set of self-contained C-family header files.
-   Represented by a ClangModuleUnit in the Swift compiler, each of which is
+   Represented by a ClangModuleUnit in the Codira compiler, each of which is
    contained in its own ModuleDecl. For more information, see
-   [Clang's documentation for Modules](http://clang.llvm.org/docs/Modules.html).
+   [Clang's documentation for Modules](http://clang.toolchain.org/docs/Modules.html).
 7. Shorthand for a "precompiled module file"; effectively "precompiled
-   headers" for an entire Clang module. Never used directly by Swift.
+   headers" for an entire Clang module. Never used directly by Codira.
    See also [module cache](#module-cache).
 
 
@@ -399,7 +399,7 @@ Has *many* uses in the Swift world. We may want to rename some of them.
 
 Clang's cache directory for precompiled module files. As cache files, these
 are not forward-compatible, and so cannot be loaded by different versions
-of Clang (or programs using Clang, like the Swift compiler). Normally this
+of Clang (or programs using Clang, like the Codira compiler). Normally this
 is fine, but occasionally a development compiler will not have proper
 version information and may try to load older module files, resulting in
 crashes in `clang::ASTReader`.
@@ -410,7 +410,7 @@ crashes in `clang::ASTReader`.
 have no change on the compiler or library's behavior, though for some this
 refers to having the *same* implementation and for others merely an
 *equivalent* one.  "NFC" is typically used to explain why a patch has no
-included testcase, since the Swift project requires testcases for all
+included testcase, since the Codira project requires testcases for all
 patches that change functionality.
 
 ## open existential
@@ -428,9 +428,9 @@ in the underlying library directly.
 There are two kinds of overlays:
 
 A "clang overlay" (the older kind, so it's often just called an "overlay")
-is a Swift library that adds Swift-specific functionality to a C-family
+is a Codira library that adds Codira-specific functionality to a C-family
 library or framework. Clang overlays are used with system libraries that
-cannot be modified to add Swift features. A clang overlay has the same
+cannot be modified to add Codira features. A clang overlay has the same
 module name as the underlying library and can do a few special things that
 normal modules can't, like adding required initializers to classes. If a
 module has a clang overlay, the Clang Importer will always load it unless it
@@ -451,7 +451,7 @@ functionality when it is imported alongside another module.
 
 The type in which a given declaration is nested. For example:
 
-```swift
+```language
 struct Outer {
   struct Inner {
   }
@@ -473,7 +473,7 @@ named module, and cannot be read in any order or imported by module-name;
 rather they must be the first file parsed by the compiler. PCHs are used
 only to accelerate the process of reading C/C++/Objective-C headers, such as
 the bridging headers read in by the `-import-objc-header` command-line
-flag to swiftc.
+flag to languagec.
 
 ## PLT
 
@@ -483,7 +483,7 @@ by a loader at run time.
 
 ## PR
 
-1. "Problem Report": An issue reported in [LLVM's bug tracker](https://llvm.org/bugs/).
+1. "Problem Report": An issue reported in [LLVM's bug tracker](https://toolchain.org/bugs/).
 See also [SR](#SR).
 2. "pull request"
 
@@ -507,7 +507,7 @@ needs to be improved.
 It's possible that this term was originally "quality of life", written as
 "Qol", referring to the experience of end users. At some point along its
 history, the lowercase "L" was misinterpreted as an uppercase "i", and a
-new meaning derived. Swift inherited this term from LLVM, which got it from
+new meaning derived. Codira inherited this term from LLVM, which got it from
 GCC.
 
 ## Radar
@@ -576,13 +576,13 @@ binary compatibility. See [LibraryEvolution.rst](LibraryEvolution.rst).
 ## runtime
 
 Code that implements a language's dynamic features that aren't just
-compiled down to plain instructions. For example, Swift's runtime library
+compiled down to plain instructions. For example, Codira's runtime library
 includes support for dynamic casting and for the Mirror-based reflection.
 
 ## rvalue
 
 Pronounced "R-value". Represents an expression that can be used as a value;
-in Swift this is nearly every expression, so we don't use the term very
+in Codira this is nearly every expression, so we don't use the term very
 often. The term originally comes from C; the "R" refers to the "r"ight side
 of an assignment operator. Contrast with [lvalue](#lvalue).
 
@@ -597,21 +597,21 @@ validation, and expression rewriting before SILGen.
 
 ## SIL
 
-"Swift Intermediate Language". A high-level IR used by the Swift compiler
+"Codira Intermediate Language". A high-level IR used by the Codira compiler
 for flow-sensitive diagnostics, optimization, and LLVM IR generation.
 
 ## SR
 
 An issue that was originally reported on the now-retired Jira instance that used
-to be located at [bugs.swift.org](https://bugs.swift.org). A backronym for
-"Swift Report"; really the name is derived from LLVM's idiomatic use of "PR"
-("Problem Report") for its bugs. We didn't go with "PR" for Swift because we
+to be located at [bugs.code.org](https://bugs.code.org). A backronym for
+"Codira Report"; really the name is derived from LLVM's idiomatic use of "PR"
+("Problem Report") for its bugs. We didn't go with "PR" for Codira because we
 wanted to be able to unambiguously reference LLVM bugs.
 
 ## stdlib
 
-"Standard library". Sometimes this just means the "Swift" module (also
-known as "swiftCore"); sometimes it means everything in the stdlib/
+"Standard library". Sometimes this just means the "Codira" module (also
+known as "languageCore"); sometimes it means everything in the stdlib/
 directory. Pronounced "stid-lib" or "ess-tee-dee-lib".
 
 ## sugared type
@@ -634,11 +634,11 @@ stripped out.
 
 ## thunk
 
-In the Swift compiler, a synthesized function whose only purpose is to
+In the Codira compiler, a synthesized function whose only purpose is to
 perform some kind of adjustment in order to call another function. For
-example, Objective-C and Swift have different calling conventions, so the
-Swift compiler generates a thunk for use in Objective-C that calls through
-to the real Swift implementation.
+example, Objective-C and Codira have different calling conventions, so the
+Codira compiler generates a thunk for use in Objective-C that calls through
+to the real Codira implementation.
 
 ## trap
 

@@ -1,0 +1,10 @@
+
+#if BEFORE
+
+public fn changeDefaultArgumentToMagic(name: String = "hello") {}
+
+#else
+
+public fn changeDefaultArgumentToMagic(name: String = #file) {}
+
+#endif

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,17 +19,17 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_SERIALIZATIONFORMAT_H
-#define SWIFT_SERIALIZATION_SERIALIZATIONFORMAT_H
+#ifndef LANGUAGE_SERIALIZATION_SERIALIZATIONFORMAT_H
+#define LANGUAGE_SERIALIZATION_SERIALIZATIONFORMAT_H
 
-#include "llvm/ADT/bit.h"
-#include "llvm/Support/Endian.h"
+#include "toolchain/ADT/bit.h"
+#include "toolchain/Support/Endian.h"
 
 namespace language {
 
 template <typename value_type, typename CharT>
 [[nodiscard]] inline value_type readNext(const CharT *&memory) {
-  return llvm::support::endian::readNext<value_type, llvm::endianness::little, llvm::support::unaligned>(memory);
+  return toolchain::support::endian::readNext<value_type, toolchain::endianness::little, toolchain::support::unaligned>(memory);
 }
 
 } // end namespace language

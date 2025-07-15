@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -18,7 +19,7 @@
 #include "language/SILOptimizer/Analysis/DominanceAnalysis.h"
 #include "language/SILOptimizer/Analysis/LoopAnalysis.h"
 #include "language/SILOptimizer/PassManager/PassManager.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -34,6 +35,6 @@ void SILLoopAnalysis::initialize(SILPassManager *PM) {
   DA = PM->getAnalysis<DominanceAnalysis>();
 }
 
-SILAnalysis *swift::createLoopAnalysis(SILModule *M) {
+SILAnalysis *language::createLoopAnalysis(SILModule *M) {
   return new SILLoopAnalysis(M);
 }

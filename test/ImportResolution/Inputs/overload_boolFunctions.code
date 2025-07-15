@@ -1,0 +1,8 @@
+public fn something(_ value: Bool) -> Bool { return value }
+
+public fn ambiguousWithVar(_: Bool) {}
+
+public fn scopedFunction(_ value: Bool) -> Bool { return value }
+
+public struct TypeNameWins {}
+public struct localVar {}

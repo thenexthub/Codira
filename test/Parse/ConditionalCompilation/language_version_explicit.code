@@ -1,0 +1,39 @@
+// RUN: %target-typecheck-verify-language -language-version 4.2
+
+#if language(>=4)
+  immutable w = 1
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+
+#if language(>=4.0)
+  immutable x = 1
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+
+#if language(>=4.0.0)
+  immutable y = 1
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+
+// NOTE: Please modify this condition...
+#if language(>=4.2)
+  immutable b = 1
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+
+// NOTE: ...and modify this condition...
+#if language(>=4.2.1)
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#else
+  immutable c = 1
+#endif
+// NOTE: ...the next time the version goes up.

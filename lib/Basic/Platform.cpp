@@ -11,49 +11,50 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Pack.h"
 #include "language/Basic/Platform.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Support/VersionTuple.h"
 
 using namespace language;
 
-bool swift::tripleIsiOSSimulator(const llvm::Triple &triple) {
+bool language::tripleIsiOSSimulator(const toolchain::Triple &triple) {
   return (triple.isiOS() &&
           !tripleIsMacCatalystEnvironment(triple) &&
           triple.isSimulatorEnvironment());
 }
 
-bool swift::tripleIsAppleTVSimulator(const llvm::Triple &triple) {
+bool language::tripleIsAppleTVSimulator(const toolchain::Triple &triple) {
   return (triple.isTvOS() && triple.isSimulatorEnvironment());
 }
 
-bool swift::tripleIsWatchSimulator(const llvm::Triple &triple) {
+bool language::tripleIsWatchSimulator(const toolchain::Triple &triple) {
   return (triple.isWatchOS() && triple.isSimulatorEnvironment());
 }
 
-bool swift::tripleIsMacCatalystEnvironment(const llvm::Triple &triple) {
+bool language::tripleIsMacCatalystEnvironment(const toolchain::Triple &triple) {
   return triple.isiOS() && !triple.isTvOS() &&
-      triple.getEnvironment() == llvm::Triple::MacABI;
+      triple.getEnvironment() == toolchain::Triple::MacABI;
 }
 
-bool swift::tripleIsVisionSimulator(const llvm::Triple &triple) {
+bool language::tripleIsVisionSimulator(const toolchain::Triple &triple) {
   return triple.isXROS() && triple.isSimulatorEnvironment();
 }
 
-bool swift::tripleInfersSimulatorEnvironment(const llvm::Triple &triple) {
+bool language::tripleInfersSimulatorEnvironment(const toolchain::Triple &triple) {
   switch (triple.getOS()) {
-  case llvm::Triple::IOS:
-  case llvm::Triple::TvOS:
-  case llvm::Triple::WatchOS:
+  case toolchain::Triple::IOS:
+  case toolchain::Triple::TvOS:
+  case toolchain::Triple::WatchOS:
     return !triple.hasEnvironment() &&
-        (triple.getArch() == llvm::Triple::x86 ||
-         triple.getArch() == llvm::Triple::x86_64) &&
+        (triple.getArch() == toolchain::Triple::x86 ||
+         triple.getArch() == toolchain::Triple::x86_64) &&
         !tripleIsMacCatalystEnvironment(triple);
 
   default:
@@ -61,8 +62,8 @@ bool swift::tripleInfersSimulatorEnvironment(const llvm::Triple &triple) {
   }
 }
 
-bool swift::triplesAreValidForZippering(const llvm::Triple &target,
-                                        const llvm::Triple &targetVariant) {
+bool language::triplesAreValidForZippering(const toolchain::Triple &target,
+                                        const toolchain::Triple &targetVariant) {
   // The arch and vendor must match.
   if (target.getArchName() != targetVariant.getArchName() ||
       target.getArch() != targetVariant.getArch() ||
@@ -88,49 +89,49 @@ bool swift::triplesAreValidForZippering(const llvm::Triple &target,
   return false;
 }
 
-const std::optional<llvm::VersionTuple>
-swift::minimumAvailableOSVersionForTriple(const llvm::Triple &triple) {
+const std::optional<toolchain::VersionTuple>
+language::minimumAvailableOSVersionForTriple(const toolchain::Triple &triple) {
   if (triple.isMacOSX())
-    return llvm::VersionTuple(10, 10, 0);
+    return toolchain::VersionTuple(10, 10, 0);
 
   // Mac Catalyst was introduced with an iOS deployment target of 13.1.
   if (tripleIsMacCatalystEnvironment(triple))
-    return llvm::VersionTuple(13, 1);
+    return toolchain::VersionTuple(13, 1);
   
   // Note: this must come before checking iOS since that returns true for
   // both iOS and tvOS.
   if (triple.isTvOS())
-    return llvm::VersionTuple(9, 0);
+    return toolchain::VersionTuple(9, 0);
 
   if (triple.isiOS())
-    return llvm::VersionTuple(8, 0);
+    return toolchain::VersionTuple(8, 0);
 
   if (triple.isWatchOS())
-    return llvm::VersionTuple(2, 0);
+    return toolchain::VersionTuple(2, 0);
 
   if (triple.isXROS())
-    return llvm::VersionTuple(1, 0);
+    return toolchain::VersionTuple(1, 0);
 
   return std::nullopt;
 }
 
-bool swift::tripleRequiresRPathForSwiftLibrariesInOS(
-    const llvm::Triple &triple) {
+bool language::tripleRequiresRPathForCodiraLibrariesInOS(
+    const toolchain::Triple &triple) {
   if (triple.isMacOSX()) {
-    // macOS versions before 10.14.4 don't have Swift in the OS
+    // macOS versions before 10.14.4 don't have Codira in the OS
     // (the linker still uses an rpath-based install name until 10.15).
     // macOS versions before 12.0 don't have _Concurrency in the OS.
     return triple.isMacOSXVersionLT(12, 0);
   }
 
   if (triple.isiOS()) {
-    // iOS versions before 12.2 don't have Swift in the OS.
+    // iOS versions before 12.2 don't have Codira in the OS.
     // iOS versions before 15.0 don't have _Concurrency in the OS.
     return triple.isOSVersionLT(15, 0);
   }
 
   if (triple.isWatchOS()) {
-    // watchOS versions before 5.2 don't have Swift in the OS.
+    // watchOS versions before 5.2 don't have Codira in the OS.
     // watchOS versions before 8.0 don't have _Concurrency in the OS.
     return triple.isOSVersionLT(8, 0);
   }
@@ -139,15 +140,15 @@ bool swift::tripleRequiresRPathForSwiftLibrariesInOS(
     return triple.isOSVersionLT(1, 0);
   }
 
-  // Other platforms don't have Swift installed as part of the OS by default.
+  // Other platforms don't have Codira installed as part of the OS by default.
   return false;
 }
 
-bool swift::tripleBTCFIByDefaultInOpenBSD(const llvm::Triple &triple) {
-  return triple.isOSOpenBSD() && triple.getArch() == llvm::Triple::aarch64;
+bool language::tripleBTCFIByDefaultInOpenBSD(const toolchain::Triple &triple) {
+  return triple.isOSOpenBSD() && triple.getArch() == toolchain::Triple::aarch64;
 }
 
-DarwinPlatformKind swift::getDarwinPlatformKind(const llvm::Triple &triple) {
+DarwinPlatformKind language::getDarwinPlatformKind(const toolchain::Triple &triple) {
   if (triple.isiOS()) {
     if (triple.isTvOS()) {
       if (tripleIsAppleTVSimulator(triple))
@@ -176,7 +177,7 @@ DarwinPlatformKind swift::getDarwinPlatformKind(const llvm::Triple &triple) {
     return DarwinPlatformKind::VisionOS;
   }
 
-  llvm_unreachable("Unsupported Darwin platform");
+  toolchain_unreachable("Unsupported Darwin platform");
 }
 
 static StringRef getPlatformNameForDarwin(const DarwinPlatformKind platform) {
@@ -200,95 +201,95 @@ static StringRef getPlatformNameForDarwin(const DarwinPlatformKind platform) {
   case DarwinPlatformKind::VisionOSSimulator:
     return "xrsimulator";
   }
-  llvm_unreachable("Unsupported Darwin platform");
+  toolchain_unreachable("Unsupported Darwin platform");
 }
 
-StringRef swift::getPlatformNameForTriple(const llvm::Triple &triple) {
+StringRef language::getPlatformNameForTriple(const toolchain::Triple &triple) {
   switch (triple.getOS()) {
-  case llvm::Triple::AIX:
-  case llvm::Triple::AMDHSA:
-  case llvm::Triple::AMDPAL:
-  case llvm::Triple::BridgeOS:
-  case llvm::Triple::CUDA:
-  case llvm::Triple::DragonFly:
-  case llvm::Triple::DriverKit:
-  case llvm::Triple::ELFIAMCU:
-  case llvm::Triple::Emscripten:
-  case llvm::Triple::Fuchsia:
-  case llvm::Triple::HermitCore:
-  case llvm::Triple::Hurd:
-  case llvm::Triple::KFreeBSD:
-  case llvm::Triple::Lv2:
-  case llvm::Triple::Mesa3D:
-  case llvm::Triple::NaCl:
-  case llvm::Triple::NetBSD:
-  case llvm::Triple::NVCL:
-  case llvm::Triple::PS5:
-  case llvm::Triple::RTEMS:
-  case llvm::Triple::Serenity:
-  case llvm::Triple::ShaderModel:
-  case llvm::Triple::Solaris:
-  case llvm::Triple::Vulkan:
-  case llvm::Triple::ZOS:
+  case toolchain::Triple::AIX:
+  case toolchain::Triple::AMDHSA:
+  case toolchain::Triple::AMDPAL:
+  case toolchain::Triple::BridgeOS:
+  case toolchain::Triple::CUDA:
+  case toolchain::Triple::DragonFly:
+  case toolchain::Triple::DriverKit:
+  case toolchain::Triple::ELFIAMCU:
+  case toolchain::Triple::Emscripten:
+  case toolchain::Triple::Fuchsia:
+  case toolchain::Triple::HermitCore:
+  case toolchain::Triple::Hurd:
+  case toolchain::Triple::KFreeBSD:
+  case toolchain::Triple::Lv2:
+  case toolchain::Triple::Mesa3D:
+  case toolchain::Triple::NaCl:
+  case toolchain::Triple::NetBSD:
+  case toolchain::Triple::NVCL:
+  case toolchain::Triple::PS5:
+  case toolchain::Triple::RTEMS:
+  case toolchain::Triple::Serenity:
+  case toolchain::Triple::ShaderModel:
+  case toolchain::Triple::Solaris:
+  case toolchain::Triple::Vulkan:
+  case toolchain::Triple::ZOS:
     return "";
-  case llvm::Triple::Darwin:
-  case llvm::Triple::MacOSX:
-  case llvm::Triple::IOS:
-  case llvm::Triple::TvOS:
-  case llvm::Triple::WatchOS:
-  case llvm::Triple::XROS:
+  case toolchain::Triple::Darwin:
+  case toolchain::Triple::MacOSX:
+  case toolchain::Triple::IOS:
+  case toolchain::Triple::TvOS:
+  case toolchain::Triple::WatchOS:
+  case toolchain::Triple::XROS:
     return getPlatformNameForDarwin(getDarwinPlatformKind(triple));
-  case llvm::Triple::Linux:
+  case toolchain::Triple::Linux:
     if (triple.isAndroid())
       return "android";
     else if (triple.isMusl()) {
-      // The triple for linux-static is <arch>-swift-linux-musl, to distinguish
+      // The triple for linux-static is <arch>-language-linux-musl, to distinguish
       // it from a "normal" musl set-up (ala Alpine).
-      if (triple.getVendor() == llvm::Triple::Swift)
+      if (triple.getVendor() == toolchain::Triple::Codira)
         return "linux-static";
       else
         return "musl";
     } else
       return "linux";
-  case llvm::Triple::FreeBSD:
+  case toolchain::Triple::FreeBSD:
     return "freebsd";
-  case llvm::Triple::OpenBSD:
+  case toolchain::Triple::OpenBSD:
     return "openbsd";
-  case llvm::Triple::Win32:
+  case toolchain::Triple::Win32:
     switch (triple.getEnvironment()) {
-    case llvm::Triple::Cygnus:
+    case toolchain::Triple::Cygnus:
       return "cygwin";
-    case llvm::Triple::GNU:
+    case toolchain::Triple::GNU:
       return "mingw";
-    case llvm::Triple::MSVC:
-    case llvm::Triple::Itanium:
+    case toolchain::Triple::MSVC:
+    case toolchain::Triple::Itanium:
       return "windows";
     default:
       return "none";
     }
-  case llvm::Triple::PS4:
+  case toolchain::Triple::PS4:
     return "ps4";
-  case llvm::Triple::Haiku:
+  case toolchain::Triple::Haiku:
     return "haiku";
-  case llvm::Triple::WASI:
+  case toolchain::Triple::WASI:
     return "wasi";
-  case llvm::Triple::UnknownOS:
+  case toolchain::Triple::UnknownOS:
     return "none";
-  case llvm::Triple::UEFI:
-  case llvm::Triple::LiteOS:
-    llvm_unreachable("unsupported OS");
+  case toolchain::Triple::UEFI:
+  case toolchain::Triple::LiteOS:
+    toolchain_unreachable("unsupported OS");
   }
-  llvm_unreachable("unsupported OS");
+  toolchain_unreachable("unsupported OS");
 }
 
-StringRef swift::getMajorArchitectureName(const llvm::Triple &Triple) {
+StringRef language::getMajorArchitectureName(const toolchain::Triple &Triple) {
   if (Triple.isOSLinux()) {
     switch (Triple.getSubArch()) {
-    case llvm::Triple::SubArchType::ARMSubArch_v7:
+    case toolchain::Triple::SubArchType::ARMSubArch_v7:
       return "armv7";
-    case llvm::Triple::SubArchType::ARMSubArch_v6:
+    case toolchain::Triple::SubArchType::ARMSubArch_v6:
       return "armv6";
-    case llvm::Triple::SubArchType::ARMSubArch_v5:
+    case toolchain::Triple::SubArchType::ARMSubArch_v5:
       return "armv5";
     default:
       break;
@@ -305,8 +306,8 @@ StringRef swift::getMajorArchitectureName(const llvm::Triple &Triple) {
 }
 
 // The code below is responsible for normalizing target triples into the form
-// used to name target-specific swiftmodule, swiftinterface, and swiftdoc files.
-// If two triples have incompatible ABIs or can be distinguished by Swift #if
+// used to name target-specific languagemodule, languageinterface, and languagedoc files.
+// If two triples have incompatible ABIs or can be distinguished by Codira #if
 // declarations, they should normalize to different values.
 //
 // This code is only really used on platforms with toolchains supporting fat
@@ -318,26 +319,26 @@ StringRef swift::getMajorArchitectureName(const llvm::Triple &Triple) {
 // (Fallback behavior does not belong here; it should be implemented in code
 // that calls this function, most importantly in SerializedModuleLoaderBase.)
 //
-// If you're trying to refer to this code to understand how Swift behaves and
+// If you're trying to refer to this code to understand how Codira behaves and
 // you're unfamiliar with LLVM internals, here's a cheat sheet for reading it:
 //
-// * llvm::Triple is the type for a target name. It's a bit of a misnomer,
+// * toolchain::Triple is the type for a target name. It's a bit of a misnomer,
 //   because it can contain three or four values: arch-vendor-os[-environment].
 //
 // * In .Cases and .Case, the last argument is the value the arguments before it
 //   map to. That is, `.Cases("bar", "baz", "foo")` will return "foo" if it sees
 //   "bar" or "baz".
 //
-// * std::optional is similar to a Swift Optional: it either contains a value
+// * std::optional is similar to a Codira Optional: it either contains a value
 //   or represents the absence of one. `None` is equivalent to `nil`; leading
 //   `*` is equivalent to trailing `!`; conversion to `bool` is a not-`None`
 //   check.
 
 static StringRef
-getArchForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
+getArchForAppleTargetSpecificModuleTriple(const toolchain::Triple &triple) {
   auto tripleArchName = triple.getArchName();
 
-  return llvm::StringSwitch<StringRef>(tripleArchName)
+  return toolchain::StringSwitch<StringRef>(tripleArchName)
               .Cases("arm64", "aarch64", "arm64")
               .Cases("arm64_32", "aarch64_32", "arm64_32")
               .Cases("x86_64", "amd64", "x86_64")
@@ -353,7 +354,7 @@ getArchForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
 }
 
 static StringRef
-getVendorForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
+getVendorForAppleTargetSpecificModuleTriple(const toolchain::Triple &triple) {
   // We unconditionally normalize to "apple" because it's relatively common for
   // build systems to omit the vendor name or use an incorrect one like
   // "unknown". Most parts of the compiler ignore the vendor, so you might not
@@ -369,13 +370,13 @@ getVendorForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
 }
 
 static StringRef
-getOSForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
+getOSForAppleTargetSpecificModuleTriple(const toolchain::Triple &triple) {
   auto tripleOSName = triple.getOSName();
 
   // Truncate the OS name before the first digit. "Digit" here is ASCII '0'-'9'.
-  auto tripleOSNameNoVersion = tripleOSName.take_until(llvm::isDigit);
+  auto tripleOSNameNoVersion = tripleOSName.take_until(toolchain::isDigit);
 
-  return llvm::StringSwitch<StringRef>(tripleOSNameNoVersion)
+  return toolchain::StringSwitch<StringRef>(tripleOSNameNoVersion)
               .Cases("macos", "macosx", "darwin", "macos")
               .Cases("unknown", "", "unknown")
   // These values are also supported, but are handled by the default case below:
@@ -386,9 +387,9 @@ getOSForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
 }
 
 static std::optional<StringRef>
-getEnvironmentForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
+getEnvironmentForAppleTargetSpecificModuleTriple(const toolchain::Triple &triple) {
   auto tripleEnvironment = triple.getEnvironmentName();
-  return llvm::StringSwitch<std::optional<StringRef>>(tripleEnvironment)
+  return toolchain::StringSwitch<std::optional<StringRef>>(tripleEnvironment)
       .Cases("unknown", "", std::nullopt)
       // These values are also supported, but are handled by the default case
       // below:
@@ -397,7 +398,7 @@ getEnvironmentForAppleTargetSpecificModuleTriple(const llvm::Triple &triple) {
       .Default(tripleEnvironment);
 }
 
-llvm::Triple swift::getTargetSpecificModuleTriple(const llvm::Triple &triple) {
+toolchain::Triple language::getTargetSpecificModuleTriple(const toolchain::Triple &triple) {
   // isOSDarwin() returns true for all Darwin-style OSes, including macOS, iOS,
   // etc.
   if (triple.isOSDarwin()) {
@@ -412,67 +413,67 @@ llvm::Triple swift::getTargetSpecificModuleTriple(const llvm::Triple &triple) {
 
     if (!newEnvironment)
       // Generate an arch-vendor-os triple.
-      return llvm::Triple(newArch, newVendor, newOS);
+      return toolchain::Triple(newArch, newVendor, newOS);
 
     // Generate an arch-vendor-os-environment triple.
-    return llvm::Triple(newArch, newVendor, newOS, *newEnvironment);
+    return toolchain::Triple(newArch, newVendor, newOS, *newEnvironment);
   }
 
   // android - drop the API level.  That is not pertinent to the module; the API
   // availability is handled by the clang importer.
   if (triple.isAndroid()) {
     StringRef environment =
-        llvm::Triple::getEnvironmentTypeName(triple.getEnvironment());
+        toolchain::Triple::getEnvironmentTypeName(triple.getEnvironment());
 
-    return llvm::Triple(triple.getArchName(), triple.getVendorName(),
+    return toolchain::Triple(triple.getArchName(), triple.getVendorName(),
                         triple.getOSName(), environment);
   }
 
   if (triple.isOSFreeBSD()) {
-    return swift::getUnversionedTriple(triple);
+    return language::getUnversionedTriple(triple);
   }
 
   if (triple.isOSOpenBSD()) {
-    StringRef arch = swift::getMajorArchitectureName(triple);
-    return llvm::Triple(arch, triple.getVendorName(), triple.getOSName());
+    StringRef arch = language::getMajorArchitectureName(triple);
+    return toolchain::Triple(arch, triple.getVendorName(), triple.getOSName());
   }
 
   // Other platforms get no normalization.
   return triple;
 }
 
-llvm::Triple swift::getUnversionedTriple(const llvm::Triple &triple) {
-  StringRef unversionedOSName = triple.getOSName().take_until(llvm::isDigit);
+toolchain::Triple language::getUnversionedTriple(const toolchain::Triple &triple) {
+  StringRef unversionedOSName = triple.getOSName().take_until(toolchain::isDigit);
   if (triple.getEnvironment()) {
     StringRef environment =
-        llvm::Triple::getEnvironmentTypeName(triple.getEnvironment());
+        toolchain::Triple::getEnvironmentTypeName(triple.getEnvironment());
 
-    return llvm::Triple(triple.getArchName(), triple.getVendorName(),
+    return toolchain::Triple(triple.getArchName(), triple.getVendorName(),
                         unversionedOSName, environment);
   }
 
-  return llvm::Triple(triple.getArchName(), triple.getVendorName(),
+  return toolchain::Triple(triple.getArchName(), triple.getVendorName(),
                       unversionedOSName);
 }
 
 namespace {
 
 // Here, we statically reflect the entire contents of RuntimeVersions.def
-// into the template-argument structure of the type AllStaticSwiftReleases.
+// into the template-argument structure of the type AllStaticCodiraReleases.
 // We then use template metaprogramming on this type to synthesize arrays
-// of PlatformSwiftRelease for each of the target platforms with
+// of PlatformCodiraRelease for each of the target platforms with
 // deployment restrictions. This would be much simpler with the recent
 // generalizations of constexpr and non-type template parameters, but
 // those remain above our baseline for now, so we have to do this the
 // old way.
 
-/// A specific release of a platform that provides a specific Swift
+/// A specific release of a platform that provides a specific Codira
 /// runtime version. Ultimately, all the variadic goop below is just
 /// building an array of these for each platform, which is what we'll
 /// use at runtime.
-struct PlatformSwiftRelease {
-  llvm::VersionTuple swiftVersion;
-  llvm::VersionTuple platformVersion;
+struct PlatformCodiraRelease {
+  toolchain::VersionTuple languageVersion;
+  toolchain::VersionTuple platformVersion;
 };
 
 /// A deployment-restricted platform.
@@ -485,7 +486,7 @@ enum class PlatformKind {
 
 /// A template which statically reflects a version tuple. Generalized
 /// template parameters would theoretically let us just use
-/// llvm::VersionTuple.
+/// toolchain::VersionTuple.
 template <unsigned... Components>
 struct StaticVersion;
 
@@ -496,13 +497,13 @@ struct StaticPlatformRelease;
 
 /// A template which statically reflects a single RUNTIME_VERSION in
 /// RuntimeVersions.def.
-template <class SwiftVersion, class PlatformReleases>
-struct StaticSwiftRelease;
+template <class CodiraVersion, class PlatformReleases>
+struct StaticCodiraRelease;
 
 /// In the assumed context of a particular platform, the release
-/// of the platform that first provided a particular Swift version.
-template <class SwiftVersion, class PlatformVersion>
-struct StaticPlatformSwiftRelease;
+/// of the platform that first provided a particular Codira version.
+template <class CodiraVersion, class PlatformVersion>
+struct StaticPlatformCodiraRelease;
 
 // C++ does not allow template argument lists to have trailing commas,
 // so to make the macro metaprogramming side of this work, we have to
@@ -512,7 +513,7 @@ struct Terminal;
 
 #define UNPARENTHESIZE(...) __VA_ARGS__
 
-using AllStaticSwiftReleases =
+using AllStaticCodiraReleases =
   packs::Pack<
 #define PLATFORM(NAME, VERSION)                                    \
       StaticPlatformRelease<                                       \
@@ -520,8 +521,8 @@ using AllStaticSwiftReleases =
         StaticVersion<UNPARENTHESIZE VERSION>                      \
       >,
 #define FUTURE
-#define RUNTIME_VERSION(SWIFT_TUPLE, PROVIDERS)                    \
-    StaticSwiftRelease<StaticVersion<UNPARENTHESIZE SWIFT_TUPLE>,  \
+#define RUNTIME_VERSION(LANGUAGE_TUPLE, PROVIDERS)                    \
+    StaticCodiraRelease<StaticVersion<UNPARENTHESIZE LANGUAGE_TUPLE>,  \
                        packs::Pack<PROVIDERS Terminal>>,
 #include "language/AST/RuntimeVersions.def"
     Terminal
@@ -565,273 +566,273 @@ struct StaticVersionGT<
                     StaticVersion<SecondTail...>>::value;
 };
 
-/// A template for turning a StaticVersion into an llvm::VersionTuple.
+/// A template for turning a StaticVersion into an toolchain::VersionTuple.
 template <class>
 struct BuildVersionTuple;
 
 template <unsigned... Components>
 struct BuildVersionTuple<StaticVersion<Components...>> {
-  static constexpr llvm::VersionTuple get() {
-    return llvm::VersionTuple(Components...);
+  static constexpr toolchain::VersionTuple get() {
+    return toolchain::VersionTuple(Components...);
   }
 };
 
 /// A transform that takes a StaticPlatformRelease, checks if it
 /// matches the given platform, and turns it into a
-/// StaticPlatformSwiftRelease if so. The result is returned as an
+/// StaticPlatformCodiraRelease if so. The result is returned as an
 /// optional pack which will be empty if the release is for a different
 /// platform.
 template <class, class>
-struct BuildStaticPlatformSwiftReleaseHelper;
-template <PlatformKind Platform, class SwiftVersion>
-struct BuildStaticPlatformSwiftReleaseHelper_Arg;
+struct BuildStaticPlatformCodiraReleaseHelper;
+template <PlatformKind Platform, class CodiraVersion>
+struct BuildStaticPlatformCodiraReleaseHelper_Arg;
 
 // Matching case.
-template <PlatformKind Platform, class SwiftVersion, class PlatformVersion>
-struct BuildStaticPlatformSwiftReleaseHelper<
-         BuildStaticPlatformSwiftReleaseHelper_Arg<Platform, SwiftVersion>,
+template <PlatformKind Platform, class CodiraVersion, class PlatformVersion>
+struct BuildStaticPlatformCodiraReleaseHelper<
+         BuildStaticPlatformCodiraReleaseHelper_Arg<Platform, CodiraVersion>,
          StaticPlatformRelease<Platform, PlatformVersion>> {
   using result = packs::Pack<
-    StaticPlatformSwiftRelease<SwiftVersion, PlatformVersion>
+    StaticPlatformCodiraRelease<CodiraVersion, PlatformVersion>
   >;
 };
 
 // Non-matching case.
-template <PlatformKind Platform, class SwiftVersion,
+template <PlatformKind Platform, class CodiraVersion,
           PlatformKind OtherPlatform, class PlatformVersion>
-struct BuildStaticPlatformSwiftReleaseHelper<
-         BuildStaticPlatformSwiftReleaseHelper_Arg<Platform, SwiftVersion>,
+struct BuildStaticPlatformCodiraReleaseHelper<
+         BuildStaticPlatformCodiraReleaseHelper_Arg<Platform, CodiraVersion>,
          StaticPlatformRelease<OtherPlatform, PlatformVersion>> {
   using result = packs::Pack<>;
 };
 
 // Terminal case (see above).
-template <PlatformKind Platform, class SwiftVersion>
-struct BuildStaticPlatformSwiftReleaseHelper<
-         BuildStaticPlatformSwiftReleaseHelper_Arg<Platform, SwiftVersion>,
+template <PlatformKind Platform, class CodiraVersion>
+struct BuildStaticPlatformCodiraReleaseHelper<
+         BuildStaticPlatformCodiraReleaseHelper_Arg<Platform, CodiraVersion>,
          Terminal> {
   using result = packs::Pack<>;
 };
 
 
-/// A transform that takes a StaticSwiftRelease, finds the platform
+/// A transform that takes a StaticCodiraRelease, finds the platform
 /// release in it that matches the given platform, and turns it into
-/// StaticPlatformSwiftRelease. The result is returned as an optional
+/// StaticPlatformCodiraRelease. The result is returned as an optional
 /// pack which will be empty if there is no release for the given
 /// platform in this SSR.
 template <class, class>
-struct BuildStaticPlatformSwiftRelease;
+struct BuildStaticPlatformCodiraRelease;
 template <PlatformKind Platform>
-struct BuildStaticPlatformSwiftRelease_Arg;
+struct BuildStaticPlatformCodiraRelease_Arg;
 
 // Main case: destructure the arguments, then flat-map our helper
 // transform above. Note that we assume that there aren't multiple
 // entries for the same platform in the platform releases of a given
-// Swift release.
-template <PlatformKind Platform, class SwiftVersion,
+// Codira release.
+template <PlatformKind Platform, class CodiraVersion,
           class StaticPlatformReleases>
-struct BuildStaticPlatformSwiftRelease<
-         BuildStaticPlatformSwiftRelease_Arg<Platform>,
-         StaticSwiftRelease<SwiftVersion, StaticPlatformReleases>>
+struct BuildStaticPlatformCodiraRelease<
+         BuildStaticPlatformCodiraRelease_Arg<Platform>,
+         StaticCodiraRelease<CodiraVersion, StaticPlatformReleases>>
   : packs::PackFlatMap<
-      BuildStaticPlatformSwiftReleaseHelper,
-      BuildStaticPlatformSwiftReleaseHelper_Arg<Platform, SwiftVersion>,
+      BuildStaticPlatformCodiraReleaseHelper,
+      BuildStaticPlatformCodiraReleaseHelper_Arg<Platform, CodiraVersion>,
       StaticPlatformReleases> {};
 
 // Terminal case (see above).
 template <PlatformKind Platform>
-struct BuildStaticPlatformSwiftRelease<
-         BuildStaticPlatformSwiftRelease_Arg<Platform>,
+struct BuildStaticPlatformCodiraRelease<
+         BuildStaticPlatformCodiraRelease_Arg<Platform>,
          Terminal> {
   using result = packs::Pack<>;
 };
 
-/// A template for generating a PlatformSwiftRelease array element
-/// from a StaticPlatformSwiftRelease type value.
+/// A template for generating a PlatformCodiraRelease array element
+/// from a StaticPlatformCodiraRelease type value.
 template <class>
-struct BuildPlatformSwiftRelease;
+struct BuildPlatformCodiraRelease;
 
-template <class SwiftVersion, class PlatformVersion>
-struct BuildPlatformSwiftRelease<
-         StaticPlatformSwiftRelease<SwiftVersion, PlatformVersion>
+template <class CodiraVersion, class PlatformVersion>
+struct BuildPlatformCodiraRelease<
+         StaticPlatformCodiraRelease<CodiraVersion, PlatformVersion>
        > {
-  static constexpr PlatformSwiftRelease get() {
-    return { BuildVersionTuple<SwiftVersion>::get(),
+  static constexpr PlatformCodiraRelease get() {
+    return { BuildVersionTuple<CodiraVersion>::get(),
              BuildVersionTuple<PlatformVersion>::get() };
   }
 };
 
-/// A template for comparing two StaticPlatformSwiftRelease type values,
+/// A template for comparing two StaticPlatformCodiraRelease type values,
 /// for the purposes of a well-ordered assertion we want to make:
 /// We don't call this GT because it's not really a general-purpose
 /// comparison.
 template <class, class>
-struct StaticPlatformSwiftReleaseStrictlyDescend;
+struct StaticPlatformCodiraReleaseStrictlyDescend;
 
-template <class FirstSwift, class FirstPlatform,
-          class SecondSwift, class SecondPlatform>
-struct StaticPlatformSwiftReleaseStrictlyDescend<
-    StaticPlatformSwiftRelease<FirstSwift, FirstPlatform>,
-    StaticPlatformSwiftRelease<SecondSwift, SecondPlatform>
+template <class FirstCodira, class FirstPlatform,
+          class SecondCodira, class SecondPlatform>
+struct StaticPlatformCodiraReleaseStrictlyDescend<
+    StaticPlatformCodiraRelease<FirstCodira, FirstPlatform>,
+    StaticPlatformCodiraRelease<SecondCodira, SecondPlatform>
   > {
   static constexpr bool value =
-    StaticVersionGT<FirstSwift, SecondSwift>::value &&
+    StaticVersionGT<FirstCodira, SecondCodira>::value &&
     StaticVersionGT<FirstPlatform, SecondPlatform>::value;
 };
 
-/// A helper template for BuildPlatformSwiftReleaseArray, below.
+/// A helper template for BuildPlatformCodiraReleaseArray, below.
 template <class P>
-struct BuildPlatformSwiftReleaseArrayHelper;
+struct BuildPlatformCodiraReleaseArrayHelper;
 
-template <class... StaticPlatformSwiftReleases>
-struct BuildPlatformSwiftReleaseArrayHelper<
-         packs::Pack<StaticPlatformSwiftReleases...>
+template <class... StaticPlatformCodiraReleases>
+struct BuildPlatformCodiraReleaseArrayHelper<
+         packs::Pack<StaticPlatformCodiraReleases...>
        > {
   // After we reverse the entries, we expect them to strictly
-  // descend in both the Swift version and the platform version.
+  // descend in both the Codira version and the platform version.
   static_assert(packs::PackComponentsAreOrdered<
-                  StaticPlatformSwiftReleaseStrictlyDescend,
-                  StaticPlatformSwiftReleases...
+                  StaticPlatformCodiraReleaseStrictlyDescend,
+                  StaticPlatformCodiraReleases...
                 >::value,
                 "RuntimeVersions.def is not properly ordered?");
-  static constexpr PlatformSwiftRelease releases[] = {
-    BuildPlatformSwiftRelease<StaticPlatformSwiftReleases>::get()...
+  static constexpr PlatformCodiraRelease releases[] = {
+    BuildPlatformCodiraRelease<StaticPlatformCodiraReleases>::get()...
   };
 };
 
 /// Build a static constexpr array of PlatformRelease objects matching
 /// the given platform.
 template <PlatformKind Platform>
-struct BuildPlatformSwiftReleaseArray
-  : BuildPlatformSwiftReleaseArrayHelper<
-      // Turn each entry in AllStaticSwiftReleases into an optional
-      // StaticPlatformSwiftRelease representing whether there is a
-      // platform release providing that Swift release for the given
+struct BuildPlatformCodiraReleaseArray
+  : BuildPlatformCodiraReleaseArrayHelper<
+      // Turn each entry in AllStaticCodiraReleases into an optional
+      // StaticPlatformCodiraRelease representing whether there is a
+      // platform release providing that Codira release for the given
       // platform. Flatten that pack, then reverse it so that it's in
       // order of descending release versions. Finally, build an array
       // of PlatformRelease objects for the remaining values.
       typename packs::PackReverse<
         typename packs::PackFlatMap<
-          BuildStaticPlatformSwiftRelease,
-          BuildStaticPlatformSwiftRelease_Arg<Platform>,
-          AllStaticSwiftReleases
+          BuildStaticPlatformCodiraRelease,
+          BuildStaticPlatformCodiraRelease_Arg<Platform>,
+          AllStaticCodiraReleases
         >::result
       >::result
     > {};
 
 } // end anonymous namespace
 
-static std::optional<llvm::VersionTuple>
-findSwiftRuntimeVersionHelper(llvm::VersionTuple targetPlatformVersion,
-                              llvm::VersionTuple minimumSwiftVersion,
-                              ArrayRef<PlatformSwiftRelease> allReleases) {
+static std::optional<toolchain::VersionTuple>
+findCodiraRuntimeVersionHelper(toolchain::VersionTuple targetPlatformVersion,
+                              toolchain::VersionTuple minimumCodiraVersion,
+                              ArrayRef<PlatformCodiraRelease> allReleases) {
   #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
   // Scan forward in our filtered platform release array for the given
   // platform.
   for (auto &release : allReleases) {
     // If the provider version is <= the deployment target, then
-    // the deployment target includes support for the given Swift
-    // release. Since we're scanning in reverse order of Swift
+    // the deployment target includes support for the given Codira
+    // release. Since we're scanning in reverse order of Codira
     // releases (because of the order of entries in RuntimeVersions.def),
-    // this must be the highest supported Swift release.
+    // this must be the highest supported Codira release.
     if (release.platformVersion <= targetPlatformVersion) {
-      return std::max(release.swiftVersion, minimumSwiftVersion);
+      return std::max(release.codeVersion, minimumCodiraVersion);
     }
   }
 
   // If we didn't find anything, but the target release is at least the
   // notional future-release version, return that we aren't
   // deployment-limited.
-  if (targetPlatformVersion >= llvm::VersionTuple(99, 99))
+  if (targetPlatformVersion >= toolchain::VersionTuple(99, 99))
     return std::nullopt;
 
-  // Otherwise, return the minimum Swift version.
-  return minimumSwiftVersion;
+  // Otherwise, return the minimum Codira version.
+  return minimumCodiraVersion;
 }
 
-/// Return the highest Swift release that matches the given platform and
+/// Return the highest Codira release that matches the given platform and
 /// has a version no greater than the target version. Don't return a version
 /// older that the minimum. Returns null if the target version matches the
 /// notional future release version.
 template <PlatformKind TargetPlatform>
-static std::optional<llvm::VersionTuple>
-findSwiftRuntimeVersion(llvm::VersionTuple targetPlatformVersion,
-                        llvm::VersionTuple minimumSwiftVersion) {
+static std::optional<toolchain::VersionTuple>
+findCodiraRuntimeVersion(toolchain::VersionTuple targetPlatformVersion,
+                        toolchain::VersionTuple minimumCodiraVersion) {
   auto &allReleases =
-    BuildPlatformSwiftReleaseArray<TargetPlatform>::releases;
+    BuildPlatformCodiraReleaseArray<TargetPlatform>::releases;
 
-  return findSwiftRuntimeVersionHelper(targetPlatformVersion,
-                                       minimumSwiftVersion,
+  return findCodiraRuntimeVersionHelper(targetPlatformVersion,
+                                       minimumCodiraVersion,
                                        allReleases);
 }
 
-std::optional<llvm::VersionTuple>
-swift::getSwiftRuntimeCompatibilityVersionForTarget(
-    const llvm::Triple &Triple) {
+std::optional<toolchain::VersionTuple>
+language::getCodiraRuntimeCompatibilityVersionForTarget(
+    const toolchain::Triple &Triple) {
 
   if (Triple.isMacOSX()) {
-    llvm::VersionTuple OSVersion;
+    toolchain::VersionTuple OSVersion;
     Triple.getMacOSXVersion(OSVersion);
 
-    // macOS releases predate the stable ABI, so use Swift 5.0 as our base.
-    auto baseRelease = llvm::VersionTuple(5, 0);
+    // macOS releases predate the stable ABI, so use Codira 5.0 as our base.
+    auto baseRelease = toolchain::VersionTuple(5, 0);
 
-    // macOS got its first arm64(e) support in 11.0, which included Swift 5.3.
+    // macOS got its first arm64(e) support in 11.0, which included Codira 5.3.
     if (Triple.isAArch64())
-      baseRelease = llvm::VersionTuple(5, 3);
+      baseRelease = toolchain::VersionTuple(5, 3);
 
-    return findSwiftRuntimeVersion<PlatformKind::macOS>(OSVersion, baseRelease);
+    return findCodiraRuntimeVersion<PlatformKind::macOS>(OSVersion, baseRelease);
 
   } else if (Triple.isiOS()) { // includes tvOS
-    llvm::VersionTuple OSVersion = Triple.getiOSVersion();
+    toolchain::VersionTuple OSVersion = Triple.getiOSVersion();
 
-    // iOS releases predate the stable ABI, so use Swift 5.0 as our base.
-    auto baseRelease = llvm::VersionTuple(5, 0);
+    // iOS releases predate the stable ABI, so use Codira 5.0 as our base.
+    auto baseRelease = toolchain::VersionTuple(5, 0);
 
     // arm64 simulators and macCatalyst were introduced in iOS 14.0/tvOS 14.0,
-    // which included Swift 5.3.
+    // which included Codira 5.3.
     if (Triple.isAArch64() &&
         (Triple.isSimulatorEnvironment() ||
          Triple.isMacCatalystEnvironment()))
-      baseRelease = llvm::VersionTuple(5, 3);
+      baseRelease = toolchain::VersionTuple(5, 3);
 
     // iOS first got arm64e support in 12.0, which did not yet support the
-    // Swift stable ABI, so it does not provide a useful version bump.
+    // Codira stable ABI, so it does not provide a useful version bump.
 
-    return findSwiftRuntimeVersion<PlatformKind::iOS>(OSVersion, baseRelease);
+    return findCodiraRuntimeVersion<PlatformKind::iOS>(OSVersion, baseRelease);
 
   } else if (Triple.isWatchOS()) {
-    llvm::VersionTuple OSVersion = Triple.getWatchOSVersion();
+    toolchain::VersionTuple OSVersion = Triple.getWatchOSVersion();
 
-    // watchOS releases predate the stable ABI, so use Swift 5.0 as our base.
-    auto baseRelease = llvm::VersionTuple(5, 0);
+    // watchOS releases predate the stable ABI, so use Codira 5.0 as our base.
+    auto baseRelease = toolchain::VersionTuple(5, 0);
 
     // 64-bit watchOS was first supported by watchOS 7, which provided
-    // Swift 5.3.
+    // Codira 5.3.
     if (Triple.isArch64Bit())
-      baseRelease = llvm::VersionTuple(5, 3);
+      baseRelease = toolchain::VersionTuple(5, 3);
 
-    return findSwiftRuntimeVersion<PlatformKind::watchOS>(OSVersion, baseRelease);
+    return findCodiraRuntimeVersion<PlatformKind::watchOS>(OSVersion, baseRelease);
 
   } else if (Triple.isXROS()) {
-    llvm::VersionTuple OSVersion = Triple.getOSVersion();
+    toolchain::VersionTuple OSVersion = Triple.getOSVersion();
 
-    // visionOS 1.0 provided Swift 5.9.
-    auto baseRelease = llvm::VersionTuple(5, 9);
+    // visionOS 1.0 provided Codira 5.9.
+    auto baseRelease = toolchain::VersionTuple(5, 9);
 
-    return findSwiftRuntimeVersion<PlatformKind::visionOS>(OSVersion, baseRelease);
+    return findCodiraRuntimeVersion<PlatformKind::visionOS>(OSVersion, baseRelease);
   }
 
   return std::nullopt;
 }
 
-static const llvm::VersionTuple minimumMacCatalystDeploymentTarget() {
-  return llvm::VersionTuple(13, 1);
+static const toolchain::VersionTuple minimumMacCatalystDeploymentTarget() {
+  return toolchain::VersionTuple(13, 1);
 }
 
-llvm::VersionTuple swift::getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
-                                              const llvm::Triple &triple) {
+toolchain::VersionTuple language::getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
+                                              const toolchain::Triple &triple) {
   // Retrieve the SDK version.
   auto SDKVersion = SDKInfo.getVersion();
 
@@ -843,16 +844,47 @@ llvm::VersionTuple swift::getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
             clang::DarwinSDKInfo::OSEnvPair::macOStoMacCatalystPair())) {
       return MacOStoMacCatalystMapping
           ->map(SDKVersion, minimumMacCatalystDeploymentTarget(), std::nullopt)
-          .value_or(llvm::VersionTuple(0, 0, 0));
+          .value_or(toolchain::VersionTuple(0, 0, 0));
     }
-    return llvm::VersionTuple(0, 0, 0);
+    return toolchain::VersionTuple(0, 0, 0);
   }
 
   return SDKVersion;
 }
 
-static std::string getPlistEntry(const llvm::Twine &Path, StringRef KeyName) {
-  auto BufOrErr = llvm::MemoryBuffer::getFile(Path);
+std::optional<toolchain::Triple>
+language::getCanonicalTriple(const toolchain::Triple &triple) {
+  toolchain::Triple Result = triple;
+  // Non-darwin targets do not require canonicalization.
+  if (!triple.isOSDarwin())
+    return Result;
+
+  // If the OS versions stay the same, return back the same triple.
+  const toolchain::VersionTuple inputOSVersion = triple.getOSVersion();
+  const bool isOSVersionInValidRange =
+      toolchain::Triple::isValidVersionForOS(triple.getOS(), inputOSVersion);
+  const toolchain::VersionTuple canonicalVersion =
+      toolchain::Triple::getCanonicalVersionForOS(
+          triple.getOS(), triple.getOSVersion(), isOSVersionInValidRange);
+  if (canonicalVersion == triple.getOSVersion())
+    return Result;
+
+  const std::string inputOSName = triple.getOSName().str();
+  const std::string inputOSVersionAsStr = inputOSVersion.getAsString();
+  const int platformNameLength =
+      inputOSName.size() - inputOSVersionAsStr.size();
+  if (!StringRef(inputOSName).ends_with(inputOSVersionAsStr) ||
+      (platformNameLength <= 0))
+    return std::nullopt;
+
+  toolchain::SmallString<64> buffer(inputOSName.substr(0, platformNameLength));
+  buffer.append(canonicalVersion.getAsString());
+  Result.setOSName(buffer.str());
+  return Result;
+}
+
+static std::string getPlistEntry(const toolchain::Twine &Path, StringRef KeyName) {
+  auto BufOrErr = toolchain::MemoryBuffer::getFile(Path);
   if (!BufOrErr) {
     // FIXME: diagnose properly
     return {};
@@ -877,20 +909,20 @@ static std::string getPlistEntry(const llvm::Twine &Path, StringRef KeyName) {
   return {};
 }
 
-std::string swift::getSDKBuildVersionFromPlist(StringRef Path) {
+std::string language::getSDKBuildVersionFromPlist(StringRef Path) {
   return getPlistEntry(Path, "ProductBuildVersion");
 }
 
-std::string swift::getSDKBuildVersion(StringRef Path) {
-  return getSDKBuildVersionFromPlist((llvm::Twine(Path) +
+std::string language::getSDKBuildVersion(StringRef Path) {
+  return getSDKBuildVersionFromPlist((toolchain::Twine(Path) +
     "/System/Library/CoreServices/SystemVersion.plist").str());
 }
 
-std::string swift::getSDKName(StringRef Path) {
-  std::string Name = getPlistEntry(llvm::Twine(Path)+"/SDKSettings.plist",
+std::string language::getSDKName(StringRef Path) {
+  std::string Name = getPlistEntry(toolchain::Twine(Path)+"/SDKSettings.plist",
                                    "CanonicalName");
   if (Name.empty() && Path.ends_with(".sdk")) {
-    Name = llvm::sys::path::filename(Path).drop_back(strlen(".sdk")).str();
+    Name = toolchain::sys::path::filename(Path).drop_back(strlen(".sdk")).str();
   }
   return Name;
 }

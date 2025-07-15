@@ -1,12 +1,12 @@
-# swift_build_support/products/ninja.py -------------------------*- python -*-
+# language_build_support/products/ninja.py -------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 """
@@ -17,7 +17,7 @@ Ninja build
 import os.path
 import re
 
-from build_swift.build_swift import cache_utils
+from build_language.build_language import cache_utils
 
 from . import product
 from .. import shell

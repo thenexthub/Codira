@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "TypeCheckDistributed.h"
@@ -33,8 +34,8 @@
 #include "language/Basic/Defer.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
 
 using namespace language;
 
@@ -65,7 +66,7 @@ static VarDecl*
    } else if (name == C.Id_actorSystem) {
      expectedType = getDistributedActorSystemType(decl);
    } else {
-     llvm_unreachable("Unexpected distributed actor property lookup!");
+     toolchain_unreachable("Unexpected distributed actor property lookup!");
    }
    if (!expectedType)
      return nullptr;
@@ -193,13 +194,13 @@ static void forwardParameters(AbstractFunctionDecl *afd,
   for (auto param : *afd->getParameters()) {
     forwardingParams.push_back(new (C) DeclRefExpr(
         ConcreteDeclRef(param), DeclNameLoc(), /*implicit=*/true,
-        swift::AccessSemantics::Ordinary,
+        language::AccessSemantics::Ordinary,
         afd->mapTypeIntoContext(param->getInterfaceType())));
   }
 }
 
 /// Mangle the target thunk in a way that we can look up the appropriate record.
-static llvm::StringRef
+static toolchain::StringRef
 mangleDistributedThunkForAccessorRecordName(
     ASTContext &C, AbstractFunctionDecl *thunk) {
   Mangle::ASTMangler mangler(C);
@@ -219,8 +220,8 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
   const SourceLoc sloc = SourceLoc();
   const DeclNameLoc dloc = DeclNameLoc();
 
-  auto func = static_cast<FuncDecl *>(context);
-  auto funcDC = func->getDeclContext();
+  auto fn = static_cast<FuncDecl *>(context);
+  auto funcDC = fn->getDeclContext();
   assert(funcDC->getSelfNominalTypeDecl() &&
          funcDC->getSelfNominalTypeDecl()->isDistributedActor() &&
          "Distributed function must be part of distributed actor");
@@ -229,7 +230,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
   selfDecl->getAttrs().add(new (C) KnownToBeLocalAttr(implicit));
 
   // === return type
-  Type returnTy = func->getResultInterfaceType();
+  Type returnTy = fn->getResultInterfaceType();
   auto isVoidReturn = returnTy->isVoid();
 
   // === Type:
@@ -251,7 +252,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
 
   // === local branch ----------------------------------------------------------
   BraceStmt *localBranchStmt;
-  if (auto accessor = dyn_cast<AccessorDecl>(func)) {
+  if (auto accessor = dyn_cast<AccessorDecl>(fn)) {
     auto selfRefExpr = new (C) DeclRefExpr(selfDecl, dloc, implicit);
 
     auto var = accessor->getStorage();
@@ -276,14 +277,14 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
     // -- forward arguments
     SmallVector<Expr*, 4> forwardingParams;
     forwardParameters(thunk, forwardingParams);
-    auto funcRef = UnresolvedDeclRefExpr::createImplicit(C, func->getName());
+    auto funcRef = UnresolvedDeclRefExpr::createImplicit(C, fn->getName());
     auto forwardingArgList = ArgumentList::forImplicitCallTo(funcRef->getName(), forwardingParams, C);
     auto funcDeclRef =
-        UnresolvedDotExpr::createImplicit(C, selfRefExpr, func->getBaseName());
+        UnresolvedDotExpr::createImplicit(C, selfRefExpr, fn->getBaseName());
 
     Expr *localFuncCall = CallExpr::createImplicit(C, funcDeclRef, forwardingArgList);
     localFuncCall = AwaitExpr::createImplicit(C, sloc, localFuncCall);
-    if (func->hasThrows()) {
+    if (fn->hasThrows()) {
       localFuncCall = TryExpr::createImplicit(C, sloc, localFuncCall);
     }
     auto returnLocalFuncCall =
@@ -458,7 +459,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
   }
 
   // -- recordErrorType
-  if (func->hasThrows()) {
+  if (fn->hasThrows()) {
     auto recordErrorTypeName = DeclName(C, C.Id_recordErrorType,
                                         /*labels=*/{Identifier()});
     // Error.self
@@ -490,7 +491,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
 
     // Result.self
     // Watch out and always map into thunk context
-    auto resultType = thunk->mapTypeIntoContext(func->getResultInterfaceType());
+    auto resultType = thunk->mapTypeIntoContext(fn->getResultInterfaceType());
     auto *metaTypeRef = TypeExpr::createImplicit(resultType, C);
     auto *resultTypeExpr =
         new (C) DotSelfExpr(metaTypeRef, sloc, sloc, resultType);
@@ -592,7 +593,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
     SmallVector<Expr *, 5> args;
     // -- on actor: Act
     args.push_back(new (C) DeclRefExpr(selfDecl, dloc, implicit,
-                                       swift::AccessSemantics::Ordinary,
+                                       language::AccessSemantics::Ordinary,
                                        selfDecl->getInterfaceType()));
     // -- target: RemoteCallTarget
     args.push_back(new (C) DeclRefExpr(ConcreteDeclRef(targetVar), dloc, implicit,
@@ -606,7 +607,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
         Type(), implicit));
 
     // -- throwing: Err.Type
-    if (func->hasThrows()) {
+    if (fn->hasThrows()) {
       // Error.self
       auto errorDecl = C.getErrorDecl();
       auto *errorTypeExpr = new (C) DotSelfExpr(
@@ -627,7 +628,7 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
     if (!isVoidReturn) {
       // Result.self
       auto resultType =
-          func->mapTypeIntoContext(func->getResultInterfaceType());
+          fn->mapTypeIntoContext(fn->getResultInterfaceType());
       auto *metaTypeRef = TypeExpr::createImplicit(resultType, C);
       auto *resultTypeExpr =
           new (C) DotSelfExpr(metaTypeRef, sloc, sloc, resultType);
@@ -661,26 +662,26 @@ deriveBodyDistributed_thunk(AbstractFunctionDecl *thunk, void *context) {
   return {body, /*isTypeChecked=*/false};
 }
 
-/// Create a new FuncDecl that has the same signature as the passed in func.
+/// Create a new FuncDecl that has the same signature as the passed in fn.
 /// This is used both to create stub witnesses as well as distributed thunks.
 ///
 /// \param DC The declaration context of the newly created function
 static FuncDecl *createSameSignatureDistributedThunkDecl(DeclContext *DC,
-                                                         FuncDecl *func) {
-  auto &C = func->getASTContext();
+                                                         FuncDecl *fn) {
+  auto &C = fn->getASTContext();
 
   // --- Prepare generic parameters
   GenericParamList *genericParamList = nullptr;
-  if (auto genericParams = func->getGenericParams()) {
+  if (auto genericParams = fn->getGenericParams()) {
     genericParamList = genericParams->clone(DC);
   }
 
-  GenericSignature baseSignature = func->getGenericSignature();
+  GenericSignature baseSignature = fn->getGenericSignature();
 
   // --- Prepare parameters
-  auto funcParams = func->getParameters();
+  auto funcParams = fn->getParameters();
   SmallVector<ParamDecl*, 2> paramDecls;
-  for (unsigned i : indices(*func->getParameters())) {
+  for (unsigned i : indices(*fn->getParameters())) {
     auto funcParam = funcParams->get(i);
 
     auto paramName = funcParam->getParameterName();
@@ -688,7 +689,7 @@ static FuncDecl *createSameSignatureDistributedThunkDecl(DeclContext *DC,
     // `_:` or `x _: ...`, so let's auto-generate a name
     // to be used in the body of a thunk.
     if (paramName.empty()) {
-      paramName = C.getIdentifier("p" + llvm::utostr(i));
+      paramName = C.getIdentifier("p" + toolchain::utostr(i));
     }
 
     auto paramDecl = new (C)
@@ -706,29 +707,29 @@ static FuncDecl *createSameSignatureDistributedThunkDecl(DeclContext *DC,
   ParameterList *params = ParameterList::create(C, paramDecls);
 
   FuncDecl *thunk;
-  if (auto accessor = dyn_cast<AccessorDecl>(func)) {
+  if (auto accessor = dyn_cast<AccessorDecl>(fn)) {
     auto accessorThunk = AccessorDecl::createImplicit(
         C, AccessorKind::DistributedGet,
         /*storage=*/accessor->getStorage(),
         /*async=*/true, /*throws=*/true, // since it's a distributed thunk
         /*thrownType=*/TypeLoc::withoutLoc(Type()),
-        func->getResultInterfaceType(),
+        fn->getResultInterfaceType(),
         DC);
     accessorThunk->setParameters(params);
     // An accessor does not have a name; the `var` does though,
     // and we'll be mangling the accessor based on the Storage name (the var)
     thunk = accessorThunk;
   } else {
-    // Let's use the name of a 'distributed func'
-    DeclName thunkName = func->getName();
+    // Let's use the name of a 'distributed fn'
+    DeclName thunkName = fn->getName();
 
     thunk = FuncDecl::createImplicit(
-        C, swift::StaticSpellingKind::None,
+        C, language::StaticSpellingKind::None,
         thunkName, SourceLoc(),
         /*async=*/true, /*throws=*/true, // since it's a distributed thunk
         /*thrownType=*/Type(),
         genericParamList,
-        params, func->getResultInterfaceType(), DC);
+        params, fn->getResultInterfaceType(), DC);
   }
   thunk->setSynthesized(true);
 
@@ -736,7 +737,7 @@ static FuncDecl *createSameSignatureDistributedThunkDecl(DeclContext *DC,
     thunk->getAttrs().add(new (C) FinalAttr(/*isImplicit=*/true));
 
   thunk->setGenericSignature(baseSignature);
-  thunk->copyFormalAccessFrom(func, /*sourceIsParentContext=*/false);
+  thunk->copyFormalAccessFrom(fn, /*sourceIsParentContext=*/false);
 
   thunk->setSynthesized(true);
   thunk->setDistributedThunk(true);
@@ -745,16 +746,16 @@ static FuncDecl *createSameSignatureDistributedThunkDecl(DeclContext *DC,
   return thunk;
 }
 
-static FuncDecl *createDistributedThunkFunction(FuncDecl *func) {
-  auto DC = func->getDeclContext();
+static FuncDecl *createDistributedThunkFunction(FuncDecl *fn) {
+  auto DC = fn->getDeclContext();
 
   FuncDecl *thunk =
-      createSameSignatureDistributedThunkDecl(DC, func);
+      createSameSignatureDistributedThunkDecl(DC, fn);
   assert(thunk && "couldn't create a distributed thunk");
 
   // Protocol requirements don't have bodies.
-  if (func->hasBody())
-    thunk->setBodySynthesizer(deriveBodyDistributed_thunk, func);
+  if (fn->hasBody())
+    thunk->setBodySynthesizer(deriveBodyDistributed_thunk, fn);
 
   return thunk;
 }
@@ -766,8 +767,8 @@ static FuncDecl *createDistributedThunkFunction(FuncDecl *func) {
 static NormalProtocolConformance*
 addDistributedActorCodableConformance(
     ClassDecl *actor, ProtocolDecl *proto) {
-  assert(proto->isSpecificProtocol(swift::KnownProtocolKind::Decodable) ||
-         proto->isSpecificProtocol(swift::KnownProtocolKind::Encodable));
+  assert(proto->isSpecificProtocol(language::KnownProtocolKind::Decodable) ||
+         proto->isSpecificProtocol(language::KnownProtocolKind::Encodable));
   auto &C = actor->getASTContext();
 
   // === Only Distributed actors can gain this implicit conformance
@@ -819,10 +820,9 @@ addDistributedActorCodableConformance(
   }
 
   auto conformance = C.getNormalConformance(
-      actor->getDeclaredInterfaceType(), proto,
-      actor->getLoc(), /*dc=*/actor,
-      ProtocolConformanceState::Incomplete,
-      ProtocolConformanceOptions());
+      actor->getDeclaredInterfaceType(), proto, actor->getLoc(),
+      /*inheritedTypeRepr=*/nullptr, /*dc=*/actor,
+      ProtocolConformanceState::Incomplete, ProtocolConformanceOptions());
   conformance->setSourceKindAndImplyingConformance(
       ConformanceEntryKind::Synthesized, nullptr);
   actor->registerProtocolConformance(conformance, /*synthesized=*/true);
@@ -832,7 +832,7 @@ addDistributedActorCodableConformance(
 /******************************************************************************/
 /******************************************************************************/
 
-void swift::assertRequiredSynthesizedPropertyOrder(ASTContext &Context,
+void language::assertRequiredSynthesizedPropertyOrder(ASTContext &Context,
                                                    NominalTypeDecl *nominal) {
 #ifndef NDEBUG
   if (nominal->getDistributedActorIDProperty()) {
@@ -900,7 +900,7 @@ FuncDecl *GetDistributedThunkRequest::evaluate(Evaluator &evaluator,
 
       distributedTarget = var->getAccessor(AccessorKind::Get);
     } else {
-      llvm_unreachable("unsupported storage kind");
+      toolchain_unreachable("unsupported storage kind");
     }
   } else {
     distributedTarget = originator.get<AbstractFunctionDecl *>();
@@ -910,9 +910,9 @@ FuncDecl *GetDistributedThunkRequest::evaluate(Evaluator &evaluator,
   assert(distributedTarget);
 
   // This evaluation type-check by now was already computed and cached;
-  // We need to check in order to avoid emitting a THUNK for a distributed func
+  // We need to check in order to avoid emitting a THUNK for a distributed fn
   // which had errors; as the thunk then may also cause un-addressable issues and confusion.
-  if (swift::checkDistributedFunction(distributedTarget)) {
+  if (language::checkDistributedFunction(distributedTarget)) {
     return nullptr;
   }
 
@@ -932,17 +932,17 @@ FuncDecl *GetDistributedThunkRequest::evaluate(Evaluator &evaluator,
     return nullptr;
   }
 
-  if (auto func = dyn_cast<FuncDecl>(distributedTarget)) {
+  if (auto fn = dyn_cast<FuncDecl>(distributedTarget)) {
     // not via `ensureDistributedModuleLoaded` to avoid generating a warning,
     // we won't be emitting the offending decl after all.
     if (!C.getLoadedModule(C.Id_Distributed))
       return nullptr;
 
     // --- Prepare the "distributed thunk" which does the "maybe remote" dance:
-    return createDistributedThunkFunction(func);
+    return createDistributedThunkFunction(fn);
   }
 
-  llvm_unreachable("Unable to synthesize distributed thunk");
+  toolchain_unreachable("Unable to synthesize distributed thunk");
 }
 
 VarDecl *GetDistributedActorIDPropertyRequest::evaluate(
@@ -1080,12 +1080,10 @@ GetDistributedActorAsActorConformanceRequest::evaluate(
   if (!ext)
     return nullptr;
 
-  auto genericParam = GenericTypeParamType::getType(/*depth=*/0, /*index=*/0,
-                                                    ctx);
-
   auto distributedActorAsActorConformance = ctx.getNormalConformance(
-      Type(genericParam), actorProto, SourceLoc(), ext,
-      ProtocolConformanceState::Incomplete, ProtocolConformanceOptions());
+      Type(ctx.TheSelfType), actorProto, SourceLoc(),
+      /*inheritedTypeRepr=*/nullptr, ext, ProtocolConformanceState::Incomplete,
+      ProtocolConformanceOptions());
   // NOTE: Normally we "register" a conformance, but here we don't
   // because we cannot (currently) register them in a protocol,
   // since they do not have conformance tables.

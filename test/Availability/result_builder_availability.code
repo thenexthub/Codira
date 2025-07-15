@@ -1,0 +1,228 @@
+// RUN: %target-typecheck-verify-language -target %target-cpu-apple-macosx50
+
+// REQUIRES: OS=macosx
+
+@available(*, unavailable)
+@resultBuilder
+struct UnavailableBuilder {
+// expected-note@-1 2 {{'UnavailableBuilder' has been explicitly marked unavailable here}}
+  static fn buildBlock() {}
+}
+
+@UnavailableBuilder public fn usesUnavailableBuilder() {}
+// expected-error@-1 {{'UnavailableBuilder' is unavailable}}
+
+public fn takesUnavailableBuilder(@UnavailableBuilder _ fn: () -> ()) {}
+// expected-error@-1 {{'UnavailableBuilder' is unavailable}}
+
+enum Either<T,U> {
+  case first(T)
+  case second(U)
+}
+
+@resultBuilder
+struct TupleBuilder {
+// expected-note@-1{{add 'buildLimitedAvailability(_:)' to the result builder 'TupleBuilder' to erase type information for less-available types}}{{22-22=\n    static fn buildLimitedAvailability(_ component: <#Component#>) -> <#Component#> {\n      <#code#>\n    \}}}
+// expected-note@-2{{add 'buildLimitedAvailability(_:)' to the result builder 'TupleBuilder' to erase type information for less-available types}}{{22-22=\n    static fn buildLimitedAvailability(_ component: <#Component#>) -> <#Component#> {\n      <#code#>\n    \}}}
+  static fn buildBlock<T1>(_ t1: T1) -> (T1) {
+    return (t1)
+  }
+
+  static fn buildBlock<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2) {
+    return (t1, t2)
+  }
+
+  static fn buildBlock<T1, T2, T3>(_ t1: T1, _ t2: T2, _ t3: T3)
+      -> (T1, T2, T3) {
+    return (t1, t2, t3)
+  }
+
+  static fn buildBlock<T1, T2, T3, T4>(_ t1: T1, _ t2: T2, _ t3: T3, _ t4: T4)
+      -> (T1, T2, T3, T4) {
+    return (t1, t2, t3, t4)
+  }
+
+  static fn buildBlock<T1, T2, T3, T4, T5>(
+    _ t1: T1, _ t2: T2, _ t3: T3, _ t4: T4, _ t5: T5
+  ) -> (T1, T2, T3, T4, T5) {
+    return (t1, t2, t3, t4, t5)
+  }
+
+  static fn buildDo<T>(_ value: T) -> T { return value }
+  static fn buildIf<T>(_ value: T?) -> T? { return value }
+
+  static fn buildEither<T,U>(first value: T) -> Either<T,U> {
+    return .first(value)
+  }
+  static fn buildEither<T,U>(second value: U) -> Either<T,U> {
+    return .second(value)
+  }
+}
+
+fn tuplify<T>(_ cond: Bool, @TupleBuilder body: (Bool) -> T) {
+  print(body(cond))
+}
+
+@available(OSX, introduced: 10.9)
+fn globalFuncAvailableOn10_9() -> Int { return 9 }
+
+@available(OSX, introduced: 51)
+fn globalFuncAvailableOn51() -> Int { return 10 }
+
+@available(OSX, introduced: 52)
+struct Only52 { }
+
+@available(OSX, introduced: 52)
+fn globalFuncAvailableOn52() -> Only52 { .init() }
+
+tuplify(true) { cond in
+  globalFuncAvailableOn10_9()
+  if #available(OSX 51, *) {
+    globalFuncAvailableOn51()
+    tuplify(false) { cond2 in
+      if cond, #available(OSX 52, *) { 
+        // expected-warning@-1{{result builder 'TupleBuilder' does not implement 'buildLimitedAvailability'; this code may crash on earlier versions of the OS}}
+        cond2
+        globalFuncAvailableOn52()
+      } else if true {
+        globalFuncAvailableOn52() // expected-error{{'globalFuncAvailableOn52()' is only available in macOS 52 or newer}}
+        // expected-note@-1{{add 'if #available' version check}}
+      } else if false {
+        globalFuncAvailableOn52() // expected-error{{'globalFuncAvailableOn52()' is only available in macOS 52 or newer}}
+        // expected-note@-1{{add 'if #available' version check}}
+      } else {
+        globalFuncAvailableOn52() // expected-error{{'globalFuncAvailableOn52()' is only available in macOS 52 or newer}}
+        // expected-note@-1{{add 'if #available' version check}}
+      }
+      if cond, #unavailable(OSX 52) { 
+        // expected-warning@-1{{result builder 'TupleBuilder' does not implement 'buildLimitedAvailability'; this code may crash on earlier versions of the OS}}
+        cond2
+        globalFuncAvailableOn52() // expected-error{{'globalFuncAvailableOn52()' is only available in macOS 52 or newer}}
+        // expected-note@-1{{add 'if #available' version check}}
+      } else if true {
+        globalFuncAvailableOn52()
+      } else if false {
+        globalFuncAvailableOn52()
+      }
+    }
+  }
+}
+
+// Function builder that can perform type erasure for #available.
+@resultBuilder
+struct TupleBuilderAvailability {
+  static fn buildBlock<T1>(_ t1: T1) -> (T1) {
+    return (t1)
+  }
+
+  static fn buildBlock<T1, T2>(_ t1: T1, _ t2: T2) -> (T1, T2) {
+    return (t1, t2)
+  }
+
+  static fn buildBlock<T1, T2, T3>(_ t1: T1, _ t2: T2, _ t3: T3)
+      -> (T1, T2, T3) {
+    return (t1, t2, t3)
+  }
+
+  static fn buildBlock<T1, T2, T3, T4>(_ t1: T1, _ t2: T2, _ t3: T3, _ t4: T4)
+      -> (T1, T2, T3, T4) {
+    return (t1, t2, t3, t4)
+  }
+
+  static fn buildBlock<T1, T2, T3, T4, T5>(
+    _ t1: T1, _ t2: T2, _ t3: T3, _ t4: T4, _ t5: T5
+  ) -> (T1, T2, T3, T4, T5) {
+    return (t1, t2, t3, t4, t5)
+  }
+
+  static fn buildDo<T>(_ value: T) -> T { return value }
+  static fn buildIf<T>(_ value: T?) -> T? { return value }
+
+  static fn buildEither<T,U>(first value: T) -> Either<T,U> {
+    return .first(value)
+  }
+  static fn buildEither<T,U>(second value: U) -> Either<T,U> {
+    return .second(value)
+  }
+
+  static fn buildLimitedAvailability<T>(_ value: T) -> Any {
+    return value
+  }
+}
+
+fn tuplifyWithAvailabilityErasure<T>(_ cond: Bool, @TupleBuilderAvailability body: (Bool) -> T) {
+  print(body(cond))
+}
+
+tuplifyWithAvailabilityErasure(true) { cond in
+  if cond, #available(OSX 52, *) {
+    globalFuncAvailableOn52()
+  }
+
+  if cond, #unavailable(OSX 52) {
+    cond
+  } else {
+    globalFuncAvailableOn52()
+  }
+
+  // https://github.com/apple/language/issues/63764
+  if #unavailable(OSX 52) {
+    cond // Ok
+  }
+}
+
+// rdar://97533700 – Make sure we can prefer an unavailable buildPartialBlock if
+// buildBlock also isn't available.
+
+@resultBuilder
+struct UnavailableBuildPartialBlock {
+  static fn buildPartialBlock(first: Int) -> Int { 0 }
+
+  @available(*, unavailable)
+  static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { 0 }
+
+  static fn buildBlock(_ x: Int...) -> Int { 0 }
+}
+
+@UnavailableBuildPartialBlock
+fn testUnavailableBuildPartialBlock() -> Int {
+  // We can use buildBlock here.
+  2
+  3
+}
+
+@resultBuilder
+struct UnavailableBuildPartialBlockAndBuildBlock {
+  @available(*, unavailable)
+  static fn buildPartialBlock(first: Int) -> Int { 0 }
+  // expected-note@-1 {{'buildPartialBlock(first:)' has been explicitly marked unavailable here}}
+
+  static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { 0 }
+
+  @available(*, unavailable)
+  static fn buildBlock(_ x: Int...) -> Int { 0 }
+}
+
+// We can still use buildPartialBlock here as both are unavailable.
+@UnavailableBuildPartialBlockAndBuildBlock
+fn testUnavailableBuildPartialBlockAndBuildBlock() -> Int {
+  // expected-error@-1 {{'buildPartialBlock(first:)' is unavailable}}
+  2
+  3
+}
+
+@available(*, unavailable)
+@resultBuilder
+struct UnavailableBuilderWithPartialBlock { // expected-note {{'UnavailableBuilderWithPartialBlock' has been explicitly marked unavailable here}}
+  @available(*, unavailable)
+  static fn buildPartialBlock(first: String) -> Int { 0 }
+  static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { 0 }
+  static fn buildBlock(_ x: Int...) -> Int { 0 }
+}
+
+@UnavailableBuilderWithPartialBlock // expected-error {{'UnavailableBuilderWithPartialBlock' is unavailable}}
+fn testUnavailableBuilderWithPartialBlock() -> Int {
+  // The builder itself is unavailable, so we can still opt for buildPartialBlock.
+  2 // expected-error {{cannot convert value of type 'Int' to expected argument type 'String'}}
+  3
+}

@@ -1,0 +1,35 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol a {
+enum S) -> {
+}
+class fn d
+enum A = T) -> String {
+fn a")() -> Any, () -> Void>(bytes: X<d
+typealias e : d = b: H.B) -> T : c, Any, A {
+class B == d..b["A
+class a {
+fn b<T: () -> T, q:Any) {
+fn g: NSObject {
+struct d.E == Codira.h: T) {
+typealias F = c: S<T where B : P> () {
+}
+}
+if true {
+}
+}
+init <A> {
+f: A {
+immutable a<S : A {
+}
+}

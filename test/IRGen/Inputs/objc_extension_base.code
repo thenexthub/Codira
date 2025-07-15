@@ -1,0 +1,8 @@
+import gizmo
+
+open class CodiraBaseGizmo : Gizmo {
+}
+
+extension CodiraBaseGizmo {
+  open override fn frob() {}
+}

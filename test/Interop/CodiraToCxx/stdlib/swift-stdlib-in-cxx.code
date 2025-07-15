@@ -1,0 +1,149 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -parse-as-library %platform-module-dir/Codira.codemodule/%module-target-triple.codeinterface -enable-library-evolution -disable-objc-attr-requires-foundation-module -typecheck -module-name Codira -parse-stdlib -enable-experimental-cxx-interop -clang-header-expose-decls=has-expose-attr-or-stdlib -emit-clang-header-path %t/Codira.h  -experimental-skip-all-function-bodies -enable-experimental-feature LifetimeDependence
+// RUN: %FileCheck %s < %t/Codira.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/Codira.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY -Wno-unused-private-field -Wno-unused-function -Wc++98-compat-extra-semi)
+// RUN: %check-interop-cxx-header-in-clang(%t/Codira.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY -Wno-unused-private-field -Wno-unused-function -Wc++98-compat-extra-semi -DDEBUG=1)
+
+// REQUIRES: language_feature_LifetimeDependence
+
+// CHECK: namespace language LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("language") {
+
+// CHECK: template<class T_0_0>
+// CHECK-NEXT: #ifdef __cpp_concepts
+// CHECK-NEXT: requires language::isUsableInGenericContext<T_0_0>
+// CHECK-NEXT: #endif
+// CHECK-NEXT: class LANGUAGE_SYMBOL("s:Sq") Optional;
+
+// CHECK: class LANGUAGE_SYMBOL("s:SS") String;
+
+// CHECK: template<class T_0_0>
+// CHECK-NEXT: #ifdef __cpp_concepts
+// CHECK-NEXT: requires language::isUsableInGenericContext<T_0_0>
+// CHECK-NEXT: #endif
+// CHECK-NEXT: class LANGUAGE_SYMBOL("s:Sa") Array;
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+// CHECK-NEXT: #ifdef __cpp_concepts
+// CHECK-NEXT: requires language::isUsableInGenericContext<T_0_0>
+// CHECK-NEXT: #endif
+// CHECK-NEXT: class LANGUAGE_SYMBOL("s:Sa") Array final {
+// CHECK-NEXT: public:
+// CHECK-NEXT: #ifndef __cpp_concepts
+// CHECK-NEXT: static_assert(language::isUsableInGenericContext<T_0_0>, "type cannot be used in a Codira generic context");
+// CHECK-NEXT: #endif
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK ~Array() noexcept {
+// CHECK: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK Array(const Array &other) noexcept {
+// CHECK: }
+// CHECK: static LANGUAGE_INLINE_THUNK Array<T_0_0> init() LANGUAGE_SYMBOL({{.*}});
+// CHECK: LANGUAGE_INLINE_THUNK void append(const T_0_0& newElement) LANGUAGE_SYMBOL({{.*}});
+// CHECK: LANGUAGE_INLINE_THUNK T_0_0 removeAt(language::Int index) LANGUAGE_SYMBOL({{.*}});
+// CHECK: LANGUAGE_INLINE_THUNK T_0_0 operator [](language::Int index) const LANGUAGE_SYMBOL({{.*}});
+// CHECK: LANGUAGE_INLINE_THUNK language::Int getCount() const LANGUAGE_SYMBOL({{.*}});
+// CHECK: LANGUAGE_INLINE_THUNK language::Int getCapacity() const LANGUAGE_SYMBOL({{.*}});
+
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+// CHECK: template<class T_0_0>
+// CHECK-NEXT: #ifdef __cpp_concepts
+// CHECK-NEXT: requires language::isUsableInGenericContext<T_0_0>
+// CHECK-NEXT: #endif
+// CHECK-NEXT: class LANGUAGE_SYMBOL({{.*}}) Optional final {
+// CHECK-NEXT: public:
+// CHECK-NEXT: #ifndef __cpp_concepts
+// CHECK-NEXT: static_assert(language::isUsableInGenericContext<T_0_0>, "type cannot be used in a Codira generic context");
+// CHECK-NEXT: #endif
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK ~Optional() noexcept {
+// CHECK: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK Optional(const Optional &other) noexcept {
+// CHECK: }
+// CHECK:   enum class cases {
+// CHECK-NEXT: some LANGUAGE_SYMBOL({{.*}}),
+// CHECK-NEXT: none
+// CHECK-NEXT: };
+// CHECK: LANGUAGE_INLINE_THUNK bool isSome() const;
+// CHECK: LANGUAGE_INLINE_THUNK bool isNone() const;
+// CHECK-DAG: LANGUAGE_INLINE_THUNK T_0_0 getUnsafelyUnwrapped() const LANGUAGE_SYMBOL({{.*}});
+// CHECK-DAG: LANGUAGE_INLINE_THUNK String getDebugDescription() const LANGUAGE_SYMBOL("s:Sq16debugDescriptionSSvp");
+
+// CHECK: class LANGUAGE_SYMBOL({{.*}}) String final {
+// CHECK-NEXT: public:
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK ~String() noexcept {
+// CHECK:  }
+// CHECK-NEXT:  LANGUAGE_INLINE_THUNK String(const String &other) noexcept {
+// CHECK:  }
+// CHECK-NEXT:  LANGUAGE_INLINE_THUNK String &operator =(const String &other) noexcept {
+// CHECK:  }
+// CHECK-NEXT:  static LANGUAGE_INLINE_THUNK String init() LANGUAGE_SYMBOL({{.*}});
+// CHECK:  LANGUAGE_INLINE_THUNK void append(const String& other)
+// CHECK:  LANGUAGE_INLINE_THUNK __StringNested::UTF8View getUtf8() const LANGUAGE_SYMBOL({{.*}});
+// CHECK-NEXT:  LANGUAGE_INLINE_THUNK void setUtf8(const __StringNested::UTF8View& newValue) LANGUAGE_SYMBOL({{.*}});
+// CHECK:  LANGUAGE_INLINE_THUNK operator NSString * _Nonnull () const noexcept {
+// CHECK-NEXT:    return (__bridge_transfer NSString *)(_impl::$sSS10FoundationE19_bridgeToObjectiveCSo8NSStringCyF(_impl::language_interop_passDirect_Codira_String(_getOpaquePointer())));
+// CHECK-NEXT:   }
+// CHECK-NEXT:  static LANGUAGE_INLINE_THUNK String init(NSString * _Nonnull nsString) noexcept {
+// CHECK-NEXT:  auto result = _make();
+// CHECK-NEXT:  auto res = _impl::$sSS10FoundationE36_unconditionallyBridgeFromObjectiveCySSSo8NSStringCSgFZ((__bridge void *)nsString);
+// CHECK-NEXT:  memcpy(result._getOpaquePointer(), &res, sizeof(res));
+// CHECK-NEXT:  return result;
+// CHECK-NEXT:  }
+// CHECK-EMPTY:
+// CHECK-NEXT:  #endif // defined(__OBJC__)
+// CHECK-NEXT: #define LANGUAGE_CXX_INTEROP_STRING_MIXIN
+
+// CHECK-NEXT: #pragma clang diagnostic push
+// CHECK-NEXT: #pragma clang diagnostic ignored "-Wnon-modular-include-in-framework-module"
+// CHECK-NEXT: // Allow user to find the header using additional include paths
+// CHECK-NEXT: #if __has_include(<languageToCxx/_CodiraStdlibCxxOverlay.h>)
+// CHECK-NEXT: #include <languageToCxx/_CodiraStdlibCxxOverlay.h>
+// CHECK-NEXT: // Look for the C++ interop support header relative to clang's resource dir:
+// CHECK-NEXT: // '<toolchain>/usr/lib/clang/<version>/include/../../../language/languageToCxx'.
+// CHECK-NEXT: #elif __has_include(<../../../language/languageToCxx/_CodiraStdlibCxxOverlay.h>)
+// CHECK-NEXT: #include <../../../language/languageToCxx/_CodiraStdlibCxxOverlay.h>
+// CHECK-NEXT: #elif __has_include(<../../../../../lib/language/languageToCxx/_CodiraStdlibCxxOverlay.h>)
+// CHECK-NEXT: // '<toolchain>/usr/local/lib/clang/<version>/include/../../../../../lib/language/languageToCxx'.
+// CHECK-NEXT: #include <../../../../../lib/language/languageToCxx/_CodiraStdlibCxxOverlay.h>
+// CHECK-NEXT: #endif
+// CHECK-NEXT: #pragma clang diagnostic pop
+// CHECK-NEXT: private:
+
+// CHECK: class LANGUAGE_SYMBOL({{.*}}) UTF8View final {
+// CHECK: LANGUAGE_INLINE_THUNK UTF8View &operator =(const UTF8View &other) noexcept {
+// CHECK: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK __StringNested::Index getStartIndex() const LANGUAGE_SYMBOL({{.*}});
+// CHECK-NEXT:   LANGUAGE_INLINE_THUNK __StringNested::Index getEndIndex() const LANGUAGE_SYMBOL({{.*}});
+// CHECK:   LANGUAGE_INLINE_THUNK language::Optional<__StringNested::Index> indexOffsetByLimitedBy(const __StringNested::Index& i, language::Int n, const __StringNested::Index& limit) const LANGUAGE_SYMBOL({{.*}});
+// CHECK:   LANGUAGE_INLINE_THUNK language::Int distanceFromTo(const __StringNested::Index& i, const __StringNested::Index& j) const LANGUAGE_SYMBOL({{.*}});
+// CHECK: LANGUAGE_INLINE_THUNK uint8_t operator [](const __StringNested::Index& i) const LANGUAGE_SYMBOL({{.*}});
+// CHECK:   LANGUAGE_INLINE_THUNK String getDescription() const LANGUAGE_SYMBOL({{.*}});
+// CHECK:   LANGUAGE_INLINE_THUNK language::Int getCount() const LANGUAGE_SYMBOL({{.*}});
+// CHECK-NEXT: private:
+
+// CHECK: class AnyKeyPath { } LANGUAGE_UNAVAILABLE_MSG("class 'AnyKeyPath' is not yet exposed to C++");
+// CHECK: class Comparable { } LANGUAGE_UNAVAILABLE_MSG("protocol 'Comparable' can not yet be represented in C++");
+// CHECK: class FloatingPointSign { } LANGUAGE_UNAVAILABLE_MSG("enum 'FloatingPointSign' is not yet exposed to C++");
+// CHECK: // Unavailable in C++: Codira global function 'abs(_:)'.
+
+// CHECK: #pragma clang diagnostic push
+// CHECK: #pragma clang diagnostic ignored "-Wnon-modular-include-in-framework-module"
+// CHECK-NEXT: // Allow user to find the header using additional include paths
+// CHECK-NEXT: #if __has_include(<languageToCxx/_CodiraStdlibCxxOverlay.h>)
+// CHECK-NEXT: #include <languageToCxx/_CodiraStdlibCxxOverlay.h>
+// CHECK-NEXT: // Look for the C++ interop support header relative to clang's resource dir:
+// CHECK-NEXT: // '<toolchain>/usr/lib/clang/<version>/include/../../../language/languageToCxx'.
+// CHECK-NEXT: #elif __has_include(<../../../language/languageToCxx/_CodiraStdlibCxxOverlay.h>)
+// CHECK-NEXT: #include <../../../language/languageToCxx/_CodiraStdlibCxxOverlay.h>
+// CHECK-NEXT: #elif __has_include(<../../../../../lib/language/languageToCxx/_CodiraStdlibCxxOverlay.h>)
+// CHECK-NEXT: // '<toolchain>/usr/local/lib/clang/<version>/include/../../../../../lib/language/languageToCxx'.
+// CHECK-NEXT: #include <../../../../../lib/language/languageToCxx/_CodiraStdlibCxxOverlay.h>
+// CHECK-NEXT: #endif
+// CHECK-NEXTZ: #pragma clang diagnostic pop
+
+// CHECK: } // namespace language

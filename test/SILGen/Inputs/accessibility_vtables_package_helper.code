@@ -1,0 +1,4 @@
+package class Base {
+  package fn packageMethod() {}
+  internal fn internalMethod() {}
+}

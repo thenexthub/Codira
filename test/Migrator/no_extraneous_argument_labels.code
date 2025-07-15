@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -typecheck %s -language-version 4 %api_diff_data_dir
+// RUN: %empty-directory(%t) && %target-language-frontend -c -primary-file %s -emit-migrated-file-path %t/no_extraneous_argument_labels.result -language-version 4 -o /dev/null %api_diff_data_dir
+// RUN: %diff -u %s.expected %t/no_extraneous_argument_labels.result
+// RUN: %target-language-frontend -typecheck %s.expected -language-version 5 %api_diff_data_dir
+
+fn foo(_ oc: [String]) {
+  var args: [String] = []
+  immutable dictionary: [String: String] = [:]
+  args.append(contentsOf: oc.map { orderedColumn in
+    dictionary.first { (column, value) in true }!.value
+  })
+}

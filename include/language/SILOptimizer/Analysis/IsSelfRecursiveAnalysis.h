@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ISSELFRECURSIVEANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ISSELFRECURSIVEANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ISSELFRECURSIVEANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ISSELFRECURSIVEANALYSIS_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 

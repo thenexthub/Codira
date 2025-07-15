@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "bit-dataflow"
@@ -20,7 +21,7 @@
 #include "language/SIL/MemoryLocations.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -30,7 +31,7 @@ BitDataflow::BitDataflow(SILFunction *function, unsigned numLocations) :
   }) {}
 
 void BitDataflow::entryReachabilityAnalysis() {
-  llvm::SmallVector<SILBasicBlock *, 16> workList;
+  toolchain::SmallVector<SILBasicBlock *, 16> workList;
   auto entry = blockStates.entry();
   entry.data.reachableFromEntry = true;
   workList.push_back(&entry.block);
@@ -48,7 +49,7 @@ void BitDataflow::entryReachabilityAnalysis() {
 }
 
 void BitDataflow::exitReachableAnalysis() {
-  llvm::SmallVector<SILBasicBlock *, 16> workList;
+  toolchain::SmallVector<SILBasicBlock *, 16> workList;
   for (auto bd : blockStates) {
     if (bd.block.getTerminator()->isFunctionExiting()) {
       bd.data.exitReachability = ExitReachability::ReachesExit;
@@ -115,7 +116,7 @@ void BitDataflow::solveBackward(JoinOperation join) {
   bool firstRound = true;
   do {
     changed = false;
-    for (auto bd : llvm::reverse(blockStates)) {
+    for (auto bd : toolchain::reverse(blockStates)) {
       Bits bits = bd.data.exitSet;
       assert(!bits.empty());
       for (SILBasicBlock *succ : bd.block.getSuccessorBlocks()) {
@@ -147,7 +148,7 @@ void BitDataflow::solveBackwardWithUnion() {
 
 void BitDataflow::dump() const {
     for (auto bd : blockStates) {
-    llvm::dbgs() << "bb" << bd.block.getDebugID() << ":\n"
+    toolchain::dbgs() << "bb" << bd.block.getDebugID() << ":\n"
                  << "    entry: " << bd.data.entrySet << '\n'
                  << "    gen:   " << bd.data.genSet << '\n'
                  << "    kill:  " << bd.data.killSet << '\n'

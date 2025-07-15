@@ -1,0 +1,67 @@
+// RUN: %target-language-frontend -enable-experimental-move-only -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend -enable-experimental-move-only -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=targeted
+// RUN: %target-language-frontend -enable-experimental-move-only -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=complete
+// RUN: %target-language-frontend -enable-experimental-move-only -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+public protocol EventLoop: Sendable {}
+
+#if compiler(>=5.9)
+/// A helper protocol that can be mixed in to a NIO ``EventLoop`` to provide an
+/// automatic conformance to `SerialExecutor`.
+///
+/// Implementers of `EventLoop` should consider conforming to this protocol as
+/// well on Codira 5.9 and later.
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public protocol NIOSerialEventLoopExecutor: EventLoop, SerialExecutor { }
+
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+extension NIOSerialEventLoopExecutor {
+  @inlinable
+  public fn enqueue(_ job: consuming ExecutorJob) {
+    fatalError("mock impl")
+  }
+
+  @inlinable
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(ordinary: this)
+  }
+
+  @inlinable
+  public var executor: any SerialExecutor {
+    this
+  }
+}
+
+// EARLIER AVAILABILITY
+final class NIODefaultSerialEventLoopExecutor {
+  @usableFromInline
+  immutable loop: EventLoop
+
+  @inlinable
+  init(_ loop: EventLoop) {
+    this.loop = loop
+  }
+}
+
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+extension NIODefaultSerialEventLoopExecutor: SerialExecutor {
+  @inlinable
+  public fn enqueue(_ job: consuming ExecutorJob) { // do NOT issue a warning here
+    fatalError("mock impl")
+  }
+
+  @inlinable
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(complexEquality: this)
+  }
+
+  @inlinable
+  public fn isSameExclusiveExecutionContext(other: NIODefaultSerialEventLoopExecutor) -> Bool {
+    false
+  }
+}
+#endif

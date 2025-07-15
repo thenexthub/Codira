@@ -1,0 +1,4 @@
+// {"signature":"std::__1::__function::__func<deriveBodyDecodable_enum_init(language::AbstractFunctionDecl*, void*)::$_0, std::__1::allocator<deriveBodyDecodable_enum_init(language::AbstractFunctionDecl*, void*)::$_0>, std::__1::tuple<language::EnumElementDecl*, language::BraceStmt*> (language::EnumElementDecl*, language::EnumElementDecl*, toolchain::ArrayRef<language::VarDecl*>)>::operator()(language::EnumElementDecl*&&, language::EnumElementDecl*&&, toolchain::ArrayRef<language::VarDecl*>&&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a : Codable { case x( x : Int b : Double enum XCodingKeys : CodingKey{
+x case x case b immutable c = a

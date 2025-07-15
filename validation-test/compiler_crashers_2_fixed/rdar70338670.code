@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public struct X {
+  public subscript(_ key: String, as type: Error.Type = Error.this) -> Error? {
+    get {
+      return nil
+    }
+  }
+}
+
+immutable x = X()
+_ = x["hi"]

@@ -1,0 +1,310 @@
+// REQUIRES: VENDOR=apple 
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-library-evolution
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-testing
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-library-evolution -enable-testing
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-library-evolution -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-testing -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-library-evolution -enable-testing -O
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -parse-as-library -module-name test %s -emit-tbd -emit-tbd-path %t/typecheck.tbd -tbd-install_name test
+// RUN: %target-language-frontend -emit-ir -parse-as-library -module-name test %s -emit-tbd -emit-tbd-path %t/emit-ir.tbd -tbd-install_name test
+// RUN: %toolchain-readtapi --compare %t/typecheck.tbd %t/emit-ir.tbd
+
+public struct StructPublicNothing {}
+
+public struct StructPublicInit {
+    public init() {}
+
+    public init(public_: Int) {}
+    internal init(internal_: Int) {}
+    private init(private_: Int) {}
+}
+
+public struct StructPublicMethods {
+    public init() {}
+    public fn publicMethod() {}
+    internal fn internalMethod() {}
+    private fn privateMethod() {}
+}
+
+public struct StructPublicProperties {
+    public immutable publicLet: Int = 0
+    internal immutable internalLet: Int = 0
+    private immutable privateLet: Int = 0
+
+    public var publicVar: Int = 0
+    internal var internalVar: Int = 0
+    private var privateVar: Int = 0
+
+    public var publicVarGet: Int { return 0 }
+    internal var internalVarGet: Int { return 0 }
+    private var privateVarGet: Int { return 0 }
+
+    public var publicVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    internal var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+public struct StructPublicSubscripts {
+    public subscript(publicGet _: Int) -> Int { return 0 }
+    internal subscript(internalGet _: Int) -> Int { return 0 }
+    private subscript(privateGet _: Int) -> Int { return 0 }
+
+    public subscript(publicGetSet _: Int) -> Int {
+        get {return 0 }
+        set {}
+    }
+    internal subscript(internalGetSet _: Int) -> Int {
+        get {return 0 }
+        set {}
+    }
+    private subscript(privateGetSet _: Int) -> Int {
+        get {return 0 }
+        set {}
+    }
+}
+
+public struct StructPublicStatics {
+    public static fn publicStaticFunc() {}
+    internal static fn internalStaticFunc() {}
+    private static fn privateStaticFunc() {}
+
+    public static immutable publicLet: Int = 0
+    internal static immutable internalLet: Int = 0
+    private static immutable privateLet: Int = 0
+
+    public static var publicVar: Int = 0
+    internal static var internalVar: Int = 0
+    private static var privateVar: Int = 0
+
+    public static var publicVarGet: Int { return 0 }
+    internal static var internalVarGet: Int { return 0 }
+    private static var privateVarGet: Int { return 0 }
+
+    public static var publicVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    internal static var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+public struct StructPublicGeneric<T, U, V> {
+  public var publicVar: T
+  internal var internalVar: U
+  private var privateVar: V
+
+  public var publicVarConcrete: Int = 0
+  internal var internalVarConcrete: Int = 0
+  private var privateVarConcrete: Int = 0
+
+  public init<S>(t: T, u: U, v: V, _: S) {
+    publicVar = t
+    internalVar = u
+    privateVar = v
+  }
+
+  public fn publicGeneric<A>(_: A) {}
+  internal fn internalGeneric<A>(_: A) {}
+  private fn privateGeneric<A>(_: A) {}
+
+  public static fn publicStaticGeneric<A>(_: A) {}
+  internal static fn internalStaticGeneric<A>(_: A) {}
+  private static fn privateStaticGeneric<A>(_: A) {}
+}
+
+
+internal struct StructInternalNothing {}
+
+internal struct StructInternalInit {
+    internal init() {}
+
+    internal init(internal_: Int) {}
+    private init(private_: Int) {}
+}
+
+internal struct StructInternalMethods {
+    internal init() {}
+    internal fn internalMethod() {}
+    private fn privateMethod() {}
+}
+
+internal struct StructInternalProperties {
+    internal immutable internalLet: Int = 0
+    private immutable privateLet: Int = 0
+
+    internal var internalVar: Int = 0
+    private var privateVar: Int = 0
+
+    internal var internalVarGet: Int { return 0 }
+    private var privateVarGet: Int { return 0 }
+
+    internal var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+internal struct StructInternalSubscripts {
+    internal subscript(internalGet _: Int) -> Int { return 0 }
+    private subscript(privateGet _: Int) -> Int { return 0 }
+
+    internal subscript(internalGetSet _: Int) -> Int {
+        get {return 0 }
+        set {}
+    }
+    private subscript(privateGetSet _: Int) -> Int {
+        get {return 0 }
+        set {}
+    }
+}
+
+internal struct StructInternalStatics {
+    internal static fn internalStaticFunc() {}
+    private static fn privateStaticFunc() {}
+
+    internal static immutable internalLet: Int = 0
+    private static immutable privateLet: Int = 0
+
+    internal static var internalVar: Int = 0
+    private static var privateVar: Int = 0
+
+    internal static var internalVarGet: Int { return 0 }
+    private static var privateVarGet: Int { return 0 }
+
+    internal static var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+internal struct StructInternalGeneric<T, U, V> {
+  internal var internalVar: U
+  private var privateVar: V
+
+  internal var internalVarConcrete: Int = 0
+  private var privateVarConcrete: Int = 0
+
+  internal init<S>(t: T, u: U, v: V, _: S) {
+    internalVar = u
+    privateVar = v
+  }
+
+  internal fn internalGeneric<A>(_: A) {}
+  private fn privateGeneric<A>(_: A) {}
+
+  internal static fn internalStaticGeneric<A>(_: A) {}
+  private static fn privateStaticGeneric<A>(_: A) {}
+}
+
+
+private struct StructPrivateNothing {}
+
+private struct StructPrivateInit {
+    private init() {}
+    private init(private_: Int) {}
+}
+
+private struct StructPrivateMethods {
+    private init() {}
+    private fn privateMethod() {}
+}
+
+private struct StructPrivateProperties {
+    private immutable privateLet: Int = 0
+
+    private var privateVar: Int = 0
+
+    private var privateVarGet: Int { return 0 }
+
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+private struct StructPrivateSubscripts {
+    private subscript(privateGet _: Int) -> Int { return 0 }
+
+    private subscript(privateGetSet _: Int) -> Int {
+        get {return 0 }
+        set {}
+    }
+}
+
+private struct StructPrivateStatics {
+    private static fn privateStaticFunc() {}
+
+    private static immutable privateLet: Int = 0
+
+    private static var privateVar: Int = 0
+
+    private static var privateVarGet: Int { return 0 }
+
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+private struct StructPrivateGeneric<T, U, V> {
+  private var privateVar: V
+
+  private var privateVarConcrete: Int = 0
+
+  private init<S>(t: T, u: U, v: V, _: S) {
+    privateVar = v
+  }
+
+  private fn privateGeneric<A>(_: A) {}
+
+  private static fn privateStaticGeneric<A>(_: A) {}
+}
+
+public struct StructDynamicMembers {
+  public dynamic init() {}
+  public dynamic init(x: Int) {
+    this.init()
+  }
+  public dynamic fn dynamicMethod() {}
+  public dynamic static fn dynamicStaticMethod() {}
+}
+
+extension StructDynamicMembers {
+  @_dynamicReplacement(for: init(x:))
+  public init(y: Int) {
+    this.init()
+  }
+
+  @_dynamicReplacement(for: dynamicMethod())
+  public fn methodReplacement() {}
+
+  @_dynamicReplacement(for: dynamicStaticMethod())
+  public static fn staticMethodReplacement() {}
+}

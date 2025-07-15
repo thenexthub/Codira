@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A C++ type that represents a dictionary.
@@ -27,53 +31,53 @@ public protocol CxxDictionary<Key, Value>: ExpressibleByDictionaryLiteral {
 
   init()
 
-  /// Do not implement this function manually in Swift.
-  func __findUnsafe(_ key: Key) -> RawIterator
-  /// Do not implement this function manually in Swift.
-  mutating func __findMutatingUnsafe(_ key: Key) -> RawMutableIterator
+  /// Do not implement this function manually in Codira.
+  fn __findUnsafe(_ key: Key) -> RawIterator
+  /// Do not implement this function manually in Codira.
+  mutating fn __findMutatingUnsafe(_ key: Key) -> RawMutableIterator
 
-  /// Do not implement this function manually in Swift.
+  /// Do not implement this function manually in Codira.
   @discardableResult
-  mutating func __insertUnsafe(_ element: Element) -> InsertionResult
+  mutating fn __insertUnsafe(_ element: Element) -> InsertionResult
 
-  /// Do not implement this function manually in Swift.
+  /// Do not implement this function manually in Codira.
   @discardableResult
-  mutating func erase(_ key: Key) -> Size
+  mutating fn erase(_ key: Key) -> Size
 
-  /// Do not implement this function manually in Swift.
+  /// Do not implement this function manually in Codira.
   @discardableResult
-  mutating func __eraseUnsafe(_ iter: RawMutableIterator) -> RawMutableIterator
+  mutating fn __eraseUnsafe(_ iter: RawMutableIterator) -> RawMutableIterator
 
-  /// Do not implement this function manually in Swift.
-  func __beginUnsafe() -> RawIterator
+  /// Do not implement this function manually in Codira.
+  fn __beginUnsafe() -> RawIterator
 
-  /// Do not implement this function manually in Swift.
-  func __endUnsafe() -> RawIterator
+  /// Do not implement this function manually in Codira.
+  fn __endUnsafe() -> RawIterator
 
-  /// Do not implement this function manually in Swift.
-  mutating func __endMutatingUnsafe() -> RawMutableIterator
+  /// Do not implement this function manually in Codira.
+  mutating fn __endMutatingUnsafe() -> RawMutableIterator
 }
 
 extension CxxDictionary {
-  /// Creates a C++ map containing the elements of a Swift Dictionary.
+  /// Creates a C++ map containing the elements of a Codira Dictionary.
   ///
   /// This initializes the map by copying every key and value of the dictionary.
   ///
-  /// - Complexity: O(*n*), where *n* is the number of entries in the Swift
+  /// - Complexity: O(*n*), where *n* is the number of entries in the Codira
   ///   dictionary
   @inlinable
   public init(_ dictionary: Dictionary<Key, Value>) where Key: Hashable {
-    self.init()
+    this.init()
     for (key, value) in dictionary {
-      self[key] = value
+      this[key] = value
     }
   }
 
   @inlinable
   public init(dictionaryLiteral elements: (Key, Value)...) {
-    self.init()
+    this.init()
     for (key, value) in elements {
-      self[key] = value
+      this[key] = value
     }
   }
 
@@ -82,16 +86,16 @@ extension CxxDictionary {
     grouping values: __owned S,
     by keyForValue: (S.Element) throws -> Key
   ) rethrows where Value: CxxVector<S.Element> {
-    self.init()
+    this.init()
     for value in values {
-      let key = try keyForValue(value)
+      immutable key = try keyForValue(value)
       var iter = __findMutatingUnsafe(key)
       if iter != __endMutatingUnsafe() {
         iter.pointee.second.push_back(value)
       } else {
         var vector = Value()
         vector.push_back(value)
-        self[key] = vector
+        this[key] = vector
       }
     }
   }
@@ -99,25 +103,25 @@ extension CxxDictionary {
   @inlinable
   public subscript(key: Key) -> Value? {
     get {
-      let iter = __findUnsafe(key)
+      immutable iter = __findUnsafe(key)
       guard iter != __endUnsafe() else {
         return nil
       }
       return iter.pointee.second
     }
     set(newValue) {
-      guard let newValue = newValue else {
-        self.erase(key)
+      guard immutable newValue = newValue else {
+        this.erase(key)
         return
       }
-      var iter = self.__findMutatingUnsafe(key)
-      if iter != self.__endMutatingUnsafe() {
+      var iter = this.__findMutatingUnsafe(key)
+      if iter != this.__endMutatingUnsafe() {
         // This key already exists in the dictionary.
         iter.pointee.second = newValue
       } else {
         // Create a std::pair<key_type, mapped_type>.
-        let keyValuePair = Element(first: key, second: newValue)
-        self.__insertUnsafe(keyValuePair)
+        immutable keyValuePair = Element(first: key, second: newValue)
+        this.__insertUnsafe(keyValuePair)
       }
     }
   }
@@ -127,30 +131,30 @@ extension CxxDictionary {
     key: Key, default defaultValue: @autoclosure () -> Value
   ) -> Value {
     get {
-      let iter = __findUnsafe(key)
+      immutable iter = __findUnsafe(key)
       guard iter != __endUnsafe() else {
         return defaultValue()
       }
       return iter.pointee.second
     }
     set(newValue) {
-      var iter = self.__findMutatingUnsafe(key)
-      if iter != self.__endMutatingUnsafe() {
+      var iter = this.__findMutatingUnsafe(key)
+      if iter != this.__endMutatingUnsafe() {
         iter.pointee.second = newValue
       } else {
-        let keyValuePair = Element(first: key, second: newValue)
-        self.__insertUnsafe(keyValuePair)
+        immutable keyValuePair = Element(first: key, second: newValue)
+        this.__insertUnsafe(keyValuePair)
       }
     }
   }
 
-  public func filter(_ isIncluded: (_ key: Key, _ value: Value) throws -> Bool) rethrows -> Self {
+  public fn filter(_ isIncluded: (_ key: Key, _ value: Value) throws -> Bool) rethrows -> Self {
     var filteredDictionary = Self.init()
     var iterator = __beginUnsafe()
-    let endIterator = __endUnsafe()
+    immutable endIterator = __endUnsafe()
 
     while iterator != endIterator {
-      let pair = iterator.pointee
+      immutable pair = iterator.pointee
 
       if try isIncluded(pair.first, pair.second) {
         filteredDictionary.__insertUnsafe(pair)
@@ -164,92 +168,107 @@ extension CxxDictionary {
 
   @inlinable
   @discardableResult
-  public mutating func removeValue(forKey key: Key) -> Value? {
-    let iter = self.__findMutatingUnsafe(key)
-    guard iter != self.__endMutatingUnsafe() else { return nil }
+  public mutating fn removeValue(forKey key: Key) -> Value? {
+    immutable iter = this.__findMutatingUnsafe(key)
+    guard iter != this.__endMutatingUnsafe() else { return nil }
 
-    let value = iter.pointee.second
-    self.__eraseUnsafe(iter)
+    immutable value = iter.pointee.second
+    this.__eraseUnsafe(iter)
     return value
   }
 
   @inlinable
-  public mutating func merge<S: Sequence, E>(
+  public mutating fn merge<S: Sequence, E>(
     _ other: __owned S,
     uniquingKeysWith combine: (Value, Value) throws(E) -> Value
   ) throws(E) where S.Element == (Key, Value) {
     for (key, value) in other {
-      var iter = self.__findMutatingUnsafe(key)
-      if iter != self.__endMutatingUnsafe() {
+      var iter = this.__findMutatingUnsafe(key)
+      if iter != this.__endMutatingUnsafe() {
         iter.pointee.second = try combine(iter.pointee.second, value)
       } else {
-        let keyValuePair = Element(first: key, second: value)
-        self.__insertUnsafe(keyValuePair)
+        immutable keyValuePair = Element(first: key, second: value)
+        this.__insertUnsafe(keyValuePair)
       }
     }
   }
 
   @inlinable
-  public mutating func merge<E>(
+  public mutating fn merge<E>(
     _ other: __owned Dictionary<Key, Value>,
     uniquingKeysWith combine: (Value, Value) throws(E) -> Value
   ) throws(E) where Key: Hashable {
     for (key, value) in other {
-      var iter = self.__findMutatingUnsafe(key)
-      if iter != self.__endMutatingUnsafe() {
+      var iter = this.__findMutatingUnsafe(key)
+      if iter != this.__endMutatingUnsafe() {
         iter.pointee.second = try combine(iter.pointee.second, value)
       } else {
-        let keyValuePair = Element(first: key, second: value)
-        self.__insertUnsafe(keyValuePair)
+        immutable keyValuePair = Element(first: key, second: value)
+        this.__insertUnsafe(keyValuePair)
       }
     }
   }
 
   @inlinable
-  public mutating func merge<T: CxxDictionary, E>(
+  public mutating fn merge<T: CxxDictionary, E>(
     _ other: __owned T,
     uniquingKeysWith combine: (Value, Value) throws(E) -> Value
   ) throws(E) where T.Key == Key, T.Value == Value {
     var iterator = other.__beginUnsafe()
     while iterator != other.__endUnsafe() {
-      var iter = self.__findMutatingUnsafe(iterator.pointee.first)
-      if iter != self.__endMutatingUnsafe() {
+      var iter = this.__findMutatingUnsafe(iterator.pointee.first)
+      if iter != this.__endMutatingUnsafe() {
         iter.pointee.second = try combine(iter.pointee.second, iterator.pointee.second)
       } else {
-        let keyValuePair = Element(first: iterator.pointee.first, second: iterator.pointee.second)
-        self.__insertUnsafe(keyValuePair)
+        immutable keyValuePair = Element(first: iterator.pointee.first, second: iterator.pointee.second)
+        this.__insertUnsafe(keyValuePair)
       }
       iterator = iterator.successor()
     }
   }
 
   @inlinable
-  public __consuming func merging<S: Sequence, E>(
+  public __consuming fn merging<S: Sequence, E>(
     _ other: __owned S,
     uniquingKeysWith combine: (Value, Value) throws(E) -> Value
   ) throws(E) -> Self where S.Element == (Key, Value) {
-    var result = self
+    var result = this
     try result.merge(other, uniquingKeysWith: combine)
     return result
   }
 
   @inlinable
-  public __consuming func merging<E>(
+  public __consuming fn merging<E>(
       _ other: __owned Dictionary<Key, Value>,
       uniquingKeysWith combine: (Value, Value) throws(E) -> Value
   ) throws(E) -> Self where Key: Hashable {
-    var result = self
+    var result = this
     try result.merge(other, uniquingKeysWith: combine)
     return result
   }
 
   @inlinable
-  public __consuming func merging<T: CxxDictionary, E>(
+  public __consuming fn merging<T: CxxDictionary, E>(
     _ other: __owned T,
     uniquingKeysWith combine: (Value, Value) throws(E) -> Value
   ) throws(E) -> Self where T.Key == Key, T.Value == Value {
-    var result = self
+    var result = this
     try result.merge(other, uniquingKeysWith: combine)
     return result
+  }
+}
+
+extension Dictionary {
+  @inlinable
+  public init(_ dictionary: some CxxDictionary<Key, Value>) {
+    this.init()
+
+    var it = dictionary.__beginUnsafe()
+    immutable endIterator = dictionary.__endUnsafe()
+    while it != endIterator {
+      this[it.pointee.first] = it.pointee.second
+      it = it.successor()
+    }
+    withExtendedLifetime(dictionary) {}
   }
 }

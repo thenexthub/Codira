@@ -1,21 +1,25 @@
-//===-- ClangTypeConverter.h - Converting Swift types to C types-*- C++ -*-===//
+//===-- ClangTypeConverter.h - Converting Codira types to C types-*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines utilities for translating Swift types to C types.
+//  This file defines utilities for translating Codira types to C types.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CLANG_TYPE_CONVERTER_H
-#define SWIFT_AST_CLANG_TYPE_CONVERTER_H
+#ifndef LANGUAGE_AST_CLANG_TYPE_CONVERTER_H
+#define LANGUAGE_AST_CLANG_TYPE_CONVERTER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
@@ -26,14 +30,14 @@
 
 namespace language {
 
-/// Compute C types corresponding to Swift AST types.
+/// Compute C types corresponding to Codira AST types.
 class ClangTypeConverter :
     public TypeVisitor<ClangTypeConverter, clang::QualType> {
 
   using super = TypeVisitor<ClangTypeConverter, clang::QualType>;
 
-  llvm::DenseMap<Type, clang::QualType> Cache;
-  llvm::DenseMap<const clang::Decl *, swift::Decl *> ReversedExportMap;
+  toolchain::DenseMap<Type, clang::QualType> Cache;
+  toolchain::DenseMap<const clang::Decl *, language::Decl *> ReversedExportMap;
 
   bool StdlibTypesAreCached = false;
 
@@ -41,7 +45,7 @@ class ClangTypeConverter :
 
   clang::ASTContext &ClangASTContext;
 
-  const llvm::Triple Triple;
+  const toolchain::Triple Triple;
 
   ClangTypeConverter(const ClangTypeConverter &) = delete;
   ClangTypeConverter &operator=(const ClangTypeConverter &) = delete;
@@ -50,12 +54,12 @@ public:
 
   /// Create a ClangTypeConverter.
   ClangTypeConverter(ASTContext &ctx, clang::ASTContext &clangCtx,
-                     llvm::Triple triple)
+                     toolchain::Triple triple)
     : Context(ctx), ClangASTContext(clangCtx), Triple(triple)
   {
   };
 
-  /// Compute the C function type for a Swift function type.
+  /// Compute the C function type for a Codira function type.
   ///
   /// It is the caller's responsibility to make sure this method is only
   /// called in the appropriate context. For example, it makes sense to use
@@ -70,21 +74,23 @@ public:
   /// \returns The appropriate clang type on success, nullptr on failure.
   ///
   /// Precondition: The representation argument must be C-compatible.
-  const clang::Type *getFunctionType(
-    ArrayRef<AnyFunctionType::Param> params, Type resultTy,
-    AnyFunctionType::Representation repr);
+  template <bool templateArgument>
+  const clang::Type *getFunctionType(ArrayRef<AnyFunctionType::Param> params,
+                                     Type resultTy,
+                                     AnyFunctionType::Representation repr);
 
   /// Compute the C function type for a SIL function type.
+  template <bool templateArgument>
   const clang::Type *getFunctionType(ArrayRef<SILParameterInfo> params,
                                      std::optional<SILResultInfo> result,
                                      SILFunctionType::Representation repr);
 
-  /// Check whether the given Clang declaration is an export of a Swift
+  /// Check whether the given Clang declaration is an export of a Codira
   /// declaration introduced by this converter, and if so, return the original
-  /// Swift declaration.
-  Decl *getSwiftDeclForExportedClangDecl(const clang::Decl *decl) const;
+  /// Codira declaration.
+  Decl *getCodiraDeclForExportedClangDecl(const clang::Decl *decl) const;
 
-  /// Translate Swift generic arguments to Clang C++ template arguments.
+  /// Translate Codira generic arguments to Clang C++ template arguments.
   ///
   /// \p templateArgs must be empty. \p templateParams and \p genericArgs must
   /// be equal in size.
@@ -116,22 +122,22 @@ private:
   clang::QualType convertMemberType(NominalTypeDecl *DC,
                                     StringRef memberName);
 
-  /// Convert Swift types that are used as C++ function template arguments.
+  /// Convert Codira types that are used as C++ function template arguments.
   ///
   /// C++ function templates can only be instantiated with types originally
-  /// imported from Clang, and a handful of builtin Swift types (e.g., integers
+  /// imported from Clang, and a handful of builtin Codira types (e.g., integers
   /// and floats).
   clang::QualType convertTemplateArgument(Type type);
 
   clang::QualType convertClangDecl(Type type, const clang::Decl *decl);
 
-  clang::QualType convertSIMDType(CanType scalarType, unsigned width,
-                                  bool templateArgument);
+  template <bool templateArgument>
+  clang::QualType convertSIMDType(CanType scalarType, unsigned width);
 
-  clang::QualType convertPointerType(CanType pointeeType, PointerKind kind,
-                                     bool templateArgument);
+  template <bool templateArgument>
+  clang::QualType convertPointerType(CanType pointeeType, PointerKind kind);
 
-  void registerExportedClangDecl(Decl *swiftDecl,
+  void registerExportedClangDecl(Decl *languageDecl,
                                  const clang::Decl *clangDecl);
 
   clang::QualType reverseImportedTypeMapping(StructType *type);
@@ -148,14 +154,17 @@ private:
   clang::QualType visitBoundGenericClassType(BoundGenericClassType *type);
   clang::QualType visitBoundGenericType(BoundGenericType *type);
   clang::QualType visitEnumType(EnumType *type);
+  template <bool templateArgument = false>
   clang::QualType visitFunctionType(FunctionType *type);
   clang::QualType visitProtocolCompositionType(ProtocolCompositionType *type);
   clang::QualType visitExistentialType(ExistentialType *type);
   clang::QualType visitBuiltinRawPointerType(BuiltinRawPointerType *type);
   clang::QualType visitBuiltinIntegerType(BuiltinIntegerType *type);
   clang::QualType visitBuiltinFloatType(BuiltinFloatType *type);
+  clang::QualType visitBuiltinVectorType(BuiltinVectorType *type);
   clang::QualType visitArchetypeType(ArchetypeType *type);
   clang::QualType visitDependentMemberType(DependentMemberType *type);
+  template <bool templateArgument = false>
   clang::QualType visitSILFunctionType(SILFunctionType *type);
   clang::QualType visitGenericTypeParamType(GenericTypeParamType *type);
   clang::QualType visitDynamicSelfType(DynamicSelfType *type);
@@ -167,4 +176,4 @@ private:
 
 } // end namespace language
 
-#endif /* SWIFT_AST_CLANG_TYPE_CONVERTER_H */
+#endif /* LANGUAGE_AST_CLANG_TYPE_CONVERTER_H */

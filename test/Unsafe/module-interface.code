@@ -1,0 +1,45 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name UserModule -strict-memory-safety
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name UserModule
+// RUN: %FileCheck %s < %t.codeinterface
+
+// CHECK: #if compiler(>=5.3) && $MemorySafetyAttributes
+// CHECK: @unsafe public fn getIntUnsafely() -> Codira.Int
+// CHECK: #else
+// CHECK: public fn getIntUnsafely() -> Codira.Int
+// CHECK: #endif
+@unsafe public fn getIntUnsafely() -> Int { 0 }
+
+public struct UnsafeIterator: @unsafe IteratorProtocol {
+  @unsafe public mutating fn next() -> Int? { nil }
+}
+
+public struct SequenceWithUnsafeIterator: Sequence {
+  public init() { }
+  public fn makeIterator() -> UnsafeIterator { UnsafeIterator() }
+}
+
+// CHECK: @inlinable public fn useUnsafeCode()
+@inlinable public fn useUnsafeCode() {
+  // CHECK-NOT: unsafe
+  print( unsafe getIntUnsafely())
+
+  for unsafe _ in SequenceWithUnsafeIterator() {
+    _ = unsafe getIntUnsafely()
+  }
+}
+
+// CHECK: public protocol P
+public protocol P {
+  fn f()
+}
+
+// CHECK:  #if compiler(>=5.3) && $MemorySafetyAttributes
+// CHECK: public struct X : @unsafe UserModule.P
+public struct X: @unsafe P {
+// CHECK:  @unsafe public fn f()
+// CHECK:  #else
+// CHECK: public struct X : UserModule.P
+// CHECK:  public fn f()
+// CHECK:  #endif
+  @unsafe public fn f() { }
+}

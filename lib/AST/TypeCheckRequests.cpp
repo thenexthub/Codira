@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
@@ -36,16 +37,16 @@ using namespace language;
 
 namespace language {
 // Implement the type checker type zone (zone 10).
-#define SWIFT_TYPEID_ZONE TypeChecker
-#define SWIFT_TYPEID_HEADER "swift/AST/TypeCheckerTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE TypeChecker
+#define LANGUAGE_TYPEID_HEADER "language/AST/TypeCheckerTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out,
-    const llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> &value) {
+void language::simple_display(
+    toolchain::raw_ostream &out,
+    const toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> &value) {
   if (auto type = value.dyn_cast<const TypeDecl *>()) {
     type->dumpRef(out);
     return;
@@ -55,11 +56,11 @@ void swift::simple_display(
   simple_display(out, ext);
 }
 
-void swift::simple_display(llvm::raw_ostream &out, ASTContext *ctx) {
+void language::simple_display(toolchain::raw_ostream &out, ASTContext *ctx) {
   out << "(AST Context)";
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const TypeResolutionStage &value) {
   switch (value) {
   case TypeResolutionStage::Structural:
@@ -72,7 +73,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   }
 }
 
-void swift::simple_display(llvm::raw_ostream &out, ASTNode node) {
+void language::simple_display(toolchain::raw_ostream &out, ASTNode node) {
   if (node) {
     node.dump(out);
   } else {
@@ -80,21 +81,21 @@ void swift::simple_display(llvm::raw_ostream &out, ASTNode node) {
   }
 }
 
-void swift::simple_display(llvm::raw_ostream &out, Type type) {
+void language::simple_display(toolchain::raw_ostream &out, Type type) {
   if (type)
     type.print(out);
   else
     out << "null";
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const TypeRepr *TyR) {
+void language::simple_display(toolchain::raw_ostream &out, const TypeRepr *TyR) {
   if (TyR)
     TyR->print(out);
   else
     out << "null";
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const TypeLoc source) {
+void language::simple_display(toolchain::raw_ostream &out, const TypeLoc source) {
   out << "(";
   simple_display(out, source.getType());
   out << ", ";
@@ -102,12 +103,12 @@ void swift::simple_display(llvm::raw_ostream &out, const TypeLoc source) {
   out << ")";
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            RegexLiteralPatternFeatureKind kind) {
   out << "regex pattern feature " << kind.getRawValue();
 }
 
-SourceLoc swift::extractNearestSourceLoc(RegexLiteralPatternFeatureKind kind) {
+SourceLoc language::extractNearestSourceLoc(RegexLiteralPatternFeatureKind kind) {
   return SourceLoc();
 }
 
@@ -471,7 +472,7 @@ WhereClauseOwner::WhereClauseOwner(AssociatedTypeDecl *atd)
 SourceLoc WhereClauseOwner::getLoc() const {
   if (auto genericParams = source.dyn_cast<GenericParamList *>()) {
     return genericParams->getWhereLoc();
-  } else if (auto attr = source.dyn_cast<SpecializeAttr *>()) {
+  } else if (auto attr = source.dyn_cast<AbstractSpecializeAttr *>()) {
     return attr->getLocation();
   } else if (auto attr = source.dyn_cast<DifferentiableAttr *>()) {
     return attr->getLocation();
@@ -482,12 +483,15 @@ SourceLoc WhereClauseOwner::getLoc() const {
   return SourceLoc();
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const WhereClauseOwner &owner) {
   if (owner.source.is<TrailingWhereClause *>()) {
     simple_display(out, owner.dc->getAsDecl());
-  } else if (owner.source.is<SpecializeAttr *>()) {
-    out << "@_specialize";
+  } else if (auto attr = owner.source.dyn_cast<AbstractSpecializeAttr *>()) {
+    if (attr->isPublic())
+      out << "@specialized";
+    else
+      out << "@_specialize";
   } else if (owner.source.is<DifferentiableAttr *>()) {
     out << "@_differentiable";
   } else {
@@ -511,7 +515,7 @@ void RequirementRequest::noteCycleStep(DiagnosticEngine &diags) const {
 MutableArrayRef<RequirementRepr> WhereClauseOwner::getRequirements() const {
   if (const auto genericParams = source.dyn_cast<GenericParamList *>()) {
     return genericParams->getRequirements();
-  } else if (const auto attr = source.dyn_cast<SpecializeAttr *>()) {
+  } else if (const auto attr = source.dyn_cast<AbstractSpecializeAttr *>()) {
     if (auto whereClause = attr->getTrailingWhereClause())
       return whereClause->getRequirements();
   } else if (const auto attr = source.dyn_cast<DifferentiableAttr *>()) {
@@ -526,7 +530,7 @@ MutableArrayRef<RequirementRepr> WhereClauseOwner::getRequirements() const {
 
 bool WhereClauseOwner::visitRequirements(
     TypeResolutionStage stage,
-    llvm::function_ref<bool(Requirement, RequirementRepr *)> callback)
+    toolchain::function_ref<bool(Requirement, RequirementRepr *)> callback)
     const && {
   auto &ctx = dc->getASTContext();
   auto &evaluator = ctx.evaluator;
@@ -568,7 +572,7 @@ bool RequirementRequest::isCached() const {
 // DefaultTypeRequest.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const KnownProtocolKind kind) {
   out << getProtocolName(kind);
 }
@@ -593,8 +597,8 @@ void DefaultTypeRequest::cacheResult(Type value) const {
   cacheEntry = value;
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out, const PropertyWrapperTypeInfo &propertyWrapper) {
+void language::simple_display(
+    toolchain::raw_ostream &out, const PropertyWrapperTypeInfo &propertyWrapper) {
   out << "{ ";
   if (propertyWrapper.valueVar)
     out << propertyWrapper.valueVar->printRef();
@@ -603,8 +607,8 @@ void swift::simple_display(
   out << " }";
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out,
+void language::simple_display(
+    toolchain::raw_ostream &out,
     const PropertyWrapperInitializerInfo &initInfo) {
   out << "{";
   if (initInfo.hasInitFromWrappedValue())
@@ -614,8 +618,8 @@ void swift::simple_display(
   out << " }";
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out,
+void language::simple_display(
+    toolchain::raw_ostream &out,
     const PropertyWrapperAuxiliaryVariables &auxiliaryVars) {
   out << "{ ";
   if (auxiliaryVars.backingVar)
@@ -623,8 +627,8 @@ void swift::simple_display(
   out << " }";
 }
 
-void swift::simple_display(
-  llvm::raw_ostream &out, const CtorInitializerKind initKind) {
+void language::simple_display(
+  toolchain::raw_ostream &out, const CtorInitializerKind initKind) {
   out << "{ ";
   switch (initKind) {
   case CtorInitializerKind::Designated:
@@ -639,14 +643,14 @@ void swift::simple_display(
   out << " }";
 }
 
-void swift::simple_display(llvm::raw_ostream &os, PropertyWrapperMutability m) {
+void language::simple_display(toolchain::raw_ostream &os, PropertyWrapperMutability m) {
   static const char *names[] =
     {"is nonmutating", "is mutating", "doesn't exist"};
   
   os << "getter " << names[m.Getter] << ", setter " << names[m.Setter];
 }
 
-void swift::simple_display(llvm::raw_ostream &out, PropertyWrapperLValueness l) {
+void language::simple_display(toolchain::raw_ostream &out, PropertyWrapperLValueness l) {
   out << "is lvalue for get: {";
   simple_display(out, l.isLValueForGetAccess);
   out << "}, is lvalue for set: {";
@@ -654,7 +658,7 @@ void swift::simple_display(llvm::raw_ostream &out, PropertyWrapperLValueness l) 
   out << "}";
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            ResilienceExpansion value) {
   switch (value) {
   case ResilienceExpansion::Minimal:
@@ -666,7 +670,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   }
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            FragileFunctionKind value) {
   switch (value.kind) {
   case FragileFunctionKind::Transparent:
@@ -692,26 +696,26 @@ void swift::simple_display(llvm::raw_ostream &out,
     return;
   }
 
-  llvm_unreachable("Bad FragileFunctionKind");
+  toolchain_unreachable("Bad FragileFunctionKind");
 }
 
 //----------------------------------------------------------------------------//
 // AttachedPropertyWrappersRequest computation.
 //----------------------------------------------------------------------------//
 
-std::optional<llvm::TinyPtrVector<CustomAttr *>>
+std::optional<toolchain::TinyPtrVector<CustomAttr *>>
 AttachedPropertyWrappersRequest::getCachedResult() const {
   auto *decl = std::get<0>(getStorage());
 
   if (decl->hasNoAttachedPropertyWrappers())
-    return llvm::TinyPtrVector<CustomAttr *>();
+    return toolchain::TinyPtrVector<CustomAttr *>();
 
   return decl->getASTContext().evaluator.getCachedNonEmptyOutput(*this);
 }
 
 
 void AttachedPropertyWrappersRequest::cacheResult(
-    llvm::TinyPtrVector<CustomAttr *> result) const {
+    toolchain::TinyPtrVector<CustomAttr *> result) const {
   auto *decl = std::get<0>(getStorage());
 
   if (result.empty()) {
@@ -1261,7 +1265,7 @@ SourceLoc PrecedenceGroupDescriptor::getLoc() const {
   return nameLoc;
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const PrecedenceGroupDescriptor &desc) {
   out << "precedence group " << desc.ident << " at ";
   desc.nameLoc.print(out, desc.dc->getASTContext().SourceMgr);
@@ -1286,7 +1290,7 @@ void InheritsSuperclassInitializersRequest::cacheResult(bool value) const {
 // ResolveImplicitMemberRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            ImplicitMemberAction action) {
   switch (action) {
   case ImplicitMemberAction::ResolveImplicitInit:
@@ -1368,6 +1372,38 @@ void AssociatedConformanceRequest::cacheResult(
 }
 
 //----------------------------------------------------------------------------//
+// RawConformanceIsolationRequest computation.
+//----------------------------------------------------------------------------//
+std::optional<std::optional<ActorIsolation>>
+RawConformanceIsolationRequest::getCachedResult() const {
+  // We only want to cache for global-actor-isolated conformances. For
+  // everything else, which is nearly every conformance, this request quickly
+  // returns "nonisolated" so there is no point in caching it.
+  auto conformance = std::get<0>(getStorage());
+
+  // Was actor isolation non-isolated?
+  if (conformance->isRawIsolationInferred())
+    return std::optional<ActorIsolation>();
+
+  ASTContext &ctx = conformance->getDeclContext()->getASTContext();
+  return ctx.evaluator.getCachedNonEmptyOutput(*this);
+}
+
+void RawConformanceIsolationRequest::cacheResult(
+    std::optional<ActorIsolation> result) const {
+  auto conformance = std::get<0>(getStorage());
+
+  // Common case: conformance is inferred, so there's no result.
+  if (!result) {
+    conformance->setRawConformanceInferred();
+    return;
+  }
+
+  ASTContext &ctx = conformance->getDeclContext()->getASTContext();
+  ctx.evaluator.cacheNonEmptyOutput(*this, std::move(result));
+}
+
+//----------------------------------------------------------------------------//
 // ConformanceIsolationRequest computation.
 //----------------------------------------------------------------------------//
 std::optional<ActorIsolation>
@@ -1376,31 +1412,25 @@ ConformanceIsolationRequest::getCachedResult() const {
   // everything else, which is nearly every conformance, this request quickly
   // returns "nonisolated" so there is no point in caching it.
   auto conformance = std::get<0>(getStorage());
-  auto rootNormal =
-      dyn_cast<NormalProtocolConformance>(conformance->getRootConformance());
-  if (!rootNormal)
-    return ActorIsolation::forNonisolated(false);
 
   // Was actor isolation non-isolated?
-  if (rootNormal->isComputedNonisolated())
+  if (conformance->isComputedNonisolated())
     return ActorIsolation::forNonisolated(false);
 
-  ASTContext &ctx = rootNormal->getDeclContext()->getASTContext();
+  ASTContext &ctx = conformance->getDeclContext()->getASTContext();
   return ctx.evaluator.getCachedNonEmptyOutput(*this);
 }
 
 void ConformanceIsolationRequest::cacheResult(ActorIsolation result) const {
   auto conformance = std::get<0>(getStorage());
-  auto rootNormal =
-      cast<NormalProtocolConformance>(conformance->getRootConformance());
 
   // Common case: conformance is nonisolated.
   if (result.isNonisolated()) {
-    rootNormal->setComputedNonnisolated();
+    conformance->setComputedNonnisolated();
     return;
   }
 
-  ASTContext &ctx = rootNormal->getDeclContext()->getASTContext();
+  ASTContext &ctx = conformance->getDeclContext()->getASTContext();
   ctx.evaluator.cacheNonEmptyOutput(*this, std::move(result));
 }
 
@@ -1494,7 +1524,7 @@ void DefaultArgumentTypeRequest::cacheResult(Type type) const {
 // DefaultInitializerIsolation computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out, Initializer *init) {
+void language::simple_display(toolchain::raw_ostream &out, Initializer *init) {
   switch (init->getInitializerKind()) {
   case InitializerKind::PatternBinding:
     out << "pattern binding initializer";
@@ -1716,7 +1746,7 @@ void TypeCheckPrimaryFileRequest::cacheResult(evaluator::SideEffect) const {
     auto &Ctx = SF->getASTContext();
     FrontendStatsTracer tracer(Ctx.Stats, "AST verification");
     // Verify the SourceFile.
-    swift::verify(*SF);
+    language::verify(*SF);
   }
 }
 
@@ -1746,7 +1776,7 @@ TypeCheckFunctionBodyRequest::getCachedResult() const {
   case BodyKind::None:
     return std::nullopt;
   }
-  llvm_unreachable("Unhandled BodyKind in switch");
+  toolchain_unreachable("Unhandled BodyKind in switch");
 }
 
 void TypeCheckFunctionBodyRequest::cacheResult(BraceStmt *body) const {
@@ -1764,7 +1794,7 @@ TypeCheckFunctionBodyRequest::readDependencySource(
 // ModuleImplicitImportsRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const ImportedModule &module) {
   out << "import of ";
   if (!module.accessPath.empty()) {
@@ -1774,7 +1804,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   simple_display(out, module.importedModule);
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const UnloadedImportedModule &module) {
   out << "import of ";
   if (!module.getAccessPath().empty()) {
@@ -1785,7 +1815,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   module.getModulePath().print(out);
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const AttributedImport<std::tuple<>> &import) {
   out << " [";
 
@@ -1800,7 +1830,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 
   if (import.options.contains(ImportFlags::SPIAccessControl)) {
     out << " spi(";
-    llvm::interleaveComma(import.spiGroups, out, [&out](Identifier name) {
+    toolchain::interleaveComma(import.spiGroups, out, [&out](Identifier name) {
                                                    simple_display(out, name);
                                                  });
     out << ")";
@@ -1815,15 +1845,15 @@ void swift::simple_display(llvm::raw_ostream &out,
   out << " ]";
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const ImplicitImportList &importList) {
-  llvm::interleaveComma(importList.imports, out,
+  toolchain::interleaveComma(importList.imports, out,
                         [&](const auto &import) {
                           simple_display(out, import);
                         });
   if (!importList.imports.empty() && !importList.unloadedImports.empty())
     out << ", ";
-  llvm::interleaveComma(importList.unloadedImports, out,
+  toolchain::interleaveComma(importList.unloadedImports, out,
                         [&](const auto &import) {
                           simple_display(out, import);
                         });
@@ -1838,12 +1868,12 @@ void ResolveTypeRequest::noteCycleStep(DiagnosticEngine &diags) const {
   diags.diagnose(repr->getLoc(), diag::circular_type_resolution_note, repr);
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const TypeResolution *resolution) {
   out << "while resolving type ";
 }
 
-SourceLoc swift::extractNearestSourceLoc(const TypeRepr *repr) {
+SourceLoc language::extractNearestSourceLoc(const TypeRepr *repr) {
   if (!repr)
     return SourceLoc();
   return repr->getLoc();
@@ -1853,7 +1883,7 @@ SourceLoc swift::extractNearestSourceLoc(const TypeRepr *repr) {
 // CustomAttrTypeRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out, CustomAttrTypeKind value) {
+void language::simple_display(toolchain::raw_ostream &out, CustomAttrTypeKind value) {
   switch (value) {
   case CustomAttrTypeKind::NonGeneric:
     out << "non-generic";
@@ -1868,7 +1898,7 @@ void swift::simple_display(llvm::raw_ostream &out, CustomAttrTypeKind value) {
     return;
   }
 
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 std::optional<Type> CustomAttrTypeRequest::getCachedResult() const {
@@ -1901,7 +1931,7 @@ bool ActorIsolation::requiresSubstitution() const {
   case GlobalActor:
     return getGlobalActor()->hasTypeParameter();
   }
-  llvm_unreachable("unhandled actor isolation kind!");
+  toolchain_unreachable("unhandled actor isolation kind!");
 }
 
 ActorIsolation ActorIsolation::subst(SubstitutionMap subs) const {
@@ -1917,10 +1947,10 @@ ActorIsolation ActorIsolation::subst(SubstitutionMap subs) const {
     return forGlobalActor(getGlobalActor().subst(subs))
         .withPreconcurrency(preconcurrency());
   }
-  llvm_unreachable("unhandled actor isolation kind!");
+  toolchain_unreachable("unhandled actor isolation kind!");
 }
 
-void ActorIsolation::printForDiagnostics(llvm::raw_ostream &os,
+void ActorIsolation::printForDiagnostics(toolchain::raw_ostream &os,
                                          StringRef openingQuotationMark,
                                          bool asNoun) const {
   switch (*this) {
@@ -1958,7 +1988,7 @@ void ActorIsolation::printForDiagnostics(llvm::raw_ostream &os,
   }
 }
 
-void ActorIsolation::print(llvm::raw_ostream &os) const {
+void ActorIsolation::print(toolchain::raw_ostream &os) const {
   switch (getKind()) {
   case Unspecified:
     os << "unspecified";
@@ -1985,10 +2015,10 @@ void ActorIsolation::print(llvm::raw_ostream &os) const {
     os << "erased";
     return;
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
-void ActorIsolation::printForSIL(llvm::raw_ostream &os) const {
+void ActorIsolation::printForSIL(toolchain::raw_ostream &os) const {
   switch (getKind()) {
   case Unspecified:
     os << "unspecified";
@@ -2012,17 +2042,17 @@ void ActorIsolation::printForSIL(llvm::raw_ostream &os) const {
     os << "erased";
     return;
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
 void ActorIsolation::dump() const {
-  print(llvm::dbgs());
-  llvm::dbgs() << '\n';
+  print(toolchain::dbgs());
+  toolchain::dbgs() << '\n';
 }
 
 void ActorIsolation::dumpForDiagnostics() const {
-  printForDiagnostics(llvm::dbgs());
-  llvm::dbgs() << '\n';
+  printForDiagnostics(toolchain::dbgs());
+  toolchain::dbgs() << '\n';
 }
 
 unsigned ActorIsolation::getActorInstanceUnionIndex() const {
@@ -2033,11 +2063,11 @@ unsigned ActorIsolation::getActorInstanceUnionIndex() const {
     return 1;
   if (actorInstance.is<Expr *>())
     return 2;
-  llvm_unreachable("Unhandled");
+  toolchain_unreachable("Unhandled");
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out, const ActorIsolation &state) {
+void language::simple_display(
+    toolchain::raw_ostream &out, const ActorIsolation &state) {
   if (state.preconcurrency())
     out << "preconcurrency ";
 
@@ -2087,7 +2117,7 @@ void swift::simple_display(
 }
 
 void IsolationSource::printForDiagnostics(
-    llvm::raw_ostream &os,
+    toolchain::raw_ostream &os,
     StringRef openingQuotationMark) const {
   switch (this->kind) {
   case IsolationSource::Explicit:
@@ -2132,26 +2162,26 @@ void IsolationSource::printForDiagnostics(
   }
 }
 
-bool swift::areTypesEqual(Type type1, Type type2) {
+bool language::areTypesEqual(Type type1, Type type2) {
   if (!type1 || !type2)
     return !type1 && !type2;
 
   return type1->isEqual(type2);
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out, BodyInitKind initKind) {
+void language::simple_display(
+    toolchain::raw_ostream &out, BodyInitKind initKind) {
   switch (initKind) {
   case BodyInitKind::None: out << "none"; return;
   case BodyInitKind::Delegating: out << "delegating"; return;
   case BodyInitKind::Chained: out << "chained"; return;
   case BodyInitKind::ImplicitChained: out << "implicit_chained"; return;
   }
-  llvm_unreachable("Bad body init kind");
+  toolchain_unreachable("Bad body init kind");
 }
 
-void swift::simple_display(
-    llvm::raw_ostream &out, BodyInitKindAndExpr initKindAndExpr) {
+void language::simple_display(
+    toolchain::raw_ostream &out, BodyInitKindAndExpr initKindAndExpr) {
   simple_display(out, initKindAndExpr.initKind);
   out << " ";
   simple_display(out, initKindAndExpr.initExpr);
@@ -2216,7 +2246,7 @@ DeclNameRef UnresolvedMacroReference::getMacroName() const {
       return DeclNameRef();
     return macro->getNameRef();
   }
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 SourceLoc UnresolvedMacroReference::getSigilLoc() const {
@@ -2224,7 +2254,7 @@ SourceLoc UnresolvedMacroReference::getSigilLoc() const {
     return expansion->getPoundLoc();
   if (auto *attr = pointer.dyn_cast<CustomAttr *>())
     return attr->getRangeWithAt().Start;
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 DeclNameRef UnresolvedMacroReference::getModuleName() const {
@@ -2236,7 +2266,7 @@ DeclNameRef UnresolvedMacroReference::getModuleName() const {
       return DeclNameRef();
     return module->getNameRef();
   }
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 DeclNameLoc UnresolvedMacroReference::getModuleNameLoc() const {
@@ -2248,7 +2278,7 @@ DeclNameLoc UnresolvedMacroReference::getModuleNameLoc() const {
       return DeclNameLoc();
     return module->getNameLoc();
   }
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 DeclNameLoc UnresolvedMacroReference::getMacroNameLoc() const {
@@ -2260,7 +2290,7 @@ DeclNameLoc UnresolvedMacroReference::getMacroNameLoc() const {
       return DeclNameLoc();
     return macro->getNameLoc();
   }
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 SourceRange UnresolvedMacroReference::getGenericArgsRange() const {
@@ -2275,7 +2305,7 @@ SourceRange UnresolvedMacroReference::getGenericArgsRange() const {
     return macro->getAngleBrackets();
   }
 
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 ArrayRef<TypeRepr *> UnresolvedMacroReference::getGenericArgs() const {
@@ -2290,7 +2320,7 @@ ArrayRef<TypeRepr *> UnresolvedMacroReference::getGenericArgs() const {
     return macro->getGenericArgs();
   }
 
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 ArgumentList *UnresolvedMacroReference::getArgs() const {
@@ -2298,7 +2328,7 @@ ArgumentList *UnresolvedMacroReference::getArgs() const {
     return expansion->getArgs();
   if (auto *attr = pointer.dyn_cast<CustomAttr *>())
     return attr->getArgs();
-  llvm_unreachable("Unhandled case");
+  toolchain_unreachable("Unhandled case");
 }
 
 MacroRoles UnresolvedMacroReference::getMacroRoles() const {
@@ -2308,10 +2338,10 @@ MacroRoles UnresolvedMacroReference::getMacroRoles() const {
   if (pointer.is<CustomAttr *>())
     return getAttachedMacroRoles();
 
-  llvm_unreachable("Unsupported macro reference");
+  toolchain_unreachable("Unsupported macro reference");
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const UnresolvedMacroReference &ref) {
   if (ref.getFreestanding())
     out << "freestanding-macro-expansion";
@@ -2319,15 +2349,15 @@ void swift::simple_display(llvm::raw_ostream &out,
     out << "custom-attr";
 }
 
-void swift::simple_display(llvm::raw_ostream &out, MacroRoles roles) {
+void language::simple_display(toolchain::raw_ostream &out, MacroRoles roles) {
   out << "macro-roles";
 }
 
-bool swift::operator==(MacroRoles lhs, MacroRoles rhs) {
+bool language::operator==(MacroRoles lhs, MacroRoles rhs) {
   return lhs.containsOnly(rhs);
 }
 
-llvm::hash_code swift::hash_value(MacroRoles roles) {
+toolchain::hash_code language::hash_value(MacroRoles roles) {
   return roles.toRaw();
 }
 
@@ -2622,7 +2652,7 @@ UniqueUnderlyingTypeSubstitutionsRequest::evaluate(
         return false;
       }
 
-      llvm_unreachable("bad SourceFileKind");
+      toolchain_unreachable("bad SourceFileKind");
     };
 
     if (shouldTypecheckFunctionBody(afd))
@@ -2706,26 +2736,38 @@ void ExpandBodyMacroRequest::noteCycleStep(DiagnosticEngine &diags) const {
 // LifetimeDependenceInfoRequest computation.
 //----------------------------------------------------------------------------//
 
-std::optional<std::optional<llvm::ArrayRef<LifetimeDependenceInfo>>>
+std::optional<std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>>
 LifetimeDependenceInfoRequest::getCachedResult() const {
-  auto *func = std::get<0>(getStorage());
+  auto *decl = std::get<0>(getStorage());
+  bool noLifetimeDependenceInfo;
 
-  if (func->LazySemanticInfo.NoLifetimeDependenceInfo)
+  if (auto *fn = dyn_cast<AbstractFunctionDecl>(decl)) {
+    noLifetimeDependenceInfo = fn->LazySemanticInfo.NoLifetimeDependenceInfo;
+  } else {
+    auto *eed = cast<EnumElementDecl>(decl);
+    noLifetimeDependenceInfo = eed->LazySemanticInfo.NoLifetimeDependenceInfo;
+  }
+
+  if (noLifetimeDependenceInfo)
     return std::optional(std::optional<LifetimeDependenceInfo>());
 
-  return func->getASTContext().evaluator.getCachedNonEmptyOutput(*this);
+  return decl->getASTContext().evaluator.getCachedNonEmptyOutput(*this);
 }
 
 void LifetimeDependenceInfoRequest::cacheResult(
-    std::optional<llvm::ArrayRef<LifetimeDependenceInfo>> result) const {
-  auto *func = std::get<0>(getStorage());
-  
+    std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>> result) const {
+  auto *decl = std::get<0>(getStorage());
+
   if (!result) {
-    func->LazySemanticInfo.NoLifetimeDependenceInfo = 1;
-    return;
+    if (auto *fn = dyn_cast<AbstractFunctionDecl>(decl)) {
+      fn->LazySemanticInfo.NoLifetimeDependenceInfo = 1;
+      return;
+    }
+    auto *eed = cast<EnumElementDecl>(decl);
+    eed->LazySemanticInfo.NoLifetimeDependenceInfo = 1;
   }
 
-  func->getASTContext().evaluator.cacheNonEmptyOutput(*this, std::move(result));
+  decl->getASTContext().evaluator.cacheNonEmptyOutput(*this, std::move(result));
 }
 
 //----------------------------------------------------------------------------//
@@ -2734,13 +2776,13 @@ void LifetimeDependenceInfoRequest::cacheResult(
 
 std::optional<CaptureInfo>
 CaptureInfoRequest::getCachedResult() const {
-  auto *func = std::get<0>(getStorage());
-  return func->getCachedCaptureInfo();
+  auto *fn = std::get<0>(getStorage());
+  return fn->getCachedCaptureInfo();
 }
 
 void CaptureInfoRequest::cacheResult(CaptureInfo info) const {
-  auto *func = std::get<0>(getStorage());
-  return func->setCaptureInfo(info);
+  auto *fn = std::get<0>(getStorage());
+  return fn->setCaptureInfo(info);
 }
 
 //----------------------------------------------------------------------------//

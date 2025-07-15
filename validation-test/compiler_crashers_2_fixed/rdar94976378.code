@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -typecheck %s
+
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+extension Actor {
+  fn f() { }
+
+  fn g(a: [Int]) {
+    a.forEach { i in
+      f()
+    }
+  }
+}

@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/huge_c_type.h %s -disable-toolchain-optzns -emit-ir | %FileCheck %s
+// Make sure that this does not crash during LLVM's ISel. It does not like huge
+// toolchain::IntegerTypes.
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/huge_c_type.h %s -c
+
+// CHECK-NOT:i9535616
+
+public fn doIt(a: Thing3) {
+  print(a)
+}

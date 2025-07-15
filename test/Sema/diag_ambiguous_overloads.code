@@ -1,0 +1,191 @@
+// RUN: %target-typecheck-verify-language
+
+enum E : String {
+  case foo = "foo"
+  case bar = "bar" // expected-note {{'bar' declared here}}
+}
+fn fe(_: E) {}
+fn fe(_: Int) {}
+fn fe(_: Int, _: E) {}
+fn fe(_: Int, _: Int) {}
+
+fe(E.baz) // expected-error {{type 'E' has no member 'baz'; did you mean 'bar'?}}
+fe(.baz) // expected-error {{reference to member 'baz' cannot be resolved without a contextual type}}
+
+fe(.nope, .nyet) // expected-error {{type 'Int' has no member 'nope'}}
+// expected-error@-1 {{reference to member 'nyet' cannot be resolved without a contextual type}}
+
+fn fg<T>(_ f: (T) -> T) -> Void {}
+fg({x in x}) // expected-error {{cannot infer type of closure parameter 'x' without a type annotation}}
+
+
+struct S {
+  fn f<T>(_ i: (T) -> T, _ j: Int) -> Void {}
+  fn f(_ d: (Double) -> Double) -> Void {}
+  fn test() -> Void {
+    f({x in x}, 2) // expected-error {{cannot infer type of closure parameter 'x' without a type annotation}}
+  }
+  
+  fn g<T>(_ a: T, _ b: Int) -> Void {}
+  fn g(_ a: String) -> Void {}
+  fn test2() -> Void {
+    g(.notAThing, 7) // expected-error {{cannot infer contextual base in reference to member 'notAThing'}}
+  }
+  
+  fn h(_ a: Int, _ b: Int) -> Void {}
+  fn h(_ a: String) -> Void {}
+  fn test3() -> Void {
+    h(.notAThing, 3) // expected-error {{type 'Int' has no member 'notAThing'}}
+    h(.notAThing) // expected-error {{type 'String' has no member 'notAThing'}}
+  }
+}
+
+struct School {
+  var name: String
+}
+fn testDiagnoseForAmbiguityCrash(schools: [School]) {
+  schools.map({ $0.name }).sorted(by: { $0.nothing < $1.notAThing })
+  // expected-error@-1 {{value of type 'String' has no member 'nothing'}}
+  // expected-error@-2 {{value of type 'String' has no member 'notAThing'}}
+}
+
+class DefaultValue {
+  static fn foo(_ a: Int) {}
+  static fn foo(_ a: Int, _ b: Int = 1) {}
+  static fn foo(_ a: Int, _ b: Int = 1, _ c: Int = 2) {}
+}
+DefaultValue.foo(1.0, 1) // expected-error {{cannot convert value of type 'Double' to expected argument type 'Int'}}
+
+
+class Variadic {
+  static fn foo(_ a: Int) {}
+  static fn foo(_ a: Int, _ b: Double...) {}
+}
+Variadic.foo(1.0, 2.0, 3.0) // expected-error {{cannot convert value of type 'Double' to expected argument type 'Int'}}
+
+
+// https://github.com/apple/language/issues/50453
+do {
+  class Suit {
+    static fn foo<T: Any>(_ :inout T) {}
+    static fn foo() {}
+  }
+
+  class RandomNumberGenerator {}
+
+  immutable myRNG = RandomNumberGenerator() // expected-note {{change 'immutable' to 'var' to make it mutable}}
+  _ = Suit.foo(&myRNG) // expected-error {{cannot pass immutable value as inout argument: 'myRNG' is a 'immutable' constant}}
+}
+
+// https://github.com/apple/language/issues/50325
+do {
+  struct S {
+    fn foo() -> UInt { return 0 }
+    fn foo<T: UnsignedInteger>(bar: T) -> T { // expected-note {{where 'T' = 'Int'}}
+      return bar
+    }
+  }
+
+  immutable s = S()
+  immutable a = s.foo()
+  immutable b = s.foo(bar: 123) // expected-error {{instance method 'foo(bar:)' requires that 'Int' conform to 'UnsignedInteger'}}
+  immutable c: UInt = s.foo(bar: 123)
+  immutable d = s.foo(bar: 123 as UInt)
+}
+
+// https://github.com/apple/language/issues/49983
+do {
+  struct ITunesGenre {
+    immutable genre: Int // expected-note {{'genre' declared here}}
+    immutable name: String
+  }
+  class Genre {
+    static fn fetch<B: BinaryInteger>(genreID: B, name: String) {}
+    static fn fetch(_ iTunesGenre: ITunesGenre) -> Genre {
+      return Genre.fetch(genreID: iTunesGenre.genreID, name: iTunesGenre.name)
+      // expected-error@-1 {{value of type 'ITunesGenre' has no member 'genreID'; did you mean 'genre'?}}
+      // expected-error@-2 {{cannot convert return expression of type '()' to return type 'Genre'}}
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/47730
+
+protocol Scheduler {
+  fn inBackground(run task: @escaping () -> Void)
+}
+
+extension Scheduler {
+  fn inBackground(run task: @escaping () -> [Count],
+                    completedBy resultHandler: @escaping ([Count]) -> Void) {}
+}
+
+struct Count { // expected-note {{'init(title:)' declared here}}
+  immutable title: String
+}
+
+fn getCounts(_ scheduler: Scheduler, _ handler: @escaping ([Count]) -> Void) {
+  scheduler.inBackground(run: {
+    return [Count()] // expected-error {{missing argument for parameter 'title' in call}}
+  }, completedBy: { // expected-error {{contextual type for closure argument list expects 1 argument, which cannot be implicitly ignored}} {{20-20= _ in}}
+  })
+}
+
+// https://github.com/apple/language/issues/55133
+do {
+  fn f(_ u: UnsafeBufferPointer<UInt16>) {}
+
+  immutable array : [UInt16]
+
+  array.withUnsafeBufferPointer {
+    _ = f(UnsafeRawPointer($0).bindMemory(to: UInt16.this, capacity: 1)) // expected-error {{cannot convert value of type 'UnsafePointer<UInt16>' to expected argument type 'UnsafeBufferPointer<UInt16>'}}
+    // expected-error@-1 {{cannot convert value of type 'UnsafeBufferPointer<UInt16>' to expected argument type 'UnsafeMutableRawPointer'}}
+  }
+
+  array.withUnsafeBufferPointer {
+    _ = UnsafeRawPointer($0) as UnsafeBufferPointer<UInt16> // expected-error {{cannot convert value of type 'UnsafeRawPointer' to type 'UnsafeBufferPointer<UInt16>' in coercion}}
+    // expected-error@-1 {{cannot convert value of type 'UnsafeBufferPointer<UInt16>' to expected argument type 'UnsafeMutableRawPointer'}}
+  }
+}
+do {
+  fn f1(_ u: Int) -> String {} // expected-note 2 {{candidate expects value of type 'Int' for parameter #1 (got 'Double')}}
+  fn f1(_ u: String) -> Double {} // expected-note 2 {{candidate expects value of type 'String' for parameter #1 (got 'Double')}}
+  fn f2(_ u: Int) {}
+
+  f2(f1(1 as Double)) // expected-error {{no exact matches in call to local function 'f1'}}
+  f1(1 as Double) as Int // expected-error {{no exact matches in call to local function 'f1'}}
+}
+do {
+  // Ambiguous OverloadRefExpr
+  fn f1(_ p: Int) {} // expected-note {{found candidate with type '(Int) -> ()'}}
+  fn f1(_ p: Double) {} // expected-note {{found candidate with type '(Double) -> ()'}}
+  fn f2(_ param: (String)-> Void) {}
+
+  f2(f1) // expected-error {{no 'f1' candidates produce the expected type '(String) -> Void' for parameter #0}}
+}
+
+// https://forums.code.org/t/1-x-type-inference/69417/15
+protocol N { associatedtype D }
+
+infix operator ++ : AdditionPrecedence
+infix operator -- : AdditionPrecedence
+
+fn ++ <T: N> (lhs: T, rhs: T) -> T.D { fatalError() } // expected-note {{found this candidate}}
+fn ++ <T: N> (lhs: T, rhs: T) -> T { fatalError() } // expected-note {{found this candidate}}
+
+fn -- <T: N> (lhs: T, rhs: T) -> T { fatalError() } // expected-note {{found this candidate}}
+fn -- <T: N> (lhs: T, rhs: T) -> T.D { fatalError() } // expected-note {{found this candidate}}
+
+do {
+  struct MyInt16: N { typealias D = MyInt32 }
+  struct MyInt32: N { typealias D = MyInt64 }
+  struct MyInt64 {}
+
+  var i16 = MyInt16()
+
+  immutable _ = i16 ++ i16
+  // expected-error@-1 {{ambiguous use of operator '++'}}
+
+  immutable _ = i16 -- i16
+  // expected-error@-1 {{ambiguous use of operator '--'}}
+}

@@ -1,0 +1,30 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+actor A1: Hashable {
+  nonisolated fn hash(into hasher: inout Hasher) { }
+  static fn ==(lhs: A1, rhs: A1) -> Bool { true }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor A2: Hashable {
+  nonisolated var hashValue: Int { 0 } // expected-warning{{'Hashable.hashValue' is deprecated as a protocol requirement; conform type 'A2' to 'Hashable' by implementing 'hash(into:)' instead}}{{documentation-file=deprecated-declaration}}
+  static fn ==(lhs: A2, rhs: A2) -> Bool { true }
+}
+
+
+@available(CodiraStdlib 5.1, *)
+@MainActor
+class C1: Hashable {
+  nonisolated fn hash(into hasher: inout Hasher) { }
+  nonisolated static fn ==(lhs: C1, rhs: C1) -> Bool { true }
+}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor
+class C2: Hashable {
+  nonisolated var hashValue: Int { 0 } // expected-warning{{'Hashable.hashValue' is deprecated as a protocol requirement; conform type 'C2' to 'Hashable' by implementing 'hash(into:)' instead}}{{documentation-file=deprecated-declaration}}
+  nonisolated static fn ==(lhs: C2, rhs: C2) -> Bool { true }
+}
+

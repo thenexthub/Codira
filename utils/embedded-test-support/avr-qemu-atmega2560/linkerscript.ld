@@ -11,5 +11,5 @@ SECTIONS
    .boot     : { *(.start) } > flash_boot
    .data     : { *(.bss*) ; *(.data*) ; *(.rodata*) } > flash_sram
    .text     : { *(.text*) } > flash_text
-   /DISCARD/ : { *(.swift_modhash*) }
+   /DISCARD/ : { *(.code_modhash*) }
 }

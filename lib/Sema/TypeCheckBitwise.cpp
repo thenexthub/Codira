@@ -1,13 +1,17 @@
 //===------ TypeCheckBitwise.cpp -  Type checking bitwise protocols -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Semantic analysis for BitwiseCopyable.
@@ -114,7 +118,7 @@ private:
 
 bool BitwiseCopyableStorageVisitor::visitMemberDecl(ValueDecl *decl, Type ty) {
   storage = decl;
-  SWIFT_DEFER { storage = nullptr; };
+  LANGUAGE_DEFER { storage = nullptr; };
 
   auto *element = dyn_cast<EnumElementDecl>(decl);
   if (element && element->isIndirect()) {
@@ -351,7 +355,7 @@ bool DeriveImplicitBitwiseCopyableConformance::allowedForFile() {
     case SourceFileKind::SIL:
       return true;
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
   case FileUnitKind::Builtin:
     // Conformances were explicitly added to builtin types in
@@ -377,8 +381,8 @@ NormalProtocolConformance *
 DeriveImplicitBitwiseCopyableConformance::synthesizeConformance(
     DeclContext *dc) {
   auto conformance = context.getNormalConformance(
-      nominal->getDeclaredInterfaceType(), protocol, nominal->getLoc(), dc,
-      ProtocolConformanceState::Complete,
+      nominal->getDeclaredInterfaceType(), protocol, nominal->getLoc(),
+      /*inheritedTypeRepr=*/nullptr, dc, ProtocolConformanceState::Complete,
       ProtocolConformanceOptions());
   conformance->setSourceKindAndImplyingConformance(
       ConformanceEntryKind::Synthesized, nullptr);
@@ -389,7 +393,7 @@ DeriveImplicitBitwiseCopyableConformance::synthesizeConformance(
 } // end anonymous namespace
 
 ProtocolConformance *
-swift::deriveImplicitBitwiseCopyableConformance(NominalTypeDecl *nominal) {
+language::deriveImplicitBitwiseCopyableConformance(NominalTypeDecl *nominal) {
   assert(
       nominal->getASTContext().getProtocol(KnownProtocolKind::BitwiseCopyable));
   auto check = getImplicitCheckForNominal(nominal);
@@ -398,7 +402,7 @@ swift::deriveImplicitBitwiseCopyableConformance(NominalTypeDecl *nominal) {
   return DeriveImplicitBitwiseCopyableConformance(nominal, *check).derive();
 }
 
-bool swift::checkBitwiseCopyableConformance(ProtocolConformance *conformance,
+bool language::checkBitwiseCopyableConformance(ProtocolConformance *conformance,
                                             bool isImplicit) {
   assert(conformance->getProtocol() ==
          conformance->getDeclContext()

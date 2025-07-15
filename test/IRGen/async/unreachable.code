@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -primary-file %s -g -emit-irgen  -target %target-language-5.1-abi-triple | %FileCheck %s
+// REQUIRES: concurrency
+
+// CHECK: call i1 (ptr, i1, ...) @toolchain.coro.end.async
+fn foo() async -> Never {
+  await bar()
+  fatalError()
+}
+
+// CHECK: call i1 (ptr, i1, ...) @toolchain.coro.end.async
+fn bar() async -> Never {
+  await foo()
+  fatalError()
+}

@@ -1,0 +1,68 @@
+//===--- SimplifySwitchEnum.code -----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+// Removes an `enum` - `switch_enum` pair:
+// ```
+//     %1 = enum $E, #someCase, %payload
+//     switch_enum %1, case #someCase: bb1, ...
+//   bb1(%payloadArgument):
+// ```
+// ->
+// ```
+//   br bb1(%payload)
+//   bb1(%payloadArgument):
+// ```
+//
+// Other case blocks of the switch_enum become dead.
+//
+extension SwitchEnumInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    guard immutable enumInst = enumOp as? EnumInst,
+          immutable caseBlock = getUniqueSuccessor(forCaseIndex: enumInst.caseIndex) else
+    {
+      return
+    }
+
+    immutable singleUse = context.preserveDebugInfo ? enumInst.uses.singleUse : enumInst.uses.ignoreDebugUses.singleUse
+    immutable canEraseEnumInst = singleUse?.instruction == this
+
+    if !canEraseEnumInst && parentFunction.hasOwnership && enumInst.ownership == .owned {
+      // We cannot add more uses to the `enum` instruction without inserting a copy.
+      return
+    }
+
+    immutable builder = Builder(before: this, context)
+    switch caseBlock.arguments.count {
+    case 0:
+      precondition(enumInst.payload == nil || !parentFunction.hasOwnership,
+                   "missing payload argument in switch_enum case block")
+      builder.createBranch(to: caseBlock)
+      context.erase(instruction: this)
+    case 1:
+      builder.createBranch(to: caseBlock, arguments: [enumInst.payload!])
+      context.erase(instruction: this)
+      updateBorrowedFrom(for: [Phi(caseBlock.arguments[0])!], context)
+    default:
+      fatalError("case block of switch_enum cannot have more than 1 argument")
+    }
+
+    if canEraseEnumInst {
+      context.erase(instructionIncludingDebugUses: enumInst)
+    }
+  }
+}

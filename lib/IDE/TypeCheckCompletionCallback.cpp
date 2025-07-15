@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -49,7 +50,7 @@ void TypeCheckCompletionCallback::fallbackTypeCheck(DeclContext *DC) {
 
 // MARK: - Utility functions for subclasses of TypeCheckCompletionCallback
 
-Type swift::ide::getTypeForCompletion(const constraints::Solution &S,
+Type language::ide::getTypeForCompletion(const constraints::Solution &S,
                                       ASTNode Node) {
   // Use the contextual type, unless it is still unresolved, in which case fall
   // back to getting the type from the expression.
@@ -61,7 +62,7 @@ Type swift::ide::getTypeForCompletion(const constraints::Solution &S,
   }
 
   if (!S.hasType(Node)) {
-    assert(false && "Expression wasn't type checked?");
+    CONDITIONAL_ASSERT(false && "Expression wasn't type checked?");
     return nullptr;
   }
 
@@ -84,13 +85,13 @@ Type swift::ide::getTypeForCompletion(const constraints::Solution &S,
 /// \code
 /// (binary_expr implicit type='$T3'
 ///   (overloaded_decl_ref_expr function_ref=compound decls=[
-///     Swift.(file).~=,
-///     Swift.(file).Optional extension.~=])
+///     Codira.(file).~=,
+///     Codira.(file).Optional extension.~=])
 ///   (argument_list implicit
 ///     (argument
 ///       (code_completion_expr implicit type='$T1'))
 ///     (argument
-///       (declref_expr implicit decl=swift_ide_test.(file).foo(x:).$match))))
+///       (declref_expr implicit decl=language_ide_test.(file).foo(x:).$match))))
 /// \endcode
 /// If the code completion expression occurs in such an AST, return the
 /// declaration of the \c $match variable, otherwise return \c nullptr.
@@ -127,7 +128,7 @@ static VarDecl *getMatchVarIfInPatternMatch(Expr *E, const Solution &S) {
   }
 }
 
-Type swift::ide::getPatternMatchType(const constraints::Solution &S, Expr *E) {
+Type language::ide::getPatternMatchType(const constraints::Solution &S, Expr *E) {
   auto MatchVar = getMatchVarIfInPatternMatch(E, S);
   if (!MatchVar)
     return nullptr;
@@ -145,9 +146,9 @@ Type swift::ide::getPatternMatchType(const constraints::Solution &S, Expr *E) {
   return Ty;
 }
 
-void swift::ide::getSolutionSpecificVarTypes(
+void language::ide::getSolutionSpecificVarTypes(
     const constraints::Solution &S,
-    llvm::SmallDenseMap<const VarDecl *, Type> &Result) {
+    toolchain::SmallDenseMap<const VarDecl *, Type> &Result) {
   assert(Result.empty());
   for (auto NT : S.nodeTypes) {
     if (auto VD = dyn_cast_or_null<VarDecl>(NT.first.dyn_cast<Decl *>())) {
@@ -161,11 +162,11 @@ void WithSolutionSpecificVarTypesRAII::setInterfaceType(VarDecl *VD, Type Ty) {
                                             std::move(Ty));
 }
 
-bool swift::ide::isImpliedResult(const Solution &S, Expr *CompletionExpr) {
+bool language::ide::isImpliedResult(const Solution &S, Expr *CompletionExpr) {
   return S.isImpliedResult(CompletionExpr).has_value();
 }
 
-bool swift::ide::isContextAsync(const constraints::Solution &S,
+bool language::ide::isContextAsync(const constraints::Solution &S,
                                 DeclContext *DC) {
   // We are in an async context if
   //  - the decl context is async
@@ -193,7 +194,7 @@ bool swift::ide::isContextAsync(const constraints::Solution &S,
   return canDeclContextHandleAsync(DC);
 }
 
-bool swift::ide::nullableTypesEqual(Type LHS, Type RHS) {
+bool language::ide::nullableTypesEqual(Type LHS, Type RHS) {
   if (LHS.isNull() && RHS.isNull()) {
     return true;
   } else if (LHS.isNull() || RHS.isNull()) {

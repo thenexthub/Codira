@@ -1,16 +1,16 @@
-add_pure_swift_host_library(swiftMacroEvaluation STATIC CXX_INTEROP
-  Macros.swift
-  PluginHost.swift
-  SourceManager.swift
+add_pure_language_host_library(languageMacroEvaluation STATIC CXX_INTEROP
+  Macros.code
+  PluginHost.code
+  SourceManager.code
 
   DEPENDENCIES
-    swiftAST
-  SWIFT_DEPENDENCIES
-    _CompilerSwiftCompilerPluginMessageHandling
-    _CompilerSwiftDiagnostics
-    _CompilerSwiftOperators
-    _CompilerSwiftParser
-    _CompilerSwiftSyntax
-    _CompilerSwiftSyntaxMacroExpansion
-    swiftASTGen
+    languageAST
+  LANGUAGE_DEPENDENCIES
+    _CompilerCodiraCompilerPluginMessageHandling
+    _CompilerCodiraDiagnostics
+    _CompilerCodiraOperators
+    _CompilerCodiraParser
+    _CompilerCodiraSyntax
+    _CompilerCodiraSyntaxMacroExpansion
+    languageASTGen
 )

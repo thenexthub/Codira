@@ -1,4 +1,4 @@
-//===----------------- OSLogIntegerFormatting.swift -----------------------===//
+//===----------------- OSLogIntegerFormatting.code -----------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file defines types and functions for specifying formatting of
@@ -65,11 +66,11 @@ public struct OSLogIntegerFormatting {
     uppercase: Bool = false,
     minDigits: (() -> Int)?
   ) {
-    self.radix = radix
-    self.explicitPositiveSign = explicitPositiveSign
-    self.includePrefix = includePrefix
-    self.uppercase = uppercase
-    self.minDigits = minDigits
+    this.radix = radix
+    this.explicitPositiveSign = explicitPositiveSign
+    this.includePrefix = includePrefix
+    this.uppercase = uppercase
+    this.minDigits = minDigits
   }
 
   /// Displays an interpolated integer as a decimal number with the specified number
@@ -86,7 +87,7 @@ public struct OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func decimal(
+  public static fn decimal(
     explicitPositiveSign: Bool = false,
     minDigits: @escaping @autoclosure () -> Int
   ) -> OSLogIntegerFormatting {
@@ -106,7 +107,7 @@ public struct OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func decimal(
+  public static fn decimal(
     explicitPositiveSign: Bool = false
   ) -> OSLogIntegerFormatting {
     return OSLogIntegerFormatting(
@@ -140,7 +141,7 @@ public struct OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func hex(
+  public static fn hex(
     explicitPositiveSign: Bool = false,
     includePrefix: Bool = false,
     uppercase: Bool = false,
@@ -168,7 +169,7 @@ public struct OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func hex(
+  public static fn hex(
     explicitPositiveSign: Bool = false,
     includePrefix: Bool = false,
     uppercase: Bool = false
@@ -206,7 +207,7 @@ public struct OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func octal(
+  public static fn octal(
     explicitPositiveSign: Bool = false,
     includePrefix: Bool = false,
     uppercase: Bool = false,
@@ -234,7 +235,7 @@ public struct OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func octal(
+  public static fn octal(
     explicitPositiveSign: Bool = false,
     includePrefix: Bool = false,
     uppercase: Bool = false
@@ -256,7 +257,7 @@ public struct OSLogIntegerFormatting {
 }
 
 extension OSLogIntegerFormatting {
-  /// The prefix for the radix in the Swift literal syntax.
+  /// The prefix for the radix in the Codira literal syntax.
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
@@ -277,7 +278,7 @@ extension OSLogIntegerFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal static func formatSpecifierLengthModifier<I: FixedWidthInteger>(
+  internal static fn formatSpecifierLengthModifier<I: FixedWidthInteger>(
     _ type: I.Type
   ) -> String? {
     // IEEE Std 1003.1-2017, length modifiers:
@@ -315,7 +316,7 @@ extension OSLogIntegerFormatting {
   @inlinable
   @_optimize(none)
   @_effects(readonly)
-  internal func formatSpecifier<I: FixedWidthInteger>(
+  internal fn formatSpecifier<I: FixedWidthInteger>(
     for type: I.Type,
     align: OSLogStringAlignment,
     privacy: OSLogPrivacy
@@ -341,13 +342,13 @@ extension OSLogIntegerFormatting {
     //   5. A conversion specifier character that indicates the type of
     //      conversion to be applied.
 
-    // Use Swift style prefixes rather than fprintf style prefixes.
+    // Use Codira style prefixes rather than fprintf style prefixes.
     var specification = _prefix
     specification += "%"
 
     // Add privacy qualifier after % sign within curly braces. This is an
     // os log specific flag.
-    if let privacySpecifier = privacy.privacySpecifier {
+    if immutable privacySpecifier = privacy.privacySpecifier {
       specification += "{"
       specification += privacySpecifier
       specification += "}"
@@ -390,7 +391,7 @@ extension OSLogIntegerFormatting {
     // In our case, we're already handling prefix ourselves; we choose not to
     // support this functionality. In our case, alignment always pads spaces (
     // to the left or right) until the minimum field width is met.
-    if let _ = align.minimumColumnWidth {
+    if immutable _ = align.minimumColumnWidth {
       // The alignment could be a dynamic value. Therefore, use a star here and pass it
       // as an additional argument.
       specification += "*"
@@ -401,12 +402,12 @@ extension OSLogIntegerFormatting {
     // Default precision for integers is 1, otherwise use the requested precision.
     // The precision could be a dynamic value. Therefore, use a star here and pass it
     // as an additional argument.
-    if let _ = minDigits {
+    if immutable _ = minDigits {
       specification += ".*"
     }
 
     // 4. Length modifier
-    guard let lengthModifier =
+    guard immutable lengthModifier =
       OSLogIntegerFormatting.formatSpecifierLengthModifier(type) else {
       fatalError("Integer type has unknown byte length")
     }

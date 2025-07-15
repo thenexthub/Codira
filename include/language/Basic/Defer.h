@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines a 'SWIFT_DEFER' macro for performing a cleanup on any exit
+// This file defines a 'LANGUAGE_DEFER' macro for performing a cleanup on any exit
 // out of a scope.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_DEFER_H
-#define SWIFT_BASIC_DEFER_H
+#ifndef LANGUAGE_BASIC_DEFER_H
+#define LANGUAGE_BASIC_DEFER_H
 
-#include "llvm/ADT/ScopeExit.h"
+#include "toolchain/ADT/ScopeExit.h"
 
 namespace language {
   namespace detail {
     struct DeferTask {};
     template<typename F>
     auto operator+(DeferTask, F &&fn) ->
-        decltype(llvm::make_scope_exit(std::forward<F>(fn))) {
-      return llvm::make_scope_exit(std::forward<F>(fn));
+        decltype(toolchain::make_scope_exit(std::forward<F>(fn))) {
+      return toolchain::make_scope_exit(std::forward<F>(fn));
     }
   }
 } // end namespace language
@@ -41,12 +42,12 @@ namespace language {
 /// This macro is used to register a function / lambda to be run on exit from a
 /// scope.  Its typical use looks like:
 ///
-///   SWIFT_DEFER {
+///   LANGUAGE_DEFER {
 ///     stuff
 ///   };
 ///
-#define SWIFT_DEFER                                                            \
+#define LANGUAGE_DEFER                                                            \
   auto DEFER_MACRO_CONCAT(defer_func, __COUNTER__) =                           \
-      ::swift::detail::DeferTask() + [&]()
+      ::language::detail::DeferTask() + [&]()
 
-#endif // SWIFT_BASIC_DEFER_H
+#endif // LANGUAGE_BASIC_DEFER_H

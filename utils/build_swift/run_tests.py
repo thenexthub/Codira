@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
-Utility script used to easily run the build_swift module unit tests.
+Utility script used to easily run the build_language module unit tests.
 """
 
 
@@ -26,7 +26,7 @@ UTILS_DIR = os.path.abspath(os.path.join(MODULE_DIR, os.pardir))
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Utility script used to run the build_swift module unit '
+        description='Utility script used to run the build_language module unit '
                     'test suite.')
 
     parser.set_defaults(verbosity=1)
@@ -70,7 +70,7 @@ def main():
         failfast=args.failfast,
         buffer=args.buffer)
 
-    # Add the swift/utils directory to the Python path.
+    # Add the language/utils directory to the Python path.
     sys.path.append(UTILS_DIR)
 
     # Discover all tests for the module.

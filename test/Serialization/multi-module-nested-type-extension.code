@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+
+// Build the other module, which consists of a single source file.
+
+// RUN: %target-language-frontend -emit-module -module-name other -o %t/multi-module-nested-type-1.codemodule -primary-file %S/Inputs/multi-module-nested-type-1.code
+// RUN: %target-language-frontend -emit-module -module-name other -o %t/other.codemodule %t/multi-module-nested-type-1.codemodule
+
+// Build this module, which consists of two source files.
+
+// RUN: %target-language-frontend -emit-module -module-name me -o %t/multi-module-nested-type-2.codemodule -primary-file %S/Inputs/multi-module-nested-type-2.code %s -I %t
+// RUN: %target-language-frontend -emit-module -module-name me -o %t/multi-module-nested-type-3.codemodule %S/Inputs/multi-module-nested-type-2.code -primary-file %s -I %t
+
+// RUN: %target-language-frontend -emit-module -module-name me -o %t/me.codemodule %t/multi-module-nested-type-2.codemodule %t/multi-module-nested-type-3.codemodule -I %t
+
+import other
+
+extension X {
+  fn takesB(_: B) {}
+}

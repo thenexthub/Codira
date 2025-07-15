@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend -Xtoolchain -sil-full-demangle -profile-generate -profile-coverage-mapping -Xtoolchain -sil-print-types -emit-sil -module-name coverage_closure_returns_never %s | %FileCheck %s
+
+// We don't need to emit the increment_profiler_counter, as the function is
+// uncallable.
+// CHECK-LABEL: closure #1 (Codira.Never) -> Codira.Never in coverage_closure_returns_never.closure_with_fatal_error(Codira.Array<Codira.Never>) -> ()
+// CHECK-NOT:  increment_profiler_counter
+// CHECK:      [[LOAD:%.*]] = load {{.*}} : $*Never
+// CHECK-NEXT: debug_value [[LOAD]] : $Never
+// CHECK: unreachable
+
+fn closure_with_fatal_error(_ arr: [Never]) {
+// CHECK-LABEL: sil_coverage_map {{.*}}// closure #1 (Codira.Never) -> Codira.Never
+// CHECK-NEXT: [[@LINE+1]]:11 -> [[@LINE+3]]:4
+  arr.map {
+    _ in fatalError()
+  }
+}

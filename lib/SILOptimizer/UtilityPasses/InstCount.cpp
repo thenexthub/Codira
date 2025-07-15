@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass collects the count of all instructions and reports them
@@ -23,7 +24,7 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILVisitor.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 
 using namespace language;
 
@@ -155,11 +156,11 @@ class InstCount : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createInstCount() {
+SILTransform *language::createInstCount() {
   return new InstCount();
 }
 
-void swift::performSILInstCountIfNeeded(SILModule *M) {
+void language::performSILInstCountIfNeeded(SILModule *M) {
   if (!M->getOptions().PrintInstCounts)
     return;
   executePassPipelinePlan(

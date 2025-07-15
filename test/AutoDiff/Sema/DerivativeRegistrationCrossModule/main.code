@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -primary-file %S/Inputs/a.code -emit-module-path %t/a.codemodule
+// RUN: %target-language-frontend -emit-module -primary-file %S/Inputs/b.code -emit-module-path %t/b.codemodule -I %t
+// "-verify-ignore-unknown" is for "<unknown>:0: note: 'init()' declared here"
+// RUN: %target-language-frontend-typecheck -verify -verify-ignore-unknown -I %t %s
+
+// https://github.com/apple/language/issues/54969
+// Fix cross-module deserialization crash involving `@derivative` attribute.
+
+import a
+import b
+
+fn foo(_ s: Struct) {
+  // Without this error, the aforementioned issue does not trigger.
+  // expected-error @+1 {{'Struct' initializer is inaccessible due to 'internal' protection level}}
+  _ = Struct()
+  _ = s.method(1)
+}

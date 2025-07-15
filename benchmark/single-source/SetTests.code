@@ -1,4 +1,4 @@
-//===--- SetTests.swift ---------------------------------------------------===//
+//===--- SetTests.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,91 +11,92 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-let size = 400
-let half = size / 2
-let quarter = size / 4
+immutable size = 400
+immutable half = size / 2
+immutable quarter = size / 4
 
 // Construction of empty sets.
-let setE: Set<Int> = []
-let setOE: Set<Box<Int>> = []
+immutable setE: Set<Int> = []
+immutable setOE: Set<Box<Int>> = []
 
 // Construction kit for sets with 25% overlap
-let setAB = Set(0 ..< size)                              //   0 ..< 400
-let setCD = Set(size ..< 2 * size)                       // 400 ..< 800
-let setBC = Set(size - quarter ..< 2 * size - quarter)   // 300 ..< 700
-let setB = Set(size - quarter ..< size)                  // 300 ..< 400
-let setCDS = Set(size ..< (size + (size/4)))             // 400 ..< 500
+immutable setAB = Set(0 ..< size)                              //   0 ..< 400
+immutable setCD = Set(size ..< 2 * size)                       // 400 ..< 800
+immutable setBC = Set(size - quarter ..< 2 * size - quarter)   // 300 ..< 700
+immutable setB = Set(size - quarter ..< size)                  // 300 ..< 400
+immutable setCDS = Set(size ..< (size + (size/4)))             // 400 ..< 500
 
-let setOAB = Set(setAB.map(Box.init))
-let setOCD = Set(setCD.map(Box.init))
-let setOBC = Set(setBC.map(Box.init))
-let setOB = Set(setB.map(Box.init))
-let setOCDS = Set(setCDS.map(Box.init))
+immutable setOAB = Set(setAB.map(Box.init))
+immutable setOCD = Set(setCD.map(Box.init))
+immutable setOBC = Set(setBC.map(Box.init))
+immutable setOB = Set(setB.map(Box.init))
+immutable setOCDS = Set(setCDS.map(Box.init))
 
-let countA = size - quarter        // 300
-let countB = quarter               // 100
-let countC = countA                // 300
-let countD = countB                // 100
+immutable countA = size - quarter        // 300
+immutable countB = quarter               // 100
+immutable countC = countA                // 300
+immutable countD = countB                // 100
 
-let countAB = size                 // 400
-let countAC = countA + countC      // 600
-let countABC = countA + countB + countC           // 700
-let countABCD = countA + countB + countC + countD // 800
+immutable countAB = size                 // 400
+immutable countAC = countA + countC      // 600
+immutable countABC = countA + countB + countC           // 700
+immutable countABCD = countA + countB + countC + countD // 800
 
 // Construction kit for sets with 50% overlap
-let setXY = Set(0 ..< size)           //   0 ..< 400
-let setYZ = Set(half ..< size + half) // 200 ..< 600
-let setY = Set(half ..< size)         // 200 ..< 400
+immutable setXY = Set(0 ..< size)           //   0 ..< 400
+immutable setYZ = Set(half ..< size + half) // 200 ..< 600
+immutable setY = Set(half ..< size)         // 200 ..< 400
 
-// Two sets with 100% overlap, but different bucket counts (let's not make it
+// Two sets with 100% overlap, but different bucket counts (immutable's not make it
 // too easy...)
-let setP = Set(0 ..< size)
-let setQ: Set<Int> = {
+immutable setP = Set(0 ..< size)
+immutable setQ: Set<Int> = {
   var set = Set(0 ..< size)
   set.reserveCapacity(2 * size)
   return set
 }()
 
 // Construction of empty array.
-let arrayE: Array<Int> = []
-let arrayOE: Array<Box<Int>> = []
+immutable arrayE: Array<Int> = []
+immutable arrayOE: Array<Box<Int>> = []
 
 // Construction kit for arrays with 25% overlap
-let arrayAB = Array(0 ..< size)                              //   0 ..< 400
-let arrayCD = Array(size ..< 2 * size)                       // 400 ..< 800
-let arrayBC = Array(size - quarter ..< 2 * size - quarter)   // 300 ..< 700
-let arrayB = Array(size - quarter ..< size)                  // 300 ..< 400
+immutable arrayAB = Array(0 ..< size)                              //   0 ..< 400
+immutable arrayCD = Array(size ..< 2 * size)                       // 400 ..< 800
+immutable arrayBC = Array(size - quarter ..< 2 * size - quarter)   // 300 ..< 700
+immutable arrayB = Array(size - quarter ..< size)                  // 300 ..< 400
 
-let arrayOAB = arrayAB.map(Box.init)
-let arrayOCD = arrayCD.map(Box.init)
-let arrayOBC = arrayBC.map(Box.init)
-let arrayOB = arrayB.map(Box.init)
+immutable arrayOAB = arrayAB.map(Box.init)
+immutable arrayOCD = arrayCD.map(Box.init)
+immutable arrayOBC = arrayBC.map(Box.init)
+immutable arrayOB = arrayB.map(Box.init)
 
 // Construction kit for arrays with 50% overlap
-let arrayXY = Array(0 ..< size)           //   0 ..< 400
-let arrayYZ = Array(half ..< size + half) // 200 ..< 600
-let arrayY = Array(half ..< size)         // 200 ..< 400
+immutable arrayXY = Array(0 ..< size)           //   0 ..< 400
+immutable arrayYZ = Array(half ..< size + half) // 200 ..< 600
+immutable arrayY = Array(half ..< size)         // 200 ..< 400
 
-let arrayP = Array(0 ..< size)
+immutable arrayP = Array(0 ..< size)
 
 // Construction of flexible sets.
 var set: Set<Int> = []
 var setBox: Set<Box<Int>> = []
 
-func set(_ size: Int) {
+fn set(_ size: Int) {
   set = Set(0 ..< size)
 }
 
-func setBox(_ size: Int) {
+fn setBox(_ size: Int) {
   setBox = Set(Set(0 ..< size).map(Box.init))
 }
 
 
-public let benchmarks = [
+public immutable benchmarks = [
   // Mnemonic: number after name is percentage of common elements in input sets.
   BenchmarkInfo(
     name: "Set.isSubset.Empty.Int",
@@ -751,201 +752,201 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_SetIsSubsetInt(
+public fn run_SetIsSubsetInt(
   _ a: Set<Int>,
   _ b: Set<Int>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isSubset = a.isSubset(of: identity(b))
+    immutable isSubset = a.isSubset(of: identity(b))
     check(isSubset == r)
   }
 }
 
 @inline(never)
-public func run_SetIsSubsetSeqInt(
+public fn run_SetIsSubsetSeqInt(
   _ a: Set<Int>,
   _ b: Array<Int>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isSubset = a.isSubset(of: identity(b))
+    immutable isSubset = a.isSubset(of: identity(b))
     check(isSubset == r)
   }
 }
 
 @inline(never)
-public func run_SetIsStrictSubsetInt(
+public fn run_SetIsStrictSubsetInt(
   _ a: Set<Int>,
   _ b: Set<Int>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isStrictSubset = a.isStrictSubset(of: identity(b))
+    immutable isStrictSubset = a.isStrictSubset(of: identity(b))
     check(isStrictSubset == r)
   }
 }
 
 @inline(never)
-public func run_SetIsStrictSubsetSeqInt(
+public fn run_SetIsStrictSubsetSeqInt(
   _ a: Set<Int>,
   _ b: Array<Int>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isStrictSubset = a.isStrictSubset(of: identity(b))
+    immutable isStrictSubset = a.isStrictSubset(of: identity(b))
     check(isStrictSubset == r)
   }
 }
 
 @inline(never)
-public func run_SetIsSupersetSeqInt(
+public fn run_SetIsSupersetSeqInt(
   _ a: Set<Int>,
   _ b: Array<Int>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isSuperset = a.isSuperset(of: identity(b))
+    immutable isSuperset = a.isSuperset(of: identity(b))
     check(isSuperset == r)
   }
 }
 
 @inline(never)
-public func run_SetIsStrictSupersetSeqInt(
+public fn run_SetIsStrictSupersetSeqInt(
   _ a: Set<Int>,
   _ b: Array<Int>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isStrictSuperset = a.isStrictSuperset(of: identity(b))
+    immutable isStrictSuperset = a.isStrictSuperset(of: identity(b))
     check(isStrictSuperset == r)
   }
 }
 
 @inline(never)
-public func run_SetSymmetricDifferenceInt(
+public fn run_SetSymmetricDifferenceInt(
   _ a: Set<Int>,
   _ b: Set<Int>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let diff = a.symmetricDifference(identity(b))
+    immutable diff = a.symmetricDifference(identity(b))
     check(diff.count == r)
   }
 }
 
 @inline(never)
-public func run_SetUnionInt(
+public fn run_SetUnionInt(
   _ a: Set<Int>,
   _ b: Set<Int>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let or = a.union(identity(b))
+    immutable or = a.union(identity(b))
     check(or.count == r)
   }
 }
 
 @inline(never)
-public func run_SetIntersectionInt(
+public fn run_SetIntersectionInt(
   _ a: Set<Int>,
   _ b: Set<Int>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.intersection(identity(b))
+    immutable and = a.intersection(identity(b))
     check(and.count == r)
   }
 }
 
 @inline(never)
-public func run_SetIntersectionSeqInt(
+public fn run_SetIntersectionSeqInt(
   _ a: Set<Int>,
   _ b: Array<Int>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.intersection(identity(b))
+    immutable and = a.intersection(identity(b))
     check(and.count == r)
   }
 }
 
 @inline(never)
-public func run_SetSubtractingInt(
+public fn run_SetSubtractingInt(
   _ a: Set<Int>,
   _ b: Set<Int>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.subtracting(identity(b))
+    immutable and = a.subtracting(identity(b))
     check(and.count == r)
   }
 }
 
 @inline(never)
-public func run_SetSubtractingSeqInt(
+public fn run_SetSubtractingSeqInt(
   _ a: Set<Int>,
   _ b: Array<Int>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.subtracting(identity(b))
+    immutable and = a.subtracting(identity(b))
     check(and.count == r)
   }
 }
 
 @inline(never)
-public func run_SetIsDisjointInt(
+public fn run_SetIsDisjointInt(
     _ a: Set<Int>,
     _ b: Set<Int>,
     _ r: Bool,
     _ n: Int) {
     for _ in 0 ..< n {
-        let isDisjoint = a.isDisjoint(with: identity(b))
+        immutable isDisjoint = a.isDisjoint(with: identity(b))
         check(isDisjoint == r)
     }
 }
 
 // Run isDisjoint Int switching the order of the two sets.  
 @inline(never)
-public func run_SetIsDisjointIntCommutative(
+public fn run_SetIsDisjointIntCommutative(
     _ a: Set<Int>,
     _ b: Set<Int>,
     _ r: Bool,
     _ n: Int) {
     for _ in 0 ..< n {
-      let isDisjointA = a.isDisjoint(with: identity(b))
+      immutable isDisjointA = a.isDisjoint(with: identity(b))
       check(isDisjointA == r)
   
-      let isDisjointB = b.isDisjoint(with: identity(a))
+      immutable isDisjointB = b.isDisjoint(with: identity(a))
       check(isDisjointB == r)
     }
 }
 
 @inline(never)
-public func run_SetIsDisjointSeqInt(
+public fn run_SetIsDisjointSeqInt(
     _ a: Set<Int>,
     _ b: Array<Int>,
     _ r: Bool,
     _ n: Int) {
     for _ in 0 ..< n {
-        let isDisjoint = a.isDisjoint(with: identity(b))
+        immutable isDisjoint = a.isDisjoint(with: identity(b))
         check(isDisjoint == r)
     }
 }
 
 @inline(never)
-public func run_SetFilterInt50(_ n: Int) {
+public fn run_SetFilterInt50(_ n: Int) {
   for _ in 0 ..< n {
-    let half = set.filter { $0 % 2 == 0 }
+    immutable half = set.filter { $0 % 2 == 0 }
     check(set.count == half.count * 2)
   }
 }
 
 @inline(never)
-public func run_SetFilterInt100(_ n: Int) {
+public fn run_SetFilterInt100(_ n: Int) {
   for _ in 0 ..< n {
-    let copy = set.filter { _ in true }
+    immutable copy = set.filter { _ in true }
     check(set.count == copy.count)
   }
 }
@@ -957,195 +958,195 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
 @inline(never)
-func run_SetIsSubsetBox(
+fn run_SetIsSubsetBox(
   _ a: Set<Box<Int>>,
   _ b: Set<Box<Int>>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isSubset = a.isSubset(of: identity(b))
+    immutable isSubset = a.isSubset(of: identity(b))
     check(isSubset == r)
   }
 }
 
 @inline(never)
-func run_SetIsSubsetSeqBox(
+fn run_SetIsSubsetSeqBox(
   _ a: Set<Box<Int>>,
   _ b: Array<Box<Int>>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isSubset = a.isSubset(of: identity(b))
+    immutable isSubset = a.isSubset(of: identity(b))
     check(isSubset == r)
   }
 }
 
 @inline(never)
-func run_SetIsStrictSubsetBox(
+fn run_SetIsStrictSubsetBox(
   _ a: Set<Box<Int>>,
   _ b: Set<Box<Int>>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isStrictSubset = a.isStrictSubset(of: identity(b))
+    immutable isStrictSubset = a.isStrictSubset(of: identity(b))
     check(isStrictSubset == r)
   }
 }
 
 @inline(never)
-func run_SetIsStrictSubsetSeqBox(
+fn run_SetIsStrictSubsetSeqBox(
   _ a: Set<Box<Int>>,
   _ b: Array<Box<Int>>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isStrictSubset = a.isStrictSubset(of: identity(b))
+    immutable isStrictSubset = a.isStrictSubset(of: identity(b))
     check(isStrictSubset == r)
   }
 }
 
 @inline(never)
-func run_SetIsSupersetSeqBox(
+fn run_SetIsSupersetSeqBox(
   _ a: Set<Box<Int>>,
   _ b: Array<Box<Int>>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isSuperset = a.isSuperset(of: identity(b))
+    immutable isSuperset = a.isSuperset(of: identity(b))
     check(isSuperset == r)
   }
 }
 
 @inline(never)
-func run_SetIsStrictSupersetSeqBox(
+fn run_SetIsStrictSupersetSeqBox(
   _ a: Set<Box<Int>>,
   _ b: Array<Box<Int>>,
   _ r: Bool,
   _ n: Int) {
   for _ in 0 ..< n {
-    let isStrictSuperset = a.isStrictSuperset(of: identity(b))
+    immutable isStrictSuperset = a.isStrictSuperset(of: identity(b))
     check(isStrictSuperset == r)
   }
 }
 
 @inline(never)
-func run_SetSymmetricDifferenceBox(
+fn run_SetSymmetricDifferenceBox(
   _ a: Set<Box<Int>>,
   _ b: Set<Box<Int>>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let diff = a.symmetricDifference(identity(b))
+    immutable diff = a.symmetricDifference(identity(b))
     check(diff.count == r)
   }
 }
 
 @inline(never)
-func run_SetUnionBox(
+fn run_SetUnionBox(
   _ a: Set<Box<Int>>,
   _ b: Set<Box<Int>>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let or = a.union(identity(b))
+    immutable or = a.union(identity(b))
     check(or.count == r)
   }
 }
 
 @inline(never)
-func run_SetIntersectionBox(
+fn run_SetIntersectionBox(
   _ a: Set<Box<Int>>,
   _ b: Set<Box<Int>>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.intersection(b)
+    immutable and = a.intersection(b)
     check(and.count == r)
   }
 }
 
 @inline(never)
-func run_SetIntersectionSeqBox(
+fn run_SetIntersectionSeqBox(
   _ a: Set<Box<Int>>,
   _ b: Array<Box<Int>>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.intersection(identity(b))
+    immutable and = a.intersection(identity(b))
     check(and.count == r)
   }
 }
 
 @inline(never)
-func run_SetSubtractingBox(
+fn run_SetSubtractingBox(
   _ a: Set<Box<Int>>,
   _ b: Set<Box<Int>>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.subtracting(b)
+    immutable and = a.subtracting(b)
     check(and.count == r)
   }
 }
 
 @inline(never)
-func run_SetSubtractingSeqBox(
+fn run_SetSubtractingSeqBox(
   _ a: Set<Box<Int>>,
   _ b: Array<Box<Int>>,
   _ r: Int,
   _ n: Int) {
   for _ in 0 ..< n {
-    let and = a.subtracting(identity(b))
+    immutable and = a.subtracting(identity(b))
     check(and.count == r)
   }
 }
 
 @inline(never)
-func run_SetIsDisjointBox(
+fn run_SetIsDisjointBox(
     _ a: Set<Box<Int>>,
     _ b: Set<Box<Int>>,
     _ r: Bool,
     _ n: Int) {
     for _ in 0 ..< n {
-        let isDisjoint = a.isDisjoint(with: identity(b))
+        immutable isDisjoint = a.isDisjoint(with: identity(b))
         check(isDisjoint == r)
     }
 }
 
 // Run isDisjoint Box switching the order of the two sets.  
 @inline(never)
-func run_SetIsDisjointBoxCommutative(
+fn run_SetIsDisjointBoxCommutative(
     _ a: Set<Box<Int>>,
     _ b: Set<Box<Int>>,
     _ r: Bool,
     _ n: Int) {
     for _ in 0 ..< n {
-        let isDisjointA = a.isDisjoint(with: identity(b))
+        immutable isDisjointA = a.isDisjoint(with: identity(b))
         check(isDisjointA == r)
   
-        let isDisjointB = b.isDisjoint(with: identity(a))
+        immutable isDisjointB = b.isDisjoint(with: identity(a))
         check(isDisjointB == r)
     }
 }
 
 @inline(never)
-func run_SetIsDisjointSeqBox(
+fn run_SetIsDisjointSeqBox(
     _ a: Set<Box<Int>>,
     _ b: Array<Box<Int>>,
     _ r: Bool,
     _ n: Int) {
     for _ in 0 ..< n {
-        let isDisjoint = a.isDisjoint(with: identity(b))
+        immutable isDisjoint = a.isDisjoint(with: identity(b))
         check(isDisjoint == r)
     }
 }

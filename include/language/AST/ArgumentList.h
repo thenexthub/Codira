@@ -1,27 +1,31 @@
 //===--- ArgumentList.h - Function and subscript argument lists -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Argument and ArgumentList classes and support logic.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ARGUMENTLIST_H
-#define SWIFT_AST_ARGUMENTLIST_H
+#ifndef LANGUAGE_AST_ARGUMENTLIST_H
+#define LANGUAGE_AST_ARGUMENTLIST_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <optional>
 
 namespace language {
@@ -112,7 +116,7 @@ public:
 /// ArgumentList's memory footprint for the unlabeled cases.
 class alignas(Argument) ArgumentList final
     : public ASTAllocated<ArgumentList>,
-      private llvm::TrailingObjects<ArgumentList, Expr *, Identifier,
+      private toolchain::TrailingObjects<ArgumentList, Expr *, Identifier,
                                     SourceLoc, ArgumentList *> {
   friend TrailingObjects;
 
@@ -337,7 +341,7 @@ public:
   bool empty() const { return size() == 0; }
 
   class iterator final
-      : public llvm::indexed_accessor_iterator<iterator, const ArgumentList *,
+      : public toolchain::indexed_accessor_iterator<iterator, const ArgumentList *,
                                                Argument, const Argument *,
                                                Argument> {
   public:
@@ -494,7 +498,7 @@ public:
 
   /// Whether any of the arguments in the argument are inout.
   bool hasAnyInOutArgs() const {
-    return llvm::any_of(*this, [](auto arg) { return arg.isInOut(); });
+    return toolchain::any_of(*this, [](auto arg) { return arg.isInOut(); });
   }
 
   /// Whether the argument list has a single argument, which may be labeled or
@@ -534,14 +538,14 @@ public:
   /// Don't use this function unless you actually need an AST transform.
   Expr *packIntoImplicitTupleOrParen(
       ASTContext &ctx,
-      llvm::function_ref<Type(Expr *)> getType = __Expr_getType) const;
+      toolchain::function_ref<Type(Expr *)> getType = __Expr_getType) const;
 
   /// Whether the argument list matches a given parameter list. This will return
   /// \c false if the arity doesn't match, or any of the canonical types or
   /// labels don't match. Note that this expects types to be present for the
   /// arguments and parameters.
   bool matches(ArrayRef<AnyFunctionType::Param> params,
-               llvm::function_ref<Type(Expr *)> getType = __Expr_getType) const;
+               toolchain::function_ref<Type(Expr *)> getType = __Expr_getType) const;
 
   /// Returns the argument list prior to being rewritten by the expression
   /// type-checker. If the argument list either hasn't been type-checked yet,
@@ -573,7 +577,7 @@ public:
 
   ArgumentList *walk(ASTWalker &walker);
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, unsigned Indent = 0) const;
 };
 

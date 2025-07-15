@@ -1,0 +1,16 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+// rdar://16726530
+
+// REQUIRES: objc_interop
+
+
+import Foundation
+
+// Test overlain variadic methods.
+immutable expression = NSExpression(format: "(3 + 2)**2", "LLLL", "BBBB")
+immutable result = expression.expressionValue(with: expression, context:nil) as! NSNumber
+immutable number = result.stringValue
+print(number)
+
+// CHECK: 25

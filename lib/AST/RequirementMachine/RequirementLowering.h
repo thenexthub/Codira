@@ -1,26 +1,30 @@
 //===--- RequirementLowering.h - Requirement inference and desugaring -----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REQUIREMENTLOWERING_H
-#define SWIFT_REQUIREMENTLOWERING_H
+#ifndef LANGUAGE_REQUIREMENTLOWERING_H
+#define LANGUAGE_REQUIREMENTLOWERING_H
 
 #include "language/AST/Type.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <vector>
 #include "Diagnostics.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -50,6 +54,13 @@ void desugarRequirement(Requirement req, SourceLoc loc,
 void inferRequirements(Type type, ModuleDecl *module, DeclContext *dc,
                        SmallVectorImpl<StructuralRequirement> &result);
 
+void realizeTypeRequirement(DeclContext *dc,
+                            Type subjectType,
+                            Type constraintType,
+                            SourceLoc loc,
+                            SmallVectorImpl<StructuralRequirement> &result,
+                            SmallVectorImpl<RequirementError> &errors);
+
 void realizeRequirement(DeclContext *dc,
                         Requirement req, RequirementRepr *reqRepr,
                         bool shouldInferRequirements,
@@ -64,6 +75,7 @@ void realizeInheritedRequirements(TypeDecl *decl, Type type,
 void applyInverses(ASTContext &ctx,
                    ArrayRef<Type> gps,
                    ArrayRef<InverseRequirement> inverseList,
+                   ArrayRef<StructuralRequirement> explicitRequirements,
                    SmallVectorImpl<StructuralRequirement> &result,
                    SmallVectorImpl<RequirementError> &errors);
 

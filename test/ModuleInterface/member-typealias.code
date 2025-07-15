@@ -1,0 +1,23 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name MyModule
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name MyModule
+// RUN: %FileCheck %s < %t.codeinterface
+
+public struct MyStruct<T> {
+// CHECK-LABEL: public struct MyStruct<T> {
+  public typealias AliasT = T
+  public typealias AliasInt = Int
+
+  public fn foo(x: AliasInt) -> AliasT { fatalError() }
+// CHECK:  public fn foo(x: MyModule.MyStruct<T>.AliasInt) -> MyModule.MyStruct<T>.AliasT
+}
+
+public class MyBase<U> {
+  public typealias AliasU = U 
+  public typealias AliasInt = Int
+}
+
+public class MyDerived<X>: MyBase<X> {
+// CHECK-LABEL: public class MyDerived<X> : MyModule.MyBase<X> {
+  public fn bar(x: AliasU) -> AliasInt { fatalError() }
+// CHECK:  public fn bar(x: MyModule.MyDerived<X>.AliasU) -> MyModule.MyDerived<X>.AliasInt
+}

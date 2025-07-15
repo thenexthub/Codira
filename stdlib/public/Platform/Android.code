@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-@_exported import SwiftAndroid // Clang module
+@_exported import CodiraAndroid // Clang module

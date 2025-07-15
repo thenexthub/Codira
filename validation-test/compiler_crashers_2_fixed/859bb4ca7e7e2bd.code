@@ -1,0 +1,5 @@
+// {"kind":"emit-silgen","original":"6943e75f","signature":"language::SILFunctionType::SILFunctionType(language::GenericSignature, language::SILExtInfo, language::SILCoroutineKind, language::ParameterConvention, toolchain::ArrayRef<language::SILParameterInfo>, toolchain::ArrayRef<language::SILYieldInfo>, toolchain::ArrayRef<language::SILResultInfo>, std::__1::optional<language::SILResultInfo>, language::SubstitutionMap, language::SubstitutionMap, language::ASTContext const&, language::RecursiveTypeProperties, language::ProtocolConformanceRef)"}
+// RUN: not %target-language-frontend -emit-silgen %s
+fn a<each b : BinaryInteger>(c : repeat each b) {
+  UInt32(repeat each c)
+}

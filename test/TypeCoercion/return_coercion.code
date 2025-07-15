@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language
+
+fn f1() -> (Int, Int) { return (1, 2) }
+fn f2() -> (Int, Int) { return (1, 2) }
+fn f2() -> (Float, Float) { return (1, 2) }
+
+fn g() {
+  var _ : (a : Int, b : Int) = f1()
+  var _ : (a : Int, b : Int) = f2()
+}

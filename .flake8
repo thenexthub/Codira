@@ -33,7 +33,7 @@ filename =
     ./utils/run-test,
     ./utils/scale-test,
     ./utils/submit-benchmark-results,
-    ./utils/swift_build_support/tests/mock-distcc,
+    ./utils/language_build_support/tests/mock-distcc,
     ./utils/symbolicate-linux-fatal,
     ./utils/update-checkout,
     ./utils/viewcfg,

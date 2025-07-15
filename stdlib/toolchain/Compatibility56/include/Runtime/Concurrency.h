@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The runtime interface for concurrency.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_CONCURRENCY_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_CONCURRENCY_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_CONCURRENCY_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_CONCURRENCY_BACKDEPLOY56_H
 
 #include "Concurrency/Task.h"
 #include "Concurrency/TaskStatus.h"
@@ -28,18 +29,18 @@
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
 // Does the runtime use a cooperative global executor?
-#if defined(SWIFT_STDLIB_SINGLE_THREADED_RUNTIME)
-#define SWIFT_CONCURRENCY_COOPERATIVE_GLOBAL_EXECUTOR 1
+#if defined(LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME)
+#define LANGUAGE_CONCURRENCY_COOPERATIVE_GLOBAL_EXECUTOR 1
 #else
-#define SWIFT_CONCURRENCY_COOPERATIVE_GLOBAL_EXECUTOR 0
+#define LANGUAGE_CONCURRENCY_COOPERATIVE_GLOBAL_EXECUTOR 0
 #endif
 
 // Does the runtime integrate with libdispatch?
-#ifndef SWIFT_CONCURRENCY_ENABLE_DISPATCH
-#if SWIFT_CONCURRENCY_COOPERATIVE_GLOBAL_EXECUTOR
-#define SWIFT_CONCURRENCY_ENABLE_DISPATCH 0
+#ifndef LANGUAGE_CONCURRENCY_ENABLE_DISPATCH
+#if LANGUAGE_CONCURRENCY_COOPERATIVE_GLOBAL_EXECUTOR
+#define LANGUAGE_CONCURRENCY_ENABLE_DISPATCH 0
 #else
-#define SWIFT_CONCURRENCY_ENABLE_DISPATCH 1
+#define LANGUAGE_CONCURRENCY_ENABLE_DISPATCH 1
 #endif
 #endif
 
@@ -47,7 +48,7 @@ namespace language {
 class DefaultActor;
 class TaskOptionRecord;
 
-struct SwiftError;
+struct CodiraError;
 
 struct AsyncTaskAndContext {
   AsyncTask *Task;
@@ -65,12 +66,12 @@ using FutureAsyncSignature =
 ///
 /// This has no effect if the task already has at least the given priority.
 /// Returns the priority of the task.
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 __attribute__((visibility("hidden")))
-JobPriority swift_task_escalateBackdeploy56(AsyncTask *task,
+JobPriority language_task_escalateBackdeploy56(AsyncTask *task,
                                             JobPriority newPriority);
 } // namespace language
 
 #pragma clang diagnostic pop
 
-#endif // SWIFT_RUNTIME_CONCURRENCY_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_CONCURRENCY_BACKDEPLOY56_H

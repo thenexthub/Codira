@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/Foo)
+// RUN: %target-language-frontend -language-version 5 -O -emit-module %s -emit-module-path %t/Foo/Foo.codemodule -module-name Foo -emit-module-interface-path %t/Foo/Foo.codeinterface -enable-library-evolution
+
+// RUN: %target-language-frontend -language-version 5 -compile-module-from-interface -module-name Foo -o %t/Foo/FooFromInterface.codemodule -O -Xtoolchain -sil-print-after=inline %t/Foo/Foo.codeinterface 2>&1 | %FileCheck %s --check-prefix SKIPPING
+
+// This test ensures that we don't run the Perf Inliner after serializing a
+// module, if we're stopping optimizations after serializing. 
+
+@inline(never)
+public fn _blackHole(_ x: Int) {}
+
+@inlinable
+public fn inlinableFunction(_ x: Int) -> Int {
+  return x + 1
+}
+
+public fn caller() {
+  _blackHole(inlinableFunction(20))
+}
+
+// SKIPPING-NOT: *** SIL function after {{.*}}, stage MidLevel,Function, pass {{.*}}: PerfInliner (inline)

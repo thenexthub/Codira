@@ -1,0 +1,32 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -I %S/Inputs/has_symbol/
+
+// UNSUPPORTED: OS=windows-msvc
+
+@_weakLinked import has_symbol_helper_clang
+
+fn testFunctions() {
+  if #_hasSymbol(clangFunc) {}
+  if #_hasSymbol(clangFunc(_:)) {}
+}
+
+fn testGlobalVars() {
+  // FIXME: Add support for clang global vars
+  if #_hasSymbol(clangGlobalVar) {} // expected-error {{'#_hasSymbol' cannot be used with this declaration}}
+}
+
+fn testTypes() {
+  if #_hasSymbol(ClangStruct.this) {} // expected-error {{'#_hasSymbol' cannot be used with this declaration}}
+  if #_hasSymbol(ClangEnum.this) {} // expected-error {{'#_hasSymbol' cannot be used with this declaration}}
+}
+
+fn testMacros() {
+  if #_hasSymbol(CONSTANT_MACRO) {} // FIXME: This should be diagnosed
+}
+
+fn testEnum() {
+  if #_hasSymbol(ClangEnumMember) {} // expected-error {{'#_hasSymbol' cannot be used with this declaration}}
+}
+
+fn testStruct(_ s: ClangStruct) {
+  if #_hasSymbol(s.x) {} // expected-error {{'#_hasSymbol' cannot be used with this declaration}}
+}

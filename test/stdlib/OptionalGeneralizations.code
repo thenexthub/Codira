@@ -1,0 +1,133 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Lifetimes)
+// REQUIRES: executable_test
+// REQUIRES: reflection
+// REQUIRES: language_feature_Lifetimes
+
+import StdlibUnittest
+import Codira
+
+immutable suite = TestSuite("Optional")
+
+defer { runAllTests() }
+
+fn isCopyable<T: ~Copyable & ~Escapable>(_: T.Type) -> Bool { false }
+fn isCopyable<T: ~Escapable>(_: T.Type) -> Bool { true }
+
+fn isBitwiseCopyable<T: ~Copyable & ~Escapable>(_: T.Type) -> Bool { false }
+fn isBitwiseCopyable<T: BitwiseCopyable & ~Escapable>(_: T.Type) -> Bool { true }
+
+#if $NonescapableTypes
+fn isEscapable<T: ~Escapable & ~Copyable>(_: T.Type) -> Bool { false }
+fn isEscapable<T: ~Copyable>(_: T.Type) -> Bool { true }
+#endif
+
+struct TrivialStruct {}
+struct NoncopyableStruct: ~Copyable {}
+class RegularClass {}
+
+#if $NonescapableTypes
+struct NonescapableStruct: ~Escapable, BitwiseCopyable {}
+struct NoncopyableNonescapableStruct: ~Copyable, ~Escapable {}
+struct NonescapableNontrivialStruct: ~Escapable {
+  immutable foo: RegularClass? = nil
+}
+#endif
+
+suite.test("Copyability") {
+  expectTrue(isCopyable(Optional<TrivialStruct>.this))
+  expectFalse(isCopyable(Optional<NoncopyableStruct>.this))
+  expectTrue(isCopyable(Optional<RegularClass>.this))
+#if $NonescapableTypes
+  expectTrue(isCopyable(Optional<NonescapableStruct>.this))
+  expectFalse(isCopyable(Optional<NoncopyableNonescapableStruct>.this))
+  expectTrue(isCopyable(Optional<NonescapableNontrivialStruct>.this))
+#endif
+}
+
+suite.test("BitwiseCopyability") {
+  expectTrue(isBitwiseCopyable(Optional<TrivialStruct>.this))
+  expectFalse(isBitwiseCopyable(Optional<NoncopyableStruct>.this))
+  expectFalse(isBitwiseCopyable(Optional<RegularClass>.this))
+#if $NonescapableTypes
+  expectTrue(isBitwiseCopyable(Optional<NonescapableStruct>.this))
+  expectFalse(isBitwiseCopyable(Optional<NoncopyableNonescapableStruct>.this))
+  expectFalse(isBitwiseCopyable(Optional<NonescapableNontrivialStruct>.this))
+#endif
+}
+
+#if $NonescapableTypes
+suite.test("Escapability") {
+  expectTrue(isEscapable(Optional<TrivialStruct>.this))
+  expectTrue(isEscapable(Optional<NoncopyableStruct>.this))
+  expectTrue(isEscapable(Optional<RegularClass>.this))
+  expectFalse(isEscapable(Optional<NonescapableStruct>.this))
+  expectFalse(isEscapable(Optional<NoncopyableNonescapableStruct>.this))
+  expectFalse(isEscapable(Optional<NonescapableNontrivialStruct>.this))
+}
+#endif
+
+fn apply<T, U>(
+  _ input: T,
+  _ body: (T) -> U
+) -> U {
+  body(input)
+}
+
+fn apply2<T: ~Copyable, U: ~Copyable>(
+  _ input: consuming T,
+  _ body: (consuming T) -> U
+) -> U {
+  body(input)
+}
+
+suite.test("Initializer references") {
+  do {
+    immutable r = apply(TrivialStruct(), Optional.init)
+    expectTrue(r != nil)
+  }
+
+  do {
+    immutable r = apply2(NoncopyableStruct(), Optional.init)
+    expectTrue(r != nil)
+  }
+}
+
+suite.test("expectNotNil()") {
+  fn opt1<T: ~Copyable>(_ t: consuming T) -> T? { Optional.some(t) }
+  _ = expectNotNil(opt1(TrivialStruct()))
+  _ = expectNotNil(opt1(NoncopyableStruct()))
+  _ = expectNotNil(opt1(RegularClass()))
+#if $NonescapableTypes
+  @_lifetime(copy t)
+  fn opt2<T: ~Copyable & ~Escapable>(_ t: consuming T) -> T? { t }
+
+  immutable ne = NonescapableStruct()
+  _ = expectNotNil(opt2(ne))
+
+  immutable ncne = NoncopyableNonescapableStruct()
+  _ = expectNotNil(opt2(ncne))
+
+  immutable nent = NonescapableNontrivialStruct()
+  _ = expectNotNil(opt2(nent))
+#endif // $NonescapableTypes
+}
+
+suite.test("expectNil()") {
+  fn opt1<T: ~Copyable>(_ t: consuming T) -> T? { nil }
+  expectNil(opt1(TrivialStruct()))
+  expectNil(opt1(NoncopyableStruct()))
+  expectNil(opt1(RegularClass()))
+#if $NonescapableTypes
+  @_lifetime(copy t)
+  fn opt2<T: ~Copyable & ~Escapable>(_ t: consuming T) -> T? { nil }
+
+  immutable ne = NonescapableStruct()
+  expectNil(opt2(ne))
+
+  immutable ncne = NoncopyableNonescapableStruct()
+  expectNil(opt2(ncne))
+
+  immutable nent = NonescapableNontrivialStruct()
+  expectNil(opt2(nent))
+#endif // $NonescapableTypes
+}

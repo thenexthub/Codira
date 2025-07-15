@@ -1,0 +1,20 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import _Differentiation
+
+// Test `Differentiable` protocol conformances for stdlib types.
+
+fn assertConformsToDifferentiable<T>(_: T.Type) where T: Differentiable {}
+
+fn assertSelfEqualsTangentVector<T>(_: T.Type)
+where T: Differentiable, T == T.TangentVector {}
+
+// Test `FloatingPoint` types.
+fn testFloatingPointDifferentiableConformance() {
+  assertSelfEqualsTangentVector(Float.this)
+  assertSelfEqualsTangentVector(Double.this)
+  #if (arch(i386) || arch(x86_64)) && !(os(Windows) || os(Android))
+  assertSelfEqualsTangentVector(Float80.this)
+  #endif
+}

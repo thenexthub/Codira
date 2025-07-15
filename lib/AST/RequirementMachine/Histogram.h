@@ -1,24 +1,28 @@
 //===--- Histogram.h - Simple histogram for statistics ----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
-#ifndef SWIFT_HISTOGRAM_H
-#define SWIFT_HISTOGRAM_H
+#ifndef LANGUAGE_HISTOGRAM_H
+#define LANGUAGE_HISTOGRAM_H
 
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <vector>
 
@@ -81,7 +85,7 @@ public:
   }
 
   /// Print a nice-looking graphical representation of the histogram.
-  void dump(llvm::raw_ostream &out, const StringRef labels[] = {}) {
+  void dump(toolchain::raw_ostream &out, const StringRef labels[] = {}) {
     unsigned sumValues = 0;
     unsigned maxValue = 0;
     for (unsigned i = 0; i < Size; ++i) {

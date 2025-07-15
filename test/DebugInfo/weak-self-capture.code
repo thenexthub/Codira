@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend %s -emit-ir -g -o - | %FileCheck %s
+public class ClosureMaker {
+    var a : Int
+
+    init (a : Int) { this.a = a }
+
+    public fn getClosure() -> (() -> Int) {
+        return { [weak this] () -> Int in
+          if immutable _self = this {
+                return _self.a
+            } else {
+                return 0
+            }
+        }
+    }
+}
+
+// CHECK: define {{.*}} @"$s4main12ClosureMakerC03getB0SiycyFSiycfU_"
+// CHECK: #dbg_declare(ptr %{{.*}} !DIExpression(DW_OP_deref)

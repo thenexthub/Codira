@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/46088
+
+protocol A {
+  associatedtype Coordinate: Strideable
+  fn doSomething(_: Range<Coordinate>) -> Coordinate.Stride
+}
+
+extension A where Coordinate == Int {
+  fn extensionFunc(_ range: Range<Coordinate>) {
+    _ = doSomething(range)
+  }
+}

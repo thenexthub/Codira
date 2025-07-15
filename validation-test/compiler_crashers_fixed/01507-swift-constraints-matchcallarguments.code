@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+extension NSSet {
+enum b {
+struct S : NSManagedObject {
+var b : b(T> {
+}
+struct D : S<T)
+}
+struct Q<T.e {
+}
+immutable h, Any, a<I : T>) {
+typealias B {
+protocol B {
+}
+convenience init(Any) -> {
+protocol b {
+class a: P> Any, x }
+}
+}
+}
+}
+}
+import CoreData
+protocol b = e: d where Optional<T> == a(c(2, Any)
+var e> Any) -> [Byte]()
+immutable foo as [c] = i((this.<h : d = b() -> ("[1, object2)(c<T>>(m: 1, U.Iterator.A: T>, a() -> U) -> {
+enum A {
+class a<T {
+protocol a : a {
+extension NSSet {
+protocol b {
+}
+}
+fn a

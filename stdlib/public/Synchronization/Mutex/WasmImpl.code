@@ -1,32 +1,32 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Atomics open source project
+// This source file is part of the Codira Atomics open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 // Note: All atomic accesses on Wasm are sequentially consistent regardless of
 // what ordering we tell LLVM to use.
 
-@_extern(c, "llvm.wasm.memory.atomic.wait32")
-internal func _swift_stdlib_wait(
+@_extern(c, "toolchain.wasm.memory.atomic.wait32")
+internal fn _language_stdlib_wait(
   on: UnsafePointer<UInt32>,
   expected: UInt32,
   timeout: Int64
 ) -> UInt32
 
-@_extern(c, "llvm.wasm.memory.atomic.notify")
-internal func _swift_stdlib_wake(on: UnsafePointer<UInt32>, count: UInt32) -> UInt32
+@_extern(c, "toolchain.wasm.memory.atomic.notify")
+internal fn _language_stdlib_wake(on: UnsafePointer<UInt32>, count: UInt32) -> UInt32
 
 extension Atomic where Value == _MutexHandle.State {
-  internal borrowing func _wait(expected: _MutexHandle.State) {
+  internal borrowing fn _wait(expected: _MutexHandle.State) {
     #if _runtime(_multithreaded)
-    _ = _swift_stdlib_wait(
+    _ = unsafe _language_stdlib_wait(
       on: .init(_rawAddress),
       expected: expected.rawValue,
 
@@ -36,17 +36,17 @@ extension Atomic where Value == _MutexHandle.State {
     #endif
   }
 
-  internal borrowing func _wake() {
+  internal borrowing fn _wake() {
     #if _runtime(_multithreaded)
     // Only wake up 1 thread
-    _ = _swift_stdlib_wake(on: .init(_rawAddress), count: 1)
+    _ = unsafe _language_stdlib_wake(on: .init(_rawAddress), count: 1)
     #endif
   }
 }
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension _MutexHandle {
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @frozen
   @usableFromInline
   internal enum State: UInt32, AtomicRepresentable {
@@ -56,23 +56,23 @@ extension _MutexHandle {
   }
 }
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 @frozen
 @_staticExclusiveOnly
 public struct _MutexHandle: ~Copyable {
   @usableFromInline
-  let storage: Atomic<State>
+  immutable storage: Atomic<State>
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
   public init() {
     storage = Atomic(.unlocked)
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @usableFromInline
-  internal borrowing func _lock() {
+  internal borrowing fn _lock() {
     // Note: We could probably merge this cas into a do/while style loop, but we
     // really want to perform the strong variant before attempting to do weak
     // ones in the loop.
@@ -122,9 +122,9 @@ public struct _MutexHandle: ~Copyable {
     // Locked!
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @usableFromInline
-  internal borrowing func _tryLock() -> Bool {
+  internal borrowing fn _tryLock() -> Bool {
     storage.compareExchange(
       expected: .unlocked,
       desired: .locked,
@@ -133,9 +133,9 @@ public struct _MutexHandle: ~Copyable {
     ).exchanged
   }
 
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @usableFromInline
-  internal borrowing func _unlock() {
+  internal borrowing fn _unlock() {
     // Transition our state from being either .locked or .contended to .unlocked.
     // At this point the mutex is freely acquirable. If the value that was
     // stored in the mutex was .locked, then no one else was waiting on this

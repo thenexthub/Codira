@@ -1,0 +1,4 @@
+// {"signature":"language::SimpleRequest<language::IsStaticRequest, bool (language::FuncDecl*), (language::RequestFlags)4>::noteCycleStep(language::DiagnosticEngine&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Distributed typealias DefaultDistributedActorSystem = LocalTestingDistributedActorSystem distributed actor a{distributed...

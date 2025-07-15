@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/BasicBlockUtils.h"
@@ -27,7 +28,7 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/TerminatorUtils.h"
 #include "language/SIL/Test.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
 
@@ -45,7 +46,7 @@ static bool hasBranchArguments(TermInst *T, unsigned edgeIdx) {
   return false;
 }
 
-void swift::changeBranchTarget(TermInst *T, unsigned edgeIdx,
+void language::changeBranchTarget(TermInst *T, unsigned edgeIdx,
                                SILBasicBlock *newDest, bool preserveArgs) {
   // In many cases, we can just rewrite the successor in place.
   if (preserveArgs || !hasBranchArguments(T, edgeIdx)) {
@@ -97,7 +98,7 @@ void swift::changeBranchTarget(TermInst *T, unsigned edgeIdx,
   }
 
   default:
-    llvm_unreachable("only branch and cond_branch have branch arguments");
+    toolchain_unreachable("only branch and cond_branch have branch arguments");
   }
 }
 
@@ -114,8 +115,8 @@ static SILBasicBlock *getNthEdgeBlock(SwitchEnumTermInst S, unsigned edgeIdx) {
   return S.getCase(edgeIdx).second;
 }
 
-void swift::getEdgeArgs(TermInst *T, unsigned edgeIdx, SILBasicBlock *newEdgeBB,
-                        llvm::SmallVectorImpl<SILValue> &args) {
+void language::getEdgeArgs(TermInst *T, unsigned edgeIdx, SILBasicBlock *newEdgeBB,
+                        toolchain::SmallVectorImpl<SILValue> &args) {
   switch (T->getKind()) {
   case SILInstructionKind::BranchInst: {
     auto *B = cast<BranchInst>(T);
@@ -159,7 +160,7 @@ void swift::getEdgeArgs(TermInst *T, unsigned edgeIdx, SILBasicBlock *newEdgeBB,
     }
         
     default:
-      llvm_unreachable("only has at most two edges");
+      toolchain_unreachable("only has at most two edges");
     }
   }
 
@@ -241,17 +242,17 @@ void swift::getEdgeArgs(TermInst *T, unsigned edgeIdx, SILBasicBlock *newEdgeBB,
   case SILInstructionKind::ThrowAddrInst:
   case SILInstructionKind::UnwindInst:
   case SILInstructionKind::UnreachableInst:
-    llvm_unreachable("terminator never has successors");
+    toolchain_unreachable("terminator never has successors");
 
 #define TERMINATOR(ID, ...)
 #define INST(ID, BASE) case SILInstructionKind::ID:
 #include "language/SIL/SILNodes.def"
-    llvm_unreachable("not a terminator");
+    toolchain_unreachable("not a terminator");
   }
-  llvm_unreachable("bad instruction kind");
+  toolchain_unreachable("bad instruction kind");
 }
 
-SILBasicBlock *swift::splitEdge(TermInst *T, unsigned edgeIdx,
+SILBasicBlock *language::splitEdge(TermInst *T, unsigned edgeIdx,
                                 DominanceInfo *DT, SILLoopInfo *LI) {
   auto *srcBB = T->getParent();
   auto *F = srcBB->getParent();
@@ -344,7 +345,7 @@ SILBasicBlock *swift::splitEdge(TermInst *T, unsigned edgeIdx,
 }
 
 /// Merge the basic block with its successor if possible.
-void swift::mergeBasicBlockWithSingleSuccessor(SILBasicBlock *BB,
+void language::mergeBasicBlockWithSingleSuccessor(SILBasicBlock *BB,
                                                SILBasicBlock *succBB) {
   auto *BI = cast<BranchInst>(BB->getTerminator());
   assert(succBB->getSinglePredecessorBlock());
@@ -373,7 +374,7 @@ void swift::mergeBasicBlockWithSingleSuccessor(SILBasicBlock *BB,
 //===----------------------------------------------------------------------===//
 
 // Force the compiler to generate the destructor in this C++ file.
-// Otherwise it can happen that it is generated in a SwiftCompilerSources module
+// Otherwise it can happen that it is generated in a CodiraCompilerSources module
 // and that results in unresolved-symbols linker errors.
 DeadEndBlocks::~DeadEndBlocks() {}
 
@@ -441,21 +442,31 @@ static FunctionTest DeadEndBlocksTest("dead_end_blocks", [](auto &function,
                                                             auto &test) {
   std::unique_ptr<DeadEndBlocks> DeadEnds;
   DeadEnds.reset(new DeadEndBlocks(&function));
-  function.print(llvm::outs());
+  function.print(toolchain::outs());
 #ifndef NDEBUG
   for (auto &block : function) {
     if (DeadEnds->isDeadEnd(&block))
-      block.printID(llvm::outs(), true);
+      block.printID(toolchain::outs(), true);
   }
 #endif
 });
+
+// Arguments:
+// - none
+// Dumps:
+// - message
+static FunctionTest HasAnyDeadEndBlocksTest(
+    "has_any_dead_ends", [](auto &function, auto &arguments, auto &test) {
+      auto deb = test.getDeadEndBlocks();
+      toolchain::outs() << (deb->isEmpty() ? "no dead ends\n" : "has dead ends\n");
+    });
 } // end namespace language::test
 
 //===----------------------------------------------------------------------===//
 //                  Post Dominance Set Completion Utilities
 //===----------------------------------------------------------------------===//
 
-void swift::findJointPostDominatingSet(
+void language::findJointPostDominatingSet(
     SILBasicBlock *dominatingBlock, ArrayRef<SILBasicBlock *> dominatedBlockSet,
     function_ref<void(SILBasicBlock *)> inputBlocksFoundDuringWalk,
     function_ref<void(SILBasicBlock *)> foundJointPostDomSetCompletionBlocks,
@@ -577,7 +588,7 @@ void swift::findJointPostDominatingSet(
 /// check is required for correctness, then DominanceInfo should be passed down
 /// to the utility function that needs this check.
 bool
-swift::checkDominates(SILBasicBlock *sourceBlock, SILBasicBlock *destBlock) {
+language::checkDominates(SILBasicBlock *sourceBlock, SILBasicBlock *destBlock) {
   SILBasicBlock *entryBlock = sourceBlock->getParent()->getEntryBlock();
   BasicBlockWorklist worklist(destBlock);
   bool reaches = false;

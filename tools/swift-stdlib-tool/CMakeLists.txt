@@ -1,4 +1,4 @@
-add_swift_host_tool(swift-stdlib-tool
-  swift-stdlib-tool.cpp
-  SWIFT_COMPONENT compiler)
+add_language_host_tool(language-stdlib-tool
+  language-stdlib-tool.cpp
+  LANGUAGE_COMPONENT compiler)
 

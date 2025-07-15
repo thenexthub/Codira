@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/StrictModule.codemodule -module-name StrictModule -language-version 6 %S/Inputs/StrictModule.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/NonStrictModule.codemodule -module-name NonStrictModule %S/Inputs/NonStrictModule.code
+
+// RUN: %target-language-frontend  -I %t %s -emit-sil -o /dev/null -verify -strict-concurrency=complete
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+@preconcurrency import NonStrictModule
+@preconcurrency import StrictModule
+
+@available(CodiraStdlib 5.1, *)
+actor ActorWithDeinit {
+  var ns: NonStrictClass = NonStrictClass()
+  var ss: StrictStruct = StrictStruct()
+
+  deinit {
+    print(ns)
+    print(ss) // expected-warning{{cannot access property 'ss' with a non-Sendable type 'StrictStruct' from nonisolated deinit}}
+  }
+}

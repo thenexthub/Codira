@@ -1,30 +1,30 @@
 
-add_swift_host_library(swiftFrontendTool STATIC
+add_language_host_library(languageFrontendTool STATIC
   FrontendTool.cpp
   ImportedModules.cpp
   LoadedModuleTrace.cpp
   TBD.cpp)
-add_dependencies(swiftFrontendTool
-  SwiftOptions)
-target_link_libraries(swiftFrontendTool INTERFACE
+add_dependencies(languageFrontendTool
+  CodiraOptions)
+target_link_libraries(languageFrontendTool INTERFACE
   clangAPINotes
   clangBasic)
-target_link_libraries(swiftFrontendTool PRIVATE
-    swiftClangImporter
-    swiftConstExtract
-    swiftDemangling
-    swiftDependencyScan
-    swiftFrontend
-    swiftImmediate
-    swiftIndex
-    swiftIRGen
-    swiftMigrator
-    swiftOption
-    swiftPrintAsClang
-    swiftSerialization
-    swiftSIL
-    swiftSILGen
-    swiftSILOptimizer
-    swiftThreading)
+target_link_libraries(languageFrontendTool PRIVATE
+    languageClangImporter
+    languageConstExtract
+    languageDemangling
+    languageDependencyScan
+    languageFrontend
+    languageImmediate
+    languageIndex
+    languageIRGen
+    languageMigrator
+    languageOption
+    languagePrintAsClang
+    languageSerialization
+    languageSIL
+    languageSILGen
+    languageSILOptimizer
+    languageThreading)
 
-set_swift_llvm_is_available(swiftFrontendTool)
+set_language_toolchain_is_available(languageFrontendTool)

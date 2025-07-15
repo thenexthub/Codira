@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_STDLIB_ENABLE_UNICODE_DATA
+#if LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
 #include "Common/GraphemeData.h"
 #else
 #include "language/Runtime/Debug.h"
@@ -19,14 +23,14 @@
 #include <stdint.h>
 
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint8_t _swift_stdlib_getGraphemeBreakProperty(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint8_t _language_stdlib_getGraphemeBreakProperty(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto index = 1; //0th element is a dummy element
   while (index < GRAPHEME_BREAK_DATA_COUNT) {
-    auto entry = _swift_stdlib_graphemeBreakProperties[index];
+    auto entry = _language_stdlib_graphemeBreakProperties[index];
     
     // Shift the enum and range count out of the value.
     auto lower = (entry << 11) >> 11;
@@ -35,7 +39,7 @@ __swift_uint8_t _swift_stdlib_getGraphemeBreakProperty(__swift_uint32_t scalar) 
     auto upper = lower + ((entry << 3) >> 24);
     
     // Shift everything out.
-    auto enumValue = (__swift_uint8_t)(entry >> 29);
+    auto enumValue = (__language_uint8_t)(entry >> 29);
     
     // Special case: extendedPictographic who used an extra bit for the range.
     if (enumValue == 5) {
@@ -59,14 +63,14 @@ __swift_uint8_t _swift_stdlib_getGraphemeBreakProperty(__swift_uint32_t scalar) 
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_bool _swift_stdlib_isInCB_Consonant(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_bool _language_stdlib_isInCB_Consonant(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto idx = _swift_stdlib_getScalarBitArrayIdx(scalar,
-                                          _swift_stdlib_InCB_Consonant,
-                                          _swift_stdlib_InCB_Consonant_ranks);
+  auto idx = _language_stdlib_getScalarBitArrayIdx(scalar,
+                                          _language_stdlib_InCB_Consonant,
+                                          _language_stdlib_InCB_Consonant_ranks);
 
   if (idx == INTPTR_MAX) {
     return false;

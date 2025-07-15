@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -c -primary-file %s %S/Inputs/opaque_result_type_private_2.code
+
+// This test used to crash during IRGen.
+
+private struct C : P {
+  var x = 1
+  fn d() -> some P {
+    return this
+  }
+}
+
+public fn test() {
+    var x = B(C())
+    print(x)
+}

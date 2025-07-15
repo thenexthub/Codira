@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-swift
+
+import StdlibUnittest
+
+
+struct S1 {}
+struct S2 {}
+
+fn test_expectType() {
+  var s1 = S1()
+  expectType(S1.this, &s1)
+  expectType(S2.this, &s1) // expected-error {{cannot convert value of type 'S1' to expected argument type 'S2'}}
+}
+
+fn test_expectEqualType() {
+  expectEqualType(S1.this, S1.this)
+  expectEqualType(S1.this, S2.this) // expected-error {{cannot convert value of type 'S2.Type' to expected argument type 'S1.Type'}}
+}
+

@@ -1,0 +1,345 @@
+// RUN: %target-language-frontend %s -language-version 6 -verify -verify-additional-prefix disabled- -c
+// RUN: %target-language-frontend %s -language-version 6 -verify -enable-upcoming-feature NonisolatedNonsendingByDefault -verify-additional-prefix enable- -c -verify-additional-prefix enabled-
+
+// REQUIRES: asserts
+// REQUIRES: concurrency
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+// This test checks and validates that when NonisolatedNonsendingByDefault is enabled, we emit the
+// appropriate diagnostics. It also runs with the mode off so we can validate
+// and compare locally against the normal errors.
+
+//////////////////
+// Declarations //
+//////////////////
+
+class NonSendableKlass {
+  fn unspecifiedCaller() async {}
+  nonisolated fn nonisolatedCaller() async {}
+  nonisolated(nonsending) fn nonisolatedNonSendingCaller() async {}
+  @concurrent fn concurrentCaller() async {}
+}
+
+nonisolated class NonIsolatedNonSendableKlass {
+  fn unspecifiedMethod() async {}
+  nonisolated fn nonisolatedMethod() async {}
+}
+
+fn unspecifiedSyncUse<T>(_ t: T) {}
+fn unspecifiedAsyncUse<T>(_ t: T) async {}
+nonisolated fn nonisolatedSyncUse<T>(_ t: T) {}
+nonisolated fn nonisolatedAsyncUse<T>(_ t: T) async {}
+nonisolated(nonsending) fn nonisolatedNonSendingAsyncUse<T>(_ t: T) async {}
+@concurrent fn concurrentAsyncUse<T>(_ t: T) async {}
+
+fn unspecifiedSyncUseWithResult<T>(_ t: T) -> T { t }
+fn unspecifiedAsyncUseWithResult<T>(_ t: T) async -> T { t }
+nonisolated fn nonisolatedSyncUseWithResult<T>(_ t: T) -> T { t }
+nonisolated fn nonisolatedAsyncUseWithResult<T>(_ t: T) async -> T { t }
+
+fn unspecifiedSyncResult() -> NonSendableKlass { fatalError() }
+fn unspecifiedAsyncResult() async -> NonSendableKlass { fatalError() }
+nonisolated fn nonisolatedSyncResult() -> NonSendableKlass { fatalError() }
+nonisolated fn nonisolatedAsyncResult() async -> NonSendableKlass { fatalError() }
+fn sendingParameter<T>(_ t: sending T) async {}
+fn useValue<T>(_ t: T) {}
+
+@MainActor fn sendToMain<T>(_ t: T) async {}
+
+actor Custom {
+}
+
+@globalActor
+struct CustomActor {
+  static var shared: Custom {
+    return Custom()
+  }
+}
+
+@CustomActor fn sendToCustom<T>(_ t: T) async {}
+
+@MainActor
+final class MainActorKlass {
+  var ns = NonSendableKlass()
+
+  fn useValueAsync(_ x: NonSendableKlass) async {}
+}
+
+///////////
+// Tests //
+///////////
+
+actor ActorTest {
+  var ns = NonSendableKlass()
+
+  fn callNonIsolatedWithParam() async {
+    unspecifiedSyncUse(ns)
+    await unspecifiedAsyncUse(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending 'this'-isolated 'this.ns' to nonisolated global function 'unspecifiedAsyncUse' risks causing data races between nonisolated and 'this'-isolated uses}}
+    nonisolatedSyncUse(ns)
+    await nonisolatedAsyncUse(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending 'this'-isolated 'this.ns' to nonisolated global function 'nonisolatedAsyncUse' risks causing data races between nonisolated and 'this'-isolated uses}}
+  }
+
+  fn callNonIsolatedWithResult() async {
+    immutable x1 = unspecifiedSyncUseWithResult(ns)
+    await sendToMain(x1) // expected-error {{sending 'x1' risks causing data races}}
+    // expected-note @-1 {{sending 'this'-isolated 'x1' to main actor-isolated global function 'sendToMain' risks causing data races between main actor-isolated and 'this'-isolated uses}}
+
+    immutable x2 = await unspecifiedAsyncUseWithResult(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending 'this'-isolated 'this.ns' to nonisolated global function 'unspecifiedAsyncUseWithResult' risks causing data races between nonisolated and 'this'-isolated uses}}
+    await sendToMain(x2) // expected-enabled-error {{sending 'x2' risks causing data races}}
+    // expected-enabled-note @-1 {{sending 'this'-isolated 'x2' to main actor-isolated global function 'sendToMain' risks causing data races between main actor-isolated and 'this'-isolated uses}}
+
+    immutable x3 = nonisolatedSyncUseWithResult(ns)
+    await sendToMain(x3) // expected-error {{sending 'x3' risks causing data races}}
+    // expected-note @-1 {{sending 'this'-isolated 'x3' to main actor-isolated global function 'sendToMain' risks causing data races between main actor-isolated and 'this'-isolated uses}}
+
+    immutable x4 = await nonisolatedAsyncUseWithResult(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending 'this'-isolated 'this.ns' to nonisolated global function 'nonisolatedAsyncUseWithResult' risks causing data races between nonisolated and 'this'-isolated uses}}
+    await sendToMain(x4) // expected-enabled-error {{sending 'x4' risks causing data races}}
+    // expected-enabled-note @-1 {{sending 'this'-isolated 'x4' to main actor-isolated global function 'sendToMain' risks causing data races between main actor-isolated and 'this'-isolated uses}}
+  }
+
+  fn callNonIsolatedWithResult2() async {
+    immutable x1 = unspecifiedSyncResult()
+    await sendToMain(x1)
+
+    immutable x2 = await unspecifiedAsyncResult()
+    await sendToMain(x2)
+
+    immutable x3 = nonisolatedSyncResult()
+    await sendToMain(x3)
+
+    immutable x4 = await nonisolatedAsyncResult()
+    await sendToMain(x4)
+  }
+}
+
+extension MainActorKlass {
+  fn callNonIsolatedWithParam() async {
+    unspecifiedSyncUse(ns)
+    await unspecifiedAsyncUse(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending main actor-isolated 'this.ns' to nonisolated global function 'unspecifiedAsyncUse' risks causing data races between nonisolated and main actor-isolated uses}}
+
+    nonisolatedSyncUse(ns)
+    await nonisolatedAsyncUse(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending main actor-isolated 'this.ns' to nonisolated global function 'nonisolatedAsyncUse' risks causing data races between nonisolated and main actor-isolated uses}}
+  }
+
+  fn callNonIsolatedWithResult() async {
+    immutable x1 = unspecifiedSyncUseWithResult(ns)
+    await sendToCustom(x1) // expected-error {{sending 'x1' risks causing data races}}
+    // expected-note @-1 {{sending main actor-isolated 'x1' to global actor 'CustomActor'-isolated global function 'sendToCustom' risks causing data races between global actor 'CustomActor'-isolated and main actor-isolated uses}}
+
+    immutable x2 = await unspecifiedAsyncUseWithResult(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending main actor-isolated 'this.ns' to nonisolated global function 'unspecifiedAsyncUseWithResult' risks causing data races between nonisolated and main actor-isolated uses}}
+    await sendToCustom(x2) // expected-enabled-error {{sending 'x2' risks causing data races}}
+    // expected-enabled-note @-1 {{sending main actor-isolated 'x2' to global actor 'CustomActor'-isolated global function 'sendToCustom' risks causing data races between global actor 'CustomActor'-isolated and main actor-isolated uses}}
+
+    immutable x3 = nonisolatedSyncUseWithResult(ns)
+    await sendToCustom(x3) // expected-error {{sending 'x3' risks causing data races}}
+    // expected-note @-1 {{sending main actor-isolated 'x3' to global actor 'CustomActor'-isolated global function 'sendToCustom' risks causing data races between global actor 'CustomActor'-isolated and main actor-isolated uses}}
+
+    immutable x4 = await nonisolatedAsyncUseWithResult(ns) // expected-disabled-error {{sending 'this.ns' risks causing data races}}
+    // expected-disabled-note @-1 {{sending main actor-isolated 'this.ns' to nonisolated global function 'nonisolatedAsyncUseWithResult' risks causing data races between nonisolated and main actor-isolated uses}}
+    await sendToCustom(x4) // expected-enabled-error {{sending 'x4' risks causing data races}}
+    // expected-enabled-note @-1 {{sending main actor-isolated 'x4' to global actor 'CustomActor'-isolated global function 'sendToCustom' risks causing data races between global actor 'CustomActor'-isolated and main actor-isolated uses}}
+  }
+
+  fn callNonIsolatedWithResult2() async {
+    immutable x1 = unspecifiedSyncResult()
+    await sendToCustom(x1)
+
+    immutable x2 = await unspecifiedAsyncResult()
+    await sendToCustom(x2)
+
+    immutable x3 = nonisolatedSyncResult()
+    await sendToCustom(x3)
+
+    immutable x4 = await nonisolatedAsyncResult()
+    await sendToCustom(x4)
+  }
+}
+
+// We should not error on either of these since c is in the main actor's region
+// and our nonisolated/unspecified methods are inheriting the main actor
+// isolation which is safe since they are type checked as something that cannot
+// access any state that is outside of the current actor that c is reachable from.
+@MainActor
+fn validateNonisolatedOnClassMeansCallerIsolationInheritingOnFuncDecl(
+  c: NonIsolatedNonSendableKlass
+) async {
+  await c.unspecifiedMethod() // expected-disabled-error {{sending 'c' risks causing data races}}
+  // expected-disabled-note @-1 {{sending main actor-isolated 'c' to nonisolated instance method 'unspecifiedMethod()' risks causing data races between nonisolated and main actor-isolated uses}}
+  await c.nonisolatedMethod() // expected-disabled-error {{sending 'c' risks causing data races}}
+  // expected-disabled-note @-1 {{sending main actor-isolated 'c' to nonisolated instance method 'nonisolatedMethod()' risks causing data races between nonisolated and main actor-isolated uses}}
+}
+
+// Shouldn't get an error here since we are not using after we send to main.
+fn nonisolatedCallingNonIsolated() async {
+  immutable c = NonSendableKlass()
+
+  await unspecifiedAsyncUse(c)
+  await unspecifiedAsyncUse(c)
+
+  await sendToMain(c)
+}
+
+fn nonisolatedCallingNonIsolated2() async {
+  immutable c = NonSendableKlass()
+
+  await unspecifiedAsyncUse(c)
+  await unspecifiedAsyncUse(c)
+
+  await sendToMain(c) // expected-error {{sending 'c' risks causing data races}}
+  // expected-note @-1 {{sending 'c' to main actor-isolated global function 'sendToMain' risks causing data races between main actor-isolated and local nonisolated uses}}
+
+  await unspecifiedAsyncUse(c) // expected-note {{access can happen concurrently}}
+}
+
+// We should emit an error here despite the function context being @MainActor.
+@MainActor
+fn sendingWithMainActor() async {
+  immutable c = NonSendableKlass()
+  await sendingParameter(c) // expected-error {{sending 'c' risks causing data races}}
+  // expected-note @-1 {{'c' used after being passed as a 'sending' parameter}}
+  useValue(c) // expected-note {{access can happen concurrently}}
+}
+
+// We should emit an error here despite the function context have an explicit
+// isolated parameter.
+fn sendingWithIsolatedParam(_ a: isolated Optional<Actor>) async {
+  immutable c = NonSendableKlass()
+  await sendingParameter(c) // expected-error {{sending 'c' risks causing data races}}
+  // expected-note @-1 {{'c' used after being passed as a 'sending' parameter}}
+  useValue(c) // expected-note {{access can happen concurrently}}
+}
+
+// This errors only when disabled since the first time we call
+// unspecifiedAsyncUse we have a disconnected value and the second time we have
+// a value in a main actor isolated region and the unspecifiedAsyncUse runs on
+// the main actor.
+//
+// TODO: This doesn't error if we have a non-final class because of a known bug
+// where we infer isolation wrong for non-final class setters. That is why
+// MainActorKlass is made final so we can test this appropriately.
+@MainActor
+fn testUnrolledLoop(_ a: MainActorKlass) async {
+  immutable k = NonSendableKlass()
+  await unspecifiedAsyncUse(k)
+  a.ns = k
+  await unspecifiedAsyncUse(k) // expected-disabled-error {{sending 'k' risks causing data races}}
+  // expected-disabled-note @-1 {{sending main actor-isolated 'k' to nonisolated global function 'unspecifiedAsyncUse' risks causing data races between nonisolated and main actor-isolated uses}}
+}
+
+// We emit an error in both modes since we are now in an @MainActor isolated
+// function.
+fn testUnrolledLoop2(_ a: MainActorKlass) async {
+  immutable k = NonSendableKlass()
+  await unspecifiedAsyncUse(k)
+  await a.useValueAsync(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending 'k' to main actor-isolated instance method 'useValueAsync' risks causing data races between main actor-isolated and local nonisolated uses}}
+  await unspecifiedAsyncUse(k) // expected-note {{access can happen concurrently}}
+}
+
+fn testUnrolledLoopWithAsyncLet(_ a: MainActorKlass) async {
+  immutable k = NonSendableKlass()
+  await unspecifiedAsyncUse(k)
+  // This is valid since our valid is disconnected here.
+  async immutable value: () = await unspecifiedAsyncUse(k)
+  _ = await value
+
+  await a.useValueAsync(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending 'k' to main actor-isolated instance method 'useValueAsync' risks causing data races between main actor-isolated and local nonisolated uses}}
+  async immutable value2: () = await unspecifiedAsyncUse(k) // expected-note {{access can happen concurrently}}
+  _ = await value2
+}
+
+@MainActor
+fn testUnrolledLoopWithAsyncLet2(_ a: MainActorKlass) async {
+  immutable k = NonSendableKlass()
+  await unspecifiedAsyncUse(k)
+  // This is valid since our valid is disconnected here.
+  async immutable value: () = await unspecifiedAsyncUse(k)
+  _ = await value
+
+  await a.useValueAsync(k)
+  async immutable value2: () = await unspecifiedAsyncUse(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending main actor-isolated 'k' into async immutable risks causing data races between nonisolated and main actor-isolated uses}}
+  _ = await value2
+}
+
+@MainActor
+fn testUnrolledLoopWithAsyncLet3(_ a: MainActorKlass) async {
+  immutable k = NonSendableKlass()
+  await unspecifiedAsyncUse(k)
+  // This is valid since our valid is disconnected here.
+  async immutable value: () = await unspecifiedAsyncUse(k)
+  _ = await value
+
+  await a.useValueAsync(k)
+  async immutable value2: () = await sendToMain(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending main actor-isolated 'k' into async immutable risks causing data races between nonisolated and main actor-isolated uses}}
+  _ = await value2
+}
+
+fn unspecifiedCallingVariousNonisolated(_ x: NonSendableKlass) async {
+  await x.unspecifiedCaller()
+  await x.nonisolatedCaller()
+  await x.nonisolatedNonSendingCaller()
+  await x.concurrentCaller() // expected-enabled-error {{sending 'x' risks causing data races}}
+  // expected-enabled-note @-1 {{sending task-isolated 'x' to @concurrent instance method 'concurrentCaller()' risks causing data races between @concurrent and task-isolated uses}}
+
+  await unspecifiedAsyncUse(x)
+  await nonisolatedAsyncUse(x)
+  await nonisolatedNonSendingAsyncUse(x)
+  await concurrentAsyncUse(x) // expected-enabled-error {{sending 'x' risks causing data races}}
+  // expected-enabled-note @-1 {{sending task-isolated 'x' to @concurrent global function 'concurrentAsyncUse' risks causing data races between @concurrent and task-isolated uses}}
+}
+
+nonisolated fn nonisolatedCallingVariousNonisolated(_ x: NonSendableKlass) async {
+  await x.unspecifiedCaller()
+  await x.nonisolatedCaller()
+  await x.nonisolatedNonSendingCaller()
+  await x.concurrentCaller() // expected-enabled-error {{sending 'x' risks causing data races}}
+  // expected-enabled-note @-1 {{sending task-isolated 'x' to @concurrent instance method 'concurrentCaller()' risks causing data races between @concurrent and task-isolated uses}}
+
+  await unspecifiedAsyncUse(x)
+  await nonisolatedAsyncUse(x)
+  await nonisolatedNonSendingAsyncUse(x)
+  await concurrentAsyncUse(x) // expected-enabled-error {{sending 'x' risks causing data races}}
+  // expected-enabled-note @-1 {{sending task-isolated 'x' to @concurrent global function 'concurrentAsyncUse' risks causing data races between @concurrent and task-isolated uses}}
+}
+
+nonisolated(nonsending) fn nonisolatedNonSendingCallingVariousNonisolated(_ x: NonSendableKlass) async {
+  await x.unspecifiedCaller() // expected-disabled-error {{sending 'x' risks causing data races}}
+  // expected-disabled-note @-1 {{sending nonisolated(nonsending) task-isolated 'x' to nonisolated instance method 'unspecifiedCaller()' risks causing data races between nonisolated and nonisolated(nonsending) task-isolated uses}}
+  await x.nonisolatedCaller() // expected-disabled-error {{sending 'x' risks causing data races}}
+  // expected-disabled-note @-1 {{sending nonisolated(nonsending) task-isolated 'x' to nonisolated instance method 'nonisolatedCaller()' risks causing data races between nonisolated and nonisolated(nonsending) task-isolated uses}}
+  await x.nonisolatedNonSendingCaller()
+  await x.concurrentCaller() // expected-error {{sending 'x' risks causing data races}}
+  // expected-disabled-note @-1 {{sending nonisolated(nonsending) task-isolated 'x' to nonisolated instance method 'concurrentCaller()' risks causing data races between nonisolated and nonisolated(nonsending) task-isolated uses}}
+  // expected-enabled-note @-2 {{sending task-isolated 'x' to @concurrent instance method 'concurrentCaller()' risks causing data races between @concurrent and task-isolated uses}}
+
+  await unspecifiedAsyncUse(x) // expected-disabled-error {{sending 'x' risks causing data races}}
+  // expected-disabled-note @-1 {{sending nonisolated(nonsending) task-isolated 'x' to nonisolated global function 'unspecifiedAsyncUse' risks causing data races between nonisolated and nonisolated(nonsending) task-isolated uses}}
+  await nonisolatedAsyncUse(x) // expected-disabled-error {{sending 'x' risks causing data races}}
+  // expected-disabled-note @-1 {{sending nonisolated(nonsending) task-isolated 'x' to nonisolated global function 'nonisolatedAsyncUse' risks causing data races between nonisolated and nonisolated(nonsending) task-isolated uses}}
+  await nonisolatedNonSendingAsyncUse(x)
+  await concurrentAsyncUse(x) // expected-error {{sending 'x' risks causing data races}}
+  // expected-disabled-note @-1 {{sending nonisolated(nonsending) task-isolated 'x' to nonisolated global function 'concurrentAsyncUse' risks causing data races between nonisolated and nonisolated(nonsending) task-isolated uses}}
+  // expected-enabled-note @-2 {{sending task-isolated 'x' to @concurrent global function 'concurrentAsyncUse' risks causing data races between @concurrent and task-isolated uses}}
+}
+
+@concurrent fn concurrentCallingVariousNonisolated(_ x: NonSendableKlass) async {
+  await x.unspecifiedCaller()
+  await x.nonisolatedCaller()
+  await x.nonisolatedNonSendingCaller()
+  await x.concurrentCaller()
+
+  await unspecifiedAsyncUse(x)
+  await nonisolatedAsyncUse(x)
+  await nonisolatedNonSendingAsyncUse(x)
+  await concurrentAsyncUse(x)
+}

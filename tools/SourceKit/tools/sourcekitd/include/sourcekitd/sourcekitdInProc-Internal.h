@@ -11,17 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITDINPROC_INTERNAL_H
-#define LLVM_SOURCEKITDINPROC_INTERNAL_H
+#ifndef TOOLCHAIN_SOURCEKITDINPROC_INTERNAL_H
+#define TOOLCHAIN_SOURCEKITDINPROC_INTERNAL_H
 
 #include <string>
 
 namespace sourcekitdInProc {
 std::string getRuntimeLibPath();
-std::string getSwiftExecutablePath();
-std::string getDiagnosticDocumentationPath();
+std::string getCodiraExecutablePath();
 } // namespace sourcekitdInProc
 
 #endif

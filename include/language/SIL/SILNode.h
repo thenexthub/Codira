@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILNode class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILNODE_H
-#define SWIFT_SIL_SILNODE_H
+#ifndef LANGUAGE_SIL_SILNODE_H
+#define LANGUAGE_SIL_SILNODE_H
 
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/PointerLikeTypeTraits.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/SwiftObjectHeader.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/PointerLikeTypeTraits.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/LanguageObjectHeader.h"
 #include <type_traits>
 
 namespace language {
@@ -115,9 +116,9 @@ public:
 ///   ValueBase subobject, the cast will yield a corrupted value.
 ///   Always use the LLVM casts (cast<>, dyn_cast<>, etc.) instead.
 class alignas(8) SILNode :
-  // SILNode contains a swift object header for bridging with Swift.
-  // For details see SwiftCompilerSources/README.md.
-  public SwiftObjectHeader {
+  // SILNode contains a language object header for bridging with Codira.
+  // For details see CodiraCompilerSources/README.md.
+  public LanguageObjectHeader {
 public:
   enum { NumVOKindBits = 3 };
   enum { NumStoreOwnershipQualifierBits = 2 };
@@ -397,10 +398,10 @@ protected:
   uint64_t lastInitializedBitfieldID : (64 - numCustomBits);
 
 private:
-  SwiftMetatype getSILNodeMetatype(SILNodeKind kind);
+  CodiraMetatype getSILNodeMetatype(SILNodeKind kind);
 
 protected:
-  SILNode(SILNodeKind kind) : SwiftObjectHeader(getSILNodeMetatype(kind)),
+  SILNode(SILNodeKind kind) : LanguageObjectHeader(getSILNodeMetatype(kind)),
                               kind((uint8_t)kind),
                               customBits(0), lastInitializedBitfieldID(0) {
     _sharedUInt8_private.opaque = 0;
@@ -413,7 +414,7 @@ protected:
   void setCustomBits(unsigned value) { customBits = value; }
 
 public:
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   SILNodeKind getKind() const {
     return SILNodeKind(kind);
   }
@@ -466,7 +467,7 @@ public:
 static_assert(sizeof(SILNode) <= 4 * sizeof(uint64_t),
               "SILNode must stay small");
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                      const SILNode &node) {
   node.print(OS);
   return OS;
@@ -517,61 +518,61 @@ struct cast_from_SILInstruction<To, /*IsSILInstruction*/ false> {
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 /// Completely take over cast<>'ing from SILNode* and SILInstruction*.
 /// A static_cast to ValueBase* or SILInstruction* can be quite wrong.
 template <class To>
-struct cast_convert_val<To, swift::SILNode*, swift::SILNode*> {
-  using ret_type = typename cast_retty<To, swift::SILNode*>::ret_type;
-  static ret_type doit(swift::SILNode *node) {
-    return swift::cast_from_SILNode<To>::doit(node);
+struct cast_convert_val<To, language::SILNode*, language::SILNode*> {
+  using ret_type = typename cast_retty<To, language::SILNode*>::ret_type;
+  static ret_type doit(language::SILNode *node) {
+    return language::cast_from_SILNode<To>::doit(node);
   }
 };
 template <class To>
-struct cast_convert_val<To, const swift::SILNode *, const swift::SILNode *> {
-  using ret_type = typename cast_retty<To, const swift::SILNode*>::ret_type;
-  static ret_type doit(const swift::SILNode *node) {
-    return swift::cast_from_SILNode<To>::doit(const_cast<swift::SILNode*>(node));
+struct cast_convert_val<To, const language::SILNode *, const language::SILNode *> {
+  using ret_type = typename cast_retty<To, const language::SILNode*>::ret_type;
+  static ret_type doit(const language::SILNode *node) {
+    return language::cast_from_SILNode<To>::doit(const_cast<language::SILNode*>(node));
   }
 };
 template <class To>
-struct cast_convert_val<To, swift::SILInstruction*, swift::SILInstruction*> {
-  using ret_type = typename cast_retty<To, swift::SILInstruction*>::ret_type;
-  static ret_type doit(swift::SILInstruction *inst) {
-    return swift::cast_from_SILInstruction<To>::doit(inst);
+struct cast_convert_val<To, language::SILInstruction*, language::SILInstruction*> {
+  using ret_type = typename cast_retty<To, language::SILInstruction*>::ret_type;
+  static ret_type doit(language::SILInstruction *inst) {
+    return language::cast_from_SILInstruction<To>::doit(inst);
   }
 };
 template <class To>
-struct cast_convert_val<To, const swift::SILInstruction *,
-                            const swift::SILInstruction *> {
-  using ret_type = typename cast_retty<To, const swift::SILInstruction*>::ret_type;
-  static ret_type doit(const swift::SILInstruction *inst) {
-    return swift::cast_from_SILInstruction<To>::
-             doit(const_cast<swift::SILInstruction*>(inst));
+struct cast_convert_val<To, const language::SILInstruction *,
+                            const language::SILInstruction *> {
+  using ret_type = typename cast_retty<To, const language::SILInstruction*>::ret_type;
+  static ret_type doit(const language::SILInstruction *inst) {
+    return language::cast_from_SILInstruction<To>::
+             doit(const_cast<language::SILInstruction*>(inst));
   }
 };
 
 // We don't support casting from SILNode references yet.
 template <class To, class From>
-struct cast_convert_val<To, swift::SILNode, From>;
+struct cast_convert_val<To, language::SILNode, From>;
 template <class To, class From>
-struct cast_convert_val<To, const swift::SILNode, From>;
+struct cast_convert_val<To, const language::SILNode, From>;
 
 /// ValueBase * is always at least eight-byte aligned; make the three tag bits
 /// available through PointerLikeTypeTraits.
 template<>
-struct PointerLikeTypeTraits<swift::SILNode *> {
+struct PointerLikeTypeTraits<language::SILNode *> {
 public:
-  static inline void *getAsVoidPointer(swift::SILNode *I) {
+  static inline void *getAsVoidPointer(language::SILNode *I) {
     return (void*)I;
   }
-  static inline swift::SILNode *getFromVoidPointer(void *P) {
-    return (swift::SILNode *)P;
+  static inline language::SILNode *getFromVoidPointer(void *P) {
+    return (language::SILNode *)P;
   }
   enum { NumLowBitsAvailable = 3 };
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

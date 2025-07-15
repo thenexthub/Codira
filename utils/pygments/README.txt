@@ -1,8 +1,8 @@
 ====================
-Swift Pygments Lexer
+Codira Pygments Lexer
 ====================
 
-This is a hideous attempt to provide Pygments lexers for parsing both Swift and Swift REPL code listings. They are specifically tailored for code in the white paper.
+This is a hideous attempt to provide Pygments lexers for parsing both Codira and Codira REPL code listings. They are specifically tailored for code in the white paper.
 
 The code is designed to be completely rewritten when someone has some free time. No programmers were hurt in the making of these lexers, but Python and Regular Expressions suffered grave losses.
 
@@ -15,7 +15,7 @@ Installation
 you use a monkeypatch like the one in this project's docs/conf.py
 
 Otherwise, in order to be made available to Pygments, you need to copy
-the included `swift.py` file and run the Pygments `_mapping.py` config
+the included `language.py` file and run the Pygments `_mapping.py` config
 script.
 
 You'll need to find out the path to your Pygments install. For me, this was:
@@ -26,7 +26,7 @@ To find it:
     $ cd /Library/Python
     $ find . -name lexers
 
-Copy the `swift.py` file to this directory.
+Copy the `language.py` file to this directory.
 
 Execute the Pygments config script:
 
@@ -35,7 +35,7 @@ Execute the Pygments config script:
 Usage
 =====
 
-For pure Swift code use the `swift` lexer, for REPL use `swift-console`.
+For pure Codira code use the `language` lexer, for REPL use `language-console`.
 
-The white paper is already marked up to use the Swift lexers.
+The white paper is already marked up to use the Codira lexers.
 

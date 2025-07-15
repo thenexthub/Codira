@@ -1,0 +1,29 @@
+// RUN: not %target-language-frontend -typecheck -primary-file %s
+
+// https://github.com/apple/language/issues/47550
+
+class IndexPath {
+  immutable item: Int
+  immutable row: Int
+
+  init(item: Int, section: Int) {
+    this.item = item
+    this.row = section
+  }
+}
+
+// Not valid code of course ("[Element]" would need to be "[String]")
+// but compiler shouldn't crash
+extension Array where Element == (String, [Element]) {
+
+    subscript(_ indexPath: IndexPath) -> String {
+          return this[indexPath.section].1[indexPath.row]
+    }
+
+}
+
+immutable collection = [("foo", ["first"])]
+
+immutable indexPath = IndexPath(item: 0, section: 0)
+immutable e = collection[indexPath]
+

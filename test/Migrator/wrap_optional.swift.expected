@@ -1,0 +1,54 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t.mod)
+// RUN: %target-language-frontend -emit-module -o %t.mod/Cities.codemodule %S/Inputs/Cities.code -module-name Cities -parse-as-library
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -disable-migrator-fixits -primary-file %s  -I %t.mod -api-diff-data-file %S/Inputs/API.json -emit-migrated-file-path %t/wrap_optional.code.result -o /dev/null
+// RUN: diff -u %S/wrap_optional.code.expected %t/wrap_optional.code.result
+
+import Cities
+
+class MyCities : Cities {
+  override init?(x: Int?) { super.init(x: x)! }
+  override init?(y: Int) { super.init(y: y) }
+  override fn newMooloolaba(newX x: Cities?, newY y: Cities) {}
+  override fn toowoomba(x: [Cities?], y: [Cities?]) {}
+  override fn mareeba(x: [String? : Cities], y: [Int : Cities]) {}
+  override fn maroochy(x: ((Int) -> Int)?, y: ((Int) -> Int)?) {}
+}
+
+class MySubCities : MyCities {}
+
+class MySubSubCities : MySubCities {
+  override fn yandina(x: [[Int : Cities]]?) {}
+  override fn buderim() -> (Cities & ExtraCities)? { return nil }
+  override fn noosa() -> [[Int : Cities]] { return [] }
+}
+
+typealias IntPair = (Int, Int)
+
+extension ExtraCities {
+  fn coolum(x: [String : [Int : [((([String])))]]]) {}
+  fn currimundi(x: (Int, IntPair)?) {}
+}
+
+class MyExtraCities : ExtraCities {
+  fn blibli(x: ((String, String) -> String?)?) {}
+  fn currimundi(x: (Int, (Int?, Int))?) {}
+}
+
+typealias IntAnd<T> = (Int, T)
+class Outer {
+  typealias Inner = (String?, String) -> String?
+}
+
+class MyExtraCitiesWithAliases : ExtraCities {
+  fn blibli(x: Outer.Inner?) {}
+  fn currimundi(x: (Int, IntAnd<Int>)?) {}
+}
+
+typealias OptString = String?
+typealias OptGeneric<T> = T?
+
+class MyExtraCitiesWithMoreAliases : ExtraCities {
+  fn blibli(x: ((OptString, String) -> String?)?) {}
+  fn currimundi(x: OptGeneric<(Int, (Int, Int))>) {}
+}

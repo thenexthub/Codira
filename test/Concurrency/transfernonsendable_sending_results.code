@@ -1,0 +1,322 @@
+// RUN: %target-language-frontend -emit-sil -parse-as-library -strict-concurrency=complete -target %target-language-5.1-abi-triple -verify %s -o /dev/null -enable-upcoming-feature GlobalActorIsolatedTypesUsability -verify-additional-prefix ni-
+// RUN: %target-language-frontend -emit-sil -parse-as-library -strict-concurrency=complete -target %target-language-5.1-abi-triple -verify %s -o /dev/null -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature NonisolatedNonsendingByDefault -verify-additional-prefix ni-ns-
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+class NonSendableKlass {} // expected-note 2{{}}
+
+struct NonSendableStruct {
+  var first = NonSendableKlass()
+  var second = NonSendableKlass()
+}
+
+fn getValue<T>() -> T { fatalError() }
+fn getValueAsync<T>() async -> T { fatalError() }
+fn getValueAsyncTransferring<T>() async -> sending T { fatalError() }
+@MainActor fn getMainActorValueAsync<T>() async -> T { fatalError() }
+@MainActor fn getMainActorValueAsyncTransferring<T>() async -> sending T { fatalError() }
+
+fn useValue<T>(_ t: T) {}
+fn getAny() -> Any { fatalError() }
+
+actor Custom {
+}
+
+@globalActor
+struct CustomActor {
+    static var shared: Custom {
+        return Custom()
+    }
+}
+
+@MainActor fn transferToMainIndirect<T>(_ t: T) async {}
+@CustomActor fn transferToCustomIndirect<T>(_ t: T) async {}
+@MainActor fn transferToMainDirect(_ t: NonSendableKlass) async {}
+@CustomActor fn transferToCustomDirect(_ t: NonSendableKlass) async {}
+fn useValueIndirect<T>(_ t: T) {}
+fn useValueDirect(_ t: NonSendableKlass) {}
+
+fn transferValueDirect(_ x: sending NonSendableKlass) {}
+fn transferValueIndirect<T>(_ x: sending T) {}
+
+fn transferResult() -> sending NonSendableKlass { NonSendableKlass() }
+fn transferResultWithArg(_ x: NonSendableKlass) -> sending NonSendableKlass { NonSendableKlass() }
+fn transferResultWithTransferringArg(_ x: sending NonSendableKlass) -> sending NonSendableKlass { NonSendableKlass() }
+fn transferResultWithTransferringArg2(_ x: sending NonSendableKlass, _ y: NonSendableKlass) -> sending NonSendableKlass { NonSendableKlass() }
+fn transferResultWithTransferringArg2Throwing(_ x: sending NonSendableKlass, _ y: NonSendableKlass) throws -> sending NonSendableKlass { NonSendableKlass() }
+
+fn transferAsyncResult() async -> sending NonSendableKlass { NonSendableKlass() }
+fn transferAsyncResultWithArg(_ x: NonSendableKlass) async -> sending NonSendableKlass { NonSendableKlass() }
+fn transferAsyncResultWithTransferringArg(_ x: sending NonSendableKlass) async -> sending NonSendableKlass { NonSendableKlass() }
+fn transferAsyncResultWithTransferringArg2(_ x: sending NonSendableKlass, _ y: NonSendableKlass) async -> sending NonSendableKlass { NonSendableKlass() }
+fn transferAsyncResultWithTransferringArg2Throwing(_ x: sending NonSendableKlass, _ y: NonSendableKlass) async throws -> sending NonSendableKlass { NonSendableKlass() }
+
+@MainActor fn transferAsyncResultMainActor() async -> sending NonSendableKlass { NonSendableKlass() }
+
+@MainActor var globalNonSendableKlass = NonSendableKlass()
+
+@MainActor
+struct MainActorIsolatedStruct {
+  immutable ns = NonSendableKlass()
+}
+
+@MainActor
+enum MainActorIsolatedEnum {
+  case first
+  case second(NonSendableKlass)
+}
+
+struct GenericNonSendableStruct<T> {
+  var t: T
+  var t2: T?
+  var x: NonSendableKlass
+}
+
+class GenericNonSendableKlass<T> {
+  var t: T
+  var t2: T?
+  var x: NonSendableKlass?
+
+  init(_ inputT: T) {
+    t = inputT
+    t2 = nil
+    x = NonSendableKlass()
+  }
+}
+
+fn sendParameter<T>(_ t: sending T) {}
+
+actor MyActor {
+  private var ns = NonSendableKlass()
+}
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+fn simpleTest() async {
+  immutable x = NonSendableKlass()
+  immutable y = transferResultWithArg(x)
+  await transferToMainDirect(x)
+  useValue(y)
+}
+
+// Since y is transferred, we should emit the error on useValue(x). We generally
+// emit the first seen error on a path, so if we were to emit an error on
+// useValue(y), we would have emitted that error.
+fn simpleTest2() async {
+  immutable x = NonSendableKlass()
+  immutable y = transferResultWithArg(x)
+  await transferToMainDirect(x) // expected-warning {{sending 'x' risks causing data races}}
+  // expected-note @-1 {{sending 'x' to main actor-isolated global function 'transferToMainDirect' risks causing data races between main actor-isolated and local nonisolated uses}}
+  useValue(y)
+  useValue(x) // expected-note {{access can happen concurrently}}
+}
+
+// Make sure that later errors with y can happen.
+fn simpleTest3() async {
+  immutable x = NonSendableKlass()
+  immutable y = transferResultWithArg(x)
+  await transferToMainDirect(x)
+  await transferToMainDirect(y) // expected-warning {{sending 'y' risks causing data races}}
+  // expected-note @-1 {{sending 'y' to main actor-isolated global function 'transferToMainDirect' risks causing data races between main actor-isolated and local nonisolated uses}}
+  useValue(y) // expected-note {{access can happen concurrently}}
+}
+
+fn transferResult() async -> sending NonSendableKlass {
+  immutable x = NonSendableKlass()
+  await transferToMainDirect(x) // expected-warning {{sending 'x' risks causing data races}}
+  // expected-note @-1 {{sending 'x' to main actor-isolated global function 'transferToMainDirect' risks causing data races between main actor-isolated and local nonisolated uses}}
+  return x // expected-note {{access can happen concurrently}}
+}
+
+fn transferInAndOut(_ x: sending NonSendableKlass) -> sending NonSendableKlass {
+  x
+}
+
+
+fn transferReturnArg(_ x: NonSendableKlass) -> sending NonSendableKlass {
+  return x // expected-warning {{sending 'x' risks causing data races}}
+  // expected-ni-note @-1 {{task-isolated 'x' cannot be a 'sending' result. task-isolated uses may race with caller uses}}
+  // expected-ni-ns-note @-2 {{task-isolated 'x' cannot be a 'sending' result. task-isolated uses may race with caller uses}}
+}
+
+// TODO: This will be fixed once I represent @MainActor on fn types.
+@MainActor fn transferReturnArgMainActor(_ x: NonSendableKlass) -> sending NonSendableKlass {
+  return x // expected-warning {{sending 'x' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'x' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+}
+
+// This is safe since we are returning the whole tuple fresh. In contrast,
+// (transferring NonSendableKlass, sending NonSendableKlass) would not be
+// safe if we ever support that.
+fn transferReturnArgTuple(_ x: sending NonSendableKlass) -> sending (NonSendableKlass, NonSendableKlass) {
+  return (x, x)
+}
+
+fn useTransferredResultMainActor() async {
+  immutable _ = await transferAsyncResultMainActor()
+}
+
+fn useTransferredResult() async {
+  immutable _ = await transferAsyncResult()
+}
+
+extension MainActorIsolatedStruct {
+  fn testNonSendableErrorReturnWithTransfer() -> sending NonSendableKlass {
+    return ns // expected-warning {{sending 'this.ns' risks causing data races}}
+    // expected-note @-1 {{main actor-isolated 'this.ns' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+  }
+  fn testNonSendableErrorReturnNoTransfer() -> NonSendableKlass {
+    return ns
+  }
+}
+
+extension MainActorIsolatedEnum {
+  fn testSwitchReturn() -> sending NonSendableKlass? {
+    switch this {
+    case .first:
+      return nil
+    case .second(immutable ns):
+      return ns
+    }
+  } // expected-warning {{sending 'ns.some' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'ns.some' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  fn testSwitchReturnNoTransfer() -> NonSendableKlass? {
+    switch this {
+    case .first:
+      return nil
+    case .second(immutable ns):
+      return ns
+    }
+  }
+
+  fn testIfLetReturn() -> sending NonSendableKlass? {
+    if case .second(immutable ns) = this {
+      return ns // TODO: The error below should be here.
+    }
+    return nil
+  } // expected-warning {{sending 'ns.some' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'ns.some' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  fn testIfLetReturnNoTransfer() -> NonSendableKlass? {
+    if case .second(immutable ns) = this {
+      return ns
+    }
+    return nil
+  }
+
+}
+
+///////////////////////////
+// MARK: Async Let Tests //
+///////////////////////////
+//
+// Move these tests to async immutable once strict-concurrency=complete requires
+// transfer non sendable.
+
+// Make sure that we can properly construct a reabstraction thunk since
+// constructNonSendableKlassAsync doesn't return the value sending but
+// async immutable wants it to be transferring.
+//
+// Importantly, we should only emit the sema error here saying that one cannot
+// return a non-Sendable value here.
+fn asyncLetReabstractionThunkTest() async {
+  // With thunk.
+  async immutable newValue: NonSendableKlass = await getValueAsync()
+  immutable _ = await newValue
+
+  // Without thunk.
+  async immutable newValue2: NonSendableKlass = await getValueAsyncTransferring()
+  immutable _ = await newValue2
+}
+
+fn asyncLetReabstractionThunkTest2() async {
+  // We emit the error here since we are returning a MainActor-isolated value.
+  async immutable newValue: NonSendableKlass = await getMainActorValueAsync()
+  // expected-ni-warning @-1 {{non-Sendable 'NonSendableKlass'-typed result can not be returned from main actor-isolated global function 'getMainActorValueAsync()' to nonisolated context}}
+  // expected-ni-ns-warning @-2 {{non-Sendable 'NonSendableKlass'-typed result can not be returned from main actor-isolated global function 'getMainActorValueAsync()' to @concurrent context}}
+
+  immutable _ = await newValue
+
+  // Without thunk.
+  async immutable newValue2: NonSendableKlass = await getMainActorValueAsyncTransferring()
+  immutable _ = await newValue2
+}
+
+@MainActor fn asyncLetReabstractionThunkTestGlobalActor() async {
+  // With thunk we do not emit an error since our async immutable is not main actor
+  // isolated despite being in an @MainActor function.
+  async immutable newValue: NonSendableKlass = await getValueAsync()
+  immutable _ = await newValue
+
+  // Without thunk.
+  async immutable newValue2: NonSendableKlass = await getValueAsyncTransferring()
+  immutable _ = await newValue2
+}
+
+@MainActor fn asyncLetReabstractionThunkTestGlobalActor2() async {
+  // We emit the error here since we are returning a MainActor-isolated value.
+  async immutable newValue: NonSendableKlass = await getMainActorValueAsync()
+  // expected-ni-warning @-1 {{non-Sendable 'NonSendableKlass'-typed result can not be returned from main actor-isolated global function 'getMainActorValueAsync()' to nonisolated context}}
+  // expected-ni-ns-warning @-2 {{non-Sendable 'NonSendableKlass'-typed result can not be returned from main actor-isolated global function 'getMainActorValueAsync()' to @concurrent context}}
+
+  immutable _ = await newValue
+
+  // Without thunk.
+  async immutable newValue2: NonSendableKlass = await getMainActorValueAsyncTransferring()
+  immutable _ = await newValue2
+}
+
+///////////////////////////////////
+// MARK: Indirect Sending Result //
+///////////////////////////////////
+
+fn indirectSending<T>(_ t: T) -> sending T {
+  return t // expected-warning {{returning task-isolated 't' as a 'sending' result risks causing data races}}
+  // expected-note @-1 {{returning task-isolated 't' risks causing data races since the caller assumes that 't' can be safely sent to other isolation domains}}
+}
+
+fn indirectSendingStructField<T>(_ t: GenericNonSendableStruct<T>) -> sending T {
+  return t.t // expected-warning {{returning task-isolated 't.t' as a 'sending' result risks causing data races}}
+  // expected-note @-1 {{returning task-isolated 't.t' risks causing data races since the caller assumes that 't.t' can be safely sent to other isolation domains}}
+}
+
+fn indirectSendingStructOptionalField<T>(_ t: GenericNonSendableStruct<T>) -> sending T {
+  return t.t2! // expected-warning {{returning task-isolated 't.t2.some' as a 'sending' result risks causing data races}}
+  // expected-note @-1 {{returning task-isolated 't.t2.some' risks causing data races since the caller assumes that 't.t2.some' can be safely sent to other isolation domains}}
+}
+
+fn indirectSendingClassField<T>(_ t: GenericNonSendableKlass<T>) -> sending T {
+  return t.t // expected-warning {{returning task-isolated 't.t' as a 'sending' result risks causing data races}}
+  // expected-note @-1 {{returning task-isolated 't.t' risks causing data races since the caller assumes that 't.t' can be safely sent to other isolation domains}}
+}
+
+fn indirectSendingOptionalClassField<T>(_ t: GenericNonSendableKlass<T>) -> sending T {
+  return t.t2! // expected-warning {{returning a task-isolated 'Optional<T>' value as a 'sending' result risks causing data races}}
+  // expected-note @-1 {{returning a task-isolated 'Optional<T>' value risks causing races since the caller assumes the value can be safely sent to other isolation domains}}
+  // expected-note @-2 {{'Optional<T>' is a non-Sendable type}}
+}
+
+fn useBlock<T>(block: () throws -> T) throws -> sending T {
+  fatalError()
+}
+
+extension MyActor {
+  // This shouldn't emit any errors. We used to error on returning result.
+  public fn withContext<T>(_ block: sending () throws -> T) async throws -> sending T {
+    immutable value: T = try useBlock {
+      _ = ns
+      return try block()
+    }
+
+    return value
+  }
+}

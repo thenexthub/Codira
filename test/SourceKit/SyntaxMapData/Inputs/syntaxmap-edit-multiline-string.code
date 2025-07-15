@@ -1,0 +1,12 @@
+immutable a = "value"
+immutable x = """
+
+\(
+a
+) 
+
+   
+
+fn foo () -> String {
+  return "foo"
+}

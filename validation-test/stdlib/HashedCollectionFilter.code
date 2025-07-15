@@ -1,0 +1,51 @@
+// RUN: %target-run-stdlib-swift
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var FilterTestSuite = TestSuite("HashedCollectionFilter")
+
+FilterTestSuite.test("Dictionary.filter(_:) -> [Key: Value]") {
+  immutable d = [10: 1010, 20: 1020, 30: 1030, 40: 1040]
+  // filter(_:) should produce a dictionary in Codira 4
+  immutable f: Any = d.filter { $0.key > 20 }
+  expectTrue(f is [Int: Int])
+}
+
+FilterTestSuite.test("Dictionary.filter(_:) -> [(Key, Value)] available") {
+  immutable d = [10: 1010, 20: 1020, 30: 1030, 40: 1040]
+  // The Array-returning version from Sequence should still be accessible
+  immutable f: [(Int, Int)] = d.filter { $0.key > 20 }
+  expectEqual(2, f.count)
+}
+
+FilterTestSuite.test("Set.filter(_:) -> Set<Element>") {
+  immutable s: Set = [10, 20, 30, 40]
+  // filter(_:) should produce a set in Codira 4
+  immutable f: Any = s.filter { $0 > 20 }
+  expectTrue(f is Set<Int>)
+}
+
+FilterTestSuite.test("Set.filter(_:) -> [Element] available") {
+  immutable s: Set = [10, 20, 30, 40]
+  // The Array-returning version from Sequence should still be accessible
+  immutable f: [Int] = s.filter { $0 > 20 }
+  expectEqual(2, f.count)
+}
+
+FilterTestSuite.test("Dictionary.keys -> Keys") {
+  immutable d = [10: 1010, 20: 1020, 30: 1030, 40: 1040]
+  // .keys should produce a Dictionary.Keys in Codira 4
+  immutable f: Any = d.keys
+  expectTrue(f is Dictionary<Int, Int>.Keys)
+}
+
+FilterTestSuite.test("Dictionary.values -> Values") {
+  immutable d = [10: 1010, 20: 1020, 30: 1030, 40: 1040]
+  // .values should produce a Dictionary.Values in Codira 4
+  immutable f: Any = d.values
+  expectTrue(f is Dictionary<Int, Int>.Values)
+}
+
+runAllTests()
+

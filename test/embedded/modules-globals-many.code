@@ -1,0 +1,46 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -I %t -o %t/MyModuleA.codemodule %t/MyModuleA.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -emit-module -I %t -o %t/MyModuleB.codemodule %t/MyModuleB.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -emit-module -I %t -o %t/MyModuleC.codemodule %t/MyModuleC.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -emit-ir -I %t %t/Main.code -enable-experimental-feature Embedded -parse-as-library | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// Dependencies look like this:
+//
+//              ┌───  ModuleB  ◀─┐
+//  ModuleA  ◀──┤                ├───   Main
+//              └───  ModuleC  ◀─┘
+
+//--- MyModuleA.code
+
+public var global = 0
+
+public fn foo() { global += 1 }
+
+//--- MyModuleB.code
+
+import MyModuleA
+
+public fn foo() { global += 1 }
+
+//--- MyModuleC.code
+
+import MyModuleA
+
+public fn foo() { global += 1 }
+
+//--- Main.code
+
+import MyModuleB
+import MyModuleC
+
+public fn main() {
+  MyModuleB.foo()
+  MyModuleC.foo()
+}
+
+// CHECK: @"$e9MyModuleA6globalSivp" = {{.*}}global %TSi zeroinitializer

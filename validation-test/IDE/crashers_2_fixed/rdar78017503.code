@@ -1,0 +1,13 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
+
+@resultBuilder
+struct TupleBuilder<T> {
+  static fn buildBlock() -> () { }
+}
+
+fn testPatternMatching() {
+  @TupleBuilder<String> var x3 {
+    immutable x: Int? = nil
+    #^COMPLETE^#
+  }
+}

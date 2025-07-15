@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "CodeCompletionResultBuilder.h"
@@ -18,7 +19,7 @@
 #include "language/AST/ASTContext.h"
 #include "language/AST/USRGeneration.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/IDE/CodeCompletionStringPrinter.h"
 #include "language/IDE/Utils.h"
 #include "clang/AST/ASTContext.h"
@@ -57,16 +58,16 @@ static void walkValueDeclAndOverriddenDecls(const Decl *D, const FnTy &Fn) {
 }
 
 static ArrayRef<NullTerminatedStringRef>
-copyAssociatedUSRs(llvm::BumpPtrAllocator &Allocator, const Decl *D) {
-  llvm::SmallVector<NullTerminatedStringRef, 4> USRs;
+copyAssociatedUSRs(toolchain::BumpPtrAllocator &Allocator, const Decl *D) {
+  toolchain::SmallVector<NullTerminatedStringRef, 4> USRs;
   walkValueDeclAndOverriddenDecls(
       D,
-      [&](llvm::PointerUnion<const ValueDecl *, const clang::NamedDecl *> OD) {
-        llvm::SmallString<128> SS;
+      [&](toolchain::PointerUnion<const ValueDecl *, const clang::NamedDecl *> OD) {
+        toolchain::SmallString<128> SS;
         bool Ignored = true;
         if (auto *OVD = OD.dyn_cast<const ValueDecl *>()) {
           if (shouldCopyAssociatedUSRForDecl(OVD)) {
-            llvm::raw_svector_ostream OS(SS);
+            toolchain::raw_svector_ostream OS(SS);
             Ignored = printValueDeclUSR(OVD, OS);
           }
         } else if (auto *OND = OD.dyn_cast<const clang::NamedDecl *>()) {
@@ -78,7 +79,7 @@ copyAssociatedUSRs(llvm::BumpPtrAllocator &Allocator, const Decl *D) {
       });
 
   if (!USRs.empty())
-    return llvm::ArrayRef(USRs).copy(Allocator);
+    return toolchain::ArrayRef(USRs).copy(Allocator);
 
   return {};
 }
@@ -103,7 +104,7 @@ CodeCompletionResult *CodeCompletionResultBuilder::takeResult() {
     if (const auto *VD = dyn_cast_or_null<ValueDecl>(AssociatedDecl)) {
       CodeCompletionDiagnosticSeverity severity;
       SmallString<256> message;
-      llvm::raw_svector_ostream messageOS(message);
+      toolchain::raw_svector_ostream messageOS(message);
       if (!getContextFreeCompletionDiagnostics(ContextFreeNotRecReason, VD,
                                                severity, messageOS)) {
         ContextFreeDiagnosticSeverity = severity;
@@ -128,7 +129,7 @@ CodeCompletionResult *CodeCompletionResultBuilder::takeResult() {
               NullTerminatedStringRef(C->getFullModuleName(), Allocator);
         } else {
           ModuleName = NullTerminatedStringRef(
-              CurrentModule.get<const swift::ModuleDecl *>()->getName().str(),
+              CurrentModule.get<const language::ModuleDecl *>()->getName().str(),
               Allocator);
         }
         Sink.LastModule.first = CurrentModule.getOpaqueValue();
@@ -250,7 +251,7 @@ void CodeCompletionResultBuilder::addCallArgument(
   addSimpleChunk(ChunkKind::CallArgumentBegin);
 
   if (shouldAnnotateResults()) {
-    llvm::SmallString<16> EscapedKeyword;
+    toolchain::SmallString<16> EscapedKeyword;
     if (!Name.empty()) {
       addChunkWithText(ChunkKind::CallArgumentName,
                        escapeKeyword(Name.str(), false, EscapedKeyword));
@@ -279,7 +280,7 @@ void CodeCompletionResultBuilder::addCallArgument(
         getLastChunk().setIsAnnotation();
     }
   } else {
-    llvm::SmallString<16> stash;
+    toolchain::SmallString<16> stash;
     ChunkKind nameKind;
     StringRef nameStr;
     if (!Name.empty()) {
@@ -314,9 +315,12 @@ void CodeCompletionResultBuilder::addCallArgument(
       Ty = funcTy->getResult();
   }
 
+  NonRecursivePrintOptions nrOptions;
+  if (IsIUO)
+    nrOptions |= NonRecursivePrintOption::ImplicitlyUnwrappedOptional;
+
   PrintOptions PO;
   PO.SkipAttributes = true;
-  PO.PrintOptionalAsImplicitlyUnwrapped = IsIUO;
   PO.OpaqueReturnTypePrinting =
       PrintOptions::OpaqueReturnTypePrintingMode::WithoutOpaqueKeyword;
   if (ContextTy)
@@ -326,11 +330,11 @@ void CodeCompletionResultBuilder::addCallArgument(
       CodeCompletionStringPrinter printer(*this);
       auto TL = TypeLoc::withoutLoc(Ty);
       printer.printTypePre(TL);
-      Ty->print(printer, PO);
+      Ty->print(printer, PO, nrOptions);
       printer.printTypePost(TL);
     });
   } else {
-    std::string TypeName = Ty->getString(PO);
+    std::string TypeName = Ty->getString(PO, nrOptions);
     addChunkWithText(ChunkKind::CallArgumentType, TypeName);
   }
 
@@ -359,7 +363,7 @@ void CodeCompletionResultBuilder::addCallArgument(
     if (IsLabeledTrailingClosure) {
       // Expand the closure body.
       SmallString<32> buffer;
-      llvm::raw_svector_ostream OS(buffer);
+      toolchain::raw_svector_ostream OS(buffer);
 
       bool firstParam = true;
       for (const auto &param : AFT->getParams()) {
@@ -404,14 +408,16 @@ void CodeCompletionResultBuilder::addCallArgument(
 
 void CodeCompletionResultBuilder::withNestedGroup(
     CodeCompletionString::Chunk::ChunkKind Kind,
-    llvm::function_ref<void()> body) {
+    toolchain::function_ref<void()> body) {
   ++CurrentNestingLevel;
   addSimpleChunk(Kind);
   body();
   --CurrentNestingLevel;
 }
 
-void CodeCompletionResultBuilder::addTypeAnnotation(Type T, PrintOptions PO,
+void CodeCompletionResultBuilder::addTypeAnnotation(Type T,
+                                                    const PrintOptions &PO,
+                                                    NonRecursivePrintOptions nrOptions,
                                                     StringRef suffix) {
   T = T->getReferenceStorageReferent();
 
@@ -425,13 +431,13 @@ void CodeCompletionResultBuilder::addTypeAnnotation(Type T, PrintOptions PO,
                       CodeCompletionStringPrinter printer(*this);
                       auto TL = TypeLoc::withoutLoc(T);
                       printer.printTypePre(TL);
-                      T->print(printer, PO);
+                      T->print(printer, PO, nrOptions);
                       printer.printTypePost(TL);
                       if (!suffix.empty())
                         printer.printText(suffix);
                     });
   } else {
-    auto str = T.getString(PO);
+    auto str = T.getString(PO, nrOptions);
     if (!suffix.empty())
       str += suffix.str();
     addTypeAnnotation(str);

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation for the initialization of
@@ -24,8 +25,8 @@
 #include "language/SIL/SILDeclRef.h"
 #include "language/SIL/SILGlobalVariable.h"
 #include "language/IRGen/Linking.h"
-#include "llvm/IR/GlobalVariable.h"
-#include "llvm/IR/Module.h"
+#include "toolchain/IR/GlobalVariable.h"
+#include "toolchain/IR/Module.h"
 
 #include "DebugTypeInfo.h"
 #include "GenTuple.h"
@@ -94,7 +95,7 @@ void TemporarySet::destroyAll(IRGenFunction &IGF) const {
   assert(!hasBeenCleared() && "destroying a set that's been cleared?");
 
   // Deallocate all the temporaries.
-  for (auto &temporary : llvm::reverse(Stack)) {
+  for (auto &temporary : toolchain::reverse(Stack)) {
     temporary.destroy(IGF);
   }
 }
@@ -102,7 +103,7 @@ void TemporarySet::destroyAll(IRGenFunction &IGF) const {
 void Temporary::destroy(IRGenFunction &IGF) const {
   auto &ti = IGF.getTypeInfo(Type);
   if (Type.isSensitive()) {
-    llvm::Value *size = ti.getSize(IGF, Type);
+    toolchain::Value *size = ti.getSize(IGF, Type);
     IGF.emitClearSensitive(Addr.getAddress(), size);
   }
   ti.deallocateStack(IGF, Addr, Type);

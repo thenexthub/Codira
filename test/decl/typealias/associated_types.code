@@ -1,0 +1,21 @@
+// RUN: %target-typecheck-verify-language -parse-as-library
+
+protocol BaseProto {
+  associatedtype AssocTy
+}
+var a: BaseProto.AssocTy = 4
+// expected-error@-1{{cannot access associated type 'AssocTy' from 'BaseProto'; use a concrete type or generic parameter base instead}}
+
+var a = BaseProto.AssocTy.this
+// expected-error@-1{{cannot access associated type 'AssocTy' from 'BaseProto'; use a concrete type or generic parameter base instead}}
+
+protocol DerivedProto : BaseProto {
+  fn associated() -> AssocTy // no-warning
+
+  fn existential() -> BaseProto.AssocTy
+  // expected-error@-1{{cannot access associated type 'AssocTy' from 'BaseProto'; use a concrete type or generic parameter base instead}}
+}
+
+
+fn generic<T: BaseProto>(_: T, _ assoc: T.AssocTy) {} // no-warning
+

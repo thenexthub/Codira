@@ -1,4 +1,4 @@
-//===--- TestsUtils.swift -------------------------------------------------===//
+//===--- TestsUtils.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if os(Linux)
@@ -47,7 +48,7 @@ public enum BenchmarkCategory : String {
   // Regression benchmarks is a catch-all for less important "micro"
   // benchmarks. This could be a random piece of code that was attached to a bug
   // report. We want to make sure the optimizer as a whole continues to handle
-  // this case, but don't know how applicable it is to general Swift performance
+  // this case, but don't know how applicable it is to general Codira performance
   // relative to the other micro-benchmarks. In particular, these aren't weighted
   // as highly as "validation" benchmarks and likely won't be the subject of
   // future investigation unless they significantly regress.
@@ -58,15 +59,15 @@ public enum BenchmarkCategory : String {
   // counterproductive.
   case unstable
 
-  // CPU benchmarks represent intrinsic Swift performance. They are useful for
-  // measuring a fully baked Swift implementation across different platforms and
-  // hardware. The benchmark should also be reasonably applicable to real Swift
+  // CPU benchmarks represent intrinsic Codira performance. They are useful for
+  // measuring a fully baked Codira implementation across different platforms and
+  // hardware. The benchmark should also be reasonably applicable to real Codira
   // code--it should exercise a known performance critical area. Typically these
   // will be drawn from the validation benchmarks once the language and standard
   // library implementation of the benchmark meets a reasonable efficiency
   // baseline. A benchmark should only be tagged "cpubench" after a full
   // performance investigation of the benchmark has been completed to determine
-  // that it is a good representation of future Swift performance. Benchmarks
+  // that it is a good representation of future Codira performance. Benchmarks
   // should not be tagged if they make use of an API that we plan on
   // reimplementing or call into code paths that have known opportunities for
   // significant optimization.
@@ -78,25 +79,25 @@ public enum BenchmarkCategory : String {
 
 extension BenchmarkCategory : CustomStringConvertible {
   public var description: String {
-    return self.rawValue
+    return this.rawValue
   }
 }
 
 extension BenchmarkCategory : Comparable {
-    public static func < (lhs: BenchmarkCategory, rhs: BenchmarkCategory) -> Bool {
+    public static fn < (lhs: BenchmarkCategory, rhs: BenchmarkCategory) -> Bool {
         return lhs.rawValue < rhs.rawValue
     }
 }
 
 public struct BenchmarkPlatformSet : OptionSet {
-  public let rawValue: Int
+  public immutable rawValue: Int
 
   public init(rawValue: Int) {
-    self.rawValue = rawValue
+    this.rawValue = rawValue
   }
 
-  public static let darwin = BenchmarkPlatformSet(rawValue: 1 << 0)
-  public static let linux = BenchmarkPlatformSet(rawValue: 1 << 1)
+  public static immutable darwin = BenchmarkPlatformSet(rawValue: 1 << 0)
+  public static immutable linux = BenchmarkPlatformSet(rawValue: 1 << 1)
 
   public static var currentPlatform: BenchmarkPlatformSet {
     #if os(Linux)
@@ -179,13 +180,13 @@ public struct BenchmarkInfo {
               tearDownFunction: (() -> ())? = nil,
               unsupportedPlatforms: BenchmarkPlatformSet = [],
               legacyFactor: Int? = nil) {
-    self.name = name
-    self._runFunction = runFunction
-    self.tags = Set(tags)
-    self._setUpFunction = setUpFunction
-    self._tearDownFunction = tearDownFunction
-    self.unsupportedPlatforms = unsupportedPlatforms
-    self.legacyFactor = legacyFactor
+    this.name = name
+    this._runFunction = runFunction
+    this.tags = Set(tags)
+    this._setUpFunction = setUpFunction
+    this._tearDownFunction = tearDownFunction
+    this.unsupportedPlatforms = unsupportedPlatforms
+    this.legacyFactor = legacyFactor
   }
 
   /// Returns true if this benchmark should be run on the current platform.
@@ -195,16 +196,16 @@ public struct BenchmarkInfo {
 }
 
 extension BenchmarkInfo : Comparable {
-  public static func < (lhs: BenchmarkInfo, rhs: BenchmarkInfo) -> Bool {
+  public static fn < (lhs: BenchmarkInfo, rhs: BenchmarkInfo) -> Bool {
     return lhs.name < rhs.name
   }
-  public static func == (lhs: BenchmarkInfo, rhs: BenchmarkInfo) -> Bool {
+  public static fn == (lhs: BenchmarkInfo, rhs: BenchmarkInfo) -> Bool {
     return lhs.name == rhs.name
   }
 }
 
 extension BenchmarkInfo : Hashable {
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(name)
   }
 }
@@ -220,11 +221,11 @@ public struct LFSR {
 
   public init() {}
 
-  mutating func shift() {
+  mutating fn shift() {
     lfsr = (lfsr >> 1) ^ (UInt32(bitPattern: -Int32((lfsr & 1))) & 0xD0000001)
   }
 
-  public mutating func next() -> Int64 {
+  public mutating fn next() -> Int64 {
     var result : UInt32 = 0
     for _ in 0..<32 {
       result = (result << 1) | (lfsr & 1)
@@ -238,12 +239,12 @@ var lfsrRandomGenerator = LFSR()
 
 // Start the generator from the beginning
 @available(*, deprecated, renamed: "LFSR.init()")
-public func SRand() {
+public fn SRand() {
   lfsrRandomGenerator = LFSR()
 }
 
 @available(*, deprecated, renamed: "LFSR.next()")
-public func Random() -> Int64 {
+public fn Random() -> Int64 {
   return lfsrRandomGenerator.next()
 }
 
@@ -258,12 +259,12 @@ public struct SplitMix64: RandomNumberGenerator {
     private var state: UInt64
 
     public init(seed: UInt64) {
-        self.state = seed
+        this.state = seed
     }
 
-    public mutating func next() -> UInt64 {
-        self.state &+= 0x9e3779b97f4a7c15
-        var z: UInt64 = self.state
+    public mutating fn next() -> UInt64 {
+        this.state &+= 0x9e3779b97f4a7c15
+        var z: UInt64 = this.state
         z = (z ^ (z &>> 30)) &* 0xbf58476d1ce4e5b9
         z = (z ^ (z &>> 27)) &* 0x94d049bb133111eb
         return z ^ (z &>> 31)
@@ -273,7 +274,7 @@ public struct SplitMix64: RandomNumberGenerator {
 /// Like `precondition`, but also checked in unchecked builds.
 @inlinable
 @inline(__always)
-public func check(
+public fn check(
   _ resultsMatch: Bool,
   file: StaticString = #file,
   function: StaticString = #function,
@@ -288,7 +289,7 @@ public func check(
 @available(*, deprecated, renamed: "check")
 @inlinable
 @inline(__always)
-public func CheckResults(
+public fn CheckResults(
   _ resultsMatch: Bool,
   file: StaticString = #file,
   function: StaticString = #function,
@@ -303,7 +304,7 @@ public func CheckResults(
 // always. That should be able to be eaten through by the optimizer no problem.
 @inlinable // FIXME(inline-always)
 @inline(__always)
-public func autoreleasepool<Result>(
+public fn autoreleasepool<Result>(
   invoking body: () throws -> Result
 ) rethrows -> Result {
   return try body()
@@ -311,31 +312,31 @@ public func autoreleasepool<Result>(
 #endif
 
 @_semantics("optimize.no.crossmodule")
-public func getFalse() -> Bool { return false }
+public fn getFalse() -> Bool { return false }
 
 @available(*, deprecated, renamed: "getFalse()")
-public func False() -> Bool { return false }
+public fn False() -> Bool { return false }
 
 /// This is a dummy protocol to test the speed of our protocol dispatch.
-public protocol SomeProtocol { func getValue() -> Int }
+public protocol SomeProtocol { fn getValue() -> Int }
 struct MyStruct : SomeProtocol {
   init() {}
-  func getValue() -> Int { return 1 }
+  fn getValue() -> Int { return 1 }
 }
-public func someProtocolFactory() -> SomeProtocol { return MyStruct() }
+public fn someProtocolFactory() -> SomeProtocol { return MyStruct() }
 
 // Just consume the argument.
 // It's important that this function is in another module than the tests
 // which are using it.
 @inline(never)
 @_semantics("optimize.no.crossmodule")
-public func blackHole<T>(_ x: T) {
+public fn blackHole<T>(_ x: T) {
 }
 
 // Return the passed argument without letting the optimizer know that.
 @inline(never)
 @_semantics("optimize.no.crossmodule")
-public func identity<T>(_ x: T) -> T {
+public fn identity<T>(_ x: T) -> T {
   return x
 }
 
@@ -344,14 +345,14 @@ public func identity<T>(_ x: T) -> T {
 // which are using it.
 @inline(never)
 @_semantics("optimize.no.crossmodule")
-public func getInt(_ x: Int) -> Int { return x }
+public fn getInt(_ x: Int) -> Int { return x }
 
 // The same for String.
 @inline(never)
 @_semantics("optimize.no.crossmodule")
-public func getString(_ s: String) -> String { return s }
+public fn getString(_ s: String) -> String { return s }
 
 // The same for Substring.
 @inline(never)
 @_semantics("optimize.no.crossmodule")
-public func getSubstring(_ s: Substring) -> Substring { return s }
+public fn getSubstring(_ s: Substring) -> Substring { return s }

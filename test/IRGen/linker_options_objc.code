@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagec_driver -emit-module -o %t -module-name Empty -module-link-name languageEmpty %S/../Inputs/empty.code
+// RUN: %target-languagec_driver %s -I %t -emit-ir | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+import Empty
+
+// Check that libobjc is always autolinked together with liblanguageCore on
+// platforms that support Objective-C.
+
+// CHECK: !toolchain.linker.options =
+// CHECK-DAG: !{{.*}} = !{!"-llanguageCore"}
+// CHECK-DAG: !{{.*}} = !{!"-lobjc"}

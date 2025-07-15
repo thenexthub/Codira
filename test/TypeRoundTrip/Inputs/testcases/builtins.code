@@ -1,0 +1,19 @@
+import RoundTrip
+
+public fn test() {
+  roundTripType(Int.this)
+  roundTripType(UInt.this)
+
+  roundTripType(Float.this)
+  roundTripType(Double.this)
+
+  roundTripType(Int8.this)
+  roundTripType(Int16.this)
+  roundTripType(Int32.this)
+  roundTripType(Int64.this)
+
+  roundTripType(UInt8.this)
+  roundTripType(UInt16.this)
+  roundTripType(UInt32.this)
+  roundTripType(UInt64.this)
+}

@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_SOURCE_FILE_DEP_GRAPH_CONSTRUCTOR_H
-#define SWIFT_AST_SOURCE_FILE_DEP_GRAPH_CONSTRUCTOR_H
+#ifndef LANGUAGE_AST_SOURCE_FILE_DEP_GRAPH_CONSTRUCTOR_H
+#define LANGUAGE_AST_SOURCE_FILE_DEP_GRAPH_CONSTRUCTOR_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/DeclContext.h"
 #include "language/AST/FineGrainedDependencies.h"
-#include "llvm/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
 #include <optional>
 
 namespace language {
@@ -33,8 +34,8 @@ protected:
   /// If there was an error, cannot get accurate info.
   const bool hadCompilationError;
 
-  /// The name of the swiftDeps file.
-  const std::string swiftDeps;
+  /// The name of the languageDeps file.
+  const std::string languageDeps;
 
   /// The fingerprint of the whole file
   Fingerprint fileFingerprint;
@@ -45,7 +46,7 @@ protected:
   DiagnosticEngine &diags;
 
   /// OutputBackend.
-  llvm::vfs::OutputBackend &backend;
+  toolchain::vfs::OutputBackend &backend;
 
   /// Graph under construction
   SourceFileDepGraph g;
@@ -54,11 +55,11 @@ public:
   /// Expose this layer to enable faking up a constructor for testing.
   /// See the instance variable comments for explanation.
   AbstractSourceFileDepGraphFactory(bool hadCompilationError,
-                                    StringRef swiftDeps,
+                                    StringRef languageDeps,
                                     Fingerprint fileFingerprint,
                                     bool emitDotFileAfterConstruction,
                                     DiagnosticEngine &diags,
-                                    llvm::vfs::OutputBackend &outputBackend);
+                                    toolchain::vfs::OutputBackend &outputBackend);
 
   virtual ~AbstractSourceFileDepGraphFactory() = default;
 
@@ -120,4 +121,4 @@ protected:
 } // namespace fine_grained_dependencies
 } // namespace language
 
-#endif // SWIFT_AST_SOURCE_FILE_DEP_GRAPH_CONSTRUCTOR_H
+#endif // LANGUAGE_AST_SOURCE_FILE_DEP_GRAPH_CONSTRUCTOR_H

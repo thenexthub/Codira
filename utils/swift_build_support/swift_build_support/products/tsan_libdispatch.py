@@ -1,12 +1,12 @@
-# swift_build_support/products/tsan_libdispatch.py --------------*- python -*-
+# language_build_support/products/tsan_libdispatch.py --------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -17,10 +17,10 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
+from . import language
+from . import languagepm
 from . import xctest
 from .. import shell
 
@@ -49,7 +49,7 @@ class TSanLibDispatch(product.Product):
         """Build TSan runtime (compiler-rt)."""
         rt_source_dir = join_path(
             self.source_dir, os.pardir,
-            'llvm-project', 'compiler-rt')
+            'toolchain-project', 'compiler-rt')
         toolchain_path = join_path(self.args.install_destdir, 'usr')
         clang = join_path(toolchain_path, 'bin', 'clang')
         clangxx = join_path(toolchain_path, 'bin', 'clang++')
@@ -61,7 +61,7 @@ class TSanLibDispatch(product.Product):
             '-DCMAKE_C_COMPILER=%s' % clang,
             '-DCMAKE_CXX_COMPILER=%s' % clangxx,
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DLLVM_ENABLE_ASSERTIONS=ON',
+            '-DTOOLCHAIN_ENABLE_ASSERTIONS=ON',
             '-DCOMPILER_RT_INCLUDE_TESTS=ON',
             '-DCOMPILER_RT_BUILD_XRAY=OFF',
             '-DCOMPILER_RT_INTERCEPT_LIBDISPATCH=ON',
@@ -97,11 +97,11 @@ class TSanLibDispatch(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM]
+                languagepm.CodiraPM]

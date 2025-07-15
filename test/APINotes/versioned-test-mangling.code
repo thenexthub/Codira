@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-ide-test -F %S/Inputs/custom-frameworks -print-ast-typechecked -source-filename %s -language-version 4 -find-mangled '$sSo11SomeCStructV' | %FileCheck -check-prefix=CHECK-TOP-ALIAS-4 %s
+// RUN: %target-language-ide-test -F %S/Inputs/custom-frameworks -print-ast-typechecked -source-filename %s -language-version 5 -find-mangled '$sSo11SomeCStructV' | %FileCheck -check-prefix=CHECK-TOP-ALIAS-5 %s
+
+// RUN: %target-language-ide-test -F %S/Inputs/custom-frameworks -print-ast-typechecked -source-filename %s -language-version 4 -find-mangled '$sSo13InnerInCodira5V' | %FileCheck -check-prefix=CHECK-NESTED-ALIAS-4 %s
+// RUN: %target-language-ide-test -F %S/Inputs/custom-frameworks -print-ast-typechecked -source-filename %s -language-version 5 -find-mangled '$sSo13InnerInCodira5V' | %FileCheck -check-prefix=CHECK-NESTED-ALIAS-5 %s
+
+import APINotesFrameworkTest
+
+// CHECK-TOP-ALIAS-4: typealias ImportantCStruct = VeryImportantCStruct
+// CHECK-TOP-ALIAS-5: struct VeryImportantCStruct {
+// CHECK-NESTED-ALIAS-4: typealias InnerInCodira5 = Outer.Inner
+// CHECK-NESTED-ALIAS-5: struct Inner {

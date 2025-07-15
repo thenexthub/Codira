@@ -1,0 +1,5 @@
+// {"signature":"language::rewriting::RequirementMachine::checkCompletionResult(language::rewriting::CompletionResult) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a : b protocol b{associatedtype c} protocol d : e,
+                                                         f protocol e
+    : g where c : e protocol g : b protocol f : a where c : f

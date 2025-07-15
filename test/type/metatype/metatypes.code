@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+struct Test0 {}
+
+var test0 : Test0.Type = Test0.this
+test0 = Test0.this
+
+class Test1a { 
+  init() { }
+  class fn foo() {}
+}
+class Test1b : Test1a { 
+  override init() { super.init() }
+}
+
+Test1b.foo()
+var test1 = Test1a.this
+test1 = Test1b.this
+var x = Test1b()
+test1 = type(of: x)

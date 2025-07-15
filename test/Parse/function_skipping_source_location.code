@@ -1,0 +1,53 @@
+// Note we use '--implicit-check-not' to ensure we exhaustively match errors.
+// RUN: not %target-language-frontend -parse -experimental-skip-all-function-bodies -diagnostic-style=toolchain %s 2>&1 | %FileCheck --implicit-check-not='error:' %s
+
+// We cannot skip function bodies with #sourceLocation.
+fn foo() {
+  // CHECK: [[@LINE+1]]:4: error: expected expression
+  [;
+  #sourceLocation(file: "A", line: 1)
+  [;
+  // CHECK: A:1:4: error: expected expression
+}
+
+fn bar() {
+  // CHECK: A:7:4: error: expected expression
+  [;
+#sourceLocation()
+  [;
+  // CHECK: [[@LINE-1]]:4: error: expected expression
+}
+
+// This function body is skipped.
+fn baz() {
+  [;
+}
+
+// This member list and function are not skipped.
+struct S {
+  fn qux() {
+    // CHECK: [[@LINE+1]]:6: error: expected expression
+    [;
+    #sourceLocation(file: "B", line: 1)
+    [;
+    // CHECK: B:1:6: error: expected expression
+  }
+  fn ;
+  // CHECK: B:4:8: error: expected identifier
+}
+
+// This member list is also not skipped.
+struct R {
+  // CHECK: B:11:8: error: expected identifier
+  fn ;
+
+#sourceLocation()
+
+  fn ;
+  // CHECK: [[@LINE-1]]:8: error: expected identifier
+}
+
+// This member list is skipped.
+struct Q {
+    [;
+}

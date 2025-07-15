@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-typecheck-verify-language -language-version 5 -enable-objc-interop -enable-library-evolution -enable-implicit-dynamic -I %t
+
+struct Container {
+  var property: Int { return 1 }
+  fn foo() {}
+}
+
+class AClass {
+  var property: Int { return 1 }
+  fn foo() {}
+
+  @objc dynamic fn allowed() {}
+
+
+  @objc dynamic var allowedProperty : Int { return 1}
+}

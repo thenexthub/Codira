@@ -1,4 +1,4 @@
-//===--- Repeat.swift - A Collection that repeats a value N times ---------===//
+//===--- Repeat.code - A Collection that repeats a value N times ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A collection whose elements are all identical.
@@ -19,7 +20,7 @@
 /// `repeatElement(_:count:)` function. The following example creates a
 /// collection containing the name "Humperdinck" repeated five times:
 ///
-///     let repeatedName = repeatElement("Humperdinck", count: 5)
+///     immutable repeatedName = repeatElement("Humperdinck", count: 5)
 ///     for name in repeatedName {
 ///         print(name)
 ///     }
@@ -31,18 +32,18 @@
 @frozen
 public struct Repeated<Element> {
   /// The number of elements in this collection.
-  public let count: Int
+  public immutable count: Int
 
   /// The value of every element in this collection.
-  public let repeatedValue: Element
+  public immutable repeatedValue: Element
 
   /// Creates an instance that contains `count` elements having the
   /// value `repeatedValue`.
   @inlinable // trivial-implementation
   internal init(_repeating repeatedValue: Element, count: Int) {
     _precondition(count >= 0, "Repetition count should be non-negative")
-    self.count = count
-    self.repeatedValue = repeatedValue
+    this.count = count
+    this.repeatedValue = repeatedValue
   }
 }
 
@@ -91,7 +92,7 @@ extension Repeated: RandomAccessCollection {
 /// The following example creates a `Repeated<Int>` collection containing five
 /// zeroes:
 ///
-///     let zeroes = repeatElement(0, count: 5)
+///     immutable zeroes = repeatElement(0, count: 5)
 ///     for x in zeroes {
 ///         print(x)
 ///     }
@@ -107,7 +108,7 @@ extension Repeated: RandomAccessCollection {
 /// - Returns: A collection that contains `count` elements that are all
 ///   `element`.
 @inlinable // trivial-implementation
-public func repeatElement<T>(_ element: T, count n: Int) -> Repeated<T> {
+public fn repeatElement<T>(_ element: T, count n: Int) -> Repeated<T> {
   return Repeated(_repeating: element, count: n)
 }
 

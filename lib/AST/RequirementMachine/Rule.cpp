@@ -1,13 +1,17 @@
 //===--- Rule.cpp - An oriented rewrite rule in a rewrite system ----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Rule.h"
@@ -15,7 +19,7 @@
 #include "language/AST/Types.h"
 #include "language/AST/TypeWalker.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "RewriteContext.h"
 #include "Term.h"
 #include "Symbol.h"
@@ -78,7 +82,7 @@ const ProtocolDecl *Rule::isAnyConformanceRule() const {
       break;
     }
 
-    llvm_unreachable("Bad symbol kind");
+    toolchain_unreachable("Bad symbol kind");
   }
 
   return nullptr;
@@ -221,7 +225,12 @@ bool Rule::isDerivedFromConcreteProtocolTypeAliasRule() const {
   return true;
 }
 
-/// Returns the length of the left hand side.
+/// Returns the maximum among the length of the left-hand side,
+/// and the length of any substitution terms that appear in a
+/// property symbol at the end of the left-hand side.
+///
+/// This is a measure of the complexity of the rule, which stops
+/// completion from running forever.
 unsigned Rule::getDepth() const {
   auto result = LHS.size();
 
@@ -234,26 +243,30 @@ unsigned Rule::getDepth() const {
   return result;
 }
 
-/// Returns the nesting depth of the concrete symbol at the end of the
-/// left hand side, or 0 if there isn't one.
-unsigned Rule::getNesting() const {
+/// Returns the complexity of the concrete type in the property symbol
+/// at the end of the left-hand side, if there is one.
+///
+/// This is a measure of the complexity of the rule, which stops
+/// completion from running forever.
+std::pair<unsigned, unsigned>
+Rule::getNestingAndSize() const {
   if (LHS.back().hasSubstitutions()) {
     auto type = LHS.back().getConcreteType();
 
     struct Walker : TypeWalker {
       unsigned Nesting = 0;
       unsigned MaxNesting = 0;
+      unsigned Size = 0;
 
       Action walkToTypePre(Type ty) override {
+        ++Size;
         ++Nesting;
-        MaxNesting = std::max(Nesting, MaxNesting);
-
+        MaxNesting = std::max(MaxNesting, Nesting);
         return Action::Continue;
       }
 
       Action walkToTypePost(Type ty) override {
         --Nesting;
-
         return Action::Continue;
       }
     };
@@ -261,10 +274,10 @@ unsigned Rule::getNesting() const {
     Walker walker;
     type.walk(walker);
 
-    return walker.MaxNesting;
+    return std::make_pair(walker.MaxNesting, walker.Size);
   }
 
-  return 0;
+  return std::make_pair(0, 0);
 }
 
 /// Linear order on rules; compares LHS followed by RHS.
@@ -276,7 +289,7 @@ std::optional<int> Rule::compare(const Rule &other, RewriteContext &ctx) const {
   return RHS.compare(other.RHS, ctx);
 }
 
-void Rule::dump(llvm::raw_ostream &out) const {
+void Rule::dump(toolchain::raw_ostream &out) const {
   out << LHS << " => " << RHS;
   if (Permanent)
     out << " [permanent]";

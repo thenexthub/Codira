@@ -1,0 +1,120 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend %t/LibCore.code \
+// RUN:   -emit-module-path %t/LibCore.codemodule \
+// RUN:   -emit-module-interface-path %t/LibCore.codeinterface \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -public-module-name Lib
+// RUN: %target-language-typecheck-module-from-interface(%t/LibCore.codeinterface)
+
+// RUN: %target-language-frontend %t/LibMiddle.code -I %t \
+// RUN:   -emit-module-path %t/LibMiddle.codemodule \
+// RUN:   -emit-module-interface-path %t/LibMiddle.codeinterface \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -public-module-name Lib
+// RUN: %target-language-typecheck-module-from-interface(%t/LibMiddle.codeinterface) -I %t
+
+// RUN: %target-language-frontend %t/Lib.code -I %t \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:   -enable-library-evolution -language-version 6
+// RUN: %target-language-typecheck-module-from-interface(%t/Lib.codeinterface) -I %t
+
+// RUN: %target-language-frontend %t/LibUnrelated.code -I %t \
+// RUN:   -emit-module-path %t/LibUnrelated.codemodule \
+// RUN:   -enable-library-evolution -language-version 6
+
+/// Check flag in languageinterface
+// RUN: cat %t/LibCore.codeinterface | %FileCheck --check-prefix=CHECK-FLAG %s
+// RUN: cat %t/LibMiddle.codeinterface | %FileCheck --check-prefix=CHECK-FLAG %s
+// CHECK-FLAG: language-module-flags-ignorable:
+// CHECK-FLAG-SAME: -public-module-name Lib
+
+/// Build clients against binary languagemodules.
+/// First errors in files, then diagnostics in other files.
+// RUN: %target-language-frontend -typecheck %t/ClientPublic.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -verify
+// RUN: not %target-language-frontend -typecheck %t/ClientPublic.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -diagnostic-style toolchain \
+// RUN:   2>&1 | %FileCheck %t/ClientPublic.code
+
+// RUN: %target-language-frontend -typecheck %t/ClientMiddle.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -verify
+// RUN: not %target-language-frontend -typecheck %t/ClientMiddle.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -diagnostic-style toolchain \
+// RUN:   2>&1 | %FileCheck %t/ClientMiddle.code
+
+/// Test more diagnostics referencing modules.
+// RUN: %target-language-frontend -typecheck %t/ClientAccessLevelOnImports.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -verify
+
+/// Build client against textual languageinterfaces.
+// RUN: rm %t/LibCore.codemodule %t/LibMiddle.codemodule %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck %t/ClientPublic.code -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -verify
+// RUN: not %target-language-frontend -typecheck %t/ClientPublic.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -diagnostic-style toolchain \
+// RUN:   2>&1 | %FileCheck %t/ClientPublic.code
+
+// RUN: %target-language-frontend -typecheck %t/ClientMiddle.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -verify
+// RUN: not %target-language-frontend -typecheck %t/ClientMiddle.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -diagnostic-style toolchain \
+// RUN:   2>&1 | %FileCheck %t/ClientMiddle.code
+
+// RUN: %target-language-frontend -typecheck %t/ClientAccessLevelOnImports.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -verify
+
+//--- LibCore.code
+public fn ambiguous() {}
+public fn coreFunc() {}
+
+//--- LibMiddle.code
+import LibCore
+public fn ambiguous() {}
+
+//--- Lib.code
+@_exported import LibCore
+@_exported import LibMiddle
+
+//--- LibUnrelated.code
+public fn ambiguous() {}
+
+//--- ClientPublic.code
+import Lib
+import LibUnrelated
+
+ambiguous() // expected-error {{ambiguous use of 'ambiguous()'}}
+// CHECK-NOT: LibCore
+// CHECK-NOT: LibMiddle
+// CHECK: LibUnrelated.ambiguous:1:13: note: found this candidate in module 'LibUnrelated'
+// CHECK: Lib.ambiguous:1:13: note: found this candidate in module 'Lib'
+// CHECK: Lib.ambiguous:1:13: note: found this candidate in module 'Lib'
+
+//--- ClientMiddle.code
+import LibCore
+import LibMiddle
+
+ambiguous() // expected-error {{ambiguous use of 'ambiguous()'}}
+// CHECK: LibCore.ambiguous:1:13: note: found this candidate in module 'LibCore'
+// CHECK: LibMiddle.ambiguous:1:13: note: found this candidate in module 'LibMiddle'
+
+//--- ClientAccessLevelOnImports.code
+internal import Lib // expected-note {{global function 'coreFunc()' imported as 'internal' from 'Lib' here}}
+
+@inlinable
+public fn foo() {
+    coreFunc() // expected-error {{global function 'coreFunc()' is internal and cannot be referenced from an '@inlinable' function}}
+}

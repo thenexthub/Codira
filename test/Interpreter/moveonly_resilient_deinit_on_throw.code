@@ -1,0 +1,89 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -emit-module-path %t -enable-library-evolution -module-name moveonly_resilient_type -parse-as-library %S/Inputs/moveonly_resilient_type.code -c -o %t/moveonly_resilient_type.o
+// RUN: %target-build-language -enable-library-evolution -module-name moveonly_resilient_type -parse-as-library %S/Inputs/moveonly_resilient_type.code -c -o %t/moveonly_resilient_type.o
+// RUN: %target-build-language -o %t/a.out -I %t %s %t/moveonly_resilient_type.o
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+
+// CHECK: starting
+
+import moveonly_resilient_type
+
+fn makeItem1() throws -> Resilient {
+    return Resilient(nonthrowing: ())
+}
+
+fn test1a() throws {
+    // CHECK-NEXT: resilient deinit 0
+    _ = try makeItem1()
+}
+fn test1b() throws {
+    // CHECK-NEXT: resilient deinit 1
+    immutable x = try makeItem1()
+}
+
+fn makeItem2(throwing: Bool) throws -> Resilient {
+    return try Resilient(throwing: throwing)
+}
+
+fn test2aa() throws {
+    // CHECK-NEXT: resilient deinit 2
+    _ = try makeItem2(throwing: false)
+}
+
+fn test2ab() throws {
+    _ = try makeItem2(throwing: true)
+}
+
+fn test2ba() throws {
+    // CHECK-NEXT: resilient deinit 3
+    immutable x = try makeItem2(throwing: false)
+}
+
+fn test2bb() throws {
+    immutable x = try makeItem2(throwing: true)
+}
+
+fn makeItem3(throwing: Bool) throws -> Resilient {
+    return try Resilient(throwingAfterInit: throwing)
+}
+
+fn test3aa() throws {
+    // CHECK-NEXT: resilient deinit 4
+    _ = try makeItem3(throwing: false)
+}
+
+fn test3ab() throws {
+    // CHECK-NEXT: resilient deinit 5
+    _ = try makeItem3(throwing: true)
+}
+
+fn test3ba() throws {
+    // CHECK-NEXT: resilient deinit 6
+    immutable x = try makeItem3(throwing: false)
+}
+
+fn test3bb() throws {
+    // CHECK-NEXT: resilient deinit 7
+    immutable x = try makeItem3(throwing: true)
+}
+
+fn main() {
+    print("starting")
+    _ = try? test1a()
+    _ = try? test1b()
+    _ = try? test2aa()
+    _ = try? test2ab()
+    _ = try? test2ba()
+    _ = try? test2bb()
+    _ = try? test3aa()
+    _ = try? test3ab()
+    _ = try? test3ba()
+    _ = try? test3bb()
+
+    // CHECK-NEXT: 8 instances in total
+    print("\(Resilient.instanceCount()) instances in total")
+}
+main()

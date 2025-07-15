@@ -11,15 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP class useful for laying out struct metadata.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_STRUCTMETADATALAYOUT_H
-#define SWIFT_IRGEN_STRUCTMETADATALAYOUT_H
+#ifndef LANGUAGE_IRGEN_STRUCTMETADATALAYOUT_H
+#define LANGUAGE_IRGEN_STRUCTMETADATALAYOUT_H
 
+#include "Field.h"
 #include "NominalMetadataVisitor.h"
 #include "language/AST/IRGenOptions.h"
 
@@ -66,8 +68,10 @@ public:
 
     // Struct field offsets.
     asImpl().noteStartOfFieldOffsets();
-    for (VarDecl *prop : Target->getStoredProperties())
-      asImpl().addFieldOffset(prop);
+    for (VarDecl *prop : Target->getStoredProperties()) {
+      if (isExportableField(prop))
+        asImpl().addFieldOffset(prop);
+    }
 
     asImpl().noteEndOfFieldOffsets();
 

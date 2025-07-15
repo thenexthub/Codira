@@ -1,20 +1,20 @@
 
-# Swift Snapshot Tool
+# Codira Snapshot Tool
 
-Used to list and bisect nightly snapshots off of swift.org.
+Used to list and bisect nightly snapshots off of language.org.
 
 # Examples
 
 ## List snapshots
 
 ```
-# xcrun swift run swift_snapshot_tool list
+# xcrun language run language_snapshot_tool list
 [INFO] Starting to download snapshot information from github.
 [INFO] Finished downloading snapshot information from github.
-0 swift-DEVELOPMENT-SNAPSHOT-2024-09-06-a
-1 swift-DEVELOPMENT-SNAPSHOT-2024-09-05-a
-2 swift-DEVELOPMENT-SNAPSHOT-2024-09-04-a
-3 swift-DEVELOPMENT-SNAPSHOT-2024-08-29-a
+0 language-DEVELOPMENT-SNAPSHOT-2024-09-06-a
+1 language-DEVELOPMENT-SNAPSHOT-2024-09-05-a
+2 language-DEVELOPMENT-SNAPSHOT-2024-09-04-a
+3 language-DEVELOPMENT-SNAPSHOT-2024-08-29-a
 ...
 ```
 
@@ -26,7 +26,7 @@ varies.
 ## Run
 
 ```
-xcrun swift run swift_snapshot_tool run --script $SCRIPT_NAME \
+xcrun language run language_snapshot_tool run --script $SCRIPT_NAME \
   --date YYYY-MM-DD [--invert] [--workspace $DIR_TO_DOWNLOAD_TOOLCHAINS]
 ```
 
@@ -38,12 +38,12 @@ This command is meant to help one figure out where to start bisecting.
 Options:
 
 - workspace: This is the place where we will download toolchains to. Defaults to
-  `/tmp/swift_snapshot_tool_workspace_v1`. We suggest that you use an external
+  `/tmp/language_snapshot_tool_workspace_v1`. We suggest that you use an external
   hard drive or a specified place so that one does not have to redownload
   toolchains in between system restarts.
 
 - script: This is the script that should be run. We pass in the environment
-  variables `SWIFT_EXEC`, `SWIFT_FRONTEND`, and `SWIFT_LIBRARY_PATH` to the
+  variables `LANGUAGE_EXEC`, `LANGUAGE_FRONTEND`, and `LANGUAGE_LIBRARY_PATH` to the
   script. If the script returns a zero exit code then the run is considered a
   succeess. If the script returns a non-zero exit code, then the run is
   considered a failure.
@@ -61,7 +61,7 @@ Options:
 ## Bisect
 
 ```
-xcrun swift run swift_snapshot_tool bisect --script $SCRIPT_NAME --old-date YYYY_MM_DD \
+xcrun language run language_snapshot_tool bisect --script $SCRIPT_NAME --old-date YYYY_MM_DD \
    [--new-date YYYY_MM_DD] [--workspace $DIR_TO_DOWNLOAD_TOOLCHAINS]
 ```
 
@@ -71,12 +71,12 @@ other exit codes are considered a failure.
 Options:
 
 - workspace: This is the place where we will download toolchains to. Defaults to
-  `/tmp/swift_snapshot_tool_workspace_v1`. We suggest that you use an external
+  `/tmp/language_snapshot_tool_workspace_v1`. We suggest that you use an external
   hard drive or a specified place so that one does not have to redownload
   toolchains in between system restarts.
 
 - script: This is the script that should be run. We pass in the environment
-  variables `SWIFT_EXEC`, `SWIFT_FRONTEND`, `SWIFT_LIBRARY_PATH` to the
+  variables `LANGUAGE_EXEC`, `LANGUAGE_FRONTEND`, `LANGUAGE_LIBRARY_PATH` to the
   script. If the script returns a zero exit code then the run is considered a
   succeess. If the script returns a non-zero exit code, then the run is
   considered a failure.

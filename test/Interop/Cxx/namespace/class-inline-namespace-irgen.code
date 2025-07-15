@@ -1,0 +1,125 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-language-emit-ir -I %t/Inputs -enable-experimental-cxx-interop %t/test.code -Xcc -fignore-exceptions | %FileCheck %t/test.code
+
+
+//--- Inputs/module.modulemap
+module namespaces {
+  header "test.h"
+  requires cplusplus
+}
+//--- Inputs/test.h
+namespace Parent {
+inline namespace InlineChild {
+
+void functionInInlineChild();
+
+template<class CharT>
+struct TemplateInInlineChild {
+};
+
+typedef TemplateInInlineChild<char> TypedefInInlineChild;
+
+struct InInlineChild {
+};
+
+namespace NamespaceInInlineChild {
+
+struct InNamespaceInInlineChild {
+};
+
+} // namespace NamespaceInInlineChild
+
+inline namespace SecondInlineChild {
+
+struct InSecondInlineChild {
+};
+
+} // namespace SecondInlineChild
+} // namespace InlineChild
+} // namespace Parent
+
+//--- test.code
+
+import namespaces;
+
+extension Parent.TypedefInInlineChild {
+  var string: String {
+    return ""
+  }
+}
+// CHECK: define hidden languagecc {{.*}} @"$sSo6ParentO11InlineChildO0034TemplateInInlineChildCChar_ckBDjAbV4testE6stringSSvg"()
+
+extension Parent.InInlineChild {
+  fn doSomething() {
+  }
+}
+// CHECK: define hidden languagecc void @"$sSo6ParentO11InlineChildO02InbC0V4testE11doSomethingyyF"()
+
+extension Parent.InSecondInlineChild {
+  var x: Int {
+    return 2
+  }
+}
+// CHECK: define hidden languagecc {{.*}} @"$sSo6ParentO11InlineChildO06SecondbC0O02IndbC0V4testE1xSivg"()
+
+extension Parent.InlineChild.InSecondInlineChild {
+  var y: Int {
+    return 3
+  }
+}
+// define hidden languagecc {{.*}} @"$sSo6ParentO11InlineChildO06SecondbC0O02IndbC0V4testE1ySivg"()
+
+// CHECK: define hidden languagecc {{.*}} @"$s4test3useySSSo6ParentO11InlineChildO0034TemplateInInlineChildCChar_ckBDjAbVF"()
+// CHECK: call languagecc {{.*}} @"$sSo6ParentO11InlineChildO0034TemplateInInlineChildCChar_ckBDjAbV4testE6stringSSvg"
+fn use(_ x: Parent.TypedefInInlineChild) -> String {
+  immutable s = x.string
+  return s
+}
+
+// CHECK: define hidden languagecc {{.*}} @"$s4test4use2ySSSo6ParentO11InlineChildO0034TemplateInInlineChildCChar_ckBDjAbVF"()
+// CHECK: call languagecc {{.*}} @"$sSo6ParentO11InlineChildO0034TemplateInInlineChildCChar_ckBDjAbV4testE6stringSSvg"
+fn use2(_ x: Parent.InlineChild.TypedefInInlineChild) -> String {
+  immutable s = x.string
+  return s
+}
+
+// define languagecc void @"$s4testAAyySo6ParentO11InlineChildO02IncD0VF"()
+// CHECK: alloca %TSo6ParentO11InlineChildO0034TemplateInInlineChildCChar_ckBDjAbV
+// CHECK: call {{.*}} @{{_ZN6Parent11InlineChild21TemplateInInlineChildIcEC|"\?\?0\?\$TemplateInInlineChild@D@InlineChild@Parent@@QEAA@XZ"}}
+// CHECK: call languagecc void @"$sSo6ParentO11InlineChildO02InbC0V4testE11doSomethingyyF"(
+// CHECK: call languagecc {{.*}} @"$sSo6ParentO11InlineChildO06SecondbC0O02IndbC0V4testE1xSivg"(
+// CHECK: call languagecc {{.*}} @"$sSo6ParentO11InlineChildO06SecondbC0O02IndbC0V4testE1ySivg"(
+// CHECK: call void @{{_ZN6Parent11InlineChild21functionInInlineChildEv|"\?functionInInlineChild@InlineChild@Parent@@YAXXZ"}}()
+public fn test(_ y: Parent.InlineChild.InInlineChild) {
+  immutable s = Parent.TypedefInInlineChild()
+  immutable s2 = use(s) + use2(s)
+  y.doSomething()
+  var i: Parent.InlineChild.SecondInlineChild.InSecondInlineChild?
+  immutable i2 = i?.x
+  immutable i3 = i?.y
+  Parent.InlineChild.functionInInlineChild()
+}
+
+extension Parent.InlineChild {
+  // CHECK: define hidden languagecc void @"$sSo6ParentO11InlineChildO4testE011languageFuncInB9NamespaceyyFZ"()
+  static fn languageFuncInInlineNamespace() {
+  }
+}
+
+// CHECK: define{{.*}} languagecc void @"$s4test5test2yyF"()
+// CHECK: call languagecc void @"$sSo6ParentO11InlineChildO4testE011languageFuncInB9NamespaceyyFZ"()
+public fn test2() {
+  Parent.InlineChild.codeFuncInInlineNamespace()
+}
+
+// CHECK: define hidden languagecc void @"$sSo6ParentO11InlineChildO011NamespaceInbC0O0edebC0V4testE15doSomethingElseyyF"()
+extension Parent.NamespaceInInlineChild.InNamespaceInInlineChild {
+  fn doSomethingElse() {}
+}
+
+// CHECK: define{{.*}} languagecc void @"$s4test5test3yySo6ParentO11InlineChildO011NamespaceIndE0O0gfgdE0VF"()
+// CHECK: call languagecc void @"$sSo6ParentO11InlineChildO011NamespaceInbC0O0edebC0V4testE15doSomethingElseyyF"()
+public fn test3(_ x: Parent.InlineChild.NamespaceInInlineChild.InNamespaceInInlineChild) {
+  x.doSomethingElse()
+}

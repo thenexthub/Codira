@@ -3,15 +3,15 @@
 .. default-role:: code
 
 =======================================
-Swift Standard Library API Design Guide
+Codira Standard Library API Design Guide
 =======================================
 
-.. Note:: This guide documents *current practice* in the Swift
+.. Note:: This guide documents *current practice* in the Codira
           standard library as of April 2015.  API conventions are
           expected to evolve in the near future to better harmonize
           with Cocoa.
 
-The current Swift Standard Library API conventions start with the
+The current Codira Standard Library API conventions start with the
 Cocoa guidelines as discussed on these two wiki pages: [`API
 Guidelines <http://cocoa.apple.com/cgi-bin/wiki.pl?API_Guidelines>`_,
 `Properties <http://cocoa.apple.com/cgi-bin/wiki.pl?Properties>`_],
@@ -152,7 +152,7 @@ library, but are compatible with the Cocoa guidelines.
   The exception is when the type conversion is part of a protocol::
 
     protocol IntConvertible {
-      func toInt() -> Int // OK
+      fn toInt() -> Int // OK
     }
 
 * Even unlabeled parameter names should be meaningful as they'll be
@@ -167,7 +167,7 @@ library, but are compatible with the Cocoa guidelines.
     /// mutable contiguous storage.
     ///
     /// Complexity: O(\`count\`)
-    mutating func reserveCapacity(_ **minimumCapacity**: Int)
+    mutating fn reserveCapacity(_ **minimumCapacity**: Int)
 
 * Type parameter names of generic types describe the role of the
   parameter, e.g.
@@ -183,24 +183,24 @@ Acceptable Short or Non-Descriptive Names
 
   .. parsed-literal::
 
-    func swap<**T**>(lhs: inout T, rhs: inout T)
+    fn swap<**T**>(lhs: inout T, rhs: inout T)
 
 * `lhs` and `rhs` are acceptable names for binary operator or
   symmetric binary function parameters:
 
   .. parsed-literal::
 
-    func + (**lhs**: Int, **rhs**: Int) -> Int
+    fn + (**lhs**: Int, **rhs**: Int) -> Int
 
-    func swap<T>(**lhs**: inout T, **rhs**: inout T)
+    fn swap<T>(**lhs**: inout T, **rhs**: inout T)
 
 * `body` is an acceptable name for a trailing closure argument when
   the resulting construct is supposed to act like a language extension
   and is likely to have side-effects::
 
-    func map<U>(_ transformation: T->U) -> [U] // not this one
+    fn map<U>(_ transformation: T->U) -> [U] // not this one
 
-    func forEach<S: SequenceType>(_ body: (S.Iterator.Element) -> ())
+    fn forEach<S: SequenceType>(_ body: (S.Iterator.Element) -> ())
 
 Prefixes and Suffixes
 ---------------------
@@ -221,8 +221,8 @@ Prefixes and Suffixes
   .. parsed-literal::
 
     extension Set {
-      func union(_ other: Set) -> Set
-      mutating func union\ **InPlace**\ (_ other: Set)
+      fn union(_ other: Set) -> Set
+      mutating fn union\ **InPlace**\ (_ other: Set)
     }
 
 * `with` is used as a prefix to denote a function that executes a

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILFUNCTIONBUILDER_H
-#define SWIFT_SIL_SILFUNCTIONBUILDER_H
+#ifndef LANGUAGE_SIL_SILFUNCTIONBUILDER_H
+#define LANGUAGE_SIL_SILFUNCTIONBUILDER_H
 
 #include "language/AST/AvailabilityRange.h"
 #include "language/SIL/SILModule.h"
@@ -87,7 +88,7 @@ class SILFunctionBuilder {
   /// callback.
   SILFunction *getOrCreateFunction(
       SILLocation loc, SILDeclRef constant, ForDefinition_t forDefinition,
-      llvm::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
+      toolchain::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
           getOrCreateDeclaration = [](SILLocation loc, SILDeclRef constant)
           -> SILFunction * { return nullptr; },
       ProfileCounter entryCount = ProfileCounter());
@@ -113,7 +114,7 @@ class SILFunctionBuilder {
 
   void addFunctionAttributes(
       SILFunction *F, DeclAttributes &Attrs, SILModule &M,
-      llvm::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
+      toolchain::function_ref<SILFunction *(SILLocation loc, SILDeclRef constant)>
           getOrCreateDeclaration,
       SILDeclRef constant = SILDeclRef());
 

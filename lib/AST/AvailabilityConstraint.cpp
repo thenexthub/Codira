@@ -1,4 +1,4 @@
-//===--- AvailabilityConstraint.cpp - Swift Availability Constraints ------===//
+//===--- AvailabilityConstraint.cpp - Codira Availability Constraints ------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/AvailabilityConstraint.h"
@@ -21,16 +22,20 @@
 
 using namespace language;
 
-std::optional<AvailabilityRange>
-AvailabilityConstraint::getPotentiallyUnavailableRange(
-    const ASTContext &ctx) const {
+AvailabilityDomainAndRange
+AvailabilityConstraint::getDomainAndRange(const ASTContext &ctx) const {
   switch (getReason()) {
   case Reason::UnconditionallyUnavailable:
+    // Technically, unconditional unavailability doesn't have an associated
+    // range. However, if you view it as a special case of obsoletion, then an
+    // unconditionally unavailable declaration is "always obsoleted."
+    return AvailabilityDomainAndRange(getDomain().getRemappedDomain(ctx),
+                                      AvailabilityRange::alwaysAvailable());
   case Reason::Obsoleted:
+    return getAttr().getObsoletedDomainAndRange(ctx).value();
   case Reason::UnavailableForDeployment:
-    return std::nullopt;
   case Reason::PotentiallyUnavailable:
-    return getAttr().getIntroducedRange(ctx);
+    return getAttr().getIntroducedDomainAndRange(ctx).value();
   }
 }
 
@@ -39,7 +44,7 @@ bool AvailabilityConstraint::isActiveForRuntimeQueries(
   if (getAttr().getPlatform() == PlatformKind::none)
     return true;
 
-  return swift::isPlatformActive(getAttr().getPlatform(), ctx.LangOpts,
+  return language::isPlatformActive(getAttr().getPlatform(), ctx.LangOpts,
                                  /*forTargetVariant=*/false,
                                  /*forRuntimeQuery=*/true);
 }
@@ -69,11 +74,11 @@ static bool constraintIsStronger(const AvailabilityConstraint &lhs,
   }
 }
 
-void addConstraint(llvm::SmallVector<AvailabilityConstraint, 4> &constraints,
+void addConstraint(toolchain::SmallVector<AvailabilityConstraint, 4> &constraints,
                    const AvailabilityConstraint &constraint,
                    const ASTContext &ctx) {
 
-  auto iter = llvm::find_if(
+  auto iter = toolchain::find_if(
       constraints, [&constraint](AvailabilityConstraint &existing) {
         return constraint.getDomain() == existing.getDomain();
       });
@@ -127,7 +132,7 @@ static bool canIgnoreConstraintInUnavailableContexts(
     // which they are available. However, make an exception for types and
     // conformances, which can sometimes be awkward to avoid references to.
     if (!isa<TypeDecl>(decl) && !isa<ExtensionDecl>(decl)) {
-      if (domain.isUniversal() || domain.isSwiftLanguage())
+      if (domain.isUniversal() || domain.isCodiraLanguage())
         return false;
     }
     return true;
@@ -135,7 +140,7 @@ static bool canIgnoreConstraintInUnavailableContexts(
   case AvailabilityConstraint::Reason::PotentiallyUnavailable:
     switch (domain.getKind()) {
     case AvailabilityDomain::Kind::Universal:
-    case AvailabilityDomain::Kind::SwiftLanguage:
+    case AvailabilityDomain::Kind::CodiraLanguage:
     case AvailabilityDomain::Kind::PackageDescription:
     case AvailabilityDomain::Kind::Embedded:
     case AvailabilityDomain::Kind::Custom:
@@ -234,7 +239,7 @@ activePlatformDomainForDecl(const Decl *decl) {
 }
 
 static void getAvailabilityConstraintsForDecl(
-    llvm::SmallVector<AvailabilityConstraint, 4> &constraints, const Decl *decl,
+    toolchain::SmallVector<AvailabilityConstraint, 4> &constraints, const Decl *decl,
     const AvailabilityContext &context, AvailabilityConstraintFlags flags) {
   auto &ctx = decl->getASTContext();
   auto activePlatformDomain = activePlatformDomainForDecl(decl);
@@ -254,16 +259,16 @@ static void getAvailabilityConstraintsForDecl(
   // After resolving constraints, remove any constraints that indicate the
   // declaration is unconditionally unavailable in a domain for which
   // the context is already unavailable.
-  llvm::erase_if(constraints, [&](const AvailabilityConstraint &constraint) {
+  toolchain::erase_if(constraints, [&](const AvailabilityConstraint &constraint) {
     return shouldIgnoreConstraintInContext(decl, constraint, context);
   });
 }
 
 DeclAvailabilityConstraints
-swift::getAvailabilityConstraintsForDecl(const Decl *decl,
+language::getAvailabilityConstraintsForDecl(const Decl *decl,
                                          const AvailabilityContext &context,
                                          AvailabilityConstraintFlags flags) {
-  llvm::SmallVector<AvailabilityConstraint, 4> constraints;
+  toolchain::SmallVector<AvailabilityConstraint, 4> constraints;
 
   // Generic parameters are always available.
   if (isa<GenericTypeParamDecl>(decl))

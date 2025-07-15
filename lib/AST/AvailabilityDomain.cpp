@@ -1,4 +1,4 @@
-//===--- AvailabilityDomain.cpp - Swift Availability Domains --------------===//
+//===--- AvailabilityDomain.cpp - Codira Availability Domains --------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/AvailabilityDomain.h"
@@ -20,9 +21,10 @@
 #include "language/AST/Module.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
+#include "language/ClangImporter/ClangImporter.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/StringSwitch.h"
 
 using namespace language;
 
@@ -30,7 +32,7 @@ CustomAvailabilityDomain::Kind
 getCustomDomainKind(clang::FeatureAvailKind featureAvailKind) {
   switch (featureAvailKind) {
   case clang::FeatureAvailKind::None:
-    llvm_unreachable("unexpected kind");
+    toolchain_unreachable("unexpected kind");
   case clang::FeatureAvailKind::Available:
     return CustomAvailabilityDomain::Kind::Enabled;
   case clang::FeatureAvailKind::Unavailable:
@@ -45,8 +47,12 @@ customDomainForClangDecl(Decl *decl, const ASTContext &ctx) {
   auto *clangDecl = decl->getClangDecl();
   ASSERT(clangDecl);
 
+  auto *varDecl = dyn_cast<clang::VarDecl>(clangDecl);
+  if (!varDecl)
+    return nullptr;
+
   auto featureInfo = clangDecl->getASTContext().getFeatureAvailInfo(
-      const_cast<clang::Decl *>(clangDecl));
+      const_cast<clang::VarDecl *>(varDecl));
 
   // Ensure the decl actually represents an availability domain.
   if (featureInfo.first.empty())
@@ -55,9 +61,14 @@ customDomainForClangDecl(Decl *decl, const ASTContext &ctx) {
   if (featureInfo.second.Kind == clang::FeatureAvailKind::None)
     return nullptr;
 
+  FuncDecl *predicate = nullptr;
+  if (featureInfo.second.Kind == clang::FeatureAvailKind::Dynamic)
+    predicate =
+        ctx.getClangModuleLoader()->getAvailabilityDomainPredicate(varDecl);
+
   return CustomAvailabilityDomain::get(
       featureInfo.first, getCustomDomainKind(featureInfo.second.Kind),
-      decl->getModuleContext(), decl, ctx);
+      decl->getModuleContext(), decl, predicate, ctx);
 }
 
 std::optional<AvailabilityDomain>
@@ -69,7 +80,7 @@ AvailabilityDomain::forCustom(Decl *decl, const ASTContext &ctx) {
     if (auto *customDomain = customDomainForClangDecl(decl, ctx))
       return AvailabilityDomain::forCustom(customDomain);
   } else {
-    // FIXME: [availability] Handle Swift availability domains decls.
+    // FIXME: [availability] Handle Codira availability domains decls.
   }
 
   return std::nullopt;
@@ -81,9 +92,9 @@ AvailabilityDomain::builtinDomainForString(StringRef string,
   // This parameter is used in downstream forks, do not remove.
   (void)declContext;
 
-  auto domain = llvm::StringSwitch<std::optional<AvailabilityDomain>>(string)
+  auto domain = toolchain::StringSwitch<std::optional<AvailabilityDomain>>(string)
                     .Case("*", AvailabilityDomain::forUniversal())
-                    .Case("swift", AvailabilityDomain::forSwiftLanguage())
+                    .Case("language", AvailabilityDomain::forCodiraLanguage())
                     .Case("_PackageDescription",
                           AvailabilityDomain::forPackageDescription())
                     .Default(std::nullopt);
@@ -102,7 +113,7 @@ bool AvailabilityDomain::isVersioned() const {
   case Kind::Universal:
   case Kind::Embedded:
     return false;
-  case Kind::SwiftLanguage:
+  case Kind::CodiraLanguage:
   case Kind::PackageDescription:
   case Kind::Platform:
     return true;
@@ -112,11 +123,31 @@ bool AvailabilityDomain::isVersioned() const {
   }
 }
 
+bool AvailabilityDomain::isVersionValid(
+    const toolchain::VersionTuple &version) const {
+  ASSERT(isVersioned());
+
+  switch (getKind()) {
+  case Kind::Universal:
+  case Kind::Embedded:
+    toolchain_unreachable("unexpected domain kind");
+  case Kind::CodiraLanguage:
+  case Kind::PackageDescription:
+    return true;
+  case Kind::Platform:
+    if (auto osType = tripleOSTypeForPlatform(getPlatformKind()))
+      return toolchain::Triple::isValidVersionForOS(*osType, version);
+    return true;
+  case Kind::Custom:
+    return true;
+  }
+}
+
 bool AvailabilityDomain::supportsContextRefinement() const {
   switch (getKind()) {
   case Kind::Universal:
   case Kind::Embedded:
-  case Kind::SwiftLanguage:
+  case Kind::CodiraLanguage:
   case Kind::PackageDescription:
     return false;
   case Kind::Platform:
@@ -129,7 +160,7 @@ bool AvailabilityDomain::supportsQueries() const {
   switch (getKind()) {
   case Kind::Universal:
   case Kind::Embedded:
-  case Kind::SwiftLanguage:
+  case Kind::CodiraLanguage:
   case Kind::PackageDescription:
     return false;
   case Kind::Platform:
@@ -141,7 +172,7 @@ bool AvailabilityDomain::supportsQueries() const {
 bool AvailabilityDomain::isActive(const ASTContext &ctx) const {
   switch (getKind()) {
   case Kind::Universal:
-  case Kind::SwiftLanguage:
+  case Kind::CodiraLanguage:
   case Kind::PackageDescription:
   case Kind::Embedded:
     return true;
@@ -161,14 +192,14 @@ bool AvailabilityDomain::isActivePlatform(const ASTContext &ctx) const {
   return isActive(ctx);
 }
 
-static std::optional<llvm::VersionTuple>
+static std::optional<toolchain::VersionTuple>
 getDeploymentVersion(const AvailabilityDomain &domain, const ASTContext &ctx) {
   switch (domain.getKind()) {
   case AvailabilityDomain::Kind::Universal:
   case AvailabilityDomain::Kind::Embedded:
   case AvailabilityDomain::Kind::Custom:
     return std::nullopt;
-  case AvailabilityDomain::Kind::SwiftLanguage:
+  case AvailabilityDomain::Kind::CodiraLanguage:
     return ctx.LangOpts.EffectiveLanguageVersion;
   case AvailabilityDomain::Kind::PackageDescription:
     return ctx.LangOpts.PackageDescriptionVersion;
@@ -186,35 +217,35 @@ AvailabilityDomain::getDeploymentRange(const ASTContext &ctx) const {
   return std::nullopt;
 }
 
-llvm::StringRef AvailabilityDomain::getNameForDiagnostics() const {
+toolchain::StringRef AvailabilityDomain::getNameForDiagnostics() const {
   switch (getKind()) {
   case Kind::Universal:
     return "*";
-  case Kind::SwiftLanguage:
-    return "Swift";
+  case Kind::CodiraLanguage:
+    return "Codira";
   case Kind::PackageDescription:
     return "PackageDescription";
   case Kind::Embedded:
-    return "Embedded Swift";
+    return "Embedded Codira";
   case Kind::Platform:
-    return swift::prettyPlatformString(getPlatformKind());
+    return language::prettyPlatformString(getPlatformKind());
   case Kind::Custom:
     return getCustomDomain()->getName().str();
   }
 }
 
-llvm::StringRef AvailabilityDomain::getNameForAttributePrinting() const {
+toolchain::StringRef AvailabilityDomain::getNameForAttributePrinting() const {
   switch (getKind()) {
   case Kind::Universal:
     return "*";
-  case Kind::SwiftLanguage:
-    return "swift";
+  case Kind::CodiraLanguage:
+    return "language";
   case Kind::PackageDescription:
     return "_PackageDescription";
   case Kind::Embedded:
     return "Embedded";
   case Kind::Platform:
-    return swift::platformString(getPlatformKind());
+    return language::platformString(getPlatformKind());
   case Kind::Custom:
     return getCustomDomain()->getName().str();
   }
@@ -238,7 +269,7 @@ bool AvailabilityDomain::contains(const AvailabilityDomain &other) const {
   switch (getKind()) {
   case Kind::Universal:
     return true;
-  case Kind::SwiftLanguage:
+  case Kind::CodiraLanguage:
   case Kind::PackageDescription:
   case Kind::Embedded:
   case Kind::Custom:
@@ -255,7 +286,7 @@ bool AvailabilityDomain::isRoot() const {
   switch (getKind()) {
   case AvailabilityDomain::Kind::Universal:
   case AvailabilityDomain::Kind::Embedded:
-  case AvailabilityDomain::Kind::SwiftLanguage:
+  case AvailabilityDomain::Kind::CodiraLanguage:
   case AvailabilityDomain::Kind::PackageDescription:
     return true;
   case AvailabilityDomain::Kind::Platform:
@@ -282,14 +313,26 @@ AvailabilityDomain AvailabilityDomain::getRootDomain() const {
   return *this;
 }
 
-void AvailabilityDomain::print(llvm::raw_ostream &os) const {
+const AvailabilityDomain
+AvailabilityDomain::getRemappedDomain(const ASTContext &ctx,
+                                      bool &didRemap) const {
+  if (getPlatformKind() == PlatformKind::iOS &&
+      isPlatformActive(PlatformKind::visionOS, ctx.LangOpts)) {
+    didRemap = true;
+    return AvailabilityDomain::forPlatform(PlatformKind::visionOS);
+  }
+
+  return *this;
+}
+
+void AvailabilityDomain::print(toolchain::raw_ostream &os) const {
   os << getNameForAttributePrinting();
 }
 
 AvailabilityDomain AvailabilityDomain::copy(ASTContext &ctx) const {
   switch (getKind()) {
   case Kind::Universal:
-  case Kind::SwiftLanguage:
+  case Kind::CodiraLanguage:
   case Kind::PackageDescription:
   case Kind::Embedded:
   case Kind::Platform:
@@ -298,7 +341,7 @@ AvailabilityDomain AvailabilityDomain::copy(ASTContext &ctx) const {
   case Kind::Custom:
     // To support this, the CustomAvailabilityDomain content would need to
     // be copied to the other context, allocating new storage if necessary.
-    llvm::report_fatal_error("unsupported");
+    toolchain::report_fatal_error("unsupported");
   }
 }
 
@@ -311,7 +354,7 @@ bool StableAvailabilityDomainComparator::operator()(
 
   switch (lhsKind) {
   case AvailabilityDomain::Kind::Universal:
-  case AvailabilityDomain::Kind::SwiftLanguage:
+  case AvailabilityDomain::Kind::CodiraLanguage:
   case AvailabilityDomain::Kind::PackageDescription:
   case AvailabilityDomain::Kind::Embedded:
     return false;
@@ -330,13 +373,17 @@ bool StableAvailabilityDomainComparator::operator()(
 }
 
 CustomAvailabilityDomain::CustomAvailabilityDomain(Identifier name, Kind kind,
-                                                   ModuleDecl *mod, Decl *decl)
-    : name(name), kind(kind), mod(mod), decl(decl) {
+                                                   ModuleDecl *mod, Decl *decl,
+                                                   FuncDecl *predicateFunc)
+    : name(name), kind(kind), mod(mod), decl(decl),
+      predicateFunc(predicateFunc) {
   ASSERT(!name.empty());
   ASSERT(mod);
+  if (predicateFunc)
+    ASSERT(kind == Kind::Dynamic);
 }
 
-void CustomAvailabilityDomain::Profile(llvm::FoldingSetNodeID &ID,
+void CustomAvailabilityDomain::Profile(toolchain::FoldingSetNodeID &ID,
                                        Identifier name, ModuleDecl *mod) {
   ID.AddPointer(name.getAsOpaquePointer());
   ID.AddPointer(mod);
@@ -352,30 +399,37 @@ AvailabilityDomainOrIdentifier::lookUpInDeclContext(
   std::optional<AvailabilityDomain> domain;
   auto identifier = getAsIdentifier().value();
 
-  llvm::SmallVector<AvailabilityDomain> results;
+  toolchain::SmallVector<AvailabilityDomain> results;
   declContext->lookupAvailabilityDomains(identifier, results);
   if (results.size() > 0) {
     // FIXME: [availability] Diagnose ambiguity if necessary.
     domain = results.front();
   }
 
+  bool hasCustomAvailability =
+      ctx.LangOpts.hasFeature(Feature::CustomAvailability);
+
   if (!domain) {
     auto domainString = identifier.str();
+    bool downgradeErrors =
+        !hasCustomAvailability || declContext->isInCodirainterface();
     if (auto suggestion = closestCorrectedPlatformString(domainString)) {
       diags
           .diagnose(loc, diag::availability_suggest_platform_name, identifier,
                     *suggestion)
+          .limitBehaviorIf(downgradeErrors, DiagnosticBehavior::Warning)
           .fixItReplace(SourceRange(loc), *suggestion);
     } else {
-      diags.diagnose(loc, diag::availability_unrecognized_platform_name,
-                     identifier);
+      diags
+          .diagnose(loc, diag::availability_unrecognized_platform_name,
+                    identifier)
+          .limitBehaviorIf(downgradeErrors, DiagnosticBehavior::Warning);
     }
     return std::nullopt;
   }
 
-  if (domain->isCustom() &&
-      !ctx.LangOpts.hasFeature(Feature::CustomAvailability) &&
-      !declContext->isInSwiftinterface()) {
+  if (domain->isCustom() && !hasCustomAvailability &&
+      !declContext->isInCodirainterface()) {
     diags.diagnose(loc, diag::attr_availability_requires_custom_availability,
                    *domain);
     return std::nullopt;
@@ -393,7 +447,7 @@ AvailabilityDomainOrIdentifier::copy(ASTContext &ctx) const {
   return getAsDomain()->copy(ctx);
 }
 
-void AvailabilityDomainOrIdentifier::print(llvm::raw_ostream &os) const {
+void AvailabilityDomainOrIdentifier::print(toolchain::raw_ostream &os) const {
   if (auto identifier = getAsIdentifier())
     os << identifier->str();
   else

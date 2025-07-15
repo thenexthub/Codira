@@ -1,4 +1,4 @@
-//===--- ASTNode.h - Swift Language ASTs ------------------------*- C++ -*-===//
+//===--- ASTNode.h - Codira Language ASTs ------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ASTNode, which is a union of Stmt, Expr, Decl,
@@ -18,15 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AST_NODE_H
-#define SWIFT_AST_AST_NODE_H
+#ifndef LANGUAGE_AST_AST_NODE_H
+#define LANGUAGE_AST_AST_NODE_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include "language/Basic/Debug.h"
+#include "language/Basic/SourceManager.h"
 #include "language/AST/TypeAlignments.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -48,7 +50,7 @@ namespace language {
   enum class StmtKind;
 
   struct ASTNode
-      : public llvm::PointerUnion<Expr *, Stmt *, Decl *, Pattern *, TypeRepr *,
+      : public toolchain::PointerUnion<Expr *, Stmt *, Decl *, Pattern *, TypeRepr *,
                                   StmtConditionElement *, CaseLabelItem *> {
     // Inherit the constructors from PointerUnion.
     using PointerUnion::PointerUnion;
@@ -91,26 +93,32 @@ namespace language {
       return result;
     }
 
-    SWIFT_DEBUG_DUMP;
-    void dump(llvm::raw_ostream &OS, unsigned Indent = 0) const;
+    LANGUAGE_DEBUG_DUMP;
+    void dump(toolchain::raw_ostream &OS, unsigned Indent = 0) const;
 
     /// Whether the AST node is implicit.
     bool isImplicit() const;
 
-    friend llvm::hash_code hash_value(ASTNode N) {
-      return llvm::hash_value(N.getOpaqueValue());
+    friend toolchain::hash_code hash_value(ASTNode N) {
+      return toolchain::hash_value(N.getOpaqueValue());
     }
   };
+
+  /// Find the outermost range that \p range was originally generated from.
+  /// Returns an invalid source range if \p range wasn't generated from a macro.
+  SourceRange getUnexpandedMacroRange(const SourceManager &SM,
+                                      SourceRange range);
+
 } // namespace language
 
-namespace llvm {
-  using swift::ASTNode;
+namespace toolchain {
+  using language::ASTNode;
   template <> struct DenseMapInfo<ASTNode> {
     static inline ASTNode getEmptyKey() {
-      return DenseMapInfo<swift::Expr *>::getEmptyKey();
+      return DenseMapInfo<language::Expr *>::getEmptyKey();
     }
     static inline ASTNode getTombstoneKey() {
-      return DenseMapInfo<swift::Expr *>::getTombstoneKey();
+      return DenseMapInfo<language::Expr *>::getTombstoneKey();
     }
     static unsigned getHashValue(const ASTNode Val) {
       return DenseMapInfo<void *>::getHashValue(Val.getOpaqueValue());
@@ -130,8 +138,8 @@ namespace llvm {
     static inline ASTNode getFromVoidPointer(void *P) {
       return ASTNode::getFromOpaqueValue(P);
     }
-    enum { NumLowBitsAvailable = swift::TypeAlignInBits };
+    enum { NumLowBitsAvailable = language::TypeAlignInBits };
   };
 }
 
-#endif // LLVM_SWIFT_AST_AST_NODE_H
+#endif // TOOLCHAIN_LANGUAGE_AST_AST_NODE_H

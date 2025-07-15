@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend -emit-ir %s -target %target-language-5.9-abi-triple | %FileCheck %s
+
+protocol P {
+  associatedtype A
+  var a: A { get }
+}
+
+fn f<each T: P>(_ t: repeat each T) -> (repeat (each T).A) {
+  immutable data = (repeat (each t).a)
+  return data
+}
+
+// CHECK-LABEL: define {{.*}} void @"$s21pack_metadata_dealloc1fy1AQzxQp_txxQpRvzAA1PRzlF"
+// CHECK: [[SPSAVE:%.*]] = call ptr @toolchain.stacksave.p0()
+// CHECK: call void @toolchain.stackrestore.p0(ptr [[SPSAVE]])
+// CHECK: [[SPSAVE1:%.*]] = call ptr @toolchain.stacksave.p0()
+// CHECK: [[SPSAVE2:%.*]] = call ptr @toolchain.stacksave.p0()
+// CHECK-NOT: call ptr toolchain.stacksave.p0()
+// CHECK:  call void @toolchain.stackrestore.p0(ptr [[SPSAVE2]])
+// CHECK:  call void @toolchain.stackrestore.p0(ptr [[SPSAVE1]])
+// CHECK:  ret void
+
+struct G<each T> {
+  init(_: repeat each T) {}
+}
+
+fn f2<each T: P, each U>(t: repeat each T, u: repeat each U) async -> (repeat G<(each T).A, repeat each U>) {
+  immutable x = (repeat G((each t).a, repeat each u))
+  return x
+}

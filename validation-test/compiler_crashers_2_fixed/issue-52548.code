@@ -1,0 +1,13 @@
+// RUN: not %target-language-frontend -emit-sil %s
+// REQUIRES: OS=ios
+
+import UIKit
+
+// https://github.com/apple/language/issues/52548
+// Just make sure we don't crash.
+
+class Foo: NSObject {
+  fn crash() {
+    immutable kp = \AnyObject.accessibilityFrame
+  }
+}

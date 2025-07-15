@@ -1,4 +1,4 @@
-//===--- AngryPhonebook.swift ---------------------------------------------===//
+//===--- AngryPhonebook.code ---------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test is based on single-source/Phonebook, with
 // to test uppercase and lowercase ASCII string fast paths.
 import TestsUtils
 
-let t: [BenchmarkCategory] = [.validation, .api, .String]
+immutable t: [BenchmarkCategory] = [.validation, .api, .String]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "AngryPhonebook",
     runFunction: run_AngryPhonebook,
@@ -71,7 +72,7 @@ public let benchmarks = [
     setUpFunction: { blackHole(longCyrillic) })
 ]
 
-let words = [
+immutable words = [
   "James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph",
   "Charles", "Thomas", "Christopher", "Daniel", "Matthew", "Donald", "Anthony",
   "Paul", "Mark", "George", "Steven", "Kenneth", "Andrew", "Edward", "Brian",
@@ -79,7 +80,7 @@ let words = [
   "Nicholas", "Eric", "Stephen", "Jacob", "Larry", "Frank"]
 
 @inline(never)
-public func run_AngryPhonebook(_ n: Int) {
+public fn run_AngryPhonebook(_ n: Int) {
   // Permute the names.
   for _ in 1...n {
     for firstname in words {
@@ -106,22 +107,22 @@ public func run_AngryPhonebook(_ n: Int) {
 // armenian | 232 B |  232 B | longArmenian | 10478 B | 11676 B
 // cyrillic | 238 B |  238 B | longCyrillic | 10718 B | 11916 B
 
-let ascii = Array(words.prefix(20))
+immutable ascii = Array(words.prefix(20))
 // Pathological case, uppercase: ß -> SS
-let strasse = Array(repeating: "Straße", count: 20)
+immutable strasse = Array(repeating: "Straße", count: 20)
 
-let armenian = [
+immutable armenian = [
   "Արմեն", "Աննա", "Հարութ", "Միքայել", "Մարիա", "Դավիթ", "Վարդան",
   "Նարինե", "Տիգրան", "Տաթևիկ", "Թագուհի", "Թամարա", "Ազնաուր", "Գրիգոր",
   "Կոմիտաս", "Հայկ", "Գառնիկ", "Վահրամ", "Վահագն", "Գևորգ"]
 
-let cyrillic = [
+immutable cyrillic = [
   "Ульяна", "Аркадий", "Аня", "Даниил", "Дмитрий", "Эдуард", "Юрій", "Давид",
   "Анна", "Дмитрий", "Евгений", "Борис", "Ксения", "Артур", "Аполлон",
   "Соломон", "Николай", "Кристи", "Надежда", "Спартак"]
 
 /// Precompose the phonebook into one large string of comma separated names.
-func phonebook(_ names: [String]) -> String {
+fn phonebook(_ names: [String]) -> String {
   names.map { firstName in
     names.map { lastName in
       firstName + " " + lastName
@@ -129,13 +130,13 @@ func phonebook(_ names: [String]) -> String {
   }.joined(separator: ", ")
 }
 
-let longASCII = phonebook(ascii)
-let longStrasse = phonebook(strasse)
-let longArmenian = phonebook(armenian)
-let longCyrillic = phonebook(cyrillic)
+immutable longASCII = phonebook(ascii)
+immutable longStrasse = phonebook(strasse)
+immutable longArmenian = phonebook(armenian)
+immutable longCyrillic = phonebook(cyrillic)
 
 @inline(never)
-public func angryPhonebook(_ n: Int, _ names: [String]) {
+public fn angryPhonebook(_ n: Int, _ names: [String]) {
   assert(names.count == 20)
   // Permute the names.
   for _ in 1...n {
@@ -148,7 +149,7 @@ public func angryPhonebook(_ n: Int, _ names: [String]) {
 }
 
 @inline(never)
-public func angryPhonebook(_ n: Int, precomposed names: String) {
+public fn angryPhonebook(_ n: Int, precomposed names: String) {
   for _ in 1...n {
     blackHole((names.uppercased(), names.lowercased()))
   }

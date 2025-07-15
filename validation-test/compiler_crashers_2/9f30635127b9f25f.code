@@ -1,0 +1,7 @@
+// {"signature":"(anonymous namespace)::PreCheckTarget::walkToExprPre(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  extension a {
+    b {
+      fn c {
+        super

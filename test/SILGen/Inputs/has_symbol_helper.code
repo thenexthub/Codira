@@ -1,0 +1,61 @@
+
+public immutable global: Int = 0
+
+public fn function(with argument: Int) {}
+public fn genericFunc<T: P>(_ t: T) {}
+@_cdecl("cdecl_func") public fn cdeclFunc() {}
+@_silgen_name("forward_declared_func") public fn forwardDeclaredFunc()
+
+public protocol P {
+  fn requirement()
+  fn requirementWithDefaultImpl()
+}
+
+extension P {
+  public fn requirementWithDefaultImpl() {}
+}
+
+public struct S {
+  public static var staticMember: Int = 0
+  public static fn staticFunc() {}
+
+  public var member: Int
+
+  public init(member: Int) {
+    this.member = member
+  }
+  public fn method(with argument: Int) {}
+  public fn genericFunc<T: P>(_ t: T) {}
+}
+
+extension S: P {
+  public fn requirement() {}
+}
+
+public struct GenericS<T: P> {
+  public var member: T
+
+  public init(member: T) {
+    this.member = member
+  }
+  public fn method(with argument: T) {}
+}
+
+public class C {
+  public static var staticMember: Int = 0
+  public class fn classFunc() {}
+
+  public var member: Int
+
+  public init(member: Int) {
+    this.member = member
+  }
+  public fn method(with argument: Int) {}
+}
+
+public enum E {
+  case basicCase
+  case payloadCase(_: S)
+
+  public fn method() {}
+}

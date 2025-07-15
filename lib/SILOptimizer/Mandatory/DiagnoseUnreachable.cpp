@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-diagnose-unreachable"
@@ -33,9 +34,9 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -103,7 +104,7 @@ public:
   /// A map from the PossiblyUnreachableBlocks to the folded conditional
   /// branches that caused each of them to be unreachable. This extra info is
   /// used to enhance the diagnostics.
-  llvm::DenseMap<SILBasicBlock*, UnreachableInfo> MetaMap;
+  toolchain::DenseMap<SILBasicBlock*, UnreachableInfo> MetaMap;
 };
 
 /// Propagate/remove basic block input values when all predecessors
@@ -175,7 +176,7 @@ static void propagateBasicBlockArgs(SILBasicBlock &BB) {
 
   // Drop the arguments from the branch instructions by creating a new branch
   // instruction and deleting the old one.
-  llvm::SmallVector<SILInstruction*, 32> ToBeDeleted;
+  toolchain::SmallVector<SILInstruction*, 32> ToBeDeleted;
   for (SILBasicBlock::pred_iterator PI = BB.pred_begin(), PE = BB.pred_end();
        PI != PE; ++PI) {
     SILBasicBlock *PredB = *PI;
@@ -295,7 +296,7 @@ static bool constantFoldEnumTerminator(SILBasicBlock &BB,
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "Folding terminator: " << **SUI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Folding terminator: " << **SUI);
   recursivelyDeleteTriviallyDeadInstructions(SUI, true);
   ++NumTerminatorsFolded;
   return true;
@@ -370,7 +371,7 @@ static bool constantFoldEnumAddrTerminator(
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "Folding terminator: " << *SUI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Folding terminator: " << *SUI);
   recursivelyDeleteTriviallyDeadInstructions(SUI, true);
   ++NumTerminatorsFolded;
   return true;
@@ -382,20 +383,20 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
   if (!stackSlot)
     return nullptr;
 
-  LLVM_DEBUG(llvm::dbgs() << "Visiting Stack: " << *stackSlot);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting Stack: " << *stackSlot);
 
   InjectEnumAddrInst *singleInitializer = nullptr;
   InitEnumDataAddrInst *singleInitializerAddr = nullptr;
   SmallVector<Operand *, 16> worklist(stackSlot->use_begin(),
                                       stackSlot->use_end());
-  LLVM_DEBUG(SWIFT_DEFER { llvm::dbgs() << "Exiting!\n"; });
+  TOOLCHAIN_DEBUG(LANGUAGE_DEFER { toolchain::dbgs() << "Exiting!\n"; });
   while (worklist.size()) {
     auto *op = worklist.pop_back_val();
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting: " << *op->getUser());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting: " << *op->getUser());
     if (auto *svi = Projection::isAddressProjection(op->getUser())) {
-      LLVM_DEBUG(llvm::dbgs() << "Address projection. Continuing\n");
-      llvm::copy(svi->getUses(), std::back_inserter(worklist));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Address projection. Continuing\n");
+      toolchain::copy(svi->getUses(), std::back_inserter(worklist));
       continue;
     }
 
@@ -403,23 +404,23 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
 
     // Skip our self.
     if (user == SEAI) {
-      LLVM_DEBUG(llvm::dbgs() << "Skipping SEAI.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping SEAI.\n");
       continue;
     }
 
     if (isa<LoadInst>(user) || isa<LoadBorrowInst>(user) ||
         isa<DeallocStackInst>(user) || isa<DestroyAddrInst>(user)) {
-      LLVM_DEBUG(llvm::dbgs() << "Skipping loads/lifetime ends\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping loads/lifetime ends\n");
       continue;
     }
 
     // If we are reading from the memory we are ok.
     if (auto *cai = dyn_cast<CopyAddrInst>(user)) {
       if (cai->getDest() == op->get() || cai->isTakeOfSrc() == IsTake) {
-        LLVM_DEBUG(llvm::dbgs() << "Found cai taking from src. Bailing!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found cai taking from src. Bailing!\n");
         return nullptr;
       }
-      LLVM_DEBUG(llvm::dbgs() << "Skipping!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping!\n");
       continue;
     }
 
@@ -427,36 +428,36 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
     // escape after we process.
     if (auto *iedai = dyn_cast<InitEnumDataAddrInst>(user)) {
       if (singleInitializerAddr) {
-        LLVM_DEBUG(llvm::dbgs() << "Multiple InitEnumDataAddrInst?!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Multiple InitEnumDataAddrInst?!\n");
         return nullptr;
       }
       singleInitializerAddr = iedai;
-      LLVM_DEBUG(llvm::dbgs() << "Continuing\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Continuing\n");
       continue;
     }
 
     if (auto *ieai = dyn_cast<InjectEnumAddrInst>(user)) {
       // If single initializer is already set,
       if (singleInitializer) {
-        LLVM_DEBUG(llvm::dbgs() << "Multiple InitEnumDataAddrInst?!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Multiple InitEnumDataAddrInst?!\n");
         return nullptr;
       }
       singleInitializer = ieai;
-      LLVM_DEBUG(llvm::dbgs() << "Continuing\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Continuing\n");
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Bailing at end of loop!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Bailing at end of loop!\n");
     return nullptr;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "After Loop\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "After Loop\n");
 
   // If we didn't find a single initializer bail. We were initialized
   // multiple times suggesting we are not actually looking at a SILGen
   // temporary.
   if (!singleInitializer) {
-    LLVM_DEBUG(llvm::dbgs() << "Did not find single initializer! Bailing!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Did not find single initializer! Bailing!\n");
     return nullptr;
   }
 
@@ -464,22 +465,22 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
   // payload.
   if (!singleInitializerAddr) {
     assert(!singleInitializer->getElement()->hasAssociatedValues());
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Did not find single initializer addr! Bailing!\n");
     return singleInitializer;
   }
 
   // Otherwise, make sure we are initialized only once and never
   // escape.
-  llvm::copy(singleInitializerAddr->getUses(), std::back_inserter(worklist));
+  toolchain::copy(singleInitializerAddr->getUses(), std::back_inserter(worklist));
   bool foundInitializer = false;
   while (worklist.size()) {
     auto *op = worklist.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "Read only check for: " << *op->getUser());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Read only check for: " << *op->getUser());
 
     // Look through projections.
     if (auto *svi = Projection::isAddressProjection(op->getUser())) {
-      llvm::copy(svi->getUses(), std::back_inserter(worklist));
+      toolchain::copy(svi->getUses(), std::back_inserter(worklist));
       continue;
     }
 
@@ -488,7 +489,7 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
     // target) that way.
     if (isa<StoreInst>(op->getUser())) {
       if (foundInitializer) {
-        LLVM_DEBUG(llvm::dbgs() << "Found multiple initializers! Bailing!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found multiple initializers! Bailing!\n");
         return nullptr;
       }
       foundInitializer = true;
@@ -501,7 +502,7 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
         return nullptr;
       }
       if (foundInitializer) {
-        LLVM_DEBUG(llvm::dbgs() << "Found multiple initializers! Bailing!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found multiple initializers! Bailing!\n");
         return nullptr;
       }
       foundInitializer = true;
@@ -509,7 +510,7 @@ getAllocStackSingleInitializingInjectEnumAddr(SwitchEnumAddrInst *SEAI) {
     }
 
     // Anything else consider unacceptable.
-    LLVM_DEBUG(llvm::dbgs() << "Found unknown addr initializer\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found unknown addr initializer\n");
     return nullptr;
   }
 
@@ -670,7 +671,7 @@ static void setOutsideBlockUsesToUndef(SILInstruction *I) {
   SILBasicBlock *BB = I->getParent();
 
   // Replace all uses outside of I's basic block by undef.
-  llvm::SmallVector<Operand *, 16> Uses;
+  toolchain::SmallVector<Operand *, 16> Uses;
   for (auto result : I->getResults())
     Uses.append(result->use_begin(), result->use_end());
 
@@ -749,7 +750,7 @@ static bool simplifyBlocksWithCallsToNoReturn(SILBasicBlock &BB,
   SILInstruction *NoReturnCall = nullptr;
 
   // Collection of all instructions that should be deleted.
-  llvm::SmallVector<SILInstruction*, 32> ToBeDeleted;
+  toolchain::SmallVector<SILInstruction*, 32> ToBeDeleted;
 
   // If all of the predecessor blocks end in a try_apply to a noreturn
   // function, the entire block is dead.
@@ -1149,7 +1150,7 @@ static bool removeUnreachableBlocks(SILFunction &F, SILModule &M,
 
   // Delete dead instructions and everything that could become dead after
   // their deletion.
-  llvm::SmallVector<SILInstruction*, 32> ToBeDeleted;
+  toolchain::SmallVector<SILInstruction*, 32> ToBeDeleted;
   for (auto BI = F.begin(), BE = F.end(); BI != BE; ++BI)
     if (!Reachable.contains(&*BI))
       for (auto I = BI->begin(), E = BI->end(); I != E; ++I)
@@ -1177,7 +1178,7 @@ static bool removeUnreachableBlocks(SILFunction &F, SILModule &M,
 /// control flow edges.
 static void performNoReturnFunctionProcessing(SILFunction &Fn,
                                               SILFunctionTransform *T) {
-  LLVM_DEBUG(llvm::errs() << "*** No return function processing: "
+  TOOLCHAIN_DEBUG(toolchain::errs() << "*** No return function processing: "
                           << Fn.getName() << "\n");
   bool Changed = false;
   for (auto &BB : Fn) {
@@ -1192,7 +1193,7 @@ static void performNoReturnFunctionProcessing(SILFunction &Fn,
 }
 
 static void diagnoseUnreachable(SILFunction &Fn) {
-  LLVM_DEBUG(llvm::errs() << "*** Diagnose Unreachable processing: "
+  TOOLCHAIN_DEBUG(toolchain::errs() << "*** Diagnose Unreachable processing: "
                           << Fn.getName() << "\n");
 
   UnreachableUserCodeReportingState State(&Fn);
@@ -1240,7 +1241,7 @@ static void diagnoseUnreachable(SILFunction &Fn) {
 }
 
 // External entry point for other passes, which must do their own invalidation.
-void swift::performSILDiagnoseUnreachable(SILModule *M) {
+void language::performSILDiagnoseUnreachable(SILModule *M) {
   for (auto &Fn : *M)
     diagnoseUnreachable(Fn);
 }
@@ -1257,7 +1258,7 @@ class NoReturnFolding : public SILFunctionTransform {
   };
 } // end anonymous namespace
 
-SILTransform *swift::createNoReturnFolding() {
+SILTransform *language::createNoReturnFolding() {
   return new NoReturnFolding();
 }
 
@@ -1273,6 +1274,6 @@ class DiagnoseUnreachable : public SILFunctionTransform {
   };
 } // end anonymous namespace
 
-SILTransform *swift::createDiagnoseUnreachable() {
+SILTransform *language::createDiagnoseUnreachable() {
   return new DiagnoseUnreachable();
 }

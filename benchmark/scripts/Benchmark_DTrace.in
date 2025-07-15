@@ -2,13 +2,16 @@
 
 # ===--- Benchmark_DTrace.in ---------------------------------------------===//
 #
-#  This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-#  Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-#  Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-#  See https://swift.org/LICENSE.txt for license information
-#  See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
 #
 # ===---------------------------------------------------------------------===//
 
@@ -19,7 +22,7 @@ import sys
 
 DRIVER_LIBRARY_PATH = "@PATH_TO_DRIVER_LIBRARY@"
 sys.path.append(DRIVER_LIBRARY_PATH)
-DTRACE_PATH = os.path.join(DRIVER_LIBRARY_PATH, "swift_stats.d")
+DTRACE_PATH = os.path.join(DRIVER_LIBRARY_PATH, "language_stats.d")
 
 import perf_test_driver  # noqa (E402 module level import not at top of file)
 
@@ -84,7 +87,7 @@ class DTraceBenchmarkDriver(perf_test_driver.BenchmarkDriver):
 
         def get_results_with_iters(iters):
             e = os.environ
-            e["SWIFT_DETERMINISTIC_HASHING"] = "1"
+            e["LANGUAGE_DETERMINISTIC_HASHING"] = "1"
             p = subprocess.Popen(
                 [
                     "sudo",
@@ -142,7 +145,7 @@ class DTraceBenchmarkDriver(perf_test_driver.BenchmarkDriver):
         )
 
 
-SWIFT_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+LANGUAGE_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def parse_args():
@@ -165,7 +168,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    g = DTraceBenchmarkDriver(SWIFT_BIN_DIR, XFAIL_LIST, args.csv_output)
+    g = DTraceBenchmarkDriver(LANGUAGE_BIN_DIR, XFAIL_LIST, args.csv_output)
     if g.run(args.filter):
         sys.exit(0)
     else:

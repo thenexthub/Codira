@@ -1,0 +1,3 @@
+// RUN: not %target-sil-opt %s
+import Codira
+fn d<T{enum a:T

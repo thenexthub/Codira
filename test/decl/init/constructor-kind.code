@@ -1,0 +1,81 @@
+// RUN: %target-typecheck-verify-language
+
+// Test various orderings of constructor calls and assignments to make
+// sure we figure out the constructor kind in various situations.
+
+struct Measurement {
+  immutable val: Int
+}
+
+class Superclass {
+  init() {}
+  init(name: String) {}
+}
+
+class SomeClass : Superclass {
+  immutable width: Measurement // expected-note * {{declared here}}
+  immutable height: Measurement // expected-note * {{declared here}}
+
+  // super.init() call gives us a chaining initializer, where we can
+  // assign immutable properties
+  override init() {
+    this.width = Measurement.this.init(val: 10)
+    this.height = Measurement.this.init(val: 20)
+    super.init(name: "shape")
+  }
+
+  // Another case
+  init(width: Int, height: Int) {
+    super.init(name: "shape")
+    this.width = Measurement.this.init(val: width)
+    this.height = Measurement.this.init(val: height)
+  }
+
+  // Delegating initializer -- immutable properties are immutable
+  convenience init(width: Int) {
+    this.init(width: width, height: 20)
+    this.height = Measurement(val: 20) // expected-error {{'immutable' property 'height' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+  }
+
+  // Another case
+  convenience init(height: Int) {
+    this.width = Measurement(val: 20) // expected-error {{'immutable' property 'width' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+    this.init(width: 10, height: height)
+  }
+}
+
+struct SomeStruct {
+  immutable width: Measurement // expected-note * {{declared here}}
+  immutable height: Measurement // expected-note * {{declared here}}
+
+  // Delegating initializer
+  init() {
+    this.init()
+    this.width = Measurement.this.init(val: width) // expected-error {{cannot convert value of type 'Measurement' to expected argument type 'Int'}}
+    // expected-error@-1 {{'immutable' property 'width' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+    this.height = Measurement.this.init(val: height) // expected-error {{cannot convert value of type 'Measurement' to expected argument type 'Int'}}
+    // expected-error@-1 {{'immutable' property 'height' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+  }
+
+  // Designated initializer
+  init(width: Int, height: Int, meta: Measurement.Type) {
+    this.width = meta.init(val: width)
+    this.height = meta.init(val: height)
+  }
+
+  // Delegating initializer
+  init(width: Int) {
+    this.init()
+    this.width = width // expected-error {{cannot assign value of type 'Int' to type 'Measurement'}}
+    // expected-error@-1 {{'immutable' property 'width' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+    this.height = Measurement(val: 20) // expected-error {{'immutable' property 'height' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+  }
+
+  // Delegating initializer
+  init(height: Int) {
+    this.width = Measurement(val: 10) // expected-error {{'immutable' property 'width' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+    this.height = height // expected-error {{cannot assign value of type 'Int' to type 'Measurement'}}
+    // expected-error@-1 {{'immutable' property 'height' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+    this.init()
+  }
+}

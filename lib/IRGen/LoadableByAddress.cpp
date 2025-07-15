@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 // This pass lowers loadable SILTypes. On completion, the SILType of every
 // function argument is an address instead of the type itself.
 // This reduces the code size.
@@ -40,11 +41,11 @@
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 using namespace language::irgen;
@@ -109,7 +110,7 @@ public:
 
 private:
   // Cache of already computed type transforms
-  llvm::MapVector<std::pair<GenericEnvironment *, SILType>, SILType>
+  toolchain::MapVector<std::pair<GenericEnvironment *, SILType>, SILType>
       oldToNewTypeMap;
 };
 
@@ -546,11 +547,11 @@ struct StructLoweringState {
   // All modified function signature function arguments
   SmallVector<SILValue, 16> funcSigArgs;
   // All args for which we did a load
-  llvm::MapVector<SILValue, SILValue> argsToLoadedValueMap;
+  toolchain::MapVector<SILValue, SILValue> argsToLoadedValueMap;
   // All applies for which we did an alloc
-  llvm::MapVector<SILInstruction *, SILValue> applyRetToAllocMap;
+  toolchain::MapVector<SILInstruction *, SILValue> applyRetToAllocMap;
   // reverse map of the one above
-  llvm::MapVector<SILInstruction *, SILInstruction *> allocToApplyRetMap;
+  toolchain::MapVector<SILInstruction *, SILInstruction *> allocToApplyRetMap;
   // All call sites with SILArgument that needs to be re-written
   // Calls are removed from the set when rewritten.
   SmallVector<SILInstruction *, 16> applies;
@@ -572,7 +573,7 @@ struct StructLoweringState {
   SmallVector<RetainValueInst *, 16> retainInstsToMod;
   SmallVector<ReleaseValueInst *, 16> releaseInstsToMod;
   // All result types instrs for which we need to convert the ResultTy
-  llvm::SetVector<SingleValueInstruction *> resultTyInstsToMod;
+  toolchain::SetVector<SingleValueInstruction *> resultTyInstsToMod;
   // All instructions that use the large struct that are not covered above
   SmallVector<SILInstruction *, 16> instsToMod;
   // All function-exiting terminators (return or throw instructions).
@@ -1217,7 +1218,7 @@ void LoadableStorageAllocation::replaceLoadWithCopyAddr(
       break;
     }
     default:
-      llvm_unreachable("Unexpected instruction");
+      toolchain_unreachable("Unexpected instruction");
     }
   }
 
@@ -1522,7 +1523,7 @@ void LoadableStorageAllocation::convertApplyResults() {
       auto resultStorageType = origSILFunctionType->getAllResultsInterfaceType();
       if (!pass.isLargeLoadableType(origSILFunctionType, resultStorageType)) {
         // Make sure it contains a function type
-        auto numFuncTy = llvm::count_if(origSILFunctionType->getResults(),
+        auto numFuncTy = toolchain::count_if(origSILFunctionType->getResults(),
             [](const SILResultInfo &origResult) {
               auto resultStorageTy = origResult.getSILStorageInterfaceType();
               return containsFunctionType(resultStorageTy.getASTType());
@@ -1739,16 +1740,16 @@ private:
   bool shouldTransformInitExprOfGlobal(SILGlobalVariable *global);
 
 private:
-  llvm::SetVector<SILFunction *> modFuncs;
-  llvm::SetVector<SingleValueInstruction *> conversionInstrs;
-  llvm::SetVector<BuiltinInst *> builtinInstrs;
-  llvm::SetVector<LoadInst *> loadInstrsOfFunc;
-  llvm::SetVector<UncheckedEnumDataInst *> uncheckedEnumDataOfFunc;
-  llvm::SetVector<UncheckedTakeEnumDataAddrInst *>
+  toolchain::SetVector<SILFunction *> modFuncs;
+  toolchain::SetVector<SingleValueInstruction *> conversionInstrs;
+  toolchain::SetVector<BuiltinInst *> builtinInstrs;
+  toolchain::SetVector<LoadInst *> loadInstrsOfFunc;
+  toolchain::SetVector<UncheckedEnumDataInst *> uncheckedEnumDataOfFunc;
+  toolchain::SetVector<UncheckedTakeEnumDataAddrInst *>
       uncheckedTakeEnumDataAddrOfFunc;
-  llvm::SetVector<StoreInst *> storeToBlockStorageInstrs;
-  llvm::SetVector<SILInstruction *> modApplies;
-  llvm::MapVector<SILInstruction *, SILValue> allApplyRetToAllocMap;
+  toolchain::SetVector<StoreInst *> storeToBlockStorageInstrs;
+  toolchain::SetVector<SILInstruction *> modApplies;
+  toolchain::MapVector<SILInstruction *, SILValue> allApplyRetToAllocMap;
 
 public:
   LargeSILTypeMapper MapperCache;
@@ -1964,7 +1965,7 @@ static void retypeTupleInstr(SingleValueInstruction *instr, IRGenModule &Mod,
     break;
   }
   default:
-    llvm_unreachable("Unexpected instruction inside tupleInstsToMod");
+    toolchain_unreachable("Unexpected instruction inside tupleInstsToMod");
   }
   instr->replaceAllUsesWith(newInstr);
   instr->eraseFromParent();
@@ -2031,7 +2032,7 @@ static void rewriteFunction(StructLoweringState &pass,
                             LoadableStorageAllocation &allocator) {
 
   bool repeat = false;
-  llvm::SetVector<SILInstruction *> currentModApplies;
+  toolchain::SetVector<SILInstruction *> currentModApplies;
   do {
     while (!pass.switchEnumInstsToMod.empty()) {
       auto *instr = pass.switchEnumInstsToMod.pop_back_val();
@@ -2290,7 +2291,7 @@ static void rewriteFunction(StructLoweringState &pass,
       break;
     }
     default:
-      llvm_unreachable("Unhandled aggrTy instr");
+      toolchain_unreachable("Unhandled aggrTy instr");
     }
     instr->replaceAllUsesWith(newInstr);
     instr->eraseFromParent();
@@ -2331,7 +2332,7 @@ static void rewriteFunction(StructLoweringState &pass,
       break;
     }
     default:
-      llvm_unreachable("Expected known MethodInst ValueKind");
+      toolchain_unreachable("Expected known MethodInst ValueKind");
     }
 
     instr->replaceAllUsesWith(newInstr);
@@ -2391,7 +2392,7 @@ static bool rewriteFunctionReturn(StructLoweringState &pass) {
   if (pass.isLargeLoadableType(loweredTy, resultTy)) {
     return true;
   } else if (pass.containsDifferentFunctionSignature(loweredTy, resultTy)) {
-    llvm::SmallVector<SILResultInfo, 2> newSILResultInfo;
+    toolchain::SmallVector<SILResultInfo, 2> newSILResultInfo;
     if (auto tupleType = newSILType.getAs<TupleType>()) {
       auto originalResults = loweredTy->getResults();
       for (unsigned int i = 0; i < originalResults.size(); ++i) {
@@ -2458,8 +2459,8 @@ void LoadableByAddress::runOnFunction(SILFunction *F) {
     rewrittenReturn = rewriteFunctionReturn(pass);
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "\nREWRITING: " << F->getName();
-             F->print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "\nREWRITING: " << F->getName();
+             F->print(toolchain::dbgs()));
 
   // Rewrite instructions relating to the loadable struct.
   rewriteFunction(pass, allocator);
@@ -2667,7 +2668,7 @@ void LoadableByAddress::recreateSingleApply(
     break;
   }
   default:
-    llvm_unreachable("Unexpected instr: unknown apply type");
+    toolchain_unreachable("Unexpected instr: unknown apply type");
   }
   Delete.push_back(applyInst);
 }
@@ -2923,7 +2924,7 @@ bool LoadableByAddress::recreateConvInstr(SILInstruction &I,
     break;
   }
   default:
-    llvm_unreachable("Unexpected conversion instruction");
+    toolchain_unreachable("Unexpected conversion instruction");
   }
   convInstr->replaceAllUsesWith(newInstr);
   Delete.push_back(convInstr);
@@ -2942,7 +2943,7 @@ bool LoadableByAddress::recreateBuiltinInstr(SILInstruction &I,
   auto resultTy = builtinInstr->getType();
   auto newResultTy = MapperCache.getNewSILType(genEnv, resultTy, *currIRMod);
 
-  llvm::SmallVector<SILValue, 5> newArgs;
+  toolchain::SmallVector<SILValue, 5> newArgs;
   for (auto oldArg : builtinInstr->getArguments()) {
     newArgs.push_back(oldArg);
   }
@@ -3052,8 +3053,8 @@ void LoadableByAddress::run() {
   }
 
   // Scan the module for all references of the modified functions:
-  llvm::SetVector<FunctionRefBaseInst *> funcRefs;
-  llvm::SetVector<SILInstruction *> globalRefs;
+  toolchain::SetVector<FunctionRefBaseInst *> funcRefs;
+  toolchain::SetVector<SILInstruction *> globalRefs;
   for (SILFunction &CurrF : *getModule()) {
     for (SILBasicBlock &BB : CurrF) {
       for (SILInstruction &I : BB) {
@@ -3115,7 +3116,7 @@ void LoadableByAddress::run() {
                 currInstr->dump();
                 currInstr->getFunction()->dump();
 #endif
-                llvm_unreachable("Unhandled use of FunctionRefInst");
+                toolchain_unreachable("Unhandled use of FunctionRefInst");
               }
             }
             funcRefs.insert(FRI);
@@ -3296,7 +3297,7 @@ void LoadableByAddress::run() {
 namespace {
 struct Peepholes {
   SmallVector<SILInstruction *, 64> Delete;
-  llvm::DenseSet<SILInstruction *> Ignore;
+  toolchain::DenseSet<SILInstruction *> Ignore;
 
   SILPassManager *pm;
   SILModule *silMod;
@@ -3510,7 +3511,7 @@ class LargeLoadableHeuristic {
   GenericEnvironment *genEnv;
   IRGenModule *irgenModule;
 
-  llvm::DenseMap<SILType, Properties> largeTypeProperties;
+  toolchain::DenseMap<SILType, Properties> largeTypeProperties;
 
   static const unsigned NumRegistersVeryLargeType = 16;
   static const unsigned NumRegistersLargeType = 8;
@@ -3578,7 +3579,7 @@ void LargeLoadableHeuristic::propagate(PostOrderFunctionInfo &po) {
     return;
 
   for (auto *BB : po.getPostOrder()) {
-    for (auto &I : llvm::reverse(*BB)) {
+    for (auto &I : toolchain::reverse(*BB)) {
       switch (I.getKind()) {
       case SILInstructionKind::UncheckedBitwiseCastInst:
       case SILInstructionKind::TupleExtractInst:
@@ -3629,7 +3630,7 @@ void LargeLoadableHeuristic::visit(SILInstruction *i) {
     return;
 
   // Heuristic to make sure that UncheckedBitCast on C unions don't cause
-  // trouble (the type of a union has a single llvm register representing the
+  // trouble (the type of a union has a single toolchain register representing the
   // bitwidth).
   if (auto *bitcast = dyn_cast<UncheckedTrivialBitCastInst>(i)) {
     auto opdTy = bitcast->getOperand()->getType();
@@ -3798,7 +3799,7 @@ bool LargeLoadableHeuristic::isLargeLoadableType(SILType ty) {
 namespace {
 class AddressAssignment {
   // Map from a loaded SIL SSA value to and address value.
-  llvm::DenseMap<SILValue, SILValue> valueToAddressMap;
+  toolchain::DenseMap<SILValue, SILValue> valueToAddressMap;
   SmallVector<AllocStackInst *, 16> allocStacks;
   SmallVector<SILInstruction *, 16> toDelete;
   SmallVector<std::pair<SILBasicBlock *, unsigned>, 16> toDeleteBlockArg;
@@ -3907,7 +3908,7 @@ void AddressAssignment::finish(DominanceInfo *dominance,
       builder.createDeallocStack(getAutoLoc(), stackLoc);
     }
   }
-  for (auto *inst : llvm::reverse(toDelete)) {
+  for (auto *inst : toolchain::reverse(toDelete)) {
 #ifndef NDEBUG
     for (auto res : inst->getResults()) {
 #pragma clang diagnostic push
@@ -3980,7 +3981,7 @@ protected:
     inst->dump();
     inst->getFunction()->dump();
 #endif
-    llvm::report_fatal_error("Unimplemented definition");
+    toolchain::report_fatal_error("Unimplemented definition");
   }
 
   void visitKeyPathInst(KeyPathInst *kp) {
@@ -4038,7 +4039,7 @@ protected:
 
     builder.createCopyAddr(load->getLoc(), load->getOperand(), addr, IsTake,
                            IsInitialization);
-    swift::salvageLoadDebugInfo(load);
+    language::salvageLoadDebugInfo(load);
     assignment.markForDeletion(load);
   }
 
@@ -4273,7 +4274,7 @@ protected:
 #ifndef NDEBUG
     inst->dump();
     inst->getFunction()->dump();
-    llvm::report_fatal_error("Unimplemented user");
+    toolchain::report_fatal_error("Unimplemented user");
 #endif
   }
 
@@ -4526,7 +4527,7 @@ protected:
         arg->dump();
         sw->dump();
 #endif
-        llvm::report_fatal_error("Unhandle switch_enum");
+        toolchain::report_fatal_error("Unhandle switch_enum");
       }
     }
     auto builder = assignment.getTermBuilder(sw);
@@ -4562,7 +4563,7 @@ protected:
     // We need to perform a parallel copy of the phi arguments (because of
     // cycles)
     // First collect the sources of the copy.
-    llvm::DenseSet<SILValue> oldSources;
+    toolchain::DenseSet<SILValue> oldSources;
     for (auto arg : br->getArgs()) {
       auto ty = arg->getType();
       if (!assignment.isLargeLoadableType(ty)) {
@@ -4576,7 +4577,7 @@ protected:
 
     // Remap (copy) any source that is also a destination to a new stack
     // location.
-    llvm::DenseMap<SILValue, SILValue> remappedSource;
+    toolchain::DenseMap<SILValue, SILValue> remappedSource;
     idx = 0;
     for (auto arg : br->getArgs()) {
       auto ty = arg->getType();

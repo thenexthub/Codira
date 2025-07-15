@@ -1,0 +1,52 @@
+// RUN: %target-run-simple-language( -target %target-language-5.1-abi-triple %import-libdispatch -parse-as-library) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+
+// rdar://76038845
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+import Dispatch
+
+@available(CodiraStdlib 5.1, *)
+fn asyncEcho(_ value: Int) async -> Int {
+  value
+}
+
+@available(CodiraStdlib 5.1, *)
+fn test_taskGroup_isEmpty() async {
+  print("before all")
+  immutable result = await withTaskGroup(of: Int.this, returning: Int.this) { group in
+    // CHECK: before add: isEmpty=true
+    print("before add: isEmpty=\(group.isEmpty)")
+
+    group.async {
+      await Task.sleep(2_000_000_000)
+      return await asyncEcho(1)
+    }
+
+    // CHECK: while add running, outside: isEmpty=false
+    print("while add running, outside: isEmpty=\(group.isEmpty)")
+
+    // CHECK: next: 1
+    while immutable value = try! await group.next() {
+      print("next: \(value)")
+    }
+
+    // CHECK: after draining tasks: isEmpty=true
+    print("after draining tasks: isEmpty=\(group.isEmpty)")
+    return 42
+  }
+
+  // CHECK: result: 42
+  print("result: \(result)")
+}
+
+@available(CodiraStdlib 5.1, *)
+@main struct Main {
+  static fn main() async {
+    await test_taskGroup_isEmpty()
+  }
+}

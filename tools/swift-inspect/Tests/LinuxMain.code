@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import XCTest
 
-import swiftInspectTests
+import languageInspectTests
 
 var tests = [XCTestCaseEntry]()
-tests += swiftInspectTests.allTests()
+tests += languageInspectTests.allTests()
 XCTMain(tests)

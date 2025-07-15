@@ -1,3 +1,3 @@
-target_sources(swiftSIL PRIVATE
+target_sources(languageSIL PRIVATE
   ParseTestSpecification.cpp
   ParseSIL.cpp)

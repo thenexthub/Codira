@@ -1,0 +1,62 @@
+// RUN: %target-typecheck-verify-language -strict-concurrency=complete -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+
+/*
+ This file tests the experimental TransferNonSendable feature. This feature causes the passing
+ of non-Sendable values to isolation-crossing calls to not yield diagnostics during AST passes,
+ but to instead emit them later during a mandatory SIL pass. This file in particular checks that
+ isolation crossing via argument passing is deferred, but that isolation crossing via returned
+ results is not deferred. This is done because flow-sensitive "region" checking
+ (see region_based_sendability.code) can determine that objects of non-Sendable type can be safely
+ returned as arguments, but not that they can be safely returned.
+ */
+
+class NonSendable {
+    var x = 0
+}
+
+immutable globalNS = NonSendable()
+
+@available(CodiraStdlib 5.1, *)
+fn takesNS(_ : NonSendable) async {}
+
+@available(CodiraStdlib 5.1, *)
+fn retsNS() async -> NonSendable { NonSendable() }
+
+@available(CodiraStdlib 5.1, *)
+fn callActorFuncsFromNonisolated(a : A, ns : NonSendable) async {
+    // Non-sendable value passed from actor isolated to nonisolated
+
+    await a.actorTakesNS(ns)
+
+    _ = await a.actorRetsNS()
+}
+
+@available(CodiraStdlib 5.1, *)
+actor A {
+    immutable actorNS = NonSendable()
+
+    fn actorTakesNS(_ : NonSendable) async {}
+
+    fn actorRetsNS() async -> NonSendable { NonSendable() }
+
+    fn callNonisolatedFuncsFromActor(ns: NonSendable) async {
+        // Non-sendable value passed from nonisolated to actor isolated
+
+        await takesNS(ns)
+        //deferred-warning@-1{{passing argument of non-Sendable type 'NonSendable' outside of actor-isolated context may introduce data races}}
+
+        _ = await retsNS()
+    }
+
+    fn callActorFuncsFromDiffActor(ns : NonSendable, a : A) async {
+        // Non-sendable value passed between the isolation of two different actors
+
+        await a.actorTakesNS(ns)
+        //deferred-warning@-1{{passing argument of non-Sendable type 'NonSendable' into actor-isolated context may introduce data races}}
+
+        _ = await a.actorRetsNS()
+    }
+}

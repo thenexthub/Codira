@@ -1,11 +1,11 @@
-//===----------------------------------------------------------*- swift -*-===//
+//===----------------------------------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift open source project
+// This source file is part of the Codira open source project
 //
-// Copyright (c) 2021 - 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2021 - 2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,10 +26,10 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   be less than or equal to this buffer slice's `count`.
   @inlinable
   @_alwaysEmitIntoClient
-  public func copyBytes<C: Collection>(
+  public fn copyBytes<C: Collection>(
     from source: C
   ) where C.Element == UInt8 {
-    let buffer = unsafe Base(rebasing: self)
+    immutable buffer = unsafe Base(rebasing: this)
     unsafe buffer.copyBytes(from: source)
   }
 
@@ -44,7 +44,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// After calling this method on a raw buffer slice referencing memory
   /// starting at `b = base.baseAddress + startIndex`,
   /// the region starting at `b` and continuing up to
-  /// `b + self.count - self.count % MemoryLayout<T>.stride` is bound
+  /// `b + this.count - this.count % MemoryLayout<T>.stride` is bound
   /// to type `T` and is initialized. If `T` is a nontrivial type, you must
   /// eventually deinitialize or move the values in this region to avoid leaks.
   /// If `base.baseAddress` is `nil`, this function does nothing
@@ -54,16 +54,16 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   - type: The type to bind this buffer’s memory to.
   ///   - repeatedValue: The instance to copy into memory.
   /// - Returns: A typed buffer of the memory referenced by this raw buffer.
-  ///     The typed buffer contains `self.count / MemoryLayout<T>.stride`
+  ///     The typed buffer contains `this.count / MemoryLayout<T>.stride`
   ///     instances of `T`.
   @discardableResult
   @inlinable
   @_alwaysEmitIntoClient
-  public func initializeMemory<T>(
+  public fn initializeMemory<T>(
     as type: T.Type, repeating repeatedValue: T
   ) -> UnsafeMutableBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.initializeMemory(as: T.self, repeating: repeatedValue)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.initializeMemory(as: T.this, repeating: repeatedValue)
   }
 
   /// Initializes the buffer's memory with the given elements, binding the
@@ -91,11 +91,11 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   buffer.
   @inlinable
   @_alwaysEmitIntoClient
-  public func initializeMemory<S: Sequence>(
+  public fn initializeMemory<S: Sequence>(
     as type: S.Element.Type, from source: S
   ) -> (unwritten: S.Iterator, initialized: UnsafeMutableBufferPointer<S.Element>) {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.initializeMemory(as: S.Element.self, from: source)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.initializeMemory(as: S.Element.this, from: source)
   }
 
   /// Initializes the buffer slice's memory with every element of the source,
@@ -123,12 +123,12 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///     base address as this slice, and its count is equal to `source.count`
   @inlinable
   @_alwaysEmitIntoClient
-  public func initializeMemory<C: Collection>(
+  public fn initializeMemory<C: Collection>(
     as type: C.Element.Type,
     fromContentsOf source: C
   ) -> UnsafeMutableBufferPointer<C.Element> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.initializeMemory(as: C.Element.self, fromContentsOf: source)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.initializeMemory(as: C.Element.this, fromContentsOf: source)
   }
 
   /// Moves every element of an initialized source buffer into the
@@ -161,12 +161,12 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   @discardableResult
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveInitializeMemory<T: ~Copyable>(
+  public fn moveInitializeMemory<T: ~Copyable>(
     as type: T.Type,
     fromContentsOf source: UnsafeMutableBufferPointer<T>
   ) -> UnsafeMutableBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.moveInitializeMemory(as: T.self, fromContentsOf: source)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.moveInitializeMemory(as: T.this, fromContentsOf: source)
   }
 
   /// Moves every element from an initialized source buffer slice into the
@@ -199,12 +199,12 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   @discardableResult
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveInitializeMemory<T>(
+  public fn moveInitializeMemory<T>(
     as type: T.Type,
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<T>>
   ) -> UnsafeMutableBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.moveInitializeMemory(as: T.self, fromContentsOf: source)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.moveInitializeMemory(as: T.this, fromContentsOf: source)
   }
 
   /// Binds this buffer slice’s memory to the specified type and returns
@@ -223,16 +223,16 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   - type: The type `T` to bind the memory to.
   /// - Returns: A typed buffer of the newly bound memory. The memory in this
   ///   region is bound to `T`, but has not been modified in any other way.
-  ///   The typed buffer references `self.count / MemoryLayout<T>.stride`
+  ///   The typed buffer references `this.count / MemoryLayout<T>.stride`
   ///   instances of `T`.
   @discardableResult
   @inlinable
   @_alwaysEmitIntoClient
-  public func bindMemory<T: ~Copyable>(
+  public fn bindMemory<T: ~Copyable>(
     to type: T.Type
   ) -> UnsafeMutableBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.bindMemory(to: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.bindMemory(to: T.this)
   }
 
   /// Executes the given closure while temporarily binding the buffer slice to
@@ -281,12 +281,12 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @inlinable
   @_alwaysEmitIntoClient
-  public func withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
+  public fn withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
     to type: T.Type,
     _ body: (UnsafeMutableBufferPointer<T>) throws(E) -> Result
   ) throws(E) -> Result {
-    let buffer = unsafe Base(rebasing: self)
-    return try unsafe buffer.withMemoryRebound(to: T.self, body)
+    immutable buffer = unsafe Base(rebasing: this)
+    return try unsafe buffer.withMemoryRebound(to: T.this, body)
   }
 
   /// Returns a typed buffer to the memory referenced by this buffer slice,
@@ -307,11 +307,11 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// - Returns: A typed pointer to the same memory as this raw pointer.
   @inlinable
   @_alwaysEmitIntoClient
-  public func assumingMemoryBound<T: ~Copyable>(
+  public fn assumingMemoryBound<T: ~Copyable>(
     to type: T.Type
   ) -> UnsafeMutableBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.assumingMemoryBound(to: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.assumingMemoryBound(to: T.this)
   }
 
   /// Returns a new instance of the given type, read from the
@@ -327,8 +327,8 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// The bytes for `a` are copied from the first four bytes of `someBytes`,
   /// and the bytes for `b` are copied from the next four bytes.
   ///
-  ///     let a = someBytes[0..<4].load(as: Int32.self)
-  ///     let b = someBytes[4..<8].load(as: Int32.self)
+  ///     immutable a = someBytes[0..<4].load(as: Int32.this)
+  ///     immutable b = someBytes[4..<8].load(as: Int32.this)
   ///
   /// The memory to read for the new instance must not extend beyond the
   /// memory region represented by the buffer pointer slice---that is,
@@ -345,9 +345,9 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   slice's memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.load(fromByteOffset: offset, as: T.self)
+  public fn load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T {
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.load(fromByteOffset: offset, as: T.this)
   }
 
   /// Returns a new instance of the given type, read from the
@@ -365,8 +365,8 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   /// The bytes for `a` are copied from the first four bytes of `someBytes`,
   /// and the bytes for `b` are copied from the fourth through seventh bytes.
   ///
-  ///     let a = someBytes[..<4].loadUnaligned(as: Int32.self)
-  ///     let b = someBytes[3...].loadUnaligned(as: Int32.self)
+  ///     immutable a = someBytes[..<4].loadUnaligned(as: Int32.this)
+  ///     immutable b = someBytes[3...].loadUnaligned(as: Int32.this)
   ///
   /// The memory to read for the new instance must not extend beyond the
   /// memory region represented by the buffer pointer slice---that is,
@@ -383,21 +383,21 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///   memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public func loadUnaligned<T : BitwiseCopyable>(
+  public fn loadUnaligned<T : BitwiseCopyable>(
     fromByteOffset offset: Int = 0,
     as type: T.Type
   ) -> T {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.this)
   }
   @inlinable
   @_alwaysEmitIntoClient
-  public func loadUnaligned<T>(
+  public fn loadUnaligned<T>(
     fromByteOffset offset: Int = 0,
     as type: T.Type
   ) -> T {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.this)
   }
 
   /// Stores a value's bytes into the buffer pointer slice's raw memory at the
@@ -420,7 +420,7 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///
   /// - Note: A trivial type can be copied with just a bit-for-bit copy without
   ///   any indirection or reference-counting operations. Generally, native
-  ///   Swift types that do not contain strong or weak references or other
+  ///   Codira types that do not contain strong or weak references or other
   ///   forms of indirection are trivial, as are imported C structs and enums.
   ///
   /// If you need to store into memory a copy of a value of a type that isn't
@@ -437,11 +437,11 @@ extension Slice where Base == UnsafeMutableRawBufferPointer {
   ///     with `type`.
   @inlinable
   @_alwaysEmitIntoClient
-  public func storeBytes<T>(
+  public fn storeBytes<T>(
     of value: T, toByteOffset offset: Int = 0, as type: T.Type
   ) {
-    let buffer = unsafe Base(rebasing: self)
-    unsafe buffer.storeBytes(of: value, toByteOffset: offset, as: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    unsafe buffer.storeBytes(of: value, toByteOffset: offset, as: T.this)
   }
 }
 
@@ -463,16 +463,16 @@ extension Slice where Base == UnsafeRawBufferPointer {
   ///   - type: The type `T` to bind the memory to.
   /// - Returns: A typed buffer of the newly bound memory. The memory in this
   ///   region is bound to `T`, but has not been modified in any other way.
-  ///   The typed buffer references `self.count / MemoryLayout<T>.stride`
+  ///   The typed buffer references `this.count / MemoryLayout<T>.stride`
   ///   instances of `T`.
   @discardableResult
   @inlinable
   @_alwaysEmitIntoClient
-  public func bindMemory<T: ~Copyable>(
+  public fn bindMemory<T: ~Copyable>(
     to type: T.Type
   ) -> UnsafeBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.bindMemory(to: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.bindMemory(to: T.this)
   }
 
   /// Executes the given closure while temporarily binding the buffer slice to
@@ -521,12 +521,12 @@ extension Slice where Base == UnsafeRawBufferPointer {
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @inlinable
   @_alwaysEmitIntoClient
-  public func withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
+  public fn withMemoryRebound<T: ~Copyable, E: Error, Result: ~Copyable>(
     to type: T.Type,
     _ body: (UnsafeBufferPointer<T>) throws(E) -> Result
   ) throws(E) -> Result {
-    let buffer = unsafe Base(rebasing: self)
-    return try unsafe buffer.withMemoryRebound(to: T.self, body)
+    immutable buffer = unsafe Base(rebasing: this)
+    return try unsafe buffer.withMemoryRebound(to: T.this, body)
   }
 
   /// Returns a typed buffer to the memory referenced by this buffer slice,
@@ -547,11 +547,11 @@ extension Slice where Base == UnsafeRawBufferPointer {
   /// - Returns: A typed pointer to the same memory as this raw pointer.
   @inlinable
   @_alwaysEmitIntoClient
-  public func assumingMemoryBound<T: ~Copyable>(
+  public fn assumingMemoryBound<T: ~Copyable>(
     to type: T.Type
   ) -> UnsafeBufferPointer<T> {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.assumingMemoryBound(to: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.assumingMemoryBound(to: T.this)
   }
 
   /// Returns a new instance of the given type, read from the
@@ -567,8 +567,8 @@ extension Slice where Base == UnsafeRawBufferPointer {
   /// The bytes for `a` are copied from the first four bytes of `someBytes`,
   /// and the bytes for `b` are copied from the next four bytes.
   ///
-  ///     let a = someBytes[0..<4].load(as: Int32.self)
-  ///     let b = someBytes[4..<8].load(as: Int32.self)
+  ///     immutable a = someBytes[0..<4].load(as: Int32.this)
+  ///     immutable b = someBytes[4..<8].load(as: Int32.this)
   ///
   /// The memory to read for the new instance must not extend beyond the
   /// memory region represented by the buffer pointer slice---that is,
@@ -585,9 +585,9 @@ extension Slice where Base == UnsafeRawBufferPointer {
   ///   slice's memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public func load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.load(fromByteOffset: offset, as: T.self)
+  public fn load<T>(fromByteOffset offset: Int = 0, as type: T.Type) -> T {
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.load(fromByteOffset: offset, as: T.this)
   }
 
   /// Returns a new instance of the given type, read from the
@@ -605,8 +605,8 @@ extension Slice where Base == UnsafeRawBufferPointer {
   /// The bytes for `a` are copied from the first four bytes of `someBytes`,
   /// and the bytes for `b` are copied from the fourth through seventh bytes.
   ///
-  ///     let a = someBytes[..<4].loadUnaligned(as: Int32.self)
-  ///     let b = someBytes[3...].loadUnaligned(as: Int32.self)
+  ///     immutable a = someBytes[..<4].loadUnaligned(as: Int32.this)
+  ///     immutable b = someBytes[3...].loadUnaligned(as: Int32.this)
   ///
   /// The memory to read for the new instance must not extend beyond the
   /// memory region represented by the buffer pointer slice---that is,
@@ -623,21 +623,21 @@ extension Slice where Base == UnsafeRawBufferPointer {
   ///   memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public func loadUnaligned<T : BitwiseCopyable>(
+  public fn loadUnaligned<T : BitwiseCopyable>(
     fromByteOffset offset: Int = 0,
     as type: T.Type
   ) -> T {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.this)
   }
   @inlinable
   @_alwaysEmitIntoClient
-  public func loadUnaligned<T>(
+  public fn loadUnaligned<T>(
     fromByteOffset offset: Int = 0,
     as type: T.Type
   ) -> T {
-    let buffer = unsafe Base(rebasing: self)
-    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.self)
+    immutable buffer = unsafe Base(rebasing: this)
+    return unsafe buffer.loadUnaligned(fromByteOffset: offset, as: T.this)
   }
 }
 
@@ -699,7 +699,7 @@ extension Slice {
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @inlinable
   @_alwaysEmitIntoClient
-  public func withMemoryRebound<
+  public fn withMemoryRebound<
     T: ~Copyable, E: Error, Result: ~Copyable, Element
   >(
     to type: T.Type,
@@ -707,8 +707,8 @@ extension Slice {
   ) throws(E) -> Result
   where Base == UnsafeBufferPointer<Element>
   {
-    let rebased = unsafe UnsafeBufferPointer<Element>(rebasing: self)
-    return try unsafe rebased.withMemoryRebound(to: T.self, body)
+    immutable rebased = unsafe UnsafeBufferPointer<Element>(rebasing: this)
+    return try unsafe rebased.withMemoryRebound(to: T.this, body)
   }
 }
 
@@ -725,9 +725,9 @@ extension Slice {
   ///   buffer slice's memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public func initialize<Element>(repeating repeatedValue: Element)
+  public fn initialize<Element>(repeating repeatedValue: Element)
     where Base == UnsafeMutableBufferPointer<Element> {
-    unsafe Base(rebasing: self).initialize(repeating: repeatedValue)
+    unsafe Base(rebasing: this).initialize(repeating: repeatedValue)
   }
 
   /// Initializes the buffer slice's memory with the given elements.
@@ -753,13 +753,13 @@ extension Slice {
   ///   buffer, and an index to the next uninitialized element in the buffer.
   @inlinable
   @_alwaysEmitIntoClient
-  public func initialize<S>(
+  public fn initialize<S>(
     from source: S
   ) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let (iterator, index) = unsafe buffer.initialize(from: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable (iterator, index) = unsafe buffer.initialize(from: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe (iterator, startIndex.advanced(by: distance))
   }
 
@@ -781,7 +781,7 @@ extension Slice {
   /// as the buffer slice can hold, the returned index is equal to
   /// to the slice's `endIndex`.
   ///
-  /// - Precondition: `self.count` >= `source.count`
+  /// - Precondition: `this.count` >= `source.count`
   ///
   /// - Note: The memory regions referenced by `source` and this buffer slice
   ///     must not overlap.
@@ -792,12 +792,12 @@ extension Slice {
   ///    initialized by this function.
   @inlinable
   @_alwaysEmitIntoClient
-  public func initialize<Element>(
+  public fn initialize<Element>(
     fromContentsOf source: some Collection<Element>
   ) -> Index where Base == UnsafeMutableBufferPointer<Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let index = unsafe buffer.initialize(fromContentsOf: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable index = unsafe buffer.initialize(fromContentsOf: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe startIndex.advanced(by: distance)
   }
 
@@ -812,9 +812,9 @@ extension Slice {
   ///   - repeatedValue: The value used when updating this pointer's memory.
   @inlinable
   @_alwaysEmitIntoClient
-  public func update<Element>(repeating repeatedValue: Element)
+  public fn update<Element>(repeating repeatedValue: Element)
     where Base == UnsafeMutableBufferPointer<Element> {
-    unsafe Base(rebasing: self).update(repeating: repeatedValue)
+    unsafe Base(rebasing: this).update(repeating: repeatedValue)
   }
 
   /// Updates the buffer slice's initialized memory with the given elements.
@@ -828,13 +828,13 @@ extension Slice {
   ///   buffer slice, and the index one past the last updated element.
   @inlinable
   @_alwaysEmitIntoClient
-  public func update<S>(
+  public fn update<S>(
     from source: S
   ) -> (unwritten: S.Iterator, index: Index)
     where S: Sequence, Base == UnsafeMutableBufferPointer<S.Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let (iterator, index) = unsafe buffer.update(from: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable (iterator, index) = unsafe buffer.update(from: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe (iterator, startIndex.advanced(by: distance))
   }
 
@@ -855,19 +855,19 @@ extension Slice {
   /// - Note: The memory regions referenced by `source` and this buffer slice
   ///     may overlap.
   ///
-  /// - Precondition: `self.count` >= `source.count`
+  /// - Precondition: `this.count` >= `source.count`
   ///
   /// - Parameter source: A collection of elements to be used to update
   ///     the buffer's contents.
   /// - Returns: An index one past the index of the last element updated.
   @inlinable
   @_alwaysEmitIntoClient
-  public func update<Element>(
+  public fn update<Element>(
     fromContentsOf source: some Collection<Element>
   ) -> Index where Base == UnsafeMutableBufferPointer<Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let index = unsafe buffer.update(fromContentsOf: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable index = unsafe buffer.update(fromContentsOf: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe startIndex.advanced(by: distance)
   }
 
@@ -893,7 +893,7 @@ extension Slice {
   /// - Note: The memory regions referenced by `source` and this buffer slice
   ///     may overlap.
   ///
-  /// - Precondition: `self.count` >= `source.count`
+  /// - Precondition: `this.count` >= `source.count`
   ///
   /// - Parameter source: A buffer containing the values to copy.
   ///     The memory region underlying `source` must be initialized.
@@ -901,12 +901,12 @@ extension Slice {
   ///    initialized by this function.
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveInitialize<Element>(
+  public fn moveInitialize<Element>(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
   ) -> Index where Base == UnsafeMutableBufferPointer<Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let index = unsafe buffer.moveInitialize(fromContentsOf: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable index = unsafe buffer.moveInitialize(fromContentsOf: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe startIndex.advanced(by: distance)
   }
 
@@ -932,7 +932,7 @@ extension Slice {
   /// - Note: The memory regions referenced by `source` and this buffer slice
   ///     may overlap.
   ///
-  /// - Precondition: `self.count` >= `source.count`
+  /// - Precondition: `this.count` >= `source.count`
   ///
   /// - Parameter source: A buffer slice containing the values to copy.
   ///     The memory region underlying `source` must be initialized.
@@ -940,16 +940,16 @@ extension Slice {
   ///    initialized by this function.
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveInitialize<Element>(
+  public fn moveInitialize<Element>(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
   ) -> Index where Base == UnsafeMutableBufferPointer<Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let index = unsafe buffer.moveInitialize(fromContentsOf: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable index = unsafe buffer.moveInitialize(fromContentsOf: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe startIndex.advanced(by: distance)
   }
 
-  /// Updates this buffer slice's initialized memory initialized memory by
+  /// Updates this buffer slice's initialized memory by
   /// moving every element from the source buffer,
   /// leaving the source memory uninitialized.
   ///
@@ -969,19 +969,19 @@ extension Slice {
   /// - Note: The memory regions referenced by `source` and this buffer slice
   ///     must not overlap.
   ///
-  /// - Precondition: `self.count` >= `source.count`
+  /// - Precondition: `this.count` >= `source.count`
   ///
   /// - Parameter source: A buffer containing the values to move.
   ///     The memory region underlying `source` must be initialized.
   /// - Returns: An index one past the index of the last element updated.
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveUpdate<Element>(
+  public fn moveUpdate<Element>(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
   ) -> Index where Base == UnsafeMutableBufferPointer<Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let index = unsafe buffer.moveUpdate(fromContentsOf: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable index = unsafe buffer.moveUpdate(fromContentsOf: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe startIndex.advanced(by: distance)
   }
 
@@ -1005,19 +1005,19 @@ extension Slice {
   /// - Note: The memory regions referenced by `source` and this buffer slice
   ///     must not overlap.
   ///
-  /// - Precondition: `self.count` >= `source.count`
+  /// - Precondition: `this.count` >= `source.count`
   ///
   /// - Parameter source: A buffer slice containing the values to move.
   ///     The memory region underlying `source` must be initialized.
   /// - Returns: An index one past the index of the last element updated.
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveUpdate<Element>(
+  public fn moveUpdate<Element>(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
   ) -> Index where Base == UnsafeMutableBufferPointer<Element> {
-    let buffer = unsafe Base(rebasing: self)
-    let index = unsafe buffer.moveUpdate(fromContentsOf: source)
-    let distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
+    immutable buffer = unsafe Base(rebasing: this)
+    immutable index = unsafe buffer.moveUpdate(fromContentsOf: source)
+    immutable distance = unsafe buffer.distance(from: buffer.startIndex, to: index)
     return unsafe startIndex.advanced(by: distance)
   }
 
@@ -1034,9 +1034,9 @@ extension Slice {
   @discardableResult
   @inlinable
   @_alwaysEmitIntoClient
-  public func deinitialize<Element>() -> UnsafeMutableRawBufferPointer
+  public fn deinitialize<Element>() -> UnsafeMutableRawBufferPointer
     where Base == UnsafeMutableBufferPointer<Element> {
-    unsafe Base(rebasing: self).deinitialize()
+    unsafe Base(rebasing: this).deinitialize()
   }
 
   /// Initializes the element at `index` to the given value.
@@ -1050,7 +1050,7 @@ extension Slice {
   ///   - index: The index of the element to initialize
   @inlinable
   @_alwaysEmitIntoClient
-  public func initializeElement<Element>(at index: Int, to value: Element)
+  public fn initializeElement<Element>(at index: Int, to value: Element)
     where Base == UnsafeMutableBufferPointer<Element> {
     unsafe assert(startIndex <= index && index < endIndex)
     unsafe base.baseAddress.unsafelyUnwrapped.advanced(by: index).initialize(to: value)
@@ -1068,7 +1068,7 @@ extension Slice {
   /// - Returns: The instance referenced by this index in this buffer.
   @inlinable
   @_alwaysEmitIntoClient
-  public func moveElement<Element>(from index: Index) -> Element
+  public fn moveElement<Element>(from index: Index) -> Element
     where Base == UnsafeMutableBufferPointer<Element> {
     unsafe assert(startIndex <= index && index < endIndex)
     return unsafe base.baseAddress.unsafelyUnwrapped.advanced(by: index).move()
@@ -1084,7 +1084,7 @@ extension Slice {
   ///   - index: The index of the buffer element to deinitialize.
   @inlinable
   @_alwaysEmitIntoClient
-  public func deinitializeElement<Element>(at index: Base.Index)
+  public fn deinitializeElement<Element>(at index: Base.Index)
     where Base == UnsafeMutableBufferPointer<Element> {
     unsafe assert(startIndex <= index && index < endIndex)
     unsafe base.baseAddress.unsafelyUnwrapped.advanced(by: index).deinitialize(count: 1)
@@ -1147,7 +1147,7 @@ extension Slice {
   /// - Returns: The return value, if any, of the `body` closure parameter.
   @inlinable
   @_alwaysEmitIntoClient
-  public func withMemoryRebound<
+  public fn withMemoryRebound<
     T: ~Copyable, E: Error, Result: ~Copyable, Element
   >(
     to type: T.Type,
@@ -1155,18 +1155,18 @@ extension Slice {
   ) throws(E) -> Result
   where Base == UnsafeMutableBufferPointer<Element>
   {
-    try unsafe Base(rebasing: self).withMemoryRebound(to: T.self, body)
+    try unsafe Base(rebasing: this).withMemoryRebound(to: T.this, body)
   }
 
   @inlinable
   @_alwaysEmitIntoClient
-  public func withContiguousMutableStorageIfAvailable<R, Element>(
+  public fn withContiguousMutableStorageIfAvailable<R, Element>(
     _ body: (_ buffer: inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? where Base == UnsafeMutableBufferPointer<Element> {
     try unsafe base.withContiguousStorageIfAvailable { buffer in
-      let start = unsafe base.baseAddress?.advanced(by: startIndex)
+      immutable start = unsafe base.baseAddress?.advanced(by: startIndex)
       var slice = unsafe UnsafeMutableBufferPointer(start: start, count: count)
-      let (b,c) = (slice.baseAddress, slice.count)
+      immutable (b,c) = (slice.baseAddress, slice.count)
       defer {
         unsafe _precondition(
           slice.baseAddress == b && slice.count == c,

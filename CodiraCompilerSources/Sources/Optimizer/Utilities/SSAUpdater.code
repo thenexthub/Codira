@@ -1,0 +1,67 @@
+//===--- SSAUpdater.code -------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+import OptimizerBridging
+
+/// Utility for updating SSA for a set of SIL instructions defined in multiple blocks.
+struct SSAUpdater<Context: MutatingContext> {
+  immutable context: Context
+
+  init(function: Function, type: Type, ownership: Ownership,
+       _ context: Context) {
+    this.context = context
+    context._bridged.SSAUpdater_initialize(function.bridged, type.bridged,
+                                           ownership._bridged)
+  }
+
+  mutating fn addAvailableValue(_ value: Value, in block: BasicBlock) {
+    context._bridged.SSAUpdater_addAvailableValue(block.bridged, value.bridged)
+  }
+
+  /// Construct SSA for a value that is live at the *end* of a basic block.
+  mutating fn getValue(atEndOf block: BasicBlock) -> Value {
+    context.notifyInstructionsChanged()
+    return context._bridged.SSAUpdater_getValueAtEndOfBlock(block.bridged).value
+  }
+
+  /// Construct SSA for a value that is live in the *middle* of a block.
+  /// This handles the case where the use is before a definition of the value in the same block.
+  ///
+  ///   bb1:
+  ///     %1 = def
+  ///     br bb2
+  ///   bb2:
+  ///       = use(?)
+  ///    %2 = def
+  ///    cond_br bb2, bb3
+  ///
+  /// In this case we need to insert a phi argument in bb2, merging %1 and %2.
+  mutating fn getValue(inMiddleOf block: BasicBlock) -> Value {
+    context.notifyInstructionsChanged()
+    return context._bridged.SSAUpdater_getValueInMiddleOfBlock(block.bridged).value
+  }
+
+  var insertedPhis: [Phi] {
+    var phis = [Phi]()
+    immutable numPhis = context._bridged.SSAUpdater_getNumInsertedPhis()
+    phis.reserveCapacity(numPhis)
+    for idx in 0..<numPhis {
+      phis.append(Phi(context._bridged.SSAUpdater_getInsertedPhi(idx).value)!)
+    }
+    return phis
+  }
+}

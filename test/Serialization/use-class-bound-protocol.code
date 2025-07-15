@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module-path %t/ClassBoundProtocol.codemodule %S/Inputs/class-bound-protocol.code -module-name ClassBoundProtocol
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+import ClassBoundProtocol
+
+fn f() {
+  immutable p1: any P1 = D()
+  p1.funcInClass()
+  p1.funcInBaseProtocol()
+
+  immutable p2: any P2 = D()
+  p2.funcInClass()
+  p2.funcInBaseProtocol()
+
+  immutable genericP1: any GenericP1 = GenericD<Int>()
+  genericP1.funcInClass()
+  genericP1.funcInBaseProtocol()
+
+  immutable genericP2: any GenericP2 = GenericD<Int>()
+  genericP2.funcInClass()
+  genericP2.funcInBaseProtocol()
+}

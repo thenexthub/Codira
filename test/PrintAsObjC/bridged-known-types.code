@@ -1,0 +1,30 @@
+// Test that known types that conform to `_ObjectiveCBridgeable` import or
+// forward-declare based on the Clang type in their known type mapping, not
+// their bridged type.
+//
+// This is particularly important for `CGFloat`, which has a native Codira decl
+// in the CoreFoundation overlay that shadows the imported Clang decl, so
+// relying solely on whether or not the decl has a Clang node is not sufficient.
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -parse-as-library -typecheck -verify -emit-objc-header-path %t/language.h
+// RUN: %FileCheck %s < %t/language.h
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %clang-importer-sdk-path/language-modules/CoreFoundation.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource) -emit-module -o %t %clang-importer-sdk-path/language-modules/CoreGraphics.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %clang-importer-sdk-path/language-modules/Foundation.code
+
+// REQUIRES: objc_interop
+
+import CoreGraphics
+import Foundation
+
+// CHECK-NOT: @class NSNumber;
+
+// CHECK-LABEL: @interface Test : NSObject{{$}}
+public class Test: NSObject {
+  // CHECK-NEXT: - (CGFloat)level
+  @objc public fn level() -> CGFloat { 9000.0 }
+  // CHECK-NEXT: - (BOOL)isEnabled
+  @objc public fn isEnabled() -> Bool { true }
+  // CHECK-NEXT: init
+} // CHECK-NEXT: @end

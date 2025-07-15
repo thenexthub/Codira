@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "allocbox-to-stack"
@@ -35,14 +36,14 @@
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 
 STATISTIC(NumStackPromoted, "Number of alloc_box's promoted to the stack");
@@ -51,13 +52,13 @@ STATISTIC(NumStackPromoted, "Number of alloc_box's promoted to the stack");
 // checking if a box can be promoted to stack. This is currently set to 4, a
 // limit assumed to be sufficient to handle typical call chain of local
 // functions through which a box can be passed.
-static llvm::cl::opt<unsigned> MaxLocalApplyRecurDepth(
-    "max-local-apply-recur-depth", llvm::cl::init(4),
-    llvm::cl::desc("Max recursive depth for analyzing local functions"));
+static toolchain::cl::opt<unsigned> MaxLocalApplyRecurDepth(
+    "max-local-apply-recur-depth", toolchain::cl::init(4),
+    toolchain::cl::desc("Max recursive depth for analyzing local functions"));
 
-static llvm::cl::opt<bool> AllocBoxToStackAnalyzeApply(
-    "allocbox-to-stack-analyze-apply", llvm::cl::init(true),
-    llvm::cl::desc("Analyze functions into while alloc_box is passed"));
+static toolchain::cl::opt<bool> AllocBoxToStackAnalyzeApply(
+    "allocbox-to-stack-analyze-apply", toolchain::cl::init(true),
+    toolchain::cl::desc("Analyze functions into while alloc_box is passed"));
 
 //===-----------------------------------------------------------------------===//
 //                 SIL Utilities for alloc_box Promotion
@@ -185,7 +186,7 @@ static bool getFinalReleases(SILValue Box,
     // list and continue.
     if (isa<MarkUninitializedInst>(User) || isa<CopyValueInst>(User) ||
         isa<BeginBorrowInst>(User)) {
-      llvm::copy(cast<SingleValueInstruction>(User)->getUses(),
+      toolchain::copy(cast<SingleValueInstruction>(User)->getUses(),
                  std::back_inserter(Worklist));
       continue;
     }
@@ -264,7 +265,7 @@ static bool partialApplyEscapes(SILValue V, bool examineApply) {
     // its uses to the worklist and continue.
     if (isa<CopyValueInst>(User) || isa<BeginBorrowInst>(User) ||
         isa<MoveValueInst>(User)) {
-      llvm::copy(cast<SingleValueInstruction>(User)->getUses(),
+      toolchain::copy(cast<SingleValueInstruction>(User)->getUses(),
                  std::back_inserter(Worklist));
       continue;
     }
@@ -407,7 +408,7 @@ static SILInstruction *recursivelyFindBoxOperandsPromotableToAddress(
     // the users recursively.
     if (isa<MarkUninitializedInst>(User) || isa<CopyValueInst>(User) ||
         isa<BeginBorrowInst>(User)) {
-      llvm::copy(cast<SingleValueInstruction>(User)->getUses(),
+      toolchain::copy(cast<SingleValueInstruction>(User)->getUses(),
                  std::back_inserter(Worklist));
       continue;
     }
@@ -465,7 +466,7 @@ static bool canPromoteAllocBox(AllocBoxInst *ABI,
           /* CurrentRecurDepth = */ 0)) {
     (void)User;
     // Otherwise, we have an unexpected use.
-    LLVM_DEBUG(llvm::dbgs() << "*** Failed to promote alloc_box in @"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Failed to promote alloc_box in @"
                << ABI->getFunction()->getName() << ": " << *ABI
                << "    Due to user: " << *User << "\n");
 
@@ -605,7 +606,7 @@ static void hoistMarkUnresolvedNonCopyableValueInsts(
 /// rewriteAllocBoxAsAllocStack - Replace uses of the alloc_box with a
 /// new alloc_stack, but do not delete the alloc_box yet.
 static bool rewriteAllocBoxAsAllocStack(AllocBoxInst *ABI) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Promoting alloc_box to stack: " << *ABI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Promoting alloc_box to stack: " << *ABI);
 
   SILValue HeapBox = ABI;
   std::optional<MarkUninitializedInst::Kind> Kind;
@@ -733,7 +734,7 @@ static bool rewriteAllocBoxAsAllocStack(AllocBoxInst *ABI) {
     if (isa<MarkUninitializedInst>(User) || isa<CopyValueInst>(User) ||
         isa<BeginBorrowInst>(User)) {
       auto Inst = cast<SingleValueInstruction>(User);
-      llvm::transform(Inst->getUses(), std::back_inserter(Worklist),
+      toolchain::transform(Inst->getUses(), std::back_inserter(Worklist),
                       [](Operand *Op) -> SILInstruction * {
         return Op->getUser();
       });
@@ -869,7 +870,7 @@ SILFunction *PromotedParamCloner::initCloned(SILOptFunctionBuilder &FuncBuilder,
          && "SILFunction missing DebugScope");
   assert(!Orig->isGlobalInit() && "Global initializer cannot be cloned");
   auto *Fn = FuncBuilder.createFunction(
-      swift::getSpecializedLinkage(Orig, Orig->getLinkage()), ClonedName,
+      language::getSpecializedLinkage(Orig, Orig->getLinkage()), ClonedName,
       ClonedTy, Orig->getGenericEnvironment(), Orig->getLocation(),
       Orig->isBare(), Orig->isTransparent(), Serialized, IsNotDynamic,
       IsNotDistributed, IsNotRuntimeAccessible, Orig->getEntryCount(),
@@ -1199,11 +1200,11 @@ specializeApplySite(SILOptFunctionBuilder &FuncBuilder, ApplySite Apply,
         GenericSpecializationInformation::create(ApplyInst, Builder));
   }
   }
-  llvm_unreachable("unhandled apply inst kind!");
+  toolchain_unreachable("unhandled apply inst kind!");
 }
 
 static void rewriteApplySites(AllocBoxToStackState &pass) {
-  swift::SmallBlotMapVector<ApplySite, ArgIndexList, 8> AppliesToSpecialize;
+  language::SmallBlotMapVector<ApplySite, ArgIndexList, 8> AppliesToSpecialize;
   ArgIndexList Indices;
 
   // Build a map from the ApplySite to the indices of the operands
@@ -1318,6 +1319,6 @@ class AllocBoxToStack : public SILFunctionTransform {
 };
 } // end anonymous namespace
 
-SILTransform *swift::createAllocBoxToStack() {
+SILTransform *language::createLegacyAllocBoxToStack() {
   return new AllocBoxToStack();
 }

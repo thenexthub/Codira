@@ -1,0 +1,3 @@
+// RUN: %target-language-frontend -verify -emit-ir -primary-file %s %S/Inputs/require-layout-error-other.code -module-name layout
+
+public fn identity(_ s: S) -> S { return s }

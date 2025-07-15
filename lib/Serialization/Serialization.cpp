@@ -1,4 +1,4 @@
-//===--- Serialization.cpp - Read and write Swift modules -----------------===//
+//===--- Serialization.cpp - Read and write Codira modules -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Serialization.h"
@@ -47,14 +48,14 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
 #include "language/Basic/FileSystem.h"
-#include "language/Basic/LLVMExtras.h"
+#include "language/Basic/ToolchainExtras.h"
 #include "language/Basic/PathRemapper.h"
 #include "language/Basic/PrettyStackTrace.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Basic/Version.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/ClangImporter/ClangModule.h"
-#include "language/ClangImporter/SwiftAbstractBasicWriter.h"
+#include "language/ClangImporter/CodiraAbstractBasicWriter.h"
 #include "language/Demangling/ManglingMacros.h"
 #include "language/Serialization/Serialization.h"
 #include "language/Serialization/SerializationOptions.h"
@@ -63,22 +64,22 @@
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Index/USRGeneration.h"
 #include "clang/Serialization/ASTReader.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Bitcode/BitcodeConvenience.h"
-#include "llvm/Bitstream/BitstreamWriter.h"
-#include "llvm/Config/config.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/DJB.h"
-#include "llvm/Support/EndianStream.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/OnDiskHashTable.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Bitcode/BitcodeConvenience.h"
+#include "toolchain/Bitstream/BitstreamWriter.h"
+#include "toolchain/Config/config.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/DJB.h"
+#include "toolchain/Support/EndianStream.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/OnDiskHashTable.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <vector>
 
@@ -86,9 +87,9 @@
 
 using namespace language;
 using namespace language::serialization;
-using namespace llvm::support;
-using swift::version::Version;
-using llvm::BCBlockRAII;
+using namespace toolchain::support;
+using language::version::Version;
+using toolchain::BCBlockRAII;
 
 ASTContext &SerializerBase::getASTContext() const { return M->getASTContext(); }
 
@@ -96,7 +97,7 @@ ASTContext &SerializerBase::getASTContext() const { return M->getASTContext(); }
 static constexpr bool declIDFitsIn32Bits() {
   using Int32Info = std::numeric_limits<uint32_t>;
   using PtrIntInfo = std::numeric_limits<uintptr_t>;
-  using DeclIDTraits = llvm::PointerLikeTypeTraits<DeclID>;
+  using DeclIDTraits = toolchain::PointerLikeTypeTraits<DeclID>;
   return PtrIntInfo::digits - DeclIDTraits::NumLowBitsAvailable <= Int32Info::digits;
 }
 
@@ -105,11 +106,11 @@ static constexpr bool bitOffsetFitsIn32Bits() {
   // FIXME: Considering BitOffset is a _bit_ offset, and we're storing it in 31
   // bits of a PointerEmbeddedInt, the maximum offset inside a modulefile we can
   // handle happens at 2**28 _bytes_, which is only 268MB. Considering
-  // Swift.swiftmodule is itself 25MB, it seems entirely possible users will
+  // Codira.codemodule is itself 25MB, it seems entirely possible users will
   // exceed this limit.
   using Int32Info = std::numeric_limits<uint32_t>;
   using PtrIntInfo = std::numeric_limits<uintptr_t>;
-  using BitOffsetTraits = llvm::PointerLikeTypeTraits<BitOffset>;
+  using BitOffsetTraits = toolchain::PointerLikeTypeTraits<BitOffset>;
   return PtrIntInfo::digits - BitOffsetTraits::NumLowBitsAvailable <= Int32Info::digits;
 }
 
@@ -128,8 +129,8 @@ namespace {
       switch (key.getKind()) {
         case DeclBaseName::Kind::Normal:
           assert(!key.empty());
-          return llvm::djbHash(key.getIdentifier().str(),
-                               SWIFTMODULE_HASH_SEED);
+          return toolchain::djbHash(key.getIdentifier().str(),
+                               LANGUAGEMODULE_HASH_SEED);
         case DeclBaseName::Kind::Subscript:
           return static_cast<uint8_t>(DeclNameKind::Subscript);
         case DeclBaseName::Kind::Constructor:
@@ -137,7 +138,7 @@ namespace {
         case DeclBaseName::Kind::Destructor:
           return static_cast<uint8_t>(DeclNameKind::Destructor);
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     std::pair<unsigned, unsigned> EmitKeyDataLength(raw_ostream &out,
@@ -152,14 +153,14 @@ namespace {
       uint32_t dataLength = (sizeof(uint32_t) + 1) * data.size();
       assert(dataLength == static_cast<uint16_t>(dataLength));
 
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       writer.write<uint16_t>(dataLength);
       return { keyLength, dataLength };
     }
 
     void EmitKey(raw_ostream &out, key_type_ref key, unsigned len) {
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       switch (key.getKind()) {
       case DeclBaseName::Kind::Normal:
         writer.write<uint8_t>(static_cast<uint8_t>(DeclNameKind::Normal));
@@ -180,7 +181,7 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       for (auto entry : data) {
         writer.write<uint8_t>(entry.first);
         writer.write<uint32_t>(entry.second);
@@ -190,7 +191,7 @@ namespace {
 
   class ExtensionTableInfo {
     serialization::Serializer &Serializer;
-    llvm::SmallDenseMap<const NominalTypeDecl *,std::string,4> MangledNameCache;
+    toolchain::SmallDenseMap<const NominalTypeDecl *,std::string,4> MangledNameCache;
 
   public:
     explicit ExtensionTableInfo(serialization::Serializer &serializer)
@@ -205,7 +206,7 @@ namespace {
 
     hash_value_type ComputeHash(key_type_ref key) {
       assert(!key.empty());
-      return llvm::djbHash(key.str(), SWIFTMODULE_HASH_SEED);
+      return toolchain::djbHash(key.str(), LANGUAGEMODULE_HASH_SEED);
     }
 
     int32_t getNameDataForBase(const NominalTypeDecl *nominal,
@@ -218,7 +219,7 @@ namespace {
       if (mangledName.empty())
         mangledName = Mangle::ASTMangler(nominal->getASTContext()).mangleNominalType(nominal);
 
-      assert(llvm::isUInt<31>(mangledName.size()));
+      assert(toolchain::isUInt<31>(mangledName.size()));
       if (dataToWrite)
         *dataToWrite = mangledName;
       return mangledName.size();
@@ -236,7 +237,7 @@ namespace {
           dataLength += nameData;
       }
       assert(dataLength == static_cast<uint16_t>(dataLength));
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       writer.write<uint16_t>(dataLength);
       return { keyLength, dataLength };
@@ -249,7 +250,7 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       for (auto entry : data) {
         StringRef dataToWrite;
         writer.write<uint32_t>(entry.second);
@@ -270,7 +271,7 @@ namespace {
 
     hash_value_type ComputeHash(key_type_ref key) {
       assert(!key.empty());
-      return llvm::djbHash(key, SWIFTMODULE_HASH_SEED);
+      return toolchain::djbHash(key, LANGUAGEMODULE_HASH_SEED);
     }
 
     std::pair<unsigned, unsigned> EmitKeyDataLength(raw_ostream &out,
@@ -279,7 +280,7 @@ namespace {
       uint32_t keyLength = key.size();
       assert(keyLength == static_cast<uint16_t>(keyLength));
       uint32_t dataLength = sizeof(uint32_t);
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       // No need to write the data length; it's constant.
       return { keyLength, dataLength };
@@ -292,13 +293,13 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint32_t>(data);
     }
   };
 
   using LocalTypeHashTableGenerator =
-    llvm::OnDiskChainedHashTableGenerator<LocalDeclTableInfo>;
+    toolchain::OnDiskChainedHashTableGenerator<LocalDeclTableInfo>;
 
   class NestedTypeDeclsTableInfo {
   public:
@@ -311,7 +312,7 @@ namespace {
 
     hash_value_type ComputeHash(key_type_ref key) {
       assert(!key.empty());
-      return llvm::djbHash(key.str(), SWIFTMODULE_HASH_SEED);
+      return toolchain::djbHash(key.str(), LANGUAGEMODULE_HASH_SEED);
     }
 
     std::pair<unsigned, unsigned> EmitKeyDataLength(raw_ostream &out,
@@ -321,7 +322,7 @@ namespace {
       assert(keyLength == static_cast<uint16_t>(keyLength));
       uint32_t dataLength = (sizeof(uint32_t) * 2) * data.size();
       assert(dataLength == static_cast<uint16_t>(dataLength));
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       writer.write<uint16_t>(dataLength);
       return { keyLength, dataLength };
@@ -335,7 +336,7 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       for (auto entry : data) {
         writer.write<uint32_t>(entry.first);
         writer.write<uint32_t>(entry.second);
@@ -356,7 +357,7 @@ namespace {
       switch (key.getKind()) {
       case DeclBaseName::Kind::Normal:
         assert(!key.empty());
-        return llvm::djbHash(key.getIdentifier().str(), SWIFTMODULE_HASH_SEED);
+        return toolchain::djbHash(key.getIdentifier().str(), LANGUAGEMODULE_HASH_SEED);
       case DeclBaseName::Kind::Subscript:
         return static_cast<uint8_t>(DeclNameKind::Subscript);
       case DeclBaseName::Kind::Constructor:
@@ -364,7 +365,7 @@ namespace {
       case DeclBaseName::Kind::Destructor:
         return static_cast<uint8_t>(DeclNameKind::Destructor);
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     std::pair<unsigned, unsigned> EmitKeyDataLength(raw_ostream &out,
@@ -376,14 +377,14 @@ namespace {
       }
       assert(keyLength == static_cast<uint16_t>(keyLength));
       uint32_t dataLength = sizeof(uint32_t);
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       // No need to write dataLength, it's constant.
       return { keyLength, dataLength };
     }
 
     void EmitKey(raw_ostream &out, key_type_ref key, unsigned len) {
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       switch (key.getKind()) {
       case DeclBaseName::Kind::Normal:
         writer.write<uint8_t>(static_cast<uint8_t>(DeclNameKind::Normal));
@@ -404,7 +405,7 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(bitOffsetFitsIn32Bits(), "BitOffset too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint32_t>(static_cast<uint32_t>(data));
     }
   };
@@ -429,7 +430,7 @@ namespace {
       // with the same DeclBaseName. Seems highly unlikely.
       assert((data.size() < (1 << 14)) && "Too many members");
       uint32_t dataLength = sizeof(uint32_t) * data.size(); // value DeclIDs
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       // No need to write the key length; it's constant.
       writer.write<uint16_t>(dataLength);
       return { sizeof(uint32_t), dataLength };
@@ -438,14 +439,14 @@ namespace {
     void EmitKey(raw_ostream &out, key_type_ref key, unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
       assert(len == sizeof(uint32_t));
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint32_t>(key);
     }
 
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       for (auto entry : data) {
         writer.write<uint32_t>(entry);
       }
@@ -469,7 +470,7 @@ namespace {
 
     std::pair<unsigned, unsigned>
     EmitKeyDataLength(raw_ostream &out, key_type_ref key, data_type_ref data) {
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       // No need to write the key or value length; they're both constant.
       const unsigned valueLen = Fingerprint::DIGEST_LENGTH;
       return {sizeof(uint32_t), valueLen};
@@ -478,7 +479,7 @@ namespace {
     void EmitKey(raw_ostream &out, key_type_ref key, unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
       assert(len == sizeof(uint32_t));
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint32_t>(key);
     }
 
@@ -486,7 +487,7 @@ namespace {
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
       assert(len == Fingerprint::DIGEST_LENGTH);
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       out << data;
     }
   };
@@ -512,23 +513,23 @@ namespace {
   };
 } // end anonymous namespace
 
-static uint8_t getRawOpaqueReadOwnership(swift::OpaqueReadOwnership ownership) {
+static uint8_t getRawOpaqueReadOwnership(language::OpaqueReadOwnership ownership) {
   switch (ownership) {
 #define CASE(KIND)                                            \
-  case swift::OpaqueReadOwnership::KIND:                      \
+  case language::OpaqueReadOwnership::KIND:                      \
     return uint8_t(serialization::OpaqueReadOwnership::KIND);
   CASE(Owned)
   CASE(Borrowed)
   CASE(OwnedOrBorrowed)
 #undef CASE
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
-static uint8_t getRawReadImplKind(swift::ReadImplKind kind) {
+static uint8_t getRawReadImplKind(language::ReadImplKind kind) {
   switch (kind) {
 #define CASE(KIND)                                     \
-  case swift::ReadImplKind::KIND:                      \
+  case language::ReadImplKind::KIND:                      \
     return uint8_t(serialization::ReadImplKind::KIND);
   CASE(Stored)
   CASE(Get)
@@ -538,13 +539,13 @@ static uint8_t getRawReadImplKind(swift::ReadImplKind kind) {
   CASE(Read2)
 #undef CASE
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
-static unsigned getRawWriteImplKind(swift::WriteImplKind kind) {
+static unsigned getRawWriteImplKind(language::WriteImplKind kind) {
   switch (kind) {
 #define CASE(KIND)                                      \
-  case swift::WriteImplKind::KIND:                      \
+  case language::WriteImplKind::KIND:                      \
     return uint8_t(serialization::WriteImplKind::KIND);
   CASE(Immutable)
   CASE(Stored)
@@ -556,13 +557,13 @@ static unsigned getRawWriteImplKind(swift::WriteImplKind kind) {
   CASE(Modify2)
 #undef CASE
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
-static unsigned getRawReadWriteImplKind(swift::ReadWriteImplKind kind) {
+static unsigned getRawReadWriteImplKind(language::ReadWriteImplKind kind) {
   switch (kind) {
 #define CASE(KIND)                                          \
-  case swift::ReadWriteImplKind::KIND:                      \
+  case language::ReadWriteImplKind::KIND:                      \
     return uint8_t(serialization::ReadWriteImplKind::KIND);
   CASE(Immutable)
   CASE(Stored)
@@ -574,7 +575,7 @@ static unsigned getRawReadWriteImplKind(swift::ReadWriteImplKind kind) {
   CASE(InheritedWithDidSet)
 #undef CASE
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static Accessors getAccessors(const AbstractStorageDecl *storage) {
@@ -686,7 +687,7 @@ serialization::ClangTypeID Serializer::addClangTypeRef(const clang::Type *ty) {
   if (!isSerializable) {
     PrettyStackTraceClangType trace(loader->getClangASTContext(),
                                     "staging a serialized reference to", ty);
-    llvm::report_fatal_error("Clang function type is not serializable");
+    toolchain::report_fatal_error("Clang function type is not serializable");
   }
 
   return ClangTypesToSerialize.addRef(ty);
@@ -713,7 +714,7 @@ IdentifierID Serializer::addDeclBaseNameRef(DeclBaseName ident) {
   case DeclBaseName::Kind::Destructor:
     return DESTRUCTOR_ID;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 std::pair<StringRef, IdentifierID> Serializer::addUniquedString(StringRef str) {
@@ -792,14 +793,14 @@ void SerializerBase::emitBlockID(unsigned ID, StringRef name,
                                  SmallVectorImpl<unsigned char> &nameBuffer) {
   SmallVector<unsigned, 1> idBuffer;
   idBuffer.push_back(ID);
-  Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETBID, idBuffer);
+  Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETBID, idBuffer);
 
   // Emit the block name if present.
   if (name.empty())
     return;
   nameBuffer.resize(name.size());
   memcpy(nameBuffer.data(), name.data(), name.size());
-  Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_BLOCKNAME, nameBuffer);
+  Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_BLOCKNAME, nameBuffer);
 }
 
 void SerializerBase::emitRecordID(unsigned ID, StringRef name,
@@ -810,7 +811,7 @@ void SerializerBase::emitRecordID(unsigned ID, StringRef name,
     nameBuffer.resize(name.size()+1);
     nameBuffer[0] = ID;
     memcpy(nameBuffer.data()+1, name.data(), name.size());
-    Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETRECORDNAME, nameBuffer);
+    Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETRECORDNAME, nameBuffer);
 
   // Otherwise, we have to use the wide name buffer.
   } else {
@@ -820,12 +821,12 @@ void SerializerBase::emitRecordID(unsigned ID, StringRef name,
     buffer[0] = ID;
     for (unsigned i = 0, e = name.size(); i != e; ++i)
       buffer[i+1] = name[i];
-    Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETRECORDNAME, buffer);
+    Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETRECORDNAME, buffer);
   }
 }
 
 void Serializer::writeBlockInfoBlock() {
-  BCBlockRAII restoreBlock(Out, llvm::bitc::BLOCKINFO_BLOCK_ID, 2);
+  BCBlockRAII restoreBlock(Out, toolchain::bitc::BLOCKINFO_BLOCK_ID, 2);
 
   SmallVector<unsigned char, 64> nameBuffer;
   SmallVector<unsigned, 32> wideNameBuffer;
@@ -851,7 +852,7 @@ void Serializer::writeBlockInfoBlock() {
   BLOCK_RECORD(options_block, IS_SIB);
   BLOCK_RECORD(options_block, IS_STATIC_LIBRARY);
   BLOCK_RECORD(options_block, HAS_HERMETIC_SEAL_AT_LINK);
-  BLOCK_RECORD(options_block, IS_EMBEDDED_SWIFT_MODULE);
+  BLOCK_RECORD(options_block, IS_EMBEDDED_LANGUAGE_MODULE);
   BLOCK_RECORD(options_block, IS_TESTABLE);
   BLOCK_RECORD(options_block, RESILIENCE_STRATEGY);
   BLOCK_RECORD(options_block, ARE_PRIVATE_IMPORTS_ENABLED);
@@ -869,7 +870,7 @@ void Serializer::writeBlockInfoBlock() {
   BLOCK_RECORD(options_block, STRICT_MEMORY_SAFETY);
   BLOCK_RECORD(options_block, CXX_STDLIB_KIND);
   BLOCK_RECORD(options_block, PUBLIC_MODULE_NAME);
-  BLOCK_RECORD(options_block, SWIFT_INTERFACE_COMPILER_VERSION);
+  BLOCK_RECORD(options_block, LANGUAGE_INTERFACE_COMPILER_VERSION);
 
   BLOCK(INPUT_BLOCK);
   BLOCK_RECORD(input_block, IMPORTED_MODULE);
@@ -1023,14 +1024,14 @@ void Serializer::writeHeader() {
     ModuleName.emit(ScratchRecord, M->getRealName().str());
 
     SmallString<32> versionStringBuf;
-    llvm::raw_svector_ostream versionString(versionStringBuf);
+    toolchain::raw_svector_ostream versionString(versionStringBuf);
     versionString << Version::getCurrentLanguageVersion();
     size_t shortVersionStringLength = versionString.tell();
     versionString << '('
                   << M->getASTContext().LangOpts.EffectiveLanguageVersion;
     size_t compatibilityVersionStringLength =
         versionString.tell() - shortVersionStringLength - 1;
-    versionString << ")/" << version::getSwiftFullVersion();
+    versionString << ")/" << version::getCodiraFullVersion();
     auto userModuleMajor = Options.UserModuleVersion.getMajor();
     auto userModuleMinor = 0;
     if (auto minor = Options.UserModuleVersion.getMinor()) {
@@ -1045,7 +1046,7 @@ void Serializer::writeHeader() {
       userModuleBuild = *build;
     }
     Metadata.emit(ScratchRecord,
-                  SWIFTMODULE_VERSION_MAJOR, SWIFTMODULE_VERSION_MINOR,
+                  LANGUAGEMODULE_VERSION_MAJOR, LANGUAGEMODULE_VERSION_MINOR,
                   shortVersionStringLength,
                   compatibilityVersionStringLength,
                   userModuleMajor, userModuleMinor,
@@ -1063,9 +1064,9 @@ void Serializer::writeHeader() {
     }
     Target.emit(ScratchRecord, M->getASTContext().LangOpts.Target.str());
 
-    // Write the producer's Swift revision.
+    // Write the producer's Codira revision.
     static const char* forcedDebugRevision =
-      ::getenv("SWIFT_DEBUG_FORCE_SWIFTMODULE_REVISION");
+      ::getenv("LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION");
     auto revision = forcedDebugRevision ?
       forcedDebugRevision : version::getCurrentCompilerSerializationTag();
     Revision.emit(ScratchRecord, revision);
@@ -1075,7 +1076,7 @@ void Serializer::writeHeader() {
     IsOSSA.emit(ScratchRecord, Options.IsOSSA);
 
     {
-      llvm::BCBlockRAII restoreBlock(Out, OPTIONS_BLOCK_ID, 4);
+      toolchain::BCBlockRAII restoreBlock(Out, OPTIONS_BLOCK_ID, 4);
 
       options_block::IsSIBLayout IsSIB(Out);
       IsSIB.emit(ScratchRecord, Options.IsSIB);
@@ -1090,9 +1091,9 @@ void Serializer::writeHeader() {
         HasHermeticSealAtLink.emit(ScratchRecord);
       }
 
-      if (Options.EmbeddedSwiftModule) {
-        options_block::IsEmbeddedSwiftModuleLayout IsEmbeddedSwiftModule(Out);
-        IsEmbeddedSwiftModule.emit(ScratchRecord);
+      if (Options.EmbeddedCodiraModule) {
+        options_block::IsEmbeddedCodiraModuleLayout IsEmbeddedCodiraModule(Out);
+        IsEmbeddedCodiraModule.emit(ScratchRecord);
       }
 
       if (M->isTestingEnabled()) {
@@ -1158,12 +1159,12 @@ void Serializer::writeHeader() {
         PublicModuleName.emit(ScratchRecord, publicModuleName.str());
       }
 
-      version::Version compilerVersion = M->getSwiftInterfaceCompilerVersion();
+      version::Version compilerVersion = M->getCodiraInterfaceCompilerVersion();
       if (!compilerVersion.empty()) {
-        options_block::SwiftInterfaceCompilerVersionLayout Version(Out);
+        options_block::CodiraInterfaceCompilerVersionLayout Version(Out);
 
         SmallString<32> versionBuf;
-        llvm::raw_svector_ostream OS(versionBuf);
+        toolchain::raw_svector_ostream OS(versionBuf);
 
         OS << compilerVersion;
 
@@ -1209,7 +1210,7 @@ void Serializer::writeHeader() {
             // Filter out any -ivfsoverlay options that include an
             // unextended-module-overlay.yaml overlay. By convention the Xcode
             // buildsystem uses these while *building* mixed Objective-C and
-            // Swift frameworks; but they should never be used to *import* the
+            // Codira frameworks; but they should never be used to *import* the
             // module defined in the framework.
             //
             // This is not done for explicit modules builds. In an explicit
@@ -1265,7 +1266,7 @@ void Serializer::writeHeader() {
           case PluginSearchOption::Kind::LoadPluginExecutable: {
             auto &opt = elem.get<PluginSearchOption::LoadPluginExecutable>();
             std::string optStr = opt.ExecutablePath + "#";
-            llvm::interleave(
+            toolchain::interleave(
                 opt.ModuleNames, [&](auto &name) { optStr += name; },
                 [&]() { optStr += ","; });
             PluginSearchOpt.emit(
@@ -1277,7 +1278,7 @@ void Serializer::writeHeader() {
             auto &opt = elem.get<PluginSearchOption::ResolvedPluginConfig>();
             std::string optStr =
                 opt.LibraryPath + "#" + opt.ExecutablePath + "#";
-            llvm::interleave(
+            toolchain::interleave(
                 opt.ModuleNames, [&](auto &name) { optStr += name; },
                 [&]() { optStr += ","; });
             PluginSearchOpt.emit(
@@ -1294,7 +1295,7 @@ void Serializer::writeHeader() {
 
 static void flattenImportPath(const ImportedModule &import,
                               SmallVectorImpl<char> &out) {
-  llvm::raw_svector_ostream outStream(out);
+  toolchain::raw_svector_ostream outStream(out);
   // This will write the module 'real name', which can be different
   // from the 'name' in case module aliasing was used (see `-module-alias`)
   import.importedModule->getReverseFullModuleName().printForward(
@@ -1315,7 +1316,7 @@ uint64_t getRawModTimeOrHash(const SerializationOptions::FileDependency &dep) {
   return dep.getModificationTime();
 }
 
-using ImportSet = llvm::SmallSet<ImportedModule, 8, ImportedModule::Order>;
+using ImportSet = toolchain::SmallSet<ImportedModule, 8, ImportedModule::Order>;
 static ImportSet getImportsAsSet(const ModuleDecl *M,
                                  ModuleDecl::ImportFilter filter) {
   SmallVector<ImportedModule, 8> imports;
@@ -1354,9 +1355,9 @@ void Serializer::writeInputBlock() {
 
   // Note: We're not using StringMap here because we don't need to own the
   // strings.
-  llvm::DenseMap<StringRef, unsigned> dependencyDirectories;
+  toolchain::DenseMap<StringRef, unsigned> dependencyDirectories;
   for (auto const &dep : Options.Dependencies) {
-    StringRef directoryName = llvm::sys::path::parent_path(dep.getPath());
+    StringRef directoryName = toolchain::sys::path::parent_path(dep.getPath());
     unsigned &dependencyDirectoryIndex = dependencyDirectories[directoryName];
     if (!dependencyDirectoryIndex) {
       // This name must be newly-added. Give it a new ID (and skip 0).
@@ -1369,7 +1370,7 @@ void Serializer::writeInputBlock() {
                         dep.isHashBased(),
                         dep.isSDKRelative(),
                         dependencyDirectoryIndex,
-                        llvm::sys::path::filename(dep.getPath()));
+                        toolchain::sys::path::filename(dep.getPath()));
   }
 
   if (!Options.ModuleInterface.empty())
@@ -1406,7 +1407,7 @@ void Serializer::writeInputBlock() {
     else if (plugin.second == ExternalMacroPlugin::Access::Internal)
       stableAccessControl = serialization::AccessLevel::Internal;
     else
-      llvm_unreachable("unknown enum value");
+      toolchain_unreachable("unknown enum value");
 
     ExternMacro.emit(ScratchRecord, static_cast<uint8_t>(stableAccessControl),
                      plugin.first);
@@ -1437,7 +1438,7 @@ void Serializer::writeInputBlock() {
   // Make sure the bridging header module is always at the top of the import
   // list, mimicking how it is processed before any module imports when
   // compiling source files.
-  if (llvm::is_contained(allLocalImports, bridgingHeaderImport) &&
+  if (toolchain::is_contained(allLocalImports, bridgingHeaderImport) &&
       Options.SerializeBridgingHeader) {
     off_t importedHeaderSize = 0;
     time_t importedHeaderModTime = 0;
@@ -1501,7 +1502,7 @@ void Serializer::writeInputBlock() {
     else
       stableImportControl = ImportControl::ImplementationOnly;
 
-    llvm::SmallSetVector<Identifier, 4> spis;
+    toolchain::SmallSetVector<Identifier, 4> spis;
     M->lookupImportedSPIGroups(import.importedModule, spis);
 
     importedModule.emit(ScratchRecord,
@@ -1510,8 +1511,8 @@ void Serializer::writeInputBlock() {
 
     if (!spis.empty()) {
       SmallString<64> out;
-      llvm::raw_svector_ostream outStream(out);
-      llvm::interleave(
+      toolchain::raw_svector_ostream outStream(out);
+      toolchain::interleave(
           spis, [&outStream](Identifier next) { outStream << next.str(); },
           [&outStream] { outStream << StringRef("\0", 1); });
       ImportedModuleSPI.emit(ScratchRecord, out);
@@ -1531,10 +1532,10 @@ void Serializer::writeInputBlock() {
 
 /// Translate AST default argument kind to the Serialization enum values, which
 /// are guaranteed to be stable.
-static uint8_t getRawStableDefaultArgumentKind(swift::DefaultArgumentKind kind) {
+static uint8_t getRawStableDefaultArgumentKind(language::DefaultArgumentKind kind) {
   switch (kind) {
 #define CASE(X) \
-  case swift::DefaultArgumentKind::X: \
+  case language::DefaultArgumentKind::X: \
     return static_cast<uint8_t>(serialization::DefaultArgumentKind::X);
   CASE(None)
   CASE(Normal)
@@ -1555,14 +1556,14 @@ static uint8_t getRawStableDefaultArgumentKind(swift::DefaultArgumentKind kind) 
 #undef CASE
   }
 
-  llvm_unreachable("Unhandled DefaultArgumentKind in switch.");
+  toolchain_unreachable("Unhandled DefaultArgumentKind in switch.");
 }
 
 static uint8_t
-getRawStableActorIsolationKind(swift::ActorIsolation::Kind kind) {
+getRawStableActorIsolationKind(language::ActorIsolation::Kind kind) {
   switch (kind) {
 #define CASE(X) \
-  case swift::ActorIsolation::X: \
+  case language::ActorIsolation::X: \
     return static_cast<uint8_t>(serialization::ActorIsolation::X);
   CASE(Unspecified)
   CASE(ActorInstance)
@@ -1573,7 +1574,7 @@ getRawStableActorIsolationKind(swift::ActorIsolation::Kind kind) {
   CASE(Erased)
 #undef CASE
   }
-  llvm_unreachable("bad actor isolation");
+  toolchain_unreachable("bad actor isolation");
 }
 
 static uint8_t
@@ -1583,14 +1584,14 @@ getRawStableMetatypeRepresentation(const AnyMetatypeType *metatype) {
   }
 
   switch (metatype->getRepresentation()) {
-  case swift::MetatypeRepresentation::Thin:
+  case language::MetatypeRepresentation::Thin:
     return serialization::MetatypeRepresentation::MR_Thin;
-  case swift::MetatypeRepresentation::Thick:
+  case language::MetatypeRepresentation::Thick:
     return serialization::MetatypeRepresentation::MR_Thick;
-  case swift::MetatypeRepresentation::ObjC:
+  case language::MetatypeRepresentation::ObjC:
     return serialization::MetatypeRepresentation::MR_ObjC;
   }
-  llvm_unreachable("bad representation");
+  toolchain_unreachable("bad representation");
 }
 
 /// Translate from the requirement kind to the Serialization enum
@@ -1609,7 +1610,7 @@ static uint8_t getRawStableRequirementKind(RequirementKind kind) {
   }
 #undef CASE
 
-  llvm_unreachable("Unhandled RequirementKind in switch.");
+  toolchain_unreachable("Unhandled RequirementKind in switch.");
 }
 
 static uint8_t getRawStableGenericParamKind(GenericTypeParamKind kind) {
@@ -1624,7 +1625,7 @@ static uint8_t getRawStableGenericParamKind(GenericTypeParamKind kind) {
   }
 #undef CASE
 
-  llvm_unreachable("Unhandled RequirementKind in switch.");
+  toolchain_unreachable("Unhandled RequirementKind in switch.");
 }
 
 void Serializer::serializeGenericRequirements(
@@ -1748,7 +1749,7 @@ void Serializer::writeASTBlockEntity(GenericSignature sig) {
   // have to encode them manually because one of them has a declaration with
   // module context (which can happen in SIL).
   bool mustEncodeParamsManually =
-      llvm::any_of(sig.getGenericParams(),
+      toolchain::any_of(sig.getGenericParams(),
                    [](const GenericTypeParamType *paramTy) {
     auto *decl = paramTy->getDecl();
     return decl && decl->getDeclContext()->isModuleScopeContext();
@@ -1822,7 +1823,7 @@ void Serializer::writeASTBlockEntity(const GenericEnvironment *genericEnv) {
     break;
   }
 
-  llvm_unreachable("Bad generic environment kind");
+  toolchain_unreachable("Bad generic environment kind");
 }
 
 void Serializer::writeASTBlockEntity(const SubstitutionMap substitutions) {
@@ -1936,19 +1937,19 @@ void Serializer::writeLocalNormalProtocolConformance(
   // Figure out the isolation of the conformance.
   Type globalActorType;
   switch (auto isolation = conformance->getIsolation()) {
-  case swift::ActorIsolation::Unspecified:
-  case swift::ActorIsolation::Nonisolated:
+  case language::ActorIsolation::Unspecified:
+  case language::ActorIsolation::Nonisolated:
     break;
 
-  case swift::ActorIsolation::GlobalActor:
+  case language::ActorIsolation::GlobalActor:
     globalActorType = isolation.getGlobalActor();
     break;
 
-  case swift::ActorIsolation::ActorInstance:
-  case swift::ActorIsolation::NonisolatedUnsafe:
-  case swift::ActorIsolation::Erased:
-  case swift::ActorIsolation::CallerIsolationInheriting:
-    llvm_unreachable("Conformances cannot have this kind of isolation");
+  case language::ActorIsolation::ActorInstance:
+  case language::ActorIsolation::NonisolatedUnsafe:
+  case language::ActorIsolation::Erased:
+  case language::ActorIsolation::CallerIsolationInheriting:
+    toolchain_unreachable("Conformances cannot have this kind of isolation");
   }
 
   unsigned abbrCode
@@ -2000,7 +2001,7 @@ Serializer::addConformanceRef(ProtocolConformanceRef ref) {
             SerializedProtocolConformanceKind::Pack);
   }
 
-  llvm_unreachable("Unknown conformance kind");
+  toolchain_unreachable("Unknown conformance kind");
 }
 
 void
@@ -2149,19 +2150,20 @@ static bool shouldSerializeMember(Decl *D) {
   case DeclKind::Extension:
   case DeclKind::Module:
   case DeclKind::PrecedenceGroup:
+  case DeclKind::Using:
     if (D->getASTContext().LangOpts.AllowModuleWithCompilerErrors)
       return false;
-    llvm_unreachable("decl should never be a member");
+    toolchain_unreachable("decl should never be a member");
   case DeclKind::Missing:
-    llvm_unreachable("attempting to serialize a missing decl");
+    toolchain_unreachable("attempting to serialize a missing decl");
 
   case DeclKind::MissingMember:
     if (D->getASTContext().LangOpts.AllowModuleWithCompilerErrors)
       return false;
-    llvm_unreachable("should never need to reserialize a member placeholder");
+    toolchain_unreachable("should never need to reserialize a member placeholder");
 
   case DeclKind::BuiltinTuple:
-    llvm_unreachable("BuiltinTupleDecl should not show up here");
+    toolchain_unreachable("BuiltinTupleDecl should not show up here");
 
   case DeclKind::EnumCase:
   case DeclKind::Macro:
@@ -2190,24 +2192,25 @@ static bool shouldSerializeMember(Decl *D) {
     return true;
   }
 
-  llvm_unreachable("Unhandled DeclKind in switch.");
+  toolchain_unreachable("Unhandled DeclKind in switch.");
 }
 
-static serialization::AccessorKind getStableAccessorKind(swift::AccessorKind K){
+static serialization::AccessorKind getStableAccessorKind(language::AccessorKind K){
   switch (K) {
-#define ACCESSOR(ID) \
-  case swift::AccessorKind::ID: return serialization::ID;
+#define ACCESSOR(ID, KEYWORD)                                                  \
+  case language::AccessorKind::ID:                                                \
+    return serialization::ID;
 #include "language/AST/AccessorKinds.def"
   }
 
-  llvm_unreachable("Unhandled AccessorKind in switch.");
+  toolchain_unreachable("Unhandled AccessorKind in switch.");
 }
 
 static serialization::CtorInitializerKind
-getStableCtorInitializerKind(swift::CtorInitializerKind K){
+getStableCtorInitializerKind(language::CtorInitializerKind K){
   switch (K) {
 #define CASE(NAME) \
-  case swift::CtorInitializerKind::NAME: return serialization::NAME;
+  case language::CtorInitializerKind::NAME: return serialization::NAME;
       CASE(Designated)
       CASE(Convenience)
       CASE(Factory)
@@ -2215,7 +2218,7 @@ getStableCtorInitializerKind(swift::CtorInitializerKind K){
 #undef CASE
   }
 
-  llvm_unreachable("Unhandled CtorInitializerKind in switch.");
+  toolchain_unreachable("Unhandled CtorInitializerKind in switch.");
 }
 
 static serialization::ClangDeclPathComponentKind
@@ -2234,7 +2237,7 @@ getStableClangDeclPathComponentKind(
   CASE(ObjCProtocol)
 #undef CASE
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static Identifier getClangTemplateSpecializationXRefDiscriminator(
@@ -2245,10 +2248,10 @@ static Identifier getClangTemplateSpecializationXRefDiscriminator(
     return Identifier();
   // Serialize a C++ class template specialization name as original
   // class template name, and use its USR as the discriminator, that
-  // will let Swift find the correct specialization when this cross
+  // will let Codira find the correct specialization when this cross
   // reference is deserialized.
   name = ctx.getIdentifier(name.str().substr(0, it));
-  llvm::SmallString<128> buffer;
+  toolchain::SmallString<128> buffer;
   clang::index::generateUSRForDecl(ctsd, buffer);
   return ctx.getIdentifier(buffer.str());
 }
@@ -2266,12 +2269,12 @@ void Serializer::writeCrossReference(const DeclContext *DC, uint32_t pathLen) {
   case DeclContextKind::SerializedTopLevelCodeDecl:
   case DeclContextKind::EnumElementDecl:
   case DeclContextKind::MacroDecl:
-    llvm_unreachable("cannot cross-reference this context");
+    toolchain_unreachable("cannot cross-reference this context");
 
   case DeclContextKind::Package:
-    llvm_unreachable("should only cross-reference something within a module");
+    toolchain_unreachable("should only cross-reference something within a module");
   case DeclContextKind::Module:
-    llvm_unreachable("should only cross-reference something within a file");
+    toolchain_unreachable("should only cross-reference something within a file");
 
   case DeclContextKind::FileUnit:
     abbrCode = DeclTypeAbbrCodes[XRefLayout::Code];
@@ -2409,7 +2412,7 @@ void Serializer::writeCrossReference(const DeclContext *DC, uint32_t pathLen) {
                                          fn->isStatic());
 
     if (fn->isOperator()) {
-      // Encode the fixity as a filter on the func decls, to distinguish prefix
+      // Encode the fixity as a filter on the fn decls, to distinguish prefix
       // and postfix operators.
       auto op = cast<FuncDecl>(fn)->getOperatorDecl();
       assert(op);
@@ -2518,37 +2521,37 @@ void Serializer::writeCrossReference(const Decl *D) {
 
 /// Translate from the AST associativity enum to the Serialization enum
 /// values, which are guaranteed to be stable.
-static uint8_t getRawStableAssociativity(swift::Associativity assoc) {
+static uint8_t getRawStableAssociativity(language::Associativity assoc) {
   switch (assoc) {
-  case swift::Associativity::Left:
+  case language::Associativity::Left:
     return serialization::Associativity::LeftAssociative;
-  case swift::Associativity::Right:
+  case language::Associativity::Right:
     return serialization::Associativity::RightAssociative;
-  case swift::Associativity::None:
+  case language::Associativity::None:
     return serialization::Associativity::NonAssociative;
   }
 
-  llvm_unreachable("Unhandled Associativity in switch.");
+  toolchain_unreachable("Unhandled Associativity in switch.");
 }
 
 static serialization::StaticSpellingKind
-getStableStaticSpelling(swift::StaticSpellingKind SS) {
+getStableStaticSpelling(language::StaticSpellingKind SS) {
   switch (SS) {
-  case swift::StaticSpellingKind::None:
+  case language::StaticSpellingKind::None:
     return serialization::StaticSpellingKind::None;
-  case swift::StaticSpellingKind::KeywordStatic:
+  case language::StaticSpellingKind::KeywordStatic:
     return serialization::StaticSpellingKind::KeywordStatic;
-  case swift::StaticSpellingKind::KeywordClass:
+  case language::StaticSpellingKind::KeywordClass:
     return serialization::StaticSpellingKind::KeywordClass;
   }
 
-  llvm_unreachable("Unhandled StaticSpellingKind in switch.");
+  toolchain_unreachable("Unhandled StaticSpellingKind in switch.");
 }
 
-static uint8_t getRawStableAccessLevel(swift::AccessLevel access) {
+static uint8_t getRawStableAccessLevel(language::AccessLevel access) {
   switch (access) {
 #define CASE(NAME) \
-  case swift::AccessLevel::NAME: \
+  case language::AccessLevel::NAME: \
     return static_cast<uint8_t>(serialization::AccessLevel::NAME);
   CASE(Private)
   CASE(FilePrivate)
@@ -2559,42 +2562,42 @@ static uint8_t getRawStableAccessLevel(swift::AccessLevel access) {
 #undef CASE
   }
 
-  llvm_unreachable("Unhandled AccessLevel in switch.");
+  toolchain_unreachable("Unhandled AccessLevel in switch.");
 }
 
 static serialization::SelfAccessKind
-getStableSelfAccessKind(swift::SelfAccessKind MM) {
+getStableSelfAccessKind(language::SelfAccessKind MM) {
   switch (MM) {
-  case swift::SelfAccessKind::NonMutating:
+  case language::SelfAccessKind::NonMutating:
     return serialization::SelfAccessKind::NonMutating;
-  case swift::SelfAccessKind::Mutating:
+  case language::SelfAccessKind::Mutating:
     return serialization::SelfAccessKind::Mutating;
-  case swift::SelfAccessKind::LegacyConsuming:
+  case language::SelfAccessKind::LegacyConsuming:
     return serialization::SelfAccessKind::LegacyConsuming;
-  case swift::SelfAccessKind::Consuming:
+  case language::SelfAccessKind::Consuming:
     return serialization::SelfAccessKind::Consuming;
-  case swift::SelfAccessKind::Borrowing:
+  case language::SelfAccessKind::Borrowing:
     return serialization::SelfAccessKind::Borrowing;
   }
 
-  llvm_unreachable("Unhandled StaticSpellingKind in switch.");
+  toolchain_unreachable("Unhandled StaticSpellingKind in switch.");
 }
 
-static uint8_t getRawStableMacroRole(swift::MacroRole context) {
+static uint8_t getRawStableMacroRole(language::MacroRole context) {
   switch (context) {
 #define MACRO_ROLE(Name, Description) \
-  case swift::MacroRole::Name: \
+  case language::MacroRole::Name: \
     return static_cast<uint8_t>(serialization::MacroRole::Name);
 #include "language/Basic/MacroRoles.def"
   }
-  llvm_unreachable("bad result declaration macro kind");
+  toolchain_unreachable("bad result declaration macro kind");
 }
 
 static uint8_t getRawStableMacroIntroducedDeclNameKind(
-    swift::MacroIntroducedDeclNameKind kind) {
+    language::MacroIntroducedDeclNameKind kind) {
   switch (kind) {
 #define CASE(NAME) \
-  case swift::MacroIntroducedDeclNameKind::NAME: \
+  case language::MacroIntroducedDeclNameKind::NAME: \
     return static_cast<uint8_t>(serialization::MacroIntroducedDeclNameKind::NAME);
     CASE(Named)
     CASE(Overloaded)
@@ -2603,13 +2606,13 @@ static uint8_t getRawStableMacroIntroducedDeclNameKind(
     CASE(Arbitrary)
   }
 #undef CASE
-  llvm_unreachable("bad result macro-introduced decl name kind");
+  toolchain_unreachable("bad result macro-introduced decl name kind");
 }
 
 #ifndef NDEBUG
 // This is done with a macro so that we get a slightly more useful assertion.
 # define DECL(KIND, PARENT)\
-LLVM_ATTRIBUTE_UNUSED \
+TOOLCHAIN_ATTRIBUTE_UNUSED \
 static void verifyAttrSerializable(const KIND ## Decl *D) {\
   if (D->Decl::getASTContext().LangOpts.AllowModuleWithCompilerErrors)\
     return;\
@@ -2617,7 +2620,7 @@ static void verifyAttrSerializable(const KIND ## Decl *D) {\
     assert(Attr->canAppearOnDecl(D) && "attribute cannot appear on a " #KIND);\
   }\
 }
-# include "swift/AST/DeclNodes.def"
+# include "language/AST/DeclNodes.def"
 
 #else
 static void verifyAttrSerializable(const Decl *D) {}
@@ -2723,7 +2726,7 @@ void Serializer::writeASTBlockEntity(const DeclContext *DC) {
   }
 
   default:
-    llvm_unreachable("Trying to write a DeclContext that isn't local");
+    toolchain_unreachable("Trying to write a DeclContext that isn't local");
   }
 }
 
@@ -2736,17 +2739,17 @@ void Serializer::writeLifetimeDependencies(
 
     auto abbrCode = DeclTypeAbbrCodes[LifetimeDependenceLayout::Code];
     LifetimeDependenceLayout::emitRecord(
-        Out, ScratchRecord, abbrCode, info.getTargetIndex(), info.isImmortal(),
+        Out, ScratchRecord, abbrCode, info.getTargetIndex(),
+        info.getParamIndicesLength(), info.isImmortal(),
         info.hasInheritLifetimeParamIndices(),
-        info.hasScopeLifetimeParamIndices(),
-        info.hasAddressableParamIndices(),
+        info.hasScopeLifetimeParamIndices(), info.hasAddressableParamIndices(),
         paramIndices);
     paramIndices.clear();
   }
 }
 
 #define SIMPLE_CASE(TYPENAME, VALUE) \
-  case swift::TYPENAME::VALUE: return uint8_t(serialization::TYPENAME::VALUE);
+  case language::TYPENAME::VALUE: return uint8_t(serialization::TYPENAME::VALUE);
 
 static ForeignErrorConventionKind getRawStableForeignErrorConventionKind(
                                     ForeignErrorConvention::Kind kind) {
@@ -2763,61 +2766,61 @@ static ForeignErrorConventionKind getRawStableForeignErrorConventionKind(
     return ForeignErrorConventionKind::NonNilError;
   }
 
-  llvm_unreachable("Unhandled ForeignErrorConvention in switch.");
+  toolchain_unreachable("Unhandled ForeignErrorConvention in switch.");
 }
 
 /// Translate from the AST VarDeclSpecifier enum to the
 /// Serialization enum values, which are guaranteed to be stable.
-static uint8_t getRawStableParamDeclSpecifier(swift::ParamDecl::Specifier sf) {
+static uint8_t getRawStableParamDeclSpecifier(language::ParamDecl::Specifier sf) {
   switch (sf) {
-  case swift::ParamDecl::Specifier::Default:
+  case language::ParamDecl::Specifier::Default:
     return uint8_t(serialization::ParamDeclSpecifier::Default);
-  case swift::ParamDecl::Specifier::InOut:
+  case language::ParamDecl::Specifier::InOut:
     return uint8_t(serialization::ParamDeclSpecifier::InOut);
-  case swift::ParamDecl::Specifier::Borrowing:
+  case language::ParamDecl::Specifier::Borrowing:
     return uint8_t(serialization::ParamDeclSpecifier::Borrowing);
-  case swift::ParamDecl::Specifier::Consuming:
+  case language::ParamDecl::Specifier::Consuming:
     return uint8_t(serialization::ParamDeclSpecifier::Consuming);
-  case swift::ParamDecl::Specifier::LegacyShared:
+  case language::ParamDecl::Specifier::LegacyShared:
     return uint8_t(serialization::ParamDeclSpecifier::LegacyShared);
-  case swift::ParamDecl::Specifier::LegacyOwned:
+  case language::ParamDecl::Specifier::LegacyOwned:
     return uint8_t(serialization::ParamDeclSpecifier::LegacyOwned);
-  case swift::ParamDecl::Specifier::ImplicitlyCopyableConsuming:
+  case language::ParamDecl::Specifier::ImplicitlyCopyableConsuming:
     return uint8_t(
         serialization::ParamDeclSpecifier::ImplicitlyCopyableConsuming);
   }
-  llvm_unreachable("bad param decl specifier kind");
+  toolchain_unreachable("bad param decl specifier kind");
 }
 
-static uint8_t getRawStableVarDeclIntroducer(swift::VarDecl::Introducer intr) {
+static uint8_t getRawStableVarDeclIntroducer(language::VarDecl::Introducer intr) {
   switch (intr) {
-  case swift::VarDecl::Introducer::Let:
+  case language::VarDecl::Introducer::Let:
     return uint8_t(serialization::VarDeclIntroducer::Let);
-  case swift::VarDecl::Introducer::Var:
+  case language::VarDecl::Introducer::Var:
     return uint8_t(serialization::VarDeclIntroducer::Var);
-  case swift::VarDecl::Introducer::InOut:
+  case language::VarDecl::Introducer::InOut:
     return uint8_t(serialization::VarDeclIntroducer::InOut);
-  case swift::VarDecl::Introducer::Borrowing:
+  case language::VarDecl::Introducer::Borrowing:
     return uint8_t(serialization::VarDeclIntroducer::Borrowing);
   }
-  llvm_unreachable("bad variable decl introducer kind");
+  toolchain_unreachable("bad variable decl introducer kind");
 }
 
 /// Translate from the AST derivative function kind enum to the Serialization
 /// enum values, which are guaranteed to be stable.
 static uint8_t getRawStableAutoDiffDerivativeFunctionKind(
-    swift::AutoDiffDerivativeFunctionKind kind) {
+    language::AutoDiffDerivativeFunctionKind kind) {
   switch (kind) {
   SIMPLE_CASE(AutoDiffDerivativeFunctionKind, JVP)
   SIMPLE_CASE(AutoDiffDerivativeFunctionKind, VJP)
   }
-  llvm_unreachable("bad derivative function kind");
+  toolchain_unreachable("bad derivative function kind");
 }
 
 /// Translate from the AST differentiability kind enum to the Serialization enum
 /// values, which are guaranteed to be stable.
 static uint8_t getRawStableDifferentiabilityKind(
-    swift::DifferentiabilityKind diffKind) {
+    language::DifferentiabilityKind diffKind) {
   switch (diffKind) {
   SIMPLE_CASE(DifferentiabilityKind, NonDifferentiable)
   SIMPLE_CASE(DifferentiabilityKind, Forward)
@@ -2825,7 +2828,7 @@ static uint8_t getRawStableDifferentiabilityKind(
   SIMPLE_CASE(DifferentiabilityKind, Normal)
   SIMPLE_CASE(DifferentiabilityKind, Linear)
   }
-  llvm_unreachable("bad differentiability kind");
+  toolchain_unreachable("bad differentiability kind");
 }
 
 #undef SIMPLE_CASE
@@ -2864,7 +2867,7 @@ static bool contextDependsOn(const NominalTypeDecl *decl,
   return false;
 }
 
-static void collectDependenciesFromType(swift::SmallSetVector<Type, 4> &seen,
+static void collectDependenciesFromType(language::SmallSetVector<Type, 4> &seen,
                                         Type ty,
                                         const DeclContext *excluding) {
   if (!ty)
@@ -2880,7 +2883,7 @@ static void collectDependenciesFromType(swift::SmallSetVector<Type, 4> &seen,
 }
 
 static void
-collectDependenciesFromRequirement(swift::SmallSetVector<Type, 4> &seen,
+collectDependenciesFromRequirement(language::SmallSetVector<Type, 4> &seen,
                                    const Requirement &req,
                                    const DeclContext *excluding) {
   collectDependenciesFromType(seen, req.getFirstType(), excluding);
@@ -2889,7 +2892,7 @@ collectDependenciesFromRequirement(swift::SmallSetVector<Type, 4> &seen,
 }
 
 static SmallVector<Type, 4> collectDependenciesFromType(Type ty) {
-  swift::SmallSetVector<Type, 4> result;
+  language::SmallSetVector<Type, 4> result;
   collectDependenciesFromType(result, ty, /*excluding*/nullptr);
   return result.takeVector();
 }
@@ -2930,7 +2933,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     case DeclAttrKind::ClangImporterSynthesizedType:
     case DeclAttrKind::PrivateImport:
     case DeclAttrKind::AllowFeatureSuppression:
-      llvm_unreachable("cannot serialize attribute");
+      toolchain_unreachable("cannot serialize attribute");
 
 #define SIMPLE_DECL_ATTR(_, CLASS, ...)                                        \
   case DeclAttrKind::CLASS: {                                                  \
@@ -3019,13 +3022,13 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       return;
     }
 
-    case DeclAttrKind::SwiftNativeObjCRuntimeBase: {
-      auto *theBase = cast<SwiftNativeObjCRuntimeBaseAttr>(DA);
+    case DeclAttrKind::CodiraNativeObjCRuntimeBase: {
+      auto *theBase = cast<CodiraNativeObjCRuntimeBaseAttr>(DA);
       auto abbrCode
-        = S.DeclTypeAbbrCodes[SwiftNativeObjCRuntimeBaseDeclAttrLayout::Code];
+        = S.DeclTypeAbbrCodes[CodiraNativeObjCRuntimeBaseDeclAttrLayout::Code];
       auto nameID = S.addDeclBaseNameRef(theBase->BaseClassName);
 
-      SwiftNativeObjCRuntimeBaseDeclAttrLayout::emitRecord(
+      CodiraNativeObjCRuntimeBaseDeclAttrLayout::emitRecord(
           S.Out, S.ScratchRecord, abbrCode,
           theBase->isImplicit(), nameID);
       return;
@@ -3088,9 +3091,9 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     case DeclAttrKind::OriginallyDefinedIn: {
       auto *theAttr = cast<OriginallyDefinedInAttr>(DA);
       ENCODE_VER_TUPLE(
-          Moved, std::optional<llvm::VersionTuple>(theAttr->MovedVersion));
+          Moved, std::optional<toolchain::VersionTuple>(theAttr->MovedVersion));
       auto abbrCode = S.DeclTypeAbbrCodes[OriginallyDefinedInDeclAttrLayout::Code];
-      llvm::SmallString<32> blob;
+      toolchain::SmallString<32> blob;
       blob.append(theAttr->ManglingModuleName.str());
       blob.push_back('\0');
       blob.append(theAttr->LinkerModuleName.str());
@@ -3124,8 +3127,8 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
         switch (domain.getKind()) {
           case AvailabilityDomain::Kind::Universal:
             return AvailabilityDomainKind::Universal;
-          case AvailabilityDomain::Kind::SwiftLanguage:
-            return AvailabilityDomainKind::SwiftLanguage;
+          case AvailabilityDomain::Kind::CodiraLanguage:
+            return AvailabilityDomainKind::CodiraLanguage;
           case AvailabilityDomain::Kind::PackageDescription:
             return AvailabilityDomainKind::PackageDescription;
           case AvailabilityDomain::Kind::Embedded:
@@ -3140,7 +3143,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       auto domainKind = getDomainKind(domain);
       const Decl *domainDecl = domain.getDecl();
 
-      llvm::SmallString<32> blob;
+      toolchain::SmallString<32> blob;
       blob.append(theAttr->getMessage());
       blob.append(theAttr->getRename());
       auto abbrCode = S.DeclTypeAbbrCodes[AvailableDeclAttrLayout::Code];
@@ -3166,7 +3169,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     case DeclAttrKind::BackDeployed: {
       auto *theAttr = cast<BackDeployedAttr>(DA);
       ENCODE_VER_TUPLE(Version,
-                       std::optional<llvm::VersionTuple>(theAttr->Version));
+                       std::optional<toolchain::VersionTuple>(theAttr->Version));
       auto abbrCode = S.DeclTypeAbbrCodes[BackDeployedDeclAttrLayout::Code];
       BackDeployedDeclAttrLayout::emitRecord(
           S.Out, S.ScratchRecord, abbrCode,
@@ -3204,52 +3207,39 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       return;
     }
 
+    case DeclAttrKind::Specialized:
     case DeclAttrKind::Specialize: {
       auto abbrCode = S.DeclTypeAbbrCodes[SpecializeDeclAttrLayout::Code];
-      auto attr = cast<SpecializeAttr>(DA);
-      auto targetFun = attr->getTargetFunctionName();
+      auto attr = cast<AbstractSpecializeAttr>(DA);
       auto *afd = cast<AbstractFunctionDecl>(D);
       auto *targetFunDecl = attr->getTargetFunctionDecl(afd);
 
       SmallVector<IdentifierID, 4> pieces;
 
-      // encodes whether this a a simple or compound name by adding one.
-      size_t numArgs = 0;
-      if (targetFun) {
-        pieces.push_back(S.addDeclBaseNameRef(targetFun.getBaseName()));
-        for (auto argName : targetFun.getArgumentNames())
-          pieces.push_back(S.addDeclBaseNameRef(argName));
-        if (targetFun.isSimpleName()) {
-          assert(pieces.size() == 1);
-          numArgs = 1;
-        } else
-          numArgs = pieces.size() + 1;
-      }
-
+      // SPI groups
+      auto numSPIGroups = attr->getSPIGroups().size();
       for (auto spi : attr->getSPIGroups()) {
         assert(!spi.empty() && "Empty SPI name");
         pieces.push_back(S.addDeclBaseNameRef(spi));
       }
 
+      // Type-erased params
       for (auto ty : attr->getTypeErasedParams()) {
         pieces.push_back(S.addTypeRef(ty));
       }
 
-      auto numSPIGroups = attr->getSPIGroups().size();
-      auto numTypeErasedParams = attr->getTypeErasedParams().size();
-      assert(pieces.size() == numArgs + numSPIGroups + numTypeErasedParams ||
-             pieces.size() == (numArgs - 1 + numSPIGroups + numTypeErasedParams));
       auto numAvailabilityAttrs = attr->getAvailableAttrs().size();
       SpecializeDeclAttrLayout::emitRecord(
-          S.Out, S.ScratchRecord, abbrCode, (unsigned)attr->isExported(),
+          S.Out, S.ScratchRecord, abbrCode, (unsigned)attr->isPublic(),
+          (unsigned)attr->isExported(),
           (unsigned)attr->getSpecializationKind(),
           S.addGenericSignatureRef(attr->getSpecializedSignature(afd)),
-          S.addDeclRef(targetFunDecl), numArgs, numSPIGroups,
-          numAvailabilityAttrs, numTypeErasedParams,
+          S.addDeclRef(targetFunDecl), numSPIGroups, numAvailabilityAttrs,
           pieces);
       for (auto availAttr : attr->getAvailableAttrs()) {
         writeDeclAttribute(D, availAttr);
       }
+      writeDeclNameRefIfNeeded(attr->getTargetFunctionName());
       return;
     }
 
@@ -3259,13 +3249,13 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
 
       SmallVector<IdentifierID, 4> properties;
 
-      llvm::transform(attr->getInitializesNames(),
+      toolchain::transform(attr->getInitializesNames(),
                       std::back_inserter(properties),
                       [&](Identifier propertyName) {
                         return S.addDeclBaseNameRef(propertyName);
                       });
 
-      llvm::transform(attr->getAccessesNames(),
+      toolchain::transform(attr->getAccessesNames(),
                       std::back_inserter(properties),
                       [&](Identifier propertyName) {
                         return S.addDeclBaseNameRef(propertyName);
@@ -3281,16 +3271,13 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       auto abbrCode =
           S.DeclTypeAbbrCodes[DynamicReplacementDeclAttrLayout::Code];
       auto theAttr = cast<DynamicReplacementAttr>(DA);
-      auto replacedFun = theAttr->getReplacedFunctionName();
-      SmallVector<IdentifierID, 4> pieces;
-      pieces.push_back(S.addDeclBaseNameRef(replacedFun.getBaseName()));
-      for (auto argName : replacedFun.getArgumentNames())
-        pieces.push_back(S.addDeclBaseNameRef(argName));
+
       auto *afd = cast<ValueDecl>(D)->getDynamicallyReplacedDecl();
       assert(afd && "Missing replaced decl!");
       DynamicReplacementDeclAttrLayout::emitRecord(
           S.Out, S.ScratchRecord, abbrCode, false, /*implicit flag*/
-          S.addDeclRef(afd), pieces.size(), pieces);
+          S.addDeclRef(afd));
+      writeDeclNameRefIfNeeded(theAttr->getReplacedFunctionName());
       return;
     }
 
@@ -3363,8 +3350,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
              "`@derivative` attribute should have original declaration set "
              "during construction or parsing");
       auto origDeclNameRef = attr->getOriginalFunctionName();
-      auto origName = origDeclNameRef.Name.getBaseName();
-      IdentifierID origNameId = S.addDeclBaseNameRef(origName);
+
       DeclID origDeclID = S.addDeclRef(attr->getOriginalFunction(ctx));
       auto derivativeKind =
           getRawStableAutoDiffDerivativeFunctionKind(attr->getDerivativeKind());
@@ -3378,9 +3364,10 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       for (unsigned i : range(parameterIndices->getCapacity()))
         paramIndicesVector.push_back(parameterIndices->contains(i));
       DerivativeDeclAttrLayout::emitRecord(
-          S.Out, S.ScratchRecord, abbrCode, attr->isImplicit(), origNameId,
+          S.Out, S.ScratchRecord, abbrCode, attr->isImplicit(),
           origAccessorKind.has_value(), rawAccessorKind, origDeclID,
           derivativeKind, paramIndicesVector);
+      writeDeclNameRefIfNeeded(origDeclNameRef.Name);
       return;
     }
 
@@ -3390,8 +3377,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       assert(attr->getOriginalFunction() &&
              "`@transpose` attribute should have original declaration set "
              "during construction or parsing");
-      auto origName = attr->getOriginalFunctionName().Name.getBaseName();
-      IdentifierID origNameId = S.addDeclBaseNameRef(origName);
+
       DeclID origDeclID = S.addDeclRef(attr->getOriginalFunction());
       auto *parameterIndices = attr->getParameterIndices();
       assert(parameterIndices && "Parameter indices must be resolved");
@@ -3399,8 +3385,9 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       for (unsigned i : range(parameterIndices->getCapacity()))
         paramIndicesVector.push_back(parameterIndices->contains(i));
       TransposeDeclAttrLayout::emitRecord(
-          S.Out, S.ScratchRecord, abbrCode, attr->isImplicit(), origNameId,
-          origDeclID, paramIndicesVector);
+          S.Out, S.ScratchRecord, abbrCode, attr->isImplicit(), origDeclID,
+          paramIndicesVector);
+      writeDeclNameRefIfNeeded(attr->getOriginalFunctionName().Name);
       return;
     }
 
@@ -3425,7 +3412,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     case DeclAttrKind::Extern: {
       auto *theAttr = cast<ExternAttr>(DA);
       auto abbrCode = S.DeclTypeAbbrCodes[ExternDeclAttrLayout::Code];
-      llvm::SmallString<32> blob;
+      toolchain::SmallString<32> blob;
       auto moduleName = theAttr->ModuleName.value_or(StringRef());
       auto name = theAttr->Name.value_or(StringRef());
       blob.append(moduleName);
@@ -3467,6 +3454,16 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       auto *theAttr = cast<NonisolatedAttr>(DA);
       auto abbrCode = S.DeclTypeAbbrCodes[NonisolatedDeclAttrLayout::Code];
       NonisolatedDeclAttrLayout::emitRecord(
+          S.Out, S.ScratchRecord, abbrCode,
+          static_cast<uint8_t>(theAttr->getModifier()), theAttr->isImplicit());
+      return;
+    }
+
+    case DeclAttrKind::InheritActorContext: {
+      auto *theAttr = cast<InheritActorContextAttr>(DA);
+      auto abbrCode =
+          S.DeclTypeAbbrCodes[InheritActorContextDeclAttrLayout::Code];
+      InheritActorContextDeclAttrLayout::emitRecord(
           S.Out, S.ScratchRecord, abbrCode,
           static_cast<uint8_t>(theAttr->getModifier()), theAttr->isImplicit());
       return;
@@ -3544,7 +3541,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
         rawSize = 0;
         rawAlign = 0;
       } else {
-        llvm_unreachable("unhandled raw layout attribute, or trying to serialize unresolved attr!");
+        toolchain_unreachable("unhandled raw layout attribute, or trying to serialize unresolved attr!");
       }
 
       RawLayoutDeclAttrLayout::emitRecord(
@@ -3553,6 +3550,13 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
       return;
     }
     case DeclAttrKind::Lifetime: {
+      return;
+    }
+    case DeclAttrKind::Nonexhaustive: {
+      auto *theAttr = cast<NonexhaustiveAttr>(DA);
+      auto abbrCode = S.DeclTypeAbbrCodes[NonexhaustiveDeclAttrLayout::Code];
+      NonexhaustiveDeclAttrLayout::emitRecord(S.Out, S.ScratchRecord, abbrCode,
+                                              (unsigned)theAttr->getMode());
       return;
     }
     }
@@ -3568,7 +3572,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     // In theory we can follow the same rules as mangling and only include
     // the outermost private context.
     bool shouldEmitPrivateDiscriminator =
-        access <= swift::AccessLevel::FilePrivate &&
+        access <= language::AccessLevel::FilePrivate &&
         !value->getDeclContext()->isLocalContext();
 
     // Emit the filename for private mapping for private decls and
@@ -3576,9 +3580,9 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     bool shouldEmitFilenameForPrivate =
         S.M->arePrivateImportsEnabled() &&
         !value->getDeclContext()->isLocalContext() &&
-        (access <= swift::AccessLevel::FilePrivate ||
+        (access <= language::AccessLevel::FilePrivate ||
          (storage &&
-          storage->getFormalAccess() >= swift::AccessLevel::Internal &&
+          storage->getFormalAccess() >= language::AccessLevel::Internal &&
           storage->hasPrivateAccessor()));
 
     if (shouldEmitFilenameForPrivate || shouldEmitPrivateDiscriminator) {
@@ -3596,7 +3600,7 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
         auto getFilename = [](FileUnit *enclosingFile,
                               const ValueDecl *decl) -> StringRef {
           if (auto *SF = dyn_cast<SourceFile>(enclosingFile)) {
-            return llvm::sys::path::filename(SF->getFilename());
+            return toolchain::sys::path::filename(SF->getFilename());
           } else if (auto *LF = dyn_cast<LoadedFile>(enclosingFile)) {
             return LF->getFilenameForPrivateDecl(decl);
           }
@@ -3624,6 +3628,32 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
     }
   }
 
+  void writeDeclNameRefIfNeeded(DeclNameRef name) {
+    using namespace decls_block;
+
+    // DeclNameRefs are always optional and write nothing when absent.
+    if (!name)
+      return;
+
+    bool isCompoundName = name.isCompoundName();
+    bool hasModuleSelector = name.hasModuleSelector();
+    SmallVector<IdentifierID, 8> rawPieceIDs;
+
+    if (hasModuleSelector)
+      rawPieceIDs.push_back(S.addDeclBaseNameRef(name.getModuleSelector()));
+
+    rawPieceIDs.push_back(S.addDeclBaseNameRef(name.getBaseName()));
+
+    if (isCompoundName)
+      for (auto argName : name.getArgumentNames())
+        rawPieceIDs.push_back(S.addDeclBaseNameRef(argName));
+
+    auto abbrCode = S.DeclTypeAbbrCodes[DeclNameRefLayout::Code];
+    DeclNameRefLayout::emitRecord(S.Out, S.ScratchRecord, abbrCode,
+                                  isCompoundName, hasModuleSelector,
+                                  rawPieceIDs);
+  }
+  
   size_t addConformances(const IterableDeclContext *declContext,
                          ConformanceLookupKind lookupKind,
                          SmallVectorImpl<uint64_t> &data) {
@@ -3663,10 +3693,10 @@ private:
     if (!DC->getParentModule()->isResilient())
       return;
 
-    // Everything should be safe in a swiftinterface. So, don't emit any safety
-    // record when building a swiftinterface in release builds. Debug builds
+    // Everything should be safe in a languageinterface. So, don't emit any safety
+    // record when building a languageinterface in release builds. Debug builds
     // instead print inconsistencies.
-    bool fromModuleInterface = DC->isInSwiftinterface();
+    bool fromModuleInterface = DC->isInCodirainterface();
 #if NDEBUG
     if (fromModuleInterface)
       return;
@@ -3702,7 +3732,7 @@ private:
 
     // Write a human readable name to an identifier.
     SmallString<64> out;
-    llvm::raw_svector_ostream outStream(out);
+    toolchain::raw_svector_ostream outStream(out);
     if (auto opaque = dyn_cast<OpaqueTypeDecl>(decl)) {
       outStream << "opaque ";
       outStream << opaque->getOpaqueReturnTypeIdentifier();
@@ -3715,12 +3745,12 @@ private:
     }
     auto name = S.getASTContext().getIdentifier(out);
 
-    LLVM_DEBUG(
-      llvm::dbgs() << "Serialization safety, "
+    TOOLCHAIN_DEBUG(
+      toolchain::dbgs() << "Serialization safety, "
                    << (declIsSafe? "safe" : "unsafe")
                    << ": '" << name << "'\n";
       assert((declIsSafe || !fromModuleInterface) &&
-             "All swiftinterface decls should be deserialization safe");
+             "All languageinterface decls should be deserialization safe");
     );
 
 #ifndef NDEBUG
@@ -3770,11 +3800,11 @@ private:
     TypeID completionHandlerTypeID = S.addTypeRef(fac.completionHandlerType());
 
     unsigned rawErrorParameterIndex =
-        swift::transform(fac.completionHandlerErrorParamIndex(),
+        language::transform(fac.completionHandlerErrorParamIndex(),
                          [](unsigned index) { return index + 1; })
             .value_or(0);
     unsigned rawErrorFlagParameterIndex =
-        swift::transform(fac.completionHandlerFlagParamIndex(),
+        language::transform(fac.completionHandlerFlagParamIndex(),
                          [](unsigned index) { return index + 1; })
             .value_or(0);
     auto abbrCode = S.DeclTypeAbbrCodes[ForeignAsyncConventionLayout::Code];
@@ -3878,7 +3908,7 @@ private:
       if (!pattern->hasType()) {
         if (S.allowCompilerErrors())
           return ErrorType::get(S.getASTContext());
-        llvm_unreachable("all nodes should have types");
+        toolchain_unreachable("all nodes should have types");
       }
 
       Type type = pattern->getType();
@@ -3956,7 +3986,7 @@ private:
     case PatternKind::OptionalSome:
     case PatternKind::Bool:
     case PatternKind::Expr:
-      llvm_unreachable("Refutable patterns cannot be serialized");
+      toolchain_unreachable("Refutable patterns cannot be serialized");
 
     case PatternKind::Binding: {
       auto var = cast<BindingPattern>(pattern);
@@ -3974,7 +4004,7 @@ private:
     using namespace decls_block;
 
     SmallVector<DeclID, 4> inheritedIDs;
-    llvm::transform(inherited, std::back_inserter(inheritedIDs),
+    toolchain::transform(inherited, std::back_inserter(inheritedIDs),
                     [&](const ProtocolDecl *P) { return S.addDeclRef(P); });
 
     unsigned abbrCode = S.DeclTypeAbbrCodes[InheritedProtocolsLayout::Code];
@@ -4017,7 +4047,7 @@ private:
     // merging them.
     if (!S.SF) return;
 
-    if (AFD->getResilienceExpansion() != swift::ResilienceExpansion::Minimal)
+    if (AFD->getResilienceExpansion() != language::ResilienceExpansion::Minimal)
       return;
 
     if (!AFD->hasInlinableBodyText()) return;
@@ -4028,10 +4058,10 @@ private:
     InlinableBodyTextLayout::emitRecord(S.Out, S.ScratchRecord, abbrCode, body);
   }
 
-  static bool getNeedsNewTableEntry(const AbstractFunctionDecl *func) {
-    if (isa_and_nonnull<ProtocolDecl>(func->getDeclContext()))
-      return func->requiresNewWitnessTableEntry();
-    return func->needsNewVTableEntry();
+  static bool getNeedsNewTableEntry(const AbstractFunctionDecl *fn) {
+    if (isa_and_nonnull<ProtocolDecl>(fn->getDeclContext()))
+      return fn->requiresNewWitnessTableEntry();
+    return fn->needsNewVTableEntry();
   }
 
   unsigned getNumberOfRequiredTableEntries(
@@ -4125,8 +4155,8 @@ public:
 
   void noteUseOfExportedPrespecialization(const AbstractFunctionDecl *afd) {
     bool hasNoted = false;
-    for (auto *A : afd->getAttrs().getAttributes<SpecializeAttr>()) {
-      auto *SA = cast<SpecializeAttr>(A);
+    for (auto *A : afd->getAttrs().getAttributes<AbstractSpecializeAttr>()) {
+      auto *SA = cast<AbstractSpecializeAttr>(A);
       if (!SA->isExported())
         continue;
       if (SA->getTargetFunctionDecl(afd)) {
@@ -4205,7 +4235,7 @@ public:
     size_t numInherited = addInherited(
         extension->getInherited(), data);
 
-    swift::SmallSetVector<Type, 4> dependencies;
+    language::SmallSetVector<Type, 4> dependencies;
     collectDependenciesFromType(
       dependencies, extendedType, /*excluding*/nullptr);
     for (Requirement req : extension->getGenericRequirements()) {
@@ -4245,7 +4275,7 @@ public:
 
     // Reverse the list, and write the parameter lists, from outermost
     // to innermost.
-    for (auto *genericParams : llvm::reverse(allGenericParams))
+    for (auto *genericParams : toolchain::reverse(allGenericParams))
       writeGenericParams(genericParams);
 
     writeMembers(id, extension->getAllMembers(), isClassExtension);
@@ -4366,7 +4396,7 @@ public:
 
     auto underlying = typeAlias->getUnderlyingType();
 
-    swift::SmallSetVector<Type, 4> dependencies;
+    language::SmallSetVector<Type, 4> dependencies;
     collectDependenciesFromType(dependencies, underlying->getCanonicalType(),
                                 /*excluding*/nullptr);
     for (Requirement req : typeAlias->getGenericRequirements()) {
@@ -4439,7 +4469,7 @@ public:
         addConformances(theStruct, ConformanceLookupKind::All, data);
     size_t numInherited = addInherited(theStruct->getInherited(), data);
 
-    swift::SmallSetVector<Type, 4> dependencyTypes;
+    language::SmallSetVector<Type, 4> dependencyTypes;
     for (Requirement req : theStruct->getGenericRequirements()) {
       collectDependenciesFromRequirement(dependencyTypes, req,
                                          /*excluding*/nullptr);
@@ -4479,7 +4509,7 @@ public:
         addConformances(theEnum, ConformanceLookupKind::All, data);
     size_t numInherited = addInherited(theEnum->getInherited(), data);
 
-    swift::SmallSetVector<Type, 4> dependencyTypes;
+    language::SmallSetVector<Type, 4> dependencyTypes;
     for (const EnumElementDecl *nextElt : theEnum->getAllElements()) {
       if (!nextElt->hasAssociatedValues())
         continue;
@@ -4532,7 +4562,7 @@ public:
         addConformances(theClass, ConformanceLookupKind::NonInherited, data);
     size_t numInherited = addInherited(theClass->getInherited(), data);
 
-    swift::SmallSetVector<Type, 4> dependencyTypes;
+    language::SmallSetVector<Type, 4> dependencyTypes;
     if (theClass->hasSuperclass()) {
       // FIXME: Nested types can still be a problem here: it's possible that (for
       // whatever reason) they won't be able to be deserialized, in which case
@@ -4581,7 +4611,7 @@ public:
 
     auto contextID = S.addDeclContextRef(proto->getDeclContext());
 
-    swift::SmallSetVector<Type, 4> dependencyTypes;
+    language::SmallSetVector<Type, 4> dependencyTypes;
 
     // Separately collect inherited protocol types as dependencies.
     for (auto element : proto->getInherited().getEntries()) {
@@ -4718,10 +4748,10 @@ public:
     // Type of the default expression.
     Type defaultExprType;
 
-    swift::DefaultArgumentKind argKind = param->getDefaultArgumentKind();
-    if (argKind == swift::DefaultArgumentKind::Normal ||
-        argKind == swift::DefaultArgumentKind::StoredProperty ||
-        argKind == swift::DefaultArgumentKind::ExpressionMacro) {
+    language::DefaultArgumentKind argKind = param->getDefaultArgumentKind();
+    if (argKind == language::DefaultArgumentKind::Normal ||
+        argKind == language::DefaultArgumentKind::StoredProperty ||
+        argKind == language::DefaultArgumentKind::ExpressionMacro) {
       defaultArgumentText =
         param->getDefaultValueStringRepresentation(scratch);
 
@@ -4757,9 +4787,9 @@ public:
         defaultArgumentText);
 
     if (interfaceType->hasError() && !S.allowCompilerErrors()) {
-      param->getDeclContext()->printContext(llvm::errs());
-      interfaceType->dump(llvm::errs());
-      llvm_unreachable("error in interface type of parameter");
+      param->getDeclContext()->printContext(toolchain::errs());
+      interfaceType->dump(toolchain::errs());
+      toolchain_unreachable("error in interface type of parameter");
     }
   }
 
@@ -4880,7 +4910,7 @@ public:
         unsigned condAbbrCode =
             S.DeclTypeAbbrCodes[ConditionalSubstitutionConditionLayout::Code];
         for (const auto &condition : subs->getAvailability()) {
-          ENCODE_VER_TUPLE(osVersion, std::optional<llvm::VersionTuple>(
+          ENCODE_VER_TUPLE(osVersion, std::optional<toolchain::VersionTuple>(
                                           condition.first.getLowerEndpoint()));
           ConditionalSubstitutionConditionLayout::emitRecord(
               S.Out, S.ScratchRecord, condAbbrCode,
@@ -4976,7 +5006,7 @@ public:
       nameComponentsAndDependencies.push_back(S.addTypeRef(dependency));
 
     // We only serialize the raw values of @objc enums, because they're part
-    // of the ABI. That isn't the case for Swift enums.
+    // of the ABI. That isn't the case for Codira enums.
     auto rawValueKind = EnumElementRawValueKind::None;
     bool isNegative = false, isRawValueImplicit = false;
     StringRef RawValueText;
@@ -5002,6 +5032,14 @@ public:
                                   nameComponentsAndDependencies);
     if (auto *PL = elem->getParameterList())
       writeParameterList(PL);
+
+    auto fnType = ty->getAs<AnyFunctionType>();
+    if (fnType) {
+      auto lifetimeDependencies = fnType->getLifetimeDependencies();
+      if (!lifetimeDependencies.empty()) {
+        S.writeLifetimeDependencies(lifetimeDependencies);
+      }
+    }
   }
 
   void visitSubscriptDecl(const SubscriptDecl *subscript) {
@@ -5192,9 +5230,6 @@ public:
         case BuiltinMacroKind::IsolationMacro:
           builtinID = 2;
           break;
-        case BuiltinMacroKind::SwiftSettingsMacro:
-          builtinID = 3;
-          break;
         }
         break;
       }
@@ -5258,31 +5293,35 @@ public:
   }
 
   void visitImportDecl(const ImportDecl *) {
-    llvm_unreachable("import decls should not be serialized");
+    toolchain_unreachable("import decls should not be serialized");
+  }
+
+  void visitUsingDecl(const UsingDecl *) {
+    toolchain_unreachable("using decls should not be serialized");
   }
 
   void visitEnumCaseDecl(const EnumCaseDecl *) {
-    llvm_unreachable("enum case decls should not be serialized");
+    toolchain_unreachable("enum case decls should not be serialized");
   }
 
   void visitModuleDecl(const ModuleDecl *) {
-    llvm_unreachable("module decls are not serialized");
+    toolchain_unreachable("module decls are not serialized");
   }
 
   void visitMissingDecl(const MissingDecl *) {
-    llvm_unreachable("missing decls are not serialized");
+    toolchain_unreachable("missing decls are not serialized");
   }
 
   void visitMissingMemberDecl(const MissingMemberDecl *) {
-    llvm_unreachable("member placeholders shouldn't be serialized");
+    toolchain_unreachable("member placeholders shouldn't be serialized");
   }
 
   void visitMacroExpansionDecl(const MacroExpansionDecl *) {
-    llvm_unreachable("macro expansion decls shouldn't be serialized");
+    toolchain_unreachable("macro expansion decls shouldn't be serialized");
   }
 
   void visitBuiltinTupleDecl(const BuiltinTupleDecl *) {
-    llvm_unreachable("BuiltinTupleDecl are not serialized");
+    toolchain_unreachable("BuiltinTupleDecl are not serialized");
   }
 };
 
@@ -5322,10 +5361,10 @@ void Serializer::writeASTBlockEntity(const Decl *D) {
     return;
 
   BitOffset initialOffset = Out.GetCurrentBitNo();
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     // This is important enough to leave on in Release builds.
     if (initialOffset == Out.GetCurrentBitNo()) {
-      abortWithPrettyStackTraceMessage("failed to serialize anything");
+      ABORT("failed to serialize anything");
     }
   };
 
@@ -5342,25 +5381,25 @@ void Serializer::writeASTBlockEntity(const Decl *D) {
 }
 
 #define SIMPLE_CASE(TYPENAME, VALUE) \
-  case swift::TYPENAME::VALUE: return uint8_t(serialization::TYPENAME::VALUE);
+  case language::TYPENAME::VALUE: return uint8_t(serialization::TYPENAME::VALUE);
 
 /// Translate from the AST function representation enum to the Serialization enum
 /// values, which are guaranteed to be stable.
 static uint8_t getRawStableFunctionTypeRepresentation(
-                                       swift::FunctionType::Representation cc) {
+                                       language::FunctionType::Representation cc) {
   switch (cc) {
-  SIMPLE_CASE(FunctionTypeRepresentation, Swift)
+  SIMPLE_CASE(FunctionTypeRepresentation, Codira)
   SIMPLE_CASE(FunctionTypeRepresentation, Block)
   SIMPLE_CASE(FunctionTypeRepresentation, Thin)
   SIMPLE_CASE(FunctionTypeRepresentation, CFunctionPointer)
   }
-  llvm_unreachable("bad calling convention");
+  toolchain_unreachable("bad calling convention");
 }
 
 /// Translate from the AST function representation enum to the Serialization enum
 /// values, which are guaranteed to be stable.
 static uint8_t getRawStableSILFunctionTypeRepresentation(
-                                    swift::SILFunctionType::Representation cc) {
+                                    language::SILFunctionType::Representation cc) {
   switch (cc) {
   SIMPLE_CASE(SILFunctionTypeRepresentation, Thick)
   SIMPLE_CASE(SILFunctionTypeRepresentation, Block)
@@ -5376,37 +5415,37 @@ static uint8_t getRawStableSILFunctionTypeRepresentation(
   SIMPLE_CASE(SILFunctionTypeRepresentation, KeyPathAccessorEquals)
   SIMPLE_CASE(SILFunctionTypeRepresentation, KeyPathAccessorHash)
   }
-  llvm_unreachable("bad calling convention");
+  toolchain_unreachable("bad calling convention");
 }
 
 /// Translate from the AST coroutine-kind enum to the Serialization enum
 /// values, which are guaranteed to be stable.
 static uint8_t getRawStableSILCoroutineKind(
-                                    swift::SILCoroutineKind kind) {
+                                    language::SILCoroutineKind kind) {
   switch (kind) {
   SIMPLE_CASE(SILCoroutineKind, None)
   SIMPLE_CASE(SILCoroutineKind, YieldOnce)
   SIMPLE_CASE(SILCoroutineKind, YieldOnce2)
   SIMPLE_CASE(SILCoroutineKind, YieldMany)
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /// Translate from the AST ownership enum to the Serialization enum
 /// values, which are guaranteed to be stable.
 static uint8_t
-getRawStableReferenceOwnership(swift::ReferenceOwnership ownership) {
+getRawStableReferenceOwnership(language::ReferenceOwnership ownership) {
   switch (ownership) {
   SIMPLE_CASE(ReferenceOwnership, Strong)
 #define REF_STORAGE(Name, ...) \
   SIMPLE_CASE(ReferenceOwnership, Name)
 #include "language/AST/ReferenceStorage.def"
   }
-  llvm_unreachable("bad ownership kind");
+  toolchain_unreachable("bad ownership kind");
 }
 /// Translate from the AST ParameterConvention enum to the
 /// Serialization enum values, which are guaranteed to be stable.
-static uint8_t getRawStableParameterConvention(swift::ParameterConvention pc) {
+static uint8_t getRawStableParameterConvention(language::ParameterConvention pc) {
   switch (pc) {
   SIMPLE_CASE(ParameterConvention, Indirect_In)
   SIMPLE_CASE(ParameterConvention, Indirect_In_Guaranteed)
@@ -5420,13 +5459,13 @@ static uint8_t getRawStableParameterConvention(swift::ParameterConvention pc) {
   SIMPLE_CASE(ParameterConvention, Pack_Inout)
   SIMPLE_CASE(ParameterConvention, Pack_Guaranteed)
   }
-  llvm_unreachable("bad parameter convention kind");
+  toolchain_unreachable("bad parameter convention kind");
 }
 
 /// Translate from AST SILParameterInfo::Options enum to the Serialization
 /// enum values, which are guaranteed to be stable.
 static std::optional<serialization::SILParameterInfoOptions>
-getRawSILParameterInfoOptions(swift::SILParameterInfo::Options options) {
+getRawSILParameterInfoOptions(language::SILParameterInfo::Options options) {
   serialization::SILParameterInfoOptions result;
 
   if (options.contains(SILParameterInfo::NotDifferentiable)) {
@@ -5463,7 +5502,7 @@ getRawSILParameterInfoOptions(swift::SILParameterInfo::Options options) {
 
 /// Translate from the AST ResultConvention enum to the
 /// Serialization enum values, which are guaranteed to be stable.
-static uint8_t getRawStableResultConvention(swift::ResultConvention rc) {
+static uint8_t getRawStableResultConvention(language::ResultConvention rc) {
   switch (rc) {
   SIMPLE_CASE(ResultConvention, Indirect)
   SIMPLE_CASE(ResultConvention, Owned)
@@ -5472,13 +5511,13 @@ static uint8_t getRawStableResultConvention(swift::ResultConvention rc) {
   SIMPLE_CASE(ResultConvention, Autoreleased)
   SIMPLE_CASE(ResultConvention, Pack)
   }
-  llvm_unreachable("bad result convention kind");
+  toolchain_unreachable("bad result convention kind");
 }
 
 /// Translate from AST SILResultDifferentiability enum to the Serialization enum
 /// values, which are guaranteed to be stable.
 static std::optional<serialization::SILResultInfoOptions>
-getRawSILResultInfoOptions(swift::SILResultInfo::Options options) {
+getRawSILResultInfoOptions(language::SILResultInfo::Options options) {
   serialization::SILResultInfoOptions result;
 
   if (options.contains(SILResultInfo::NotDifferentiable)) {
@@ -5504,8 +5543,8 @@ getRawSILResultInfoOptions(swift::SILResultInfo::Options options) {
 /// Find the typealias given a builtin type.
 static TypeAliasDecl *findTypeAliasForBuiltin(ASTContext &Ctx, Type T) {
   /// Get the type name by chopping off "Builtin.".
-  llvm::SmallString<32> FullName;
-  llvm::raw_svector_ostream OS(FullName);
+  toolchain::SmallString<32> FullName;
+  toolchain::raw_svector_ostream OS(FullName);
   T->print(OS);
   assert(FullName.str().starts_with(BUILTIN_TYPE_NAME_PREFIX));
   StringRef TypeName = FullName.substr(8);
@@ -5535,7 +5574,7 @@ public:
                                   S.addTypeRef(ty->getOriginalType()));
       return;
     }
-    llvm_unreachable("should not serialize an ErrorType");
+    toolchain_unreachable("should not serialize an ErrorType");
   }
 
   void visitUnresolvedType(const UnresolvedType *) {
@@ -5546,7 +5585,7 @@ public:
           cast<ErrorType>(ErrorType::get(S.getASTContext()).getPointer()));
       return;
     }
-    llvm_unreachable("should not serialize an UnresolvedType");
+    toolchain_unreachable("should not serialize an UnresolvedType");
   }
 
   void visitPlaceholderType(const PlaceholderType *) {
@@ -5557,31 +5596,31 @@ public:
           cast<ErrorType>(ErrorType::get(S.getASTContext()).getPointer()));
       return;
     }
-    llvm_unreachable("should not serialize a PlaceholderType");
+    toolchain_unreachable("should not serialize a PlaceholderType");
   }
 
   void visitModuleType(const ModuleType *) {
-    llvm_unreachable("modules are currently not first-class values");
+    toolchain_unreachable("modules are currently not first-class values");
   }
 
   void visitInOutType(const InOutType *) {
-    llvm_unreachable("inout types are only used in function type parameters");
+    toolchain_unreachable("inout types are only used in function type parameters");
   }
 
   void visitLValueType(const LValueType *) {
-    llvm_unreachable("lvalue types are only used in function bodies");
+    toolchain_unreachable("lvalue types are only used in function bodies");
   }
 
   void visitTypeVariableType(const TypeVariableType *) {
-    llvm_unreachable("type variables should not escape the type checker");
+    toolchain_unreachable("type variables should not escape the type checker");
   }
 
   void visitErrorUnionType(const ErrorUnionType *) {
-    llvm_unreachable("error union types do not persist in the AST");
+    toolchain_unreachable("error union types do not persist in the AST");
   }
 
-  void visitLocatableType(const LocatableType *) {
-    llvm_unreachable("locatable types do not persist in the AST");
+  void visitLocatableType(const LocatableType *LT) {
+    visit(LT->getSinglyDesugaredType());
   }
 
   void visitBuiltinTypeImpl(Type ty) {
@@ -5815,6 +5854,7 @@ public:
                                            paramKind,
                                            hasDecl,
                                            genericParam->getDepth(),
+                                           genericParam->getWeight(),
                                            genericParam->getIndex(),
                                            declOrIdentifier,
                                            valueTypeID);
@@ -5849,21 +5889,21 @@ public:
     }
   }
 
-  TypeID encodeIsolation(swift::FunctionTypeIsolation isolation) {
+  TypeID encodeIsolation(language::FunctionTypeIsolation isolation) {
     switch (isolation.getKind()) {
-    case swift::FunctionTypeIsolation::Kind::NonIsolated:
+    case language::FunctionTypeIsolation::Kind::NonIsolated:
       return unsigned(FunctionTypeIsolation::NonIsolated);
-    case swift::FunctionTypeIsolation::Kind::NonIsolatedCaller:
+    case language::FunctionTypeIsolation::Kind::NonIsolatedCaller:
       return unsigned(FunctionTypeIsolation::NonIsolatedCaller);
-    case swift::FunctionTypeIsolation::Kind::Parameter:
+    case language::FunctionTypeIsolation::Kind::Parameter:
       return unsigned(FunctionTypeIsolation::Parameter);
-    case swift::FunctionTypeIsolation::Kind::Erased:
+    case language::FunctionTypeIsolation::Kind::Erased:
       return unsigned(FunctionTypeIsolation::Erased);
-    case swift::FunctionTypeIsolation::Kind::GlobalActor:
+    case language::FunctionTypeIsolation::Kind::GlobalActor:
       return unsigned(FunctionTypeIsolation::GlobalActorOffset)
                + S.addTypeRef(isolation.getGlobalActorType());
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   void visitFunctionType(const FunctionType *fnTy) {
@@ -6148,10 +6188,10 @@ void Serializer::writeASTBlockEntity(Type ty) {
   assert(TypesToSerialize.hasRef(ty));
 
   BitOffset initialOffset = Out.GetCurrentBitNo();
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     // This is important enough to leave on in Release builds.
     if (initialOffset == Out.GetCurrentBitNo()) {
-      abortWithPrettyStackTraceMessage("failed to serialize anything");
+      ABORT("failed to serialize anything");
     }
   };
 
@@ -6159,13 +6199,13 @@ void Serializer::writeASTBlockEntity(Type ty) {
 }
 
 namespace {
-class ClangToSwiftBasicWriter :
-    public swift::DataStreamBasicWriter<ClangToSwiftBasicWriter> {
+class ClangToCodiraBasicWriter :
+    public language::DataStreamBasicWriter<ClangToCodiraBasicWriter> {
 
   Serializer &S;
   SmallVectorImpl<uint64_t> &Record;
   using TypeWriter =
-    clang::serialization::AbstractTypeWriter<ClangToSwiftBasicWriter>;
+    clang::serialization::AbstractTypeWriter<ClangToCodiraBasicWriter>;
   TypeWriter Types;
 
   ClangModuleLoader *getClangLoader() {
@@ -6173,8 +6213,8 @@ class ClangToSwiftBasicWriter :
   }
 
 public:
-  ClangToSwiftBasicWriter(Serializer &S, SmallVectorImpl<uint64_t> &record)
-    : swift::DataStreamBasicWriter<ClangToSwiftBasicWriter>(
+  ClangToCodiraBasicWriter(Serializer &S, SmallVectorImpl<uint64_t> &record)
+    : language::DataStreamBasicWriter<ClangToCodiraBasicWriter>(
         S.getASTContext().getClangModuleLoader()->getClangASTContext()),
       S(S), Record(record), Types(*this) {}
 
@@ -6195,7 +6235,7 @@ public:
     // The deserializer should always read null, and isSerializable
     // should be checking that we don't see a non-null statement here.
     if (stmt) {
-      llvm::report_fatal_error("serializing a non-null Clang statement or"
+      toolchain::report_fatal_error("serializing a non-null Clang statement or"
                                " expression reference");
     }
   }
@@ -6208,14 +6248,14 @@ public:
 
     auto path = getClangLoader()->findStableSerializationPath(decl);
     if (!path) {
-      decl->dump(llvm::errs());
-      llvm::report_fatal_error("failed to find a stable Swift serialization"
+      decl->dump(toolchain::errs());
+      toolchain::report_fatal_error("failed to find a stable Codira serialization"
                                " path for the above Clang declaration");
     }
 
-    if (path.isSwiftDecl()) {
-      Record.push_back(/*swift declaration*/ 1);
-      Record.push_back(S.addDeclRef(path.getSwiftDecl()));
+    if (path.isCodiraDecl()) {
+      Record.push_back(/*language declaration*/ 1);
+      Record.push_back(S.addDeclRef(path.getCodiraDecl()));
       return;
     }
 
@@ -6233,26 +6273,26 @@ public:
   }
 
   void writeAttr(const clang::Attr *attr) {
-    auto *swiftAttr = dyn_cast_or_null<clang::SwiftAttrAttr>(attr);
-    if (!swiftAttr) {
+    auto *languageAttr = dyn_cast_or_null<clang::CodiraAttrAttr>(attr);
+    if (!languageAttr) {
       writeUInt32(/*no attribute*/0);
       return;
     }
 
-    writeEnum(swiftAttr->getKind() + 1);
-    writeIdentifier(swiftAttr->getAttrName());
-    writeIdentifier(swiftAttr->getScopeName());
-    writeSourceLocation(swiftAttr->getRange().getBegin());
-    writeSourceLocation(swiftAttr->getRange().getEnd());
-    writeSourceLocation(swiftAttr->getScopeLoc());
-    writeEnum(swiftAttr->getParsedKind());
-    writeEnum(swiftAttr->getSyntax());
-    writeUInt64(swiftAttr->getAttributeSpellingListIndex());
-    writeBool(swiftAttr->isRegularKeywordAttribute());
-    writeBool(swiftAttr->isInherited());
-    writeBool(swiftAttr->isImplicit());
-    writeBool(swiftAttr->isPackExpansion());
-    writeUInt64(S.addUniquedStringRef(swiftAttr->getAttribute()));
+    writeEnum(languageAttr->getKind() + 1);
+    writeIdentifier(languageAttr->getAttrName());
+    writeIdentifier(languageAttr->getScopeName());
+    writeSourceLocation(languageAttr->getRange().getBegin());
+    writeSourceLocation(languageAttr->getRange().getEnd());
+    writeSourceLocation(languageAttr->getScopeLoc());
+    writeEnum(languageAttr->getParsedKind());
+    writeEnum(languageAttr->getSyntax());
+    writeUInt64(languageAttr->getAttributeSpellingListIndex());
+    writeBool(languageAttr->isRegularKeywordAttribute());
+    writeBool(languageAttr->isInherited());
+    writeBool(languageAttr->isImplicit());
+    writeBool(languageAttr->isPackExpansion());
+    writeUInt64(S.addUniquedStringRef(languageAttr->getAttribute()));
   }
 
   // CountAttributedType is a clang type representing a pointer with
@@ -6262,9 +6302,9 @@ public:
   // referenced from an expression argument of "__counted_by(expr)" or
   // "__ended_by(expr)".
   // Nothing to be done for now as we currently don't import
-  // these types into Swift.
+  // these types into Codira.
   void writeTypeCoupledDeclRefInfo(clang::TypeCoupledDeclRefInfo info) {
-    llvm_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from swift");
+    toolchain_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from language");
   }
 };
 
@@ -6278,7 +6318,7 @@ void Serializer::writeASTBlockEntity(const clang::Type *ty) {
 
   // Serialize the type as an opaque sequence of data.
   SmallVector<uint64_t, 16> typeData;
-  ClangToSwiftBasicWriter(*this, typeData).writeTypeRef(ty);
+  ClangToCodiraBasicWriter(*this, typeData).writeTypeRef(ty);
 
   // Write that in an opaque record.
   unsigned abbrCode = DeclTypeAbbrCodes[ClangTypeLayout::Code];
@@ -6342,6 +6382,7 @@ void Serializer::writeAllDeclsAndTypes() {
   registerDeclTypeAbbr<ErrorFlagLayout>();
   registerDeclTypeAbbr<ErrorTypeLayout>();
   registerDeclTypeAbbr<ABIOnlyCounterpartLayout>();
+  registerDeclTypeAbbr<DeclNameRefLayout>();
 
   registerDeclTypeAbbr<ClangTypeLayout>();
 
@@ -6468,7 +6509,7 @@ std::vector<CharOffset> Serializer::writeAllIdentifiers() {
   BCBlockRAII restoreBlock(Out, IDENTIFIER_DATA_BLOCK_ID, 3);
   identifier_block::IdentifierDataLayout IdentifierData(Out);
 
-  llvm::SmallString<4096> stringData;
+  toolchain::SmallString<4096> stringData;
 
   // Make sure no identifier has an offset of 0.
   stringData.push_back('\0');
@@ -6500,16 +6541,16 @@ static void writeDeclTable(const index_block::DeclListLayout &DeclList,
     return;
 
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::OnDiskChainedHashTableGenerator<DeclTableInfo> generator;
+    toolchain::OnDiskChainedHashTableGenerator<DeclTableInfo> generator;
     for (auto &entry : table)
       generator.insert(entry.first, entry.second);
 
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6524,18 +6565,18 @@ writeExtensionTable(const index_block::ExtensionTableLayout &ExtensionTable,
     return;
 
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::OnDiskChainedHashTableGenerator<ExtensionTableInfo> generator;
+    toolchain::OnDiskChainedHashTableGenerator<ExtensionTableInfo> generator;
     ExtensionTableInfo info{serializer};
     for (auto &entry : table) {
       generator.insert(entry.first, entry.second, info);
     }
 
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream, info);
   }
 
@@ -6546,12 +6587,12 @@ static void writeLocalDeclTable(const index_block::DeclListLayout &DeclList,
                                 index_block::RecordKind kind,
                                 LocalTypeHashTableGenerator &generator) {
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6562,16 +6603,16 @@ static void
 writeNestedTypeDeclsTable(const index_block::NestedTypeDeclsLayout &declList,
                           const Serializer::NestedTypeDeclsTable &table) {
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::OnDiskChainedHashTableGenerator<NestedTypeDeclsTableInfo> generator;
+    toolchain::OnDiskChainedHashTableGenerator<NestedTypeDeclsTableInfo> generator;
     for (auto &entry : table)
       generator.insert(entry.first, entry.second);
 
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6582,10 +6623,10 @@ static void
 writeDeclMemberNamesTable(const index_block::DeclMemberNamesLayout &declNames,
                           const Serializer::DeclMemberNamesTable &table) {
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::OnDiskChainedHashTableGenerator<DeclMemberNamesTableInfo> generator;
+    toolchain::OnDiskChainedHashTableGenerator<DeclMemberNamesTableInfo> generator;
     // Emit the offsets of the sub-tables; the tables themselves have been
     // separately emitted into DECL_MEMBER_TABLES_BLOCK by now.
     for (auto &entry : table) {
@@ -6594,9 +6635,9 @@ writeDeclMemberNamesTable(const index_block::DeclMemberNamesLayout &declNames,
       generator.insert(entry.first, entry.second.first);
     }
 
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6607,16 +6648,16 @@ static void
 writeDeclMembersTable(const decl_member_tables_block::DeclMembersLayout &mems,
                       const Serializer::DeclMembersTable &table) {
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::OnDiskChainedHashTableGenerator<DeclMembersTableInfo> generator;
+    toolchain::OnDiskChainedHashTableGenerator<DeclMembersTableInfo> generator;
     for (auto &entry : table)
       generator.insert(entry.first, entry.second);
 
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6627,17 +6668,17 @@ static void
 writeDeclFingerprintsTable(const index_block::DeclFingerprintsLayout &fpl,
                            const Serializer::DeclFingerprintsTable &table) {
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<4096> hashTableBlob;
+  toolchain::SmallString<4096> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::OnDiskChainedHashTableGenerator<DeclFingerprintsTableInfo> generator;
+    toolchain::OnDiskChainedHashTableGenerator<DeclFingerprintsTableInfo> generator;
     for (auto &entry : table) {
       generator.insert(entry.first, entry.second);
     }
 
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6656,14 +6697,14 @@ namespace {
     using offset_type = unsigned;
 
     hash_value_type ComputeHash(key_type_ref key) {
-      llvm::SmallString<32> scratch;
-      return llvm::djbHash(key.getString(scratch), SWIFTMODULE_HASH_SEED);
+      toolchain::SmallString<32> scratch;
+      return toolchain::djbHash(key.getString(scratch), LANGUAGEMODULE_HASH_SEED);
     }
 
     std::pair<unsigned, unsigned> EmitKeyDataLength(raw_ostream &out,
                                                     key_type_ref key,
                                                     data_type_ref data) {
-      llvm::SmallString<32> scratch;
+      toolchain::SmallString<32> scratch;
       auto keyLength = key.getString(scratch).size();
       assert(keyLength <= std::numeric_limits<uint16_t>::max() &&
              "selector too long");
@@ -6673,7 +6714,7 @@ namespace {
         dataLength += std::get<0>(entry).size();
       }
 
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       writer.write<uint32_t>(dataLength);
       return { keyLength, dataLength };
@@ -6690,7 +6731,7 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       for (const auto &entry : data) {
         writer.write<uint32_t>(std::get<0>(entry).size());
         writer.write<uint8_t>(std::get<1>(entry));
@@ -6710,20 +6751,20 @@ static void writeObjCMethodTable(const index_block::ObjCMethodTableLayout &out,
   }
 
   // Sort the Objective-C selectors so we emit them in a stable order.
-  llvm::array_pod_sort(selectors.begin(), selectors.end());
+  toolchain::array_pod_sort(selectors.begin(), selectors.end());
 
   // Create the on-disk hash table.
-  llvm::OnDiskChainedHashTableGenerator<ObjCMethodTableInfo> generator;
-  llvm::SmallString<32> hashTableBlob;
+  toolchain::OnDiskChainedHashTableGenerator<ObjCMethodTableInfo> generator;
+  toolchain::SmallString<32> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     for (auto selector : selectors) {
       generator.insert(selector, objcMethods[selector]);
     }
 
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
 
@@ -6744,7 +6785,7 @@ namespace {
 
     hash_value_type ComputeHash(key_type_ref key) {
       assert(!key.empty());
-      return llvm::djbHash(key, SWIFTMODULE_HASH_SEED);
+      return toolchain::djbHash(key, LANGUAGEMODULE_HASH_SEED);
     }
 
     std::pair<unsigned, unsigned> EmitKeyDataLength(raw_ostream &out,
@@ -6756,7 +6797,7 @@ namespace {
       for (auto entry : data)
         dataLength += entry.first.size();
       assert(dataLength == static_cast<uint16_t>(dataLength));
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       writer.write<uint16_t>(keyLength);
       writer.write<uint16_t>(dataLength);
       return { keyLength, dataLength };
@@ -6769,7 +6810,7 @@ namespace {
     void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                   unsigned len) {
       static_assert(declIDFitsIn32Bits(), "DeclID too large");
-      endian::Writer writer(out, llvm::endianness::little);
+      endian::Writer writer(out, toolchain::endianness::little);
       for (auto &entry : data) {
         // Write `GenericSignatureID`.
         writer.write<uint32_t>(entry.second);
@@ -6785,16 +6826,16 @@ static void writeDerivativeFunctionConfigs(
     Serializer &S, const index_block::DerivativeFunctionConfigTableLayout &out,
     Serializer::DerivativeFunctionConfigTable &derivativeConfigs) {
   // Create the on-disk hash table.
-  llvm::OnDiskChainedHashTableGenerator<DerivativeFunctionConfigTableInfo>
+  toolchain::OnDiskChainedHashTableGenerator<DerivativeFunctionConfigTableInfo>
       generator;
-  llvm::SmallString<32> hashTableBlob;
+  toolchain::SmallString<32> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     for (auto &entry : derivativeConfigs)
       generator.insert(entry.first.get(), entry.second);
     // Make sure that no bucket is at offset 0.
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = generator.Emit(blobStream);
   }
   SmallVector<uint64_t, 8> scratch;
@@ -6839,20 +6880,20 @@ static void collectInterestingNestedDeclarations(
 
   for (const Decl *member : members) {
     // If there is a corresponding Objective-C method, record it.
-    auto recordObjCMethod = [&](const AbstractFunctionDecl *func) {
+    auto recordObjCMethod = [&](const AbstractFunctionDecl *fn) {
       if (isLocal)
         return;
 
-      if (auto owningType = func->getDeclContext()->getSelfNominalTypeDecl()) {
-        if (func->isObjC()) {
-          Mangle::ASTMangler mangler(func->getASTContext());
+      if (auto owningType = fn->getDeclContext()->getSelfNominalTypeDecl()) {
+        if (fn->isObjC()) {
+          Mangle::ASTMangler mangler(fn->getASTContext());
           std::string ownerName = mangler.mangleNominalType(owningType);
           assert(!ownerName.empty() && "Mangled type came back empty!");
 
-          objcMethods[func->getObjCSelector()].push_back(
+          objcMethods[fn->getObjCSelector()].push_back(
             std::make_tuple(ownerName,
-                            func->isObjCInstanceMethod(),
-                            S.addDeclRef(func)));
+                            fn->isObjCInstanceMethod(),
+                            S.addDeclRef(fn)));
         }
       }
     };
@@ -6871,9 +6912,9 @@ static void collectInterestingNestedDeclarations(
     }
 
     // Record Objective-C methods and derivative function configurations.
-    if (auto *func = dyn_cast<AbstractFunctionDecl>(member)) {
-      recordObjCMethod(func);
-      recordDerivativeFunctionConfig(S, func, derivativeConfigs);
+    if (auto *fn = dyn_cast<AbstractFunctionDecl>(member)) {
+      recordObjCMethod(fn);
+      recordDerivativeFunctionConfig(S, fn, derivativeConfigs);
     }
 
     // Handle accessors.
@@ -6885,7 +6926,7 @@ static void collectInterestingNestedDeclarations(
     }
 
     if (auto nestedType = dyn_cast<TypeDecl>(member)) {
-      if (nestedType->getEffectiveAccess() > swift::AccessLevel::FilePrivate) {
+      if (nestedType->getEffectiveAccess() > language::AccessLevel::FilePrivate) {
         if (!nominalParent) {
           const DeclContext *DC = member->getDeclContext();
           nominalParent = DC->getSelfNominalTypeDecl();
@@ -6936,14 +6977,14 @@ void Serializer::writeAST(ModuleOrSourceFile DC) {
     Scratch.push_back(SF);
     if (auto *synthesizedFile = SF->getSynthesizedFile())
       Scratch.push_back(synthesizedFile);
-    files = llvm::ArrayRef(Scratch);
+    files = toolchain::ArrayRef(Scratch);
   } else {
     for (auto file : M->getFiles()) {
       Scratch.push_back(file);
       if (auto *synthesizedFile = file->getSynthesizedFile())
         Scratch.push_back(synthesizedFile);
     }
-    files = llvm::ArrayRef(Scratch);
+    files = toolchain::ArrayRef(Scratch);
   }
   for (auto nextFile : files) {
     if (nextFile->hasEntryPoint())
@@ -6955,7 +6996,7 @@ void Serializer::writeAST(ModuleOrSourceFile DC) {
 
     for (auto D : fileDecls) {
       if (isa<ImportDecl>(D) || isa<MacroExpansionDecl>(D) ||
-          isa<TopLevelCodeDecl>(D)) {
+          isa<TopLevelCodeDecl>(D) || isa<UsingDecl>(D)) {
         continue;
       }
 
@@ -6982,7 +7023,7 @@ void Serializer::writeAST(ModuleOrSourceFile DC) {
       } else if (isa<PatternBindingDecl>(D)) {
         // No special handling needed.
       } else {
-        llvm_unreachable("all top-level declaration kinds accounted for");
+        toolchain_unreachable("all top-level declaration kinds accounted for");
       }
       if (auto *AFD = dyn_cast<AbstractFunctionDecl>(D))
         recordDerivativeFunctionConfig(*this, AFD, uniquedDerivativeConfigs);
@@ -7177,7 +7218,7 @@ void Serializer::writeToStream(
     const SILModule *SILMod,
     const SerializationOptions &options,
     const fine_grained_dependencies::SourceFileDepGraph *DepGraph) {
-  Serializer S{SWIFTMODULE_SIGNATURE, DC, options};
+  Serializer S{LANGUAGEMODULE_SIGNATURE, DC, options};
 
   // FIXME: This is only really needed for debugging. We don't actually use it.
   S.writeBlockInfoBlock();
@@ -7195,7 +7236,7 @@ void Serializer::writeToStream(
 
     if (!options.DisableCrossModuleIncrementalInfo && DepGraph) {
       fine_grained_dependencies::writeFineGrainedDependencyGraph(
-          S.Out, *DepGraph, fine_grained_dependencies::Purpose::ForSwiftModule);
+          S.Out, *DepGraph, fine_grained_dependencies::Purpose::ForCodiraModule);
     }
   }
 

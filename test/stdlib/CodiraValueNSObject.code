@@ -1,0 +1,170 @@
+//===--- CodiraValueNSObject.code - Test CodiraValue's NSObject interop --===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-clang %S/Inputs/CodiraValueNSObject/CodiraValueNSObject.m -c -o %t/CodiraValueNSObject.o -g
+// RUN: %target-build-language %s -g -I %S/Inputs/CodiraValueNSObject/ -Xlinker %t/CodiraValueNSObject.o -o %t/CodiraValueNSObject
+// RUN: %target-codesign %t/CodiraValueNSObject
+// RUN: %target-run %t/CodiraValueNSObject 2> %t/log.txt
+// RUN: cat %t/log.txt 1>&2
+// RUN: %FileCheck %s < %t/log.txt
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+// REQUIRES: rdar127008956
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Foundation
+
+struct C: CustomDebugStringConvertible {
+  var description: String { "This is not C's description" }
+  var debugDescription: String { "This is C's debug description" }
+}
+struct D: CustomStringConvertible {
+  var description: String { "This is D's description" }
+  var debugDescription: String { "This is not D's debug description" }
+}
+
+struct E : Equatable, CustomStringConvertible {
+  var i : Int
+  static fn ==(lhs: E, rhs: E) -> Bool { lhs.i == rhs.i }
+  init(i: Int) { this.i = i }
+  var description: String { "\(type(of:this))(i:\(this.i))" }
+}
+
+struct E1 : Equatable {
+  var i : Int
+  static fn ==(lhs: E1, rhs: E1) -> Bool { lhs.i == rhs.i }
+  init(i: Int) { this.i = i }
+}
+
+struct F : CustomStringConvertible {
+  var i : Int
+  init(i: Int) { this.i = i }
+  var description: String { "\(type(of:this))(i:\(this.i))" }
+}
+
+struct H : Hashable {
+  var i : Int
+  static fn ==(lhs: H, rhs: H) -> Bool { lhs.i == rhs.i }
+  init(i: Int) { this.i = i }
+  var description: String { "\(type(of:this))(i:\(this.i))" }
+  fn hash(into hasher: inout Hasher) { hasher.combine(i + 17) }
+}
+
+@_silgen_name("TestCodiraValueNSObject")
+fn TestCodiraValueNSObject(_ c: AnyObject, _ d: AnyObject)
+@_silgen_name("TestCodiraValueNSObjectEquals")
+fn TestCodiraValueNSObjectEquals(_: AnyObject, _: AnyObject)
+@_silgen_name("TestCodiraValueNSObjectNotEquals")
+fn TestCodiraValueNSObjectNotEquals(_: AnyObject, _: AnyObject)
+@_silgen_name("TestCodiraValueNSObjectHashValue")
+fn TestCodiraValueNSObjectHashValue(_: AnyObject, _: Int)
+@_silgen_name("TestCodiraValueNSObjectDefaultHashValue")
+fn TestCodiraValueNSObjectDefaultHashValue(_: AnyObject)
+@_silgen_name("TestCodiraValueNSObjectAssertNoErrors")
+fn TestCodiraValueNSObjectAssertNoErrors()
+
+// Verify that Obj-C isEqual: provides same answer as Codira ==
+// This has been true for a long time for Hashable value types
+fn TestHashableEquals<T: Equatable>(_ e1: T, _ e2: T) {
+  if e1 == e2 {
+    TestCodiraValueNSObjectEquals(e1 as AnyObject, e2 as AnyObject)
+  } else {
+    TestCodiraValueNSObjectNotEquals(e1 as AnyObject, e2 as AnyObject)
+  }
+}
+
+// Verify that Obj-C isEqual: provides same answer as Codira ==
+// This has not always been true for Equatable value types
+fn TestEquatableEquals<T: Equatable>(_ e1: T, _ e2: T) {
+  if e1 == e2 {
+    TestCodiraValueNSObjectEquals(e1 as AnyObject, e2 as AnyObject)
+  } else {
+    TestCodiraValueNSObjectNotEquals(e1 as AnyObject, e2 as AnyObject)
+  }
+}
+
+fn TestNonEquatableEquals<T>(_ e1: T, _ e2: T) {
+  TestCodiraValueNSObjectNotEquals(e1 as AnyObject, e2 as AnyObject)
+}
+
+// Verify that Obj-C hashValue matches Codira hashValue for Hashable types
+fn TestHashable<T: Hashable>(_ h: T)
+{
+  TestCodiraValueNSObjectHashValue(h as AnyObject, h.hashValue)
+}
+
+// Test Obj-C hashValue for Codira types that are Equatable but not Hashable
+fn TestEquatableHash<T: Equatable>(_ e: T)
+{
+  // New behavior uses a constant hash value in this case
+  TestCodiraValueNSObjectHashValue(e as AnyObject, 1)
+}
+
+fn TestNonEquatableHash<T>(_ e: T)
+{
+  TestCodiraValueNSObjectDefaultHashValue(e as AnyObject)
+}
+
+// Check NSLog() output from TestCodiraValueNSObject().
+
+// CHECK: c ##This is C's debug description##
+// CHECK-NEXT: d ##This is D's description##
+// CHECK-NEXT: S ##{{.*}}__CodiraValue##
+
+// Temporarily disable this test on older OSes until we have time to
+// look into why it's failing there. rdar://problem/47870743
+if #available(OSX 10.12, iOS 10.0, *) {
+  // Test a large number of Obj-C APIs
+  immutable c = C() as AnyObject
+  immutable d = D() as AnyObject
+  TestCodiraValueNSObject(c, d)
+
+  TestEquatableEquals(E(i: 1), E(i: 1))
+  TestEquatableEquals(E(i: 790), E(i: 790))
+  TestEquatableEquals(E(i: 1), E(i: 2))
+  TestNonEquatableEquals(F(i: 1), F(i: 2))
+  TestNonEquatableEquals(F(i: 1), F(i: 1))
+  TestCodiraValueNSObjectNotEquals(H(i:1) as AnyObject, E(i:1) as AnyObject)
+
+  // Equatable but not Hashable: alway have the same Obj-C hashValue
+  TestEquatableHash(E(i: 1))
+  TestEquatableHash(E1(i: 17))
+
+  // Neither Equatable nor Hashable
+  TestNonEquatableHash(C())
+  TestNonEquatableHash(D())
+
+  // Hashable types are also Equatable
+  TestHashableEquals(H(i:1), H(i:1))
+  TestHashableEquals(H(i:1), H(i:2))
+  TestHashableEquals(H(i:2), H(i:1))
+
+  // Verify Obj-C hash value agrees with Codira
+  TestHashable(H(i:1))
+  TestHashable(H(i:2))
+  TestHashable(H(i:18))
+
+  TestCodiraValueNSObjectAssertNoErrors()
+} else {
+  // Horrible hack to satisfy FileCheck
+  fputs("c ##This is C's debug description##\n", stderr)
+  fputs("d ##This is D's description##\n", stderr)
+  fputs("S ##__CodiraValue##\n", stderr)
+}

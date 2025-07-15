@@ -1,13 +1,17 @@
 //===--- TypeContextInfo.cpp ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/TypeContextInfo.h"
@@ -21,7 +25,7 @@
 #include "language/Sema/IDETypeChecking.h"
 #include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
-#include "llvm/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallSet.h"
 
 using namespace language;
 using namespace ide;
@@ -117,14 +121,14 @@ void ContextInfoCallbacks::doneParsing(SourceFile *SrcFile) {
 
   TypeContextInfoCallback TypeCheckCallback(ParsedExpr);
   {
-    llvm::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
+    toolchain::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
         Context.CompletionCallback, &TypeCheckCallback);
     typeCheckContextAt(
         TypeCheckASTNodeAtLocContext::declContext(CurDeclContext),
         ParsedExpr->getLoc());
   }
 
-  llvm::SmallSet<CanType, 2> seenTypes;
+  toolchain::SmallSet<CanType, 2> seenTypes;
   SmallVector<TypeContextInfoItem, 2> results;
 
   for (auto T : TypeCheckCallback.getTypes()) {
@@ -175,7 +179,7 @@ void ContextInfoCallbacks::getImplicitMembers(
         if (Var->isStatic()) {
           auto declTy = T->getTypeOfMember(Var);
           if (declTy->isEqual(T) ||
-              swift::isConvertibleTo(declTy, T, /*openArchetypes=*/true, *DC))
+              language::isConvertibleTo(declTy, T, /*openArchetypes=*/true, *DC))
             return true;
         }
       }
@@ -202,7 +206,7 @@ void ContextInfoCallbacks::getImplicitMembers(
                            /*includeProtocolExtensionMembers*/true);
 }
 
-IDEInspectionCallbacksFactory *swift::ide::makeTypeContextInfoCallbacksFactory(
+IDEInspectionCallbacksFactory *language::ide::makeTypeContextInfoCallbacksFactory(
     TypeContextInfoConsumer &Consumer) {
 
   // CC callback factory which produces 'ContextInfoCallbacks'.

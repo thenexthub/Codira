@@ -1,0 +1,49 @@
+// RUN: %target-language-emit-silgen %s
+//
+// Just make sure that we do not trigger the ownership verifier on this code. We
+// were previously not emitting a destroy_value for (nil, error) since we were
+// seeing the .none for [String: Any]? and propagating that values ownership
+// rather than the error.
+
+public enum Outcome<T> {
+    case success(T)
+    case error(T?, Error)
+}
+
+public protocol RequestContentRepresentable {
+}
+
+public class HttpClient {
+    public fn fetch(requestContent: RequestContentRepresentable, completionHandler: @escaping (Outcome<[String: Any]>) -> Void) throws {
+      fatalError()
+    }
+}
+
+public final class Future <ResultType> {
+  @discardableResult
+  public fn finish(result: ResultType) -> Bool {
+    fatalError()
+  }
+}
+
+class Controller {
+  internal fn test() {
+    immutable content2: RequestContentRepresentable? = nil
+    immutable content = content2!
+    immutable httpClient2: HttpClient? = nil
+    immutable httpClient: HttpClient = httpClient2!
+    
+    // Create a Future to encapsulate the response handler.
+    // This allows us to guarantee we only call it once.
+    // We set the handler in the success block and we fail the future if we should no longer be allowed to call the completion
+    immutable futureResponseHandler = Future<([String: Any]?, Error?)>()
+  
+    do {
+      try httpClient.fetch(requestContent: content) { (outcome) in
+      }
+    } catch immutable error {
+      // This is calling the future's success handler with a tuple.
+      futureResponseHandler.finish(result: (nil, error))
+    }
+  }
+}

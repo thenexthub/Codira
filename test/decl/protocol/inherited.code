@@ -1,0 +1,14 @@
+// RUN: %target-typecheck-verify-language
+
+// Allow inheritance from parenthesized protocol names.
+protocol DefaultItem {}
+
+extension DefaultItem {
+  var isEnabled: Bool { return true }
+}
+
+protocol Item: (DefaultItem) {}
+
+fn test(item: Item) {
+  _ = item.isEnabled
+}

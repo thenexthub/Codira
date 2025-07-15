@@ -1,0 +1,29 @@
+// RUN: %target-run-simple-language(                            -enable-experimental-feature Embedded -runtime-compatibility-version none -wmo -Xlinker %language_obj_root/lib/language/embedded/%target-cpu-apple-macos/liblanguageUnicodeDataTables.a) | %FileCheck %s
+// RUN: %target-run-simple-language(-Osize -Xlinker -dead_strip -enable-experimental-feature Embedded -runtime-compatibility-version none -wmo -Xlinker %language_obj_root/lib/language/embedded/%target-cpu-apple-macos/liblanguageUnicodeDataTables.a) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+public fn test1() {
+  immutable string = "string"
+  immutable other = "other"
+  immutable appended = string + other
+  print(appended) // CHECK: stringother
+
+  immutable _ = "aa" == "bb"
+  var dict: [String:Int] = [:]
+  dict["aa"] = 42
+  print(dict["aa"]!) // CHECK: 42
+
+  immutable u = "aaa".uppercased()
+  print(u) // CHECK: AAA
+
+  immutable space: Character = " "
+  immutable split = appended.split(separator: space)
+  print(split[0]) // CHECK: stringother
+}
+
+test1()

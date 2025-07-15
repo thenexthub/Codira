@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Config/config.h"
 #include "SourceKit/Support/Concurrency.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/thread.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/thread.h"
 #include <optional>
 
 #include <dispatch/dispatch.h>
@@ -61,7 +62,7 @@ static dispatch_queue_priority_t toDispatchPriority(WorkQueue::Priority Prio) {
   case WorkQueue::Priority::Background:
     return DISPATCH_QUEUE_PRIORITY_BACKGROUND;
   }
-  llvm_unreachable("Invalid priority");
+  toolchain_unreachable("Invalid priority");
 }
 
 static dispatch_queue_attr_t toDispatchDequeuing(WorkQueue::Dequeuing DeqKind) {
@@ -69,7 +70,7 @@ static dispatch_queue_attr_t toDispatchDequeuing(WorkQueue::Dequeuing DeqKind) {
   case WorkQueue::Dequeuing::Concurrent: return DISPATCH_QUEUE_CONCURRENT;
   case WorkQueue::Dequeuing::Serial: return DISPATCH_QUEUE_SERIAL;
   }
-  llvm_unreachable("Invalid dequeuing kind");
+  toolchain_unreachable("Invalid dequeuing kind");
 }
 
 static dispatch_queue_t getDispatchGlobalQueue(WorkQueue::Priority Prio) {
@@ -77,9 +78,9 @@ static dispatch_queue_t getDispatchGlobalQueue(WorkQueue::Priority Prio) {
 }
 
 void *WorkQueue::Impl::create(Dequeuing DeqKind, Priority Prio,
-                              llvm::StringRef Label) {
+                              toolchain::StringRef Label) {
   const char *LabelCStr = 0;
-  llvm::SmallString<128> LabelStr(Label);
+  toolchain::SmallString<128> LabelStr(Label);
   if (!Label.empty()) {
     LabelStr.push_back('\0');
     LabelCStr = LabelStr.begin();
@@ -108,7 +109,7 @@ static void executeBlock(void *Data) {
 
 static void executeOnLargeStackThread(void *Data) {
   static const size_t ThreadStackSize = 8 << 20; // 8 MB.
-  llvm::thread Thread(std::optional<unsigned>(ThreadStackSize), executeBlock,
+  toolchain::thread Thread(std::optional<unsigned>(ThreadStackSize), executeBlock,
                       Data);
   Thread.join();
 }
@@ -202,7 +203,7 @@ void WorkQueue::Impl::setPriority(Ty Obj, Priority Prio) {
   dispatch_set_target_queue(queue, getDispatchGlobalQueue(Prio));
 }
 
-llvm::StringRef WorkQueue::Impl::getLabel(const Ty Obj) {
+toolchain::StringRef WorkQueue::Impl::getLabel(const Ty Obj) {
   dispatch_queue_t queue = dispatch_queue_t(Obj);
   return dispatch_queue_get_label(queue);
 }

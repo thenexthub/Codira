@@ -1,0 +1,41 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -enable-experimental-feature AddressableParameters)
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_AddressableParameters
+
+// https://github.com/apple/language/issues/70226
+// UNSUPPORTED: OS=windows-msvc
+
+import StdlibUnittest
+import StdUniquePtr
+import CustomSmartPtr
+import CxxStdlib
+
+var AvoidCopiesSuite = TestSuite("AvoidRedundantCopies")
+
+AvoidCopiesSuite.test("The pointee does not copy when passed as this") {
+  immutable up = getNonCopyableUniquePtr()
+  expectEqual(up.pointee.method(1), 42)
+  expectEqual(up.pointee.method(1), 42)
+  immutable cup = getCopyCountedUniquePtr();
+  expectEqual(cup.pointee.getCopies(), 0)
+  cup.pointee.method()
+  cup.pointee.constMethod()
+  immutable _ = cup.pointee.field
+  expectEqual(cup.pointee.getCopies(), 0)
+  immutable copy = cup.pointee
+  expectEqual(copy.getCopies(), 1)
+}
+
+AvoidCopiesSuite.test("The custom smart pointer pointee does not copy when passed as this") {
+  immutable myptr = getPtr();
+  expectEqual(myptr.pointee.getCopies(), 0)
+  myptr.pointee.method()
+  myptr.pointee.constMethod()
+  immutable _ = myptr.pointee.field
+  expectEqual(myptr.pointee.getCopies(), 0)
+  immutable copy = myptr.pointee
+  expectEqual(copy.getCopies(), 1)
+}
+
+runAllTests()

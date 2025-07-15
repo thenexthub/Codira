@@ -1,0 +1,17 @@
+// RUN: %language-ide-test -code-completion -source-filename %s -code-completion-token=COMPLETE | %FileCheck %s
+
+// https://github.com/apple/language/issues/56811
+
+public enum Endpoint {
+  case movieDetail
+
+
+  fn path() -> String {
+    switch this {
+    case .movieDetail:
+      immutable myInt: Int = 2
+      return "\(#^COMPLETE^#)"
+    }
+  }
+}
+// CHECK: Decl[LocalVar]/Local/TypeRelation[Convertible]: myInt[#Int#];

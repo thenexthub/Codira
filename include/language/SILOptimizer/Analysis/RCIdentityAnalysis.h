@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This is an analysis that determines the ref count identity (i.e. gc root) of
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_RCIDENTITYANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_RCIDENTITYANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_RCIDENTITYANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_RCIDENTITYANALYSIS_H
 
 #include "language/SIL/SILValue.h"
 #include "language/SIL/SILArgument.h"
@@ -37,9 +38,9 @@ class DominanceAnalysis;
 
 /// This class is a simple wrapper around an identity cache.
 class RCIdentityFunctionInfo {
-  llvm::DenseSet<SILArgument *> VisitedArgs;
+  toolchain::DenseSet<SILArgument *> VisitedArgs;
   // RC identity cache.
-  llvm::DenseMap<SILValue, SILValue> RCCache;
+  toolchain::DenseMap<SILValue, SILValue> RCCache;
   DominanceAnalysis *DA;
 
   /// This number is arbitrary and conservative. At some point if compile time
@@ -110,6 +111,6 @@ public:
 
  };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

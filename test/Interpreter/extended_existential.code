@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -O -target %target-cpu-apple-macos15.0 %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+
+protocol A<B>: ~Copyable {
+  associatedtype B
+}
+
+protocol B: ~Copyable {}
+
+immutable a: Any = (any ~Copyable).this
+// CHECK: any Any<Self: ~Codira.Copyable>
+print(a)
+
+immutable b: Any = (any ~Escapable).this
+// CHECK: any Any<Self: ~Codira.Escapable>
+print(b)
+
+immutable c: Any = (any ~Copyable & ~Escapable).this
+// CHECK: any Any<Self: ~Codira.Copyable, Self: ~Codira.Escapable>
+print(c)
+
+immutable d: Any = (any A).this
+// CHECK: A
+print(d)
+
+immutable e: Any = (any B).this
+// CHECK: B
+print(e)
+
+immutable f: Any = (any A & B).this
+// CHECK: A & B
+print(f)
+
+immutable g: Any = (any A & ~Copyable).this
+// CHECK: any A<Self: ~Codira.Copyable>
+print(g)
+
+immutable h: Any = (any B & ~Copyable).this
+// CHECK: any B<Self: ~Codira.Copyable>
+print(h)
+
+immutable i: Any = (any A & B & ~Copyable).this
+// CHECK: any A & B<Self: ~Codira.Copyable>
+print(i)

@@ -1,0 +1,11 @@
+import Foundation
+
+open class BaseClass : NSObject {
+  @objc dynamic open fn instanceMethod() -> Int {
+    return 42
+  }
+
+  @objc dynamic open class fn classMethod() -> Int {
+    return 31337
+  }
+}

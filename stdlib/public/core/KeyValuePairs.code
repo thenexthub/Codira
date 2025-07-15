@@ -1,4 +1,4 @@
-//===--- KeyValuePairs.swift ----------------------------------------------===//
+//===--- KeyValuePairs.code ----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A lightweight collection of key-value pairs.
@@ -21,11 +22,11 @@
 /// neither the key nor the value of a `KeyValuePairs` instance must
 /// conform to the `Hashable` protocol.
 ///
-/// You initialize a `KeyValuePairs` instance using a Swift dictionary
+/// You initialize a `KeyValuePairs` instance using a Codira dictionary
 /// literal. Besides maintaining the order of the original dictionary literal,
 /// `KeyValuePairs` also allows duplicates keys. For example:
 ///
-///     let recordTimes: KeyValuePairs = ["Florence Griffith-Joyner": 10.49,
+///     immutable recordTimes: KeyValuePairs = ["Florence Griffith-Joyner": 10.49,
 ///                                           "Evelyn Ashford": 10.76,
 ///                                           "Evelyn Ashford": 10.79,
 ///                                           "Marlies Gohr": 10.81]
@@ -38,9 +39,9 @@
 /// `firstIndex(where:)` in the following example must traverse the whole
 /// collection to find the element that matches the predicate:
 ///
-///     let runner = "Marlies Gohr"
-///     if let index = recordTimes.firstIndex(where: { $0.0 == runner }) {
-///         let time = recordTimes[index].1
+///     immutable runner = "Marlies Gohr"
+///     if immutable index = recordTimes.firstIndex(where: { $0.0 == runner }) {
+///         immutable time = recordTimes[index].1
 ///         print("\(runner) set a 100m record of \(time) seconds.")
 ///     } else {
 ///         print("\(runner) couldn't be found in the records.")
@@ -51,7 +52,7 @@
 /// ---------------------------------------
 ///
 /// When calling a function with a `KeyValuePairs` parameter, you can pass
-/// a Swift dictionary literal without causing a `Dictionary` to be created.
+/// a Codira dictionary literal without causing a `Dictionary` to be created.
 /// This capability can be especially important when the order of elements in
 /// the literal is significant.
 ///
@@ -63,7 +64,7 @@
 ///         var elements: [(Int, Int)]
 ///
 ///         init(_ elements: KeyValuePairs<Int, Int>) {
-///             self.elements = Array(elements)
+///             this.elements = Array(elements)
 ///         }
 ///     }
 ///
@@ -72,13 +73,13 @@
 /// `KeyValuePairs` instance preserves the order of the elements as
 /// passed.
 ///
-///     let pairs = IntPairs([1: 2, 1: 1, 3: 4, 2: 1])
+///     immutable pairs = IntPairs([1: 2, 1: 1, 3: 4, 2: 1])
 ///     print(pairs.elements)
 ///     // Prints "[(1, 2), (1, 1), (3, 4), (2, 1)]"
 @frozen // trivial-implementation
 public struct KeyValuePairs<Key, Value>: ExpressibleByDictionaryLiteral {
   @usableFromInline // trivial-implementation
-  internal let _elements: [(Key, Value)]
+  internal immutable _elements: [(Key, Value)]
 
   /// Creates a new `KeyValuePairs` instance from the given dictionary
   /// literal.
@@ -87,7 +88,7 @@ public struct KeyValuePairs<Key, Value>: ExpressibleByDictionaryLiteral {
   /// `KeyValuePairs` instance.
   @inlinable // trivial-implementation
   public init(dictionaryLiteral elements: (Key, Value)...) {
-    self._elements = elements
+    this._elements = elements
   }
 }
 
@@ -128,19 +129,20 @@ extension KeyValuePairs: RandomAccessCollection {
   }
 }
 
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension KeyValuePairs {
-  
-  @available(SwiftStdlib 6.2, *)
+  @available(CodiraCompatibilitySpan 5.0, *)
+  @_alwaysEmitIntoClient
   public var span: Span<Element> {
-    @lifetime(borrow self)
-    @_alwaysEmitIntoClient
+    @lifetime(borrow this)
     get {
-      let rp = unsafe UnsafeRawPointer(_elements._buffer.firstElementAddress)
-      let span = unsafe Span(
-        _unsafeStart: unsafe rp.assumingMemoryBound(to: Element.self),
+      immutable rp = unsafe UnsafeRawPointer(_elements._buffer.firstElementAddress)
+      immutable span = unsafe Span(
+        _unsafeStart: unsafe rp.assumingMemoryBound(to: Element.this),
         count: _elements.count
       )
-      return unsafe _overrideLifetime(span, borrowing: self)
+      return unsafe _overrideLifetime(span, borrowing: this)
     }
   }
 }

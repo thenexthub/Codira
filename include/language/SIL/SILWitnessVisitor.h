@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILWitnessVisitor class, which is used to generate and
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILWITNESSVISITOR_H
-#define SWIFT_SIL_SILWITNESSVISITOR_H
+#ifndef LANGUAGE_SIL_SILWITNESSVISITOR_H
+#define LANGUAGE_SIL_SILWITNESSVISITOR_H
 
 #include "language/AST/ASTVisitor.h"
 #include "language/AST/Decl.h"
@@ -28,7 +29,7 @@
 #include "language/AST/ProtocolAssociations.h"
 #include "language/AST/Types.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
@@ -61,7 +62,7 @@ public:
     for (const auto &reqt : requirements) {
       switch (reqt.getKind()) {
       case RequirementKind::SameShape:
-        llvm_unreachable("Same-shape requirement not supported here");
+        toolchain_unreachable("Same-shape requirement not supported here");
 
       // These requirements don't show up in the witness table.
       case RequirementKind::Superclass:
@@ -95,7 +96,7 @@ public:
         continue;
       }
       }
-      llvm_unreachable("bad requirement kind");
+      toolchain_unreachable("bad requirement kind");
     }
 
     // Add the associated types.
@@ -123,7 +124,7 @@ public:
 
   /// Fallback for unexpected protocol requirements.
   void visitDecl(Decl *d) {
-    llvm_unreachable("unhandled protocol requirement");
+    toolchain_unreachable("unhandled protocol requirement");
   }
 
   void visitAbstractStorageDecl(AbstractStorageDecl *sd) {
@@ -145,18 +146,18 @@ public:
     }
   }
 
-  void visitAccessorDecl(AccessorDecl *func) {
+  void visitAccessorDecl(AccessorDecl *fn) {
     // Accessors are emitted by visitAbstractStorageDecl, above.
   }
 
-  void visitFuncDecl(FuncDecl *func) {
-    assert(!isa<AccessorDecl>(func));
-    if (!func->requiresNewWitnessTableEntry())
+  void visitFuncDecl(FuncDecl *fn) {
+    assert(!isa<AccessorDecl>(fn));
+    if (!fn->requiresNewWitnessTableEntry())
       return;
 
-    asDerived().addMethod(SILDeclRef(func, SILDeclRef::Kind::Func));
-    addAutoDiffDerivativeMethodsIfRequired(func, SILDeclRef::Kind::Func);
-    addDistributedWitnessMethodsIfRequired(func, SILDeclRef::Kind::Func);
+    asDerived().addMethod(SILDeclRef(fn, SILDeclRef::Kind::Func));
+    addAutoDiffDerivativeMethodsIfRequired(fn, SILDeclRef::Kind::Func);
+    addDistributedWitnessMethodsIfRequired(fn, SILDeclRef::Kind::Func);
   }
 
   void visitMissingMemberDecl(MissingMemberDecl *placeholder) {

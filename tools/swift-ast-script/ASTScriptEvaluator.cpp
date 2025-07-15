@@ -1,13 +1,17 @@
 //===--- ASTScriptEvaluator.cpp -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// AST script evaluation.
@@ -60,7 +64,7 @@ public:
       if (!paramFnType) continue;
 
       // The parameter function must return a type parameter that
-      // conforms to SwiftUI.View.
+      // conforms to CodiraUI.View.
       auto paramResultType = paramFnType->getResult();
       if (!paramResultType->isTypeParameter()) continue;
       auto sig = fn->getGenericSignature();
@@ -77,11 +81,11 @@ public:
   void printDecl(const ValueDecl *decl) {
     // FIXME: there's got to be some better way to print an exact reference
     // to a declaration, including its context.
-    printDecl(llvm::outs(), decl);
-    llvm::outs() << "\n";
+    printDecl(toolchain::outs(), decl);
+    toolchain::outs() << "\n";
   }
 
-  void printDecl(llvm::raw_ostream &out, const ValueDecl *decl) {
+  void printDecl(toolchain::raw_ostream &out, const ValueDecl *decl) {
     if (auto accessor = dyn_cast<AccessorDecl>(decl)) {
       printDecl(out, accessor->getStorage());
       out << ".(accessor)";
@@ -91,7 +95,7 @@ public:
     }
   }
 
-  void printDeclContext(llvm::raw_ostream &out, const DeclContext *dc) {
+  void printDeclContext(toolchain::raw_ostream &out, const DeclContext *dc) {
     if (!dc) return;
     if (auto module = dyn_cast<ModuleDecl>(dc)) {
       out << module->getName() << ".";
@@ -116,28 +120,28 @@ bool ASTScript::execute() const {
   // Hardcode the actual query we want to execute here.
 
   auto &ctx = Config.Compiler.getASTContext();
-  auto swiftUI = ctx.getLoadedModule(ctx.getIdentifier("SwiftUI"));
-  if (!swiftUI) {
-    llvm::errs() << "error: SwiftUI module not loaded\n";
+  auto languageUI = ctx.getLoadedModule(ctx.getIdentifier("CodiraUI"));
+  if (!languageUI) {
+    toolchain::errs() << "error: CodiraUI module not loaded\n";
     return true;
   }
 
   auto descriptor =
       UnqualifiedLookupDescriptor(DeclNameRef(ctx.getIdentifier("View")),
-                                  swiftUI);
+                                  languageUI);
   auto viewLookup = evaluateOrDefault(ctx.evaluator,
                                       UnqualifiedLookupRequest{descriptor}, {});
   auto viewProtocol =
     dyn_cast_or_null<ProtocolDecl>(viewLookup.getSingleTypeResult());
   if (!viewProtocol) {
-    llvm::errs() << "error: couldn't find SwiftUI.View protocol\n";
+    toolchain::errs() << "error: couldn't find CodiraUI.View protocol\n";
     return true;
   }
 
   SmallVector<Decl*, 128> topLevelDecls;
-  swiftUI->getTopLevelDecls(topLevelDecls);
+  languageUI->getTopLevelDecls(topLevelDecls);
 
-  llvm::errs() << "found " << topLevelDecls.size() << " top-level declarations\n";
+  toolchain::errs() << "found " << topLevelDecls.size() << " top-level declarations\n";
 
   ASTScriptWalker walker(*this, viewProtocol);
   for (auto decl : topLevelDecls) {

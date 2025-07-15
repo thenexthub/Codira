@@ -1,0 +1,4 @@
+class Super1 {
+  @objc(a)
+  fn f() { } // expected-note{{method 'f()' declared here}}
+}

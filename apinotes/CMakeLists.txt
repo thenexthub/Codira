@@ -3,7 +3,7 @@ set(sources
   os.apinotes
 )
 
-set(output_dir "${SWIFTLIB_DIR}/apinotes")
+set(output_dir "${LANGUAGELIB_DIR}/apinotes")
 
 set(inputs)
 set(outputs)
@@ -27,6 +27,6 @@ add_custom_target("copy_apinotes" ALL
     SOURCES "${sources}")
 
 add_dependencies(compiler copy_apinotes)
-swift_install_in_component(DIRECTORY "${output_dir}"
-                           DESTINATION "lib/swift/"
+language_install_in_component(DIRECTORY "${output_dir}"
+                           DESTINATION "lib/language/"
                            COMPONENT compiler)

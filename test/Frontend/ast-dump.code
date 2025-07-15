@@ -1,0 +1,53 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'public fn a() { }' >%t/a.code
+// RUN: echo 'public fn b() { }' >%t/b.code
+// RUN: echo 'public fn main() {a(); b()}' >%t/main.code
+
+// Test printing to stdout (using either -dump-ast or -emit-ast)
+// RUN: %target-language-frontend -dump-ast -primary-file %t/a.code %t/b.code %t/main.code -module-name main -o - 2>%t/a.code.stderr | %FileCheck -check-prefix A-AST %s
+// RUN: %target-language-frontend -emit-ast %t/a.code -primary-file %t/b.code %t/main.code -module-name main -o - 2>%t/b.code.stderr | %FileCheck -check-prefix B-AST %s
+// RUN: %target-language-frontend -dump-ast %t/a.code %t/b.code -primary-file %t/main.code -module-name main -o - 2>%t/main.code.stderr | %FileCheck -check-prefix MAIN-AST %s
+
+// Test printing to files
+// RUN: %target-language-frontend -dump-ast -primary-file %t/a.code %t/b.code %t/main.code -module-name main -o %t/a.ast
+// RUN: %FileCheck -check-prefix A-AST %s < %t/a.ast
+// RUN: %target-language-frontend -dump-ast %t/a.code -primary-file %t/b.code %t/main.code -module-name main -o %t/b.ast
+// RUN: %FileCheck -check-prefix B-AST %s < %t/b.ast
+// RUN: %target-language-frontend -dump-ast %t/a.code %t/b.code -primary-file %t/main.code -module-name main -o %t/main.ast
+// RUN: %FileCheck -check-prefix MAIN-AST %s < %t/main.ast
+
+// Test batch mode
+// RUN: %target-language-frontend -dump-ast -primary-file %t/a.code -primary-file %t/b.code -primary-file %t/main.code -module-name main -o %t/a_batch.ast -o %t/b_batch.ast -o %t/main_batch.ast
+// RUN: %FileCheck -check-prefix A-AST %s < %t/a_batch.ast
+// RUN: %FileCheck -check-prefix B-AST %s < %t/b_batch.ast
+// RUN: %FileCheck -check-prefix MAIN-AST %s < %t/main_batch.ast
+
+
+// Check a.code's AST
+// A-AST: (source_file
+// A-AST-SAME: a.code
+
+// A-AST-NEXT: (func_decl
+// A-AST-SAME: a()
+
+
+// Check b.code's AST
+// B-AST: (source_file
+// B-AST-SAME: b.code
+
+// B-AST-NEXT: (func_decl
+// B-AST-SAME: b()
+
+
+// Check main.code's AST
+// MAIN-AST: (source_file
+// MAIN-AST-SAME: main.code
+
+// MAIN-AST: (func_decl
+// MAIN-AST-SAME: main()
+
+// MAIN-AST: (call_expr
+// MAIN-AST-NEXT: a()
+
+// MAIN-AST: (call_expr
+// MAIN-AST-NEXT: b()

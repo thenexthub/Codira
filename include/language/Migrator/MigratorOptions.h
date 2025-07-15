@@ -1,4 +1,4 @@
-//===--- MigratorOptions.h - Swift Migrator ---------------------*- C++ -*-===//
+//===--- MigratorOptions.h - Codira Migrator ---------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// A container for Swift Migrator options pulled in through the driver/frontend.
+// A container for Codira Migrator options pulled in through the driver/frontend.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_MIGRATOROPTIONS_H
-#define SWIFT_MIGRATOR_MIGRATOROPTIONS_H
+#ifndef LANGUAGE_MIGRATOR_MIGRATOROPTIONS_H
+#define LANGUAGE_MIGRATOR_MIGRATOROPTIONS_H
 
 namespace language {
 
 struct MigratorOptions {
   /// Add `@objc` to declarations that would've been implicitly
-  /// visible to the Objective-C runtime in Swift 3.
+  /// visible to the Objective-C runtime in Codira 3.
   bool KeepObjcVisibility = false;
 
   /// Skip the migration phase that repeatedly asks for fix-its from the
@@ -57,4 +58,4 @@ struct MigratorOptions {
 
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_MIGRATOROPTIONS_H
+#endif // LANGUAGE_MIGRATOR_MIGRATOROPTIONS_H

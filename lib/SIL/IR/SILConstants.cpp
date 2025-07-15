@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILConstants.h"
@@ -18,14 +19,14 @@
 #include "language/Basic/Assertions.h"
 #include "language/Demangling/Demangle.h"
 #include "language/SIL/SILBuilder.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/Support/TrailingObjects.h"
 using namespace language;
 
 namespace language {
-llvm::cl::opt<unsigned>
-    ConstExprLimit("constexpr-limit", llvm::cl::init(3072),
-                   llvm::cl::desc("Number of instructions interpreted in a"
+toolchain::cl::opt<unsigned>
+    ConstExprLimit("constexpr-limit", toolchain::cl::init(3072),
+                   toolchain::cl::desc("Number of instructions interpreted in a"
                                   " constexpr function"));
 }
 
@@ -43,7 +44,7 @@ static InFlightDiagnostic diagnose(ASTContext &Context, SourceLoc loc,
 // SymbolicValue implementation
 //===----------------------------------------------------------------------===//
 
-void SymbolicValue::print(llvm::raw_ostream &os, unsigned indent) const {
+void SymbolicValue::print(toolchain::raw_ostream &os, unsigned indent) const {
   os.indent(indent);
   switch (representationKind) {
   case RK_UninitMemory:
@@ -116,7 +117,7 @@ void SymbolicValue::print(llvm::raw_ostream &os, unsigned indent) const {
     SmallVector<unsigned, 4> accessPath;
     SymbolicValueMemoryObject *memObject = getAddressValue(accessPath);
     os << "address[" << memObject->getType() << "] ";
-    llvm::interleave(
+    toolchain::interleave(
         accessPath.begin(), accessPath.end(), [&](unsigned idx) { os << idx; },
         [&]() { os << ", "; });
     os << "\n";
@@ -168,7 +169,7 @@ void SymbolicValue::print(llvm::raw_ostream &os, unsigned indent) const {
   }
 }
 
-void SymbolicValue::dump() const { print(llvm::errs()); }
+void SymbolicValue::dump() const { print(toolchain::errs()); }
 
 /// For constant values, return the classification of this value.  We have
 /// multiple forms for efficiency, but provide a simpler interface to clients.
@@ -205,7 +206,7 @@ SymbolicValue::Kind SymbolicValue::getKind() const {
   case RK_Closure:
     return Closure;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Clone this SymbolicValue into the specified allocator and return the new
@@ -271,7 +272,7 @@ SymbolicValue::cloneInto(SymbolicValueAllocator &allocator) const {
                                       clo->getClosureInst(), allocator);
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 bool SymbolicValue::containsOnlyConstants() const {
@@ -318,7 +319,7 @@ bool SymbolicValue::containsOnlyConstants() const {
     return getStorageOfArray().containsOnlyConstants();
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 //===----------------------------------------------------------------------===//
@@ -440,8 +441,8 @@ namespace language {
 
 /// Representation of a constant aggregate namely a struct or a tuple.
 struct AggregateSymbolicValue final
-    : private llvm::TrailingObjects<AggregateSymbolicValue, SymbolicValue> {
-  friend class llvm::TrailingObjects<AggregateSymbolicValue, SymbolicValue>;
+    : private toolchain::TrailingObjects<AggregateSymbolicValue, SymbolicValue> {
+  friend class toolchain::TrailingObjects<AggregateSymbolicValue, SymbolicValue>;
 
   const Type aggregateType;
 
@@ -470,7 +471,7 @@ struct AggregateSymbolicValue final
     return {getTrailingObjects<SymbolicValue>(), numElements};
   }
 
-  // This is used by the llvm::TrailingObjects base class.
+  // This is used by the toolchain::TrailingObjects base class.
   size_t numTrailingObjects(OverloadToken<SymbolicValue>) const {
     return numElements;
   }
@@ -511,8 +512,8 @@ namespace language {
 /// When the value is Unknown, this contains information about the unfoldable
 /// part of the computation.
 struct alignas(SourceLoc) UnknownSymbolicValue final
-    : private llvm::TrailingObjects<UnknownSymbolicValue, SourceLoc> {
-  friend class llvm::TrailingObjects<UnknownSymbolicValue, SourceLoc>;
+    : private toolchain::TrailingObjects<UnknownSymbolicValue, SourceLoc> {
+  friend class toolchain::TrailingObjects<UnknownSymbolicValue, SourceLoc>;
 
   /// The value that was unfoldable.
   SILNode *node;
@@ -542,7 +543,7 @@ struct alignas(SourceLoc) UnknownSymbolicValue final
     return {getTrailingObjects<SourceLoc>(), callStackSize};
   }
 
-  // This is used by the llvm::TrailingObjects base class.
+  // This is used by the toolchain::TrailingObjects base class.
   size_t numTrailingObjects(OverloadToken<SourceLoc>) const {
     return callStackSize;
   }
@@ -557,7 +558,7 @@ private:
 } // namespace language
 
 SymbolicValue SymbolicValue::getUnknown(SILNode *node, UnknownReason reason,
-                                        llvm::ArrayRef<SourceLoc> callStack,
+                                        toolchain::ArrayRef<SourceLoc> callStack,
                                         SymbolicValueAllocator &allocator) {
   assert(node && "node must be present");
   SymbolicValue result;
@@ -641,8 +642,8 @@ namespace language {
 /// This is the representation of a derived address.  A derived address refers
 /// to a memory object along with an access path that drills into it.
 struct DerivedAddressValue final
-    : private llvm::TrailingObjects<DerivedAddressValue, unsigned> {
-  friend class llvm::TrailingObjects<DerivedAddressValue, unsigned>;
+    : private toolchain::TrailingObjects<DerivedAddressValue, unsigned> {
+  friend class toolchain::TrailingObjects<DerivedAddressValue, unsigned>;
 
   SymbolicValueMemoryObject *memoryObject;
 
@@ -670,7 +671,7 @@ struct DerivedAddressValue final
     return {getTrailingObjects<unsigned>(), numElements};
   }
 
-  // This is used by the llvm::TrailingObjects base class.
+  // This is used by the toolchain::TrailingObjects base class.
   size_t numTrailingObjects(OverloadToken<unsigned>) const {
     return numElements;
   }
@@ -734,8 +735,8 @@ namespace language {
 /// Representation of the internal storage of an array. This is a container for
 /// a sequence of symbolic values corresponding to the elements of an array.
 struct SymbolicArrayStorage final
-    : private llvm::TrailingObjects<SymbolicArrayStorage, SymbolicValue> {
-  friend class llvm::TrailingObjects<SymbolicArrayStorage, SymbolicValue>;
+    : private toolchain::TrailingObjects<SymbolicArrayStorage, SymbolicValue> {
+  friend class toolchain::TrailingObjects<SymbolicArrayStorage, SymbolicValue>;
 
   const CanType elementType;
 
@@ -761,7 +762,7 @@ struct SymbolicArrayStorage final
     return {getTrailingObjects<SymbolicValue>(), numElements};
   }
 
-  // This is used by the llvm::TrailingObjects base class.
+  // This is used by the toolchain::TrailingObjects base class.
   size_t numTrailingObjects(OverloadToken<SymbolicValue>) const {
     return numElements;
   }
@@ -1086,7 +1087,7 @@ void SymbolicValue::emitUnknownDiagnosticNotes(SILLocation fallbackLoc) {
         demangleSymbolNameForDiagnostics(callee->getName());
     diagnose(ctx, diagLoc, diag::constexpr_found_call_with_unknown_arg,
              demangledCalleeName,
-             (Twine(argNumber) + llvm::getOrdinalSuffix(argNumber)).str());
+             (Twine(argNumber) + toolchain::getOrdinalSuffix(argNumber)).str());
     if (emitTriggerLocInDiag)
       diagnose(ctx, triggerLoc, diag::constexpr_call_with_unknown_arg,
                triggerLocSkipsInternalLocs);
@@ -1175,7 +1176,7 @@ static SymbolicValue getIndexedElement(SymbolicValue aggregate,
       assert(elementNo < tuple->getNumElements() && "invalid index");
       eltType = tuple->getElement(elementNo).getType();
     } else {
-      llvm_unreachable("the accessPath is invalid for this type");
+      toolchain_unreachable("the accessPath is invalid for this type");
     }
   }
 
@@ -1222,7 +1223,7 @@ static SymbolicValue setIndexedElement(SymbolicValue aggregate,
     } else if (auto tuple = type->getAs<TupleType>()) {
       numMembers = tuple->getNumElements();
     } else {
-      llvm_unreachable("the accessPath is invalid for this type");
+      toolchain_unreachable("the accessPath is invalid for this type");
     }
 
     SmallVector<SymbolicValue, 4> newElts(numMembers,
@@ -1251,7 +1252,7 @@ static SymbolicValue setIndexedElement(SymbolicValue aggregate,
       assert(elementNo < tuple->getNumElements() && "invalid index");
       eltType = tuple->getElement(elementNo).getType();
     } else {
-      llvm_unreachable("the accessPath is invalid for this type");
+      toolchain_unreachable("the accessPath is invalid for this type");
     }
   }
 

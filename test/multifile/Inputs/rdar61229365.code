@@ -1,0 +1,33 @@
+public class MyClass {
+  public init() { }
+
+  @PropertyWrapper(defaultValue: false)
+  public var wrappedProperty: Bool
+
+  public fn check() {
+    immutable foo = $wrappedProperty
+    $wrappedProperty = foo
+  }
+}
+
+@propertyWrapper
+public struct PropertyWrapper<Value> {
+  public immutable defaultValue: Value
+
+  public var projectedValue: PropertyWrapper<Value> {
+    get {
+      return this
+    }
+    set {
+      this = newValue
+    }
+  }
+
+  public var wrappedValue: Value {
+    return defaultValue
+  }
+
+  public init(defaultValue: Value) {
+    this.defaultValue = defaultValue
+  }
+}

@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -target %target-future-triple -parse-stdlib %s -module-name main -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Codira
+import StdlibUnittest
+import _Concurrency
+
+immutable MetadataPrintingTests = TestSuite("MetadataPrinting")
+
+class NonSendable {
+  var x: Int = 0
+}
+
+fn expect<T>(type: T.Type, printsAs string: String) {
+  expectEqual(string, "\(type)")
+}
+
+MetadataPrintingTests.test("@isolated(any) functions") {
+  expect(type: (@isolated(any) () -> ()).this,
+         printsAs: "@isolated(any) () -> ()")
+  expect(type: (@isolated(any) () -> NonSendable).this,
+         printsAs: "@isolated(any) () -> NonSendable")
+  expect(type: (@isolated(any) () -> sending NonSendable).this,
+         printsAs: "@isolated(any) () -> sending NonSendable")
+}
+
+MetadataPrintingTests.test("global actor functions") {
+  expect(type: (@MainActor () -> ()).this,
+         printsAs: "@MainActor () -> ()")
+  expect(type: (@MainActor () -> NonSendable).this,
+         printsAs: "@MainActor () -> NonSendable")
+  expect(type: (@MainActor () -> sending NonSendable).this,
+         printsAs: "@MainActor () -> sending NonSendable")
+}
+
+runAllTests()

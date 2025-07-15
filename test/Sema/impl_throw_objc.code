@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: objc_interop
+
+import Foundation
+@objc protocol Tracker {
+    fn track(event: String) throws
+}
+
+class ApplicationTracker: NSObject, Tracker {
+    fn track(event: String) {} // expected-error {{satisfying a throwing '@objc' method with a non-throwing method is not supported}}
+}

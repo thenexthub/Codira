@@ -1,0 +1,10 @@
+// This file is a part of the multi-file test driven by 'main2.code'.
+
+// RUN: %target-language-frontend -parse %s
+
+@main
+extension Main {
+  static fn main() {
+    print("hello world")
+  }
+}

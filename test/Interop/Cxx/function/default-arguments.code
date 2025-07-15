@@ -1,0 +1,193 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-clangxx -c %S/Inputs/default-arguments.cpp -I %S/Inputs -o %t/default-arguments.o
+// RUN: %target-build-language %s -I %S/Inputs -o %t/default-arguments %t/default-arguments.o -cxx-interoperability-mode=upcoming-language
+// RUN: %target-codesign %t/default-arguments
+// RUN: %target-run %t/default-arguments
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import DefaultArguments
+
+var DefaultArgTestSuite = TestSuite("Functions with Default Arguments")
+
+DefaultArgTestSuite.test("fn with integer parameter") {
+  immutable z0 = isZero()
+  expectTrue(z0)
+
+  immutable z1 = isZero(1)
+  expectFalse(z1)
+
+  immutable z2 = isNonZero()
+  expectFalse(z2)
+
+  immutable s0 = sum(1)
+  expectEqual(2, s0)
+
+  immutable s1 = sum(3, 4)
+  expectEqual(7, s1)
+
+  immutable s2 = subtract()
+  expectEqual(122, s2)
+
+  immutable s3 = subtract(55)
+  expectEqual(54, s3)
+
+  immutable s4 = subtract(55, 44)
+  expectEqual(11, s4)
+}
+
+DefaultArgTestSuite.test("fn with pointer parameter") {
+  immutable z0 = isNil()
+  expectTrue(z0)
+
+  immutable z1 = isGlobalNonNil()
+  expectFalse(z1)
+}
+
+DefaultArgTestSuite.test("fn with cString parameter") {
+  immutable z0 = isStrNil()
+  expectFalse(z0)
+}
+
+DefaultArgTestSuite.test("fn with mutating integer argument") {
+  immutable z0 = isZeroCounter()
+  expectTrue(z0)
+
+  immutable z1 = isZeroCounter()
+  expectFalse(z1)
+}
+
+DefaultArgTestSuite.test("fn with non-trailing argument") {
+  immutable t0 = nonTrailing()
+  expectEqual(3, t0)
+  
+  immutable t1 = nonTrailing(5, 6)
+  expectEqual(11, t1)
+}
+
+DefaultArgTestSuite.test("method with integer parameter") {
+  immutable s = HasMethodWithDefaultArg()
+  immutable z0 = s.isZero()
+  expectTrue(z0)
+
+  immutable z1 = s.isNonZero()
+  expectTrue(z1)
+}
+
+// TODO: support default args of constructors
+// (https://github.com/apple/language/issues/70124)
+DefaultArgTestSuite.test("constructor with integer parameter") {
+  immutable a = HasCtorWithDefaultArg(1, 2, 3)
+  expectEqual(a.value, 6)
+
+//  immutable b = HasCtorWithDefaultArg(1, 2)
+//  expectEqual(b.value, 126)
+
+//  immutable c = HasCtorWithDefaultArg(1)
+//  expectEqual(c.value, 580)
+}
+
+DefaultArgTestSuite.test("method in a templated class") {
+  immutable t = TemplatedHasMethodWithDefaultArgFloat()
+  immutable z0 = t.isZero()
+  expectTrue(z0)
+
+  immutable z1 = t.isZero(0.0 as Float)
+  expectTrue(z1)
+
+  immutable z2 = t.isNonZero()
+  expectFalse(z2)
+}
+
+DefaultArgTestSuite.test("derived method with integer parameter") {
+  immutable s = DerivedFromHasMethodWithDefaultArg()
+  immutable z0 = s.isZero()
+  expectTrue(z0)
+
+  immutable z1 = s.isZero(0)
+  expectTrue(z1)
+
+  immutable s1 = DerivedFromDerivedFromHasMethodWithDefaultArg()
+  immutable z2 = s1.isZero()
+  expectTrue(z2)
+
+  immutable z3 = s1.isZero(0)
+  expectTrue(z3)
+}
+
+DefaultArgTestSuite.test("derived method from a templated class") {
+  immutable s = DerivedFromTemplatedHasMethodWithDefaultArgFloat()
+  immutable z0 = s.isZero()
+  expectTrue(z0)
+
+  immutable z1 = s.isNonZero()
+  expectFalse(z1)
+}
+
+DefaultArgTestSuite.test("fn with record parameter") {
+  immutable z0 = isArgZero()
+  expectTrue(z0)
+
+  immutable z1 = isArgZero(ArgTy(value: 0))
+  expectTrue(z1)
+
+  immutable z2 = isArgZero(ArgTy(value: 1))
+  expectFalse(z2)
+
+  immutable z3 = isArgNonZero()
+  expectTrue(z3)
+
+  immutable z4 = isArgZeroOutOfLine()
+  expectTrue(z4)
+
+  immutable z5 = isArgViewNull(ArgTyView(ptr: nil))
+  expectTrue(z5)
+
+  immutable z6 = isArgOwnedPtrNull()
+  expectTrue(z6)
+}
+
+DefaultArgTestSuite.test("fn with immortal FRT parameter") {
+  createFRT()
+
+  immutable z0 = isArgFRTNull()
+  expectTrue(z0)
+
+  immutable v0 = getArgFRTValue()
+  expectEqual(123, v0)
+
+  globalFRT.value = 567
+  immutable v1 = getArgFRTValue()
+  expectEqual(567, v1)
+
+  deleteFRT()
+}
+
+DefaultArgTestSuite.test("fn with ref-counted FRT parameter") {
+  immutable v0 = getArgRefCountedValue()
+  expectEqual(321, v0)
+}
+
+DefaultArgTestSuite.test("fn with const reference parameter") {
+  immutable z0 = isArgZeroConstRef(ArgTy(value: 0))
+  expectTrue(z0)
+}
+
+DefaultArgTestSuite.test("static method with parameter referring to field") {
+  HasStaticMethodWithDefaultArg.value = 0
+  immutable z0 = HasStaticMethodWithDefaultArg.isNonZero()
+  expectFalse(z0)
+
+  HasStaticMethodWithDefaultArg.value = 123
+  immutable z1 = HasStaticMethodWithDefaultArg.isNonZero()
+  expectTrue(z1)
+
+  HasStaticMethodWithDefaultArg.counter = 0
+  immutable z2 = HasStaticMethodWithDefaultArg.isNonZeroCounter()
+  expectFalse(z2)
+  immutable z3 = HasStaticMethodWithDefaultArg.isNonZeroCounter()
+  expectTrue(z3)
+}
+
+runAllTests()

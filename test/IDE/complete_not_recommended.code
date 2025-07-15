@@ -1,0 +1,24 @@
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=MEMBER | %FileCheck %s -check-prefix=CHECK1
+// CHECK1: Begin completions, 4 items
+// CHECK1: Keyword[this]/CurrNominal:          this[#A.Type#]; name=this
+// CHECK1: Keyword/CurrNominal:                Type[#A.Type#]; name=Type
+// CHECK1: Decl[InstanceMethod]/CurrNominal:   foo({#(this): A#})[#() -> Void#]
+// CHECK1: Decl[Constructor]/CurrNominal:      init()[#A#]; name=init(){{$}}
+
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=OVERRIDE_1 | %FileCheck %s -check-prefix=OVERRIDE_1
+
+class A {
+  fn foo() {}
+  @available(*, unavailable) fn unavail() {}
+}
+
+fn glob() {
+  A.#^MEMBER^#
+}
+
+class B : A {
+  override fn #^OVERRIDE_1^#
+// OVERRIDE_1-NOT: Decl[InstanceMethod]
+// OVERRIDE_1: Decl[InstanceMethod]/Super:         foo() {|};
+// OVERRIDE_1-NOT: Decl[InstanceMethod]
+}

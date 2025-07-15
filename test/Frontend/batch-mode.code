@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'public fn a() { }' >%t/a.code
+// RUN: echo 'public fn b() { }' >%t/b.code
+// RUN: echo 'public fn c() { }' >%t/c.code
+// RUN: echo 'public fn main() {a(); b(); c()}' >%t/main.code
+// RUN: %target-language-frontend -c -enable-batch-mode -module-name foo -primary-file %t/a.code -primary-file %t/b.code -primary-file %t/c.code -primary-file %t/main.code -o %t/a.o -o %t/b.o -o %t/c.o -o %t/main.o
+//
+// RUN: toolchain-objdump -t %t/a.o | language-demangle | %FileCheck -check-prefix=CHECK-A %s
+// RUN: toolchain-objdump -t %t/b.o | language-demangle | %FileCheck -check-prefix=CHECK-B %s
+// RUN: toolchain-objdump -t %t/c.o | language-demangle | %FileCheck -check-prefix=CHECK-C %s
+// RUN: toolchain-objdump -t %t/main.o | language-demangle | %FileCheck -check-prefix=CHECK-MAIN %s
+//
+// CHECK-A: foo.a() -> ()
+// CHECK-B: foo.b() -> ()
+// CHECK-C: foo.c() -> ()
+// CHECK-MAIN: foo.main() -> ()

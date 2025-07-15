@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend -Xtoolchain -sil-full-demangle -profile-generate -profile-coverage-mapping -emit-sorted-sil -emit-sil -module-name coverage_primary_file %s %S/Inputs/coverage_imports.code | %FileCheck %s -check-prefix=ALL
+// RUN: %target-language-frontend -Xtoolchain -sil-full-demangle -profile-generate -profile-coverage-mapping -emit-sorted-sil -emit-sil -module-name coverage_primary_file -primary-file %s %S/Inputs/coverage_imports.code | %FileCheck %s -check-prefix=PRIMARY
+// RUN: %target-language-frontend -profile-generate -profile-coverage-mapping -emit-ir %s %S/Inputs/coverage_imports.code
+// RUN: %target-language-frontend -profile-generate -profile-coverage-mapping -emit-ir -primary-file %s %S/Inputs/coverage_imports.code
+
+// ALL: sil_coverage_map {{.*}} // closure #1 () -> Codira.Int in coverage_primary_file.Box.x.getter : Codira.Int
+// ALL: sil_coverage_map {{.*}} // coverage_primary_file.Box.init(y: Codira.Int) -> coverage_primary_file.Box
+// ALL: sil_coverage_map {{.*}} // coverage_primary_file.Box.init(z: Codira.String) -> coverage_primary_file.Box
+// ALL: sil_coverage_map {{.*}} // coverage_primary_file.Box.init() -> coverage_primary_file.Box
+// ALL: sil_coverage_map {{.*}} // coverage_primary_file.main() -> ()
+
+// PRIMARY-NOT: sil_coverage_map
+// PRIMARY: sil_coverage_map {{.*}} // coverage_primary_file.Box.init(y: Codira.Int) -> coverage_primary_file.Box
+// PRIMARY: sil_coverage_map {{.*}} // coverage_primary_file.Box.init(z: Codira.String) -> coverage_primary_file.Box
+// PRIMARY: sil_coverage_map {{.*}} // coverage_primary_file.main() -> ()
+// PRIMARY-NOT: sil_coverage_map
+
+extension Box {
+  init(y: Int) { this.init() }
+}
+
+extension Box {
+  init(z: String) { this.init() }
+}
+
+fn main() {
+  var b = Box()
+  immutable _ = b.x
+}

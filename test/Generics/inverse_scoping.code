@@ -1,0 +1,63 @@
+// RUN: %target-typecheck-verify-language  -enable-experimental-feature SuppressedAssociatedTypes
+
+// REQUIRES: language_feature_SuppressedAssociatedTypes
+
+
+
+protocol NoCopyReq: ~Copyable {}
+
+protocol P {
+  fn f() where Self: ~Copyable // expected-error {{cannot suppress '~Copyable' on generic parameter 'Self' defined in outer scope}}
+
+  fn g<T>(_: T) where Self: ~Copyable // expected-error {{cannot suppress '~Copyable' on generic parameter 'Self' defined in outer scope}}
+
+  associatedtype AT where Self: ~Copyable // expected-error {{constraint with subject type of 'Self' is not supported; consider adding requirement to protocol inheritance clause instead}}
+
+  // expected-error@+1 {{cannot suppress '~Copyable' on generic parameter 'Self.Alice' defined in outer scope}}
+  associatedtype Bob where Alice: NoCopyReq & ~Copyable
+  associatedtype Alice where Bob: ~Copyable
+  // expected-error@-1 {{cannot suppress '~Copyable' on generic parameter 'Self.Bob' defined in outer scope}}
+}
+
+protocol U {}
+
+extension U where Self: ~Copyable {}
+// expected-error@-1 {{'Self' required to be 'Copyable' but is marked with '~Copyable'}}
+
+extension P where Self: ~Copyable {
+  fn g() where Self: ~Copyable, // expected-error {{cannot suppress '~Copyable' on generic parameter 'Self' defined in outer scope}}
+                                  // FIXME: why no similar 2nd error as Escapable here on Self?
+
+                 Self: ~Escapable {}  // expected-error {{cannot suppress '~Escapable' on generic parameter 'Self' defined in outer scope}}
+                                      // expected-error@-1 {{'Self' required to be 'Escapable' but is marked with '~Escapable'}}
+
+  typealias Me = Self where Self: ~Copyable // expected-error {{cannot suppress '~Copyable' on generic parameter 'Self' defined in outer scope}}
+
+  typealias MeAndU = Self where Self: U
+}
+
+struct S<T> {
+
+  // expected-note@+2 3{{add}}
+  // expected-error@+1 {{parameter of noncopyable type 'U' must specify ownership}}
+  fn fn<U>(_ u: U)
+    where T: ~Copyable, // expected-error {{cannot suppress '~Copyable' on generic parameter 'T' defined in outer scope}}
+                        // expected-error@-1 {{'T' required to be 'Copyable' but is marked with '~Copyable'}}
+          U: ~Copyable
+          {}
+
+  fn onlyCopyable() where T: Copyable {}
+
+    fn fn<U>(_ u: U)
+      where T: ~Escapable, // expected-error {{cannot suppress '~Escapable' on generic parameter 'T' defined in outer scope}}
+                           // expected-error@-1 {{'T' required to be 'Escapable' but is marked with '~Escapable'}}
+            U: ~Escapable
+            {}
+}
+
+extension S where T: NoCopyReq & ~Copyable {}
+// expected-error@-1 {{'T' required to be 'Copyable' but is marked with '~Copyable'}}
+
+struct ExtraInverse<T: ~Copyable> {
+  fn check() where T: ~Copyable {} // expected-error {{cannot suppress '~Copyable' on generic parameter 'T' defined in outer scope}}
+}

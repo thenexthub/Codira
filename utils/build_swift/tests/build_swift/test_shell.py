@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import builtins
@@ -13,7 +13,7 @@ import sys
 import unittest
 from io import StringIO
 
-from build_swift import shell
+from build_language import shell
 
 from .. import utils
 
@@ -52,7 +52,7 @@ _OPEN_NAME = '{}.open'.format(builtins.__name__)
 # Test Cases
 
 class TestHelpers(unittest.TestCase):
-    """Unit tests for the helper functions defined in the build_swift.shell
+    """Unit tests for the helper functions defined in the build_language.shell
     module.
     """
 
@@ -73,7 +73,7 @@ class TestHelpers(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     @utils.requires_module('pathlib')
-    @patch('build_swift.shell.Path', None)
+    @patch('build_language.shell.Path', None)
     def test_convert_pathlib_path_pathlib_not_imported(self):
         path = Path('/path/to/file.txt')
 
@@ -186,7 +186,7 @@ class TestHelpers(unittest.TestCase):
 
 
 class TestDecorators(unittest.TestCase):
-    """Unit tests for the decorators defined in the build_swift.shell module
+    """Unit tests for the decorators defined in the build_language.shell module
     used to backport or add functionality to the subprocess wrappers.
     """
     # -------------------------------------------------------------------------
@@ -196,56 +196,56 @@ class TestDecorators(unittest.TestCase):
         test_command = 'touch test.txt'
 
         @shell._normalize_command
-        def func(command):
+        def fn(command):
             self.assertEqual(command, test_command)
 
-        func(test_command)
+        fn(test_command)
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell._normalize_args')
+    @patch('build_language.shell._normalize_args')
     def test_normalize_command(self, mock_normalize_args):
         test_command = ['rm', '-rf', '/tmp/*']
 
         @shell._normalize_command
-        def func(command):
+        def fn(command):
             pass
 
-        func(test_command)
+        fn(test_command)
         mock_normalize_args.assert_called_with(test_command)
 
     # -------------------------------------------------------------------------
     # _add_echo_kwarg
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell._echo_command')
+    @patch('build_language.shell._echo_command')
     def test_add_echo_kwarg_calls_echo_command(self, mock_echo_command):
         test_command = ['rm', '-rf', '/tmp/*']
 
         @shell._add_echo_kwarg
-        def func(command, **kwargs):
+        def fn(command, **kwargs):
             pass
 
         mock_stream = mock.mock_open()
 
-        func(test_command, echo=True, stdout=mock_stream)
+        fn(test_command, echo=True, stdout=mock_stream)
         mock_echo_command.assert_called_with(test_command, mock_stream)
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell._echo_command')
+    @patch('build_language.shell._echo_command')
     def test_add_echo_kwarg_noop_echo_false(self, mock_echo_command):
         test_command = ['rm', '-rf', '/tmp/*']
 
         @shell._add_echo_kwarg
-        def func(command):
+        def fn(command):
             pass
 
-        func(test_command)
-        func(test_command, echo=False)
+        fn(test_command)
+        fn(test_command, echo=False)
         mock_echo_command.assert_not_called()
 
 
 class TestPublicFunctions(unittest.TestCase):
-    """Unit tests for the public functions defined in the build_swift.shell
+    """Unit tests for the public functions defined in the build_language.shell
     module.
     """
 
@@ -270,7 +270,7 @@ class TestPublicFunctions(unittest.TestCase):
 
 
 class TestSubprocessWrappers(unittest.TestCase):
-    """Unit tests for the subprocess wrappers defined in the build_swift.shell
+    """Unit tests for the subprocess wrappers defined in the build_language.shell
     module.
     """
 
@@ -324,7 +324,7 @@ class TestSubprocessWrappers(unittest.TestCase):
 
 class TestShellUtilities(unittest.TestCase):
     """Unit tests for the shell utility wrappers defined in the
-    build_swift.shell module.
+    build_language.shell module.
     """
 
     # -------------------------------------------------------------------------
@@ -333,7 +333,7 @@ class TestShellUtilities(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     @patch('os.path.isfile', MagicMock(return_value=True))
     @patch('shutil.copyfile', MagicMock())
-    @patch('build_swift.shell._convert_pathlib_path')
+    @patch('build_language.shell._convert_pathlib_path')
     def test_copy_converts_pathlib_paths(self, mock_convert):
         source = Path('/source/path')
         dest = Path('/dest/path')
@@ -403,7 +403,7 @@ class TestShellUtilities(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     @utils.requires_module('pathlib')
     @patch('os.getcwd', MagicMock(return_value='/start/path'))
-    @patch('build_swift.shell._convert_pathlib_path')
+    @patch('build_language.shell._convert_pathlib_path')
     def test_pushd_converts_pathlib_path(self, mock_convert):
         path = Path('/other/path')
         mock_convert.return_value = str(path)
@@ -441,7 +441,7 @@ class TestShellUtilities(unittest.TestCase):
     @utils.requires_module('pathlib')
     @patch('os.path.exists', MagicMock(return_value=False))
     @patch('os.makedirs', MagicMock())
-    @patch('build_swift.shell._convert_pathlib_path')
+    @patch('build_language.shell._convert_pathlib_path')
     def test_makedirs_converts_pathlib_path(self, mock_convert):
         path = Path('/some/directory')
 
@@ -486,7 +486,7 @@ class TestShellUtilities(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     @utils.requires_module('pathlib')
     @patch('shutil.move', MagicMock())
-    @patch('build_swift.shell._convert_pathlib_path')
+    @patch('build_language.shell._convert_pathlib_path')
     def test_move_converts_pathlib_paths(self, mock_convert):
         source = Path('/source/path')
         dest = Path('/dest/path')
@@ -528,7 +528,7 @@ class TestShellUtilities(unittest.TestCase):
     @utils.requires_module('pathlib')
     @patch('os.path.isfile', MagicMock(return_value=True))
     @patch('os.remove', MagicMock())
-    @patch('build_swift.shell._convert_pathlib_path')
+    @patch('build_language.shell._convert_pathlib_path')
     def test_remove_converts_pathlib_paths(self, mock_convert):
         path = Path('/path/to/remove')
 
@@ -590,7 +590,7 @@ class TestShellUtilities(unittest.TestCase):
     @utils.requires_module('unittest.mock')
     @utils.requires_module('pathlib')
     @patch('os.symlink', MagicMock())
-    @patch('build_swift.shell._convert_pathlib_path')
+    @patch('build_language.shell._convert_pathlib_path')
     def test_symlink_converts_pathlib_paths(self, mock_convert):
         source = Path('/source/path')
         dest = Path('/dest/path')
@@ -641,7 +641,7 @@ class TestShellUtilities(unittest.TestCase):
 
 
 class TestAbstractWrapper(unittest.TestCase):
-    """Unit tests for the AbstractWrapper class defined in the build_swift.shell
+    """Unit tests for the AbstractWrapper class defined in the build_language.shell
     module.
     """
 
@@ -651,7 +651,7 @@ class TestAbstractWrapper(unittest.TestCase):
 
 
 class TestCommandWrapper(unittest.TestCase):
-    """Unit tests for the CommandWrapper class defined in the build_swift.shell
+    """Unit tests for the CommandWrapper class defined in the build_language.shell
     module.
     """
 
@@ -690,7 +690,7 @@ class TestCommandWrapper(unittest.TestCase):
     # Subprocess Wrappers
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell.Popen')
+    @patch('build_language.shell.Popen')
     def test_Popen(self, mock_popen):
         ls = shell.CommandWrapper('ls')
 
@@ -699,7 +699,7 @@ class TestCommandWrapper(unittest.TestCase):
         mock_popen.assert_called_with(['ls', '-al'])
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell.call')
+    @patch('build_language.shell.call')
     def test_call(self, mock_call):
         ls = shell.CommandWrapper('ls')
 
@@ -708,7 +708,7 @@ class TestCommandWrapper(unittest.TestCase):
         mock_call.assert_called_with(['ls', '-al'])
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell.check_call')
+    @patch('build_language.shell.check_call')
     def test_check_call(self, mock_check_call):
         ls = shell.CommandWrapper('ls')
 
@@ -717,7 +717,7 @@ class TestCommandWrapper(unittest.TestCase):
         mock_check_call.assert_called_with(['ls', '-al'])
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell.check_output')
+    @patch('build_language.shell.check_output')
     def test_check_output(self, mock_check_output):
         ls = shell.CommandWrapper('ls')
 
@@ -728,7 +728,7 @@ class TestCommandWrapper(unittest.TestCase):
 
 class TestExecutableWrapper(unittest.TestCase):
     """Unit tests for the ExecutableWrapper class defined in the
-    build_swift.shell module.
+    build_language.shell module.
     """
 
     def test_raises_without_executable(self):
@@ -740,7 +740,7 @@ class TestExecutableWrapper(unittest.TestCase):
 
     def test_raises_complex_executable(self):
         class MyWrapper(shell.ExecutableWrapper):
-            EXECUTABLE = ['xcrun', 'swiftc']
+            EXECUTABLE = ['xcrun', 'languagec']
 
         with self.assertRaises(AttributeError):
             MyWrapper()
@@ -763,7 +763,7 @@ class TestExecutableWrapper(unittest.TestCase):
         self.assertEqual(wrapper.command, ['test'])
 
     @utils.requires_module('unittest.mock')
-    @patch('build_swift.shell.which')
+    @patch('build_language.shell.which')
     def test_path_property(self, mock_which):
         class MyWrapper(shell.ExecutableWrapper):
             EXECUTABLE = 'test'

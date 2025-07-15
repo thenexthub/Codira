@@ -1,0 +1,38 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -I %t/Inputs  %t/test.code  -enable-experimental-cxx-interop -disable-availability-checking 2>&1
+
+//--- Inputs/module.modulemap
+module Test {
+    header "test.h"
+    requires cplusplus
+    
+    module sub {
+        header "subtest.h"
+
+        export *
+    }
+    
+    export *
+}
+
+//--- Inputs/test.h
+// empty file
+
+//--- Inputs/subtest.h
+struct
+    __attribute__((language_attr("import_reference")))
+    __attribute__((language_attr("retain:retainFn")))
+    __attribute__((language_attr("release:releaseFn")))
+RefCounted {
+    static RefCounted *create();
+};
+
+void retainFn(RefCounted *);
+void releaseFn(RefCounted *);
+
+//--- test.code
+
+import Test
+
+immutable x = RefCounted.create()

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -19,7 +20,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SILOptimizer/Analysis/ARCAnalysis.h"
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -131,7 +132,7 @@ BottomUpDataflowRCStateVisitor<ARCState>::visitStrongDecrement(SILNode *N) {
     State.updateKnownSafe(true);
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    REF COUNT DECREMENT! Known Safe: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    REF COUNT DECREMENT! Known Safe: "
                           << (State.isKnownSafe() ? "yes" : "no") << "\n");
 
   // Continue on to see if our reference decrement could potentially affect
@@ -150,7 +151,7 @@ BottomUpDataflowRCStateVisitor<ARCState>::visitStrongIncrement(SILNode *N) {
   SILValue Op = RCFI->getRCIdentityRoot(I->getOperand(0));
   auto &RefCountState = DataflowState.getBottomUpRefCountState(Op);
 
-  LLVM_DEBUG(llvm::dbgs() << "    REF COUNT INCREMENT!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    REF COUNT INCREMENT!\n");
 
   // If we find a state initialized with a matching increment, pair this
   // decrement with a copy of the ref count state and then clear the ref
@@ -159,7 +160,7 @@ BottomUpDataflowRCStateVisitor<ARCState>::visitStrongIncrement(SILNode *N) {
   if (RefCountState.isRefCountInstMatchedToTrackedInstruction(I)) {
     // Copy the current value of ref count state into the result map.
     IncToDecStateMap[I] = RefCountState;
-    LLVM_DEBUG(llvm::dbgs() << "    MATCHING DECREMENT:"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    MATCHING DECREMENT:"
                             << RefCountState.getRCRoot());
 
     // Clear the ref count state so it can be used for future pairs we may
@@ -169,10 +170,10 @@ BottomUpDataflowRCStateVisitor<ARCState>::visitStrongIncrement(SILNode *N) {
 #ifndef NDEBUG
   else {
     if (RefCountState.isTrackingRefCountInst()) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAILED MATCH DECREMENT:"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAILED MATCH DECREMENT:"
                               << RefCountState.getRCRoot());
     } else {
-      LLVM_DEBUG(llvm::dbgs() << "    FAILED MATCH DECREMENT. Not tracking a "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAILED MATCH DECREMENT. Not tracking a "
                                  "decrement.\n");
     }
   }
@@ -212,7 +213,7 @@ TopDownDataflowRCStateVisitor<ARCState>::visitStrongDecrement(SILNode *N) {
   SILValue Op = RCFI->getRCIdentityRoot(I->getOperand(0));
   auto &RefCountState = DataflowState.getTopDownRefCountState(Op);
 
-  LLVM_DEBUG(llvm::dbgs() << "    REF COUNT DECREMENT!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    REF COUNT DECREMENT!\n");
 
   // If we are tracking an increment on the ref count root associated with
   // the decrement and the decrement matches, pair this decrement with a
@@ -221,7 +222,7 @@ TopDownDataflowRCStateVisitor<ARCState>::visitStrongDecrement(SILNode *N) {
   if (RefCountState.isRefCountInstMatchedToTrackedInstruction(I)) {
     // Copy the current value of ref count state into the result map.
     DecToIncStateMap[I] = RefCountState;
-    LLVM_DEBUG(llvm::dbgs() << "    MATCHING INCREMENT:\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    MATCHING INCREMENT:\n"
                             << RefCountState.getRCRoot());
 
     // Clear the ref count state in preparation for more pairs.
@@ -230,10 +231,10 @@ TopDownDataflowRCStateVisitor<ARCState>::visitStrongDecrement(SILNode *N) {
 #if NDEBUG
   else {
     if (RefCountState.isTrackingRefCountInst()) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAILED MATCH INCREMENT:\n"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAILED MATCH INCREMENT:\n"
                               << RefCountState.getValue());
     } else {
-      LLVM_DEBUG(llvm::dbgs() << "    FAILED MATCH. NO INCREMENT.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAILED MATCH. NO INCREMENT.\n");
     }
   }
 #endif
@@ -256,7 +257,7 @@ TopDownDataflowRCStateVisitor<ARCState>::visitStrongIncrement(SILNode *N) {
   auto &State = DataflowState.getTopDownRefCountState(Op);
   bool NestingDetected = State.initWithMutatorInst(SetFactory.get(I), RCFI);
 
-  LLVM_DEBUG(llvm::dbgs() << "    REF COUNT INCREMENT! Known Safe: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    REF COUNT INCREMENT! Known Safe: "
                           << (State.isKnownSafe() ? "yes" : "no") << "\n");
 
   // Continue processing in case this increment could be a CanUse for a
@@ -268,14 +269,14 @@ template <class ARCState>
 typename TopDownDataflowRCStateVisitor<ARCState>::DataflowResult
 TopDownDataflowRCStateVisitor<ARCState>::visitStrongEntranceArgument(
     SILFunctionArgument *Arg) {
-  LLVM_DEBUG(llvm::dbgs() << "VISITING ENTRANCE ARGUMENT: " << *Arg);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING ENTRANCE ARGUMENT: " << *Arg);
 
   if (!Arg->hasConvention(SILArgumentConvention::Direct_Owned)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Not owned! Bailing!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Not owned! Bailing!\n");
     return DataflowResult();
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Initializing state.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Initializing state.\n");
 
   auto &State = DataflowState.getTopDownRefCountState(Arg);
   State.initWithArg(Arg);
@@ -287,7 +288,7 @@ template <class ARCState>
 typename TopDownDataflowRCStateVisitor<ARCState>::DataflowResult
 TopDownDataflowRCStateVisitor<ARCState>::
 visitStrongEntranceApply(ApplyInst *AI) {
-  LLVM_DEBUG(llvm::dbgs() << "VISITING ENTRANCE APPLY: " << *AI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING ENTRANCE APPLY: " << *AI);
 
   // We should have checked earlier that AI has an owned result value. To
   // prevent mistakes, assert that here.
@@ -301,7 +302,7 @@ visitStrongEntranceApply(ApplyInst *AI) {
 #endif
 
   // Otherwise, return a dataflow result containing a +1.
-  LLVM_DEBUG(llvm::dbgs() << "    Initializing state.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Initializing state.\n");
 
   auto &State = DataflowState.getTopDownRefCountState(AI);
   State.initWithEntranceInst(SetFactory.get(AI), AI);
@@ -313,10 +314,10 @@ template <class ARCState>
 typename TopDownDataflowRCStateVisitor<ARCState>::DataflowResult
 TopDownDataflowRCStateVisitor<ARCState>::visitStrongEntrancePartialApply(
     PartialApplyInst *PAI) {
-  LLVM_DEBUG(llvm::dbgs() << "VISITING ENTRANCE PARTIAL APPLY: " << *PAI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING ENTRANCE PARTIAL APPLY: " << *PAI);
 
   // Rreturn a dataflow result containing a +1.
-  LLVM_DEBUG(llvm::dbgs() << "    Initializing state.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Initializing state.\n");
 
   auto &State = DataflowState.getTopDownRefCountState(PAI);
   State.initWithEntranceInst(SetFactory.get(PAI), PAI);

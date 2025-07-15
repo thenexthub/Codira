@@ -50,7 +50,7 @@ function(copy_library_sources name from_prefix to_prefix)
     FOLLOW_SYMLINKS
     LIST_DIRECTORIES FALSE
     RELATIVE "${ARG_ROOT}/${from_prefix}"
-    "${ARG_ROOT}/${from_prefix}/${name}/*.swift"
+    "${ARG_ROOT}/${from_prefix}/${name}/*.code"
     "${ARG_ROOT}/${from_prefix}/${name}/*.h"
     "${ARG_ROOT}/${from_prefix}/${name}/*.cpp"
     "${ARG_ROOT}/${from_prefix}/${name}/*.c"
@@ -79,13 +79,13 @@ copy_library_sources("linker-support" "" "Core")
 
 set(CoreLibs
   LLVMSupport
-  SwiftShims
+  CodiraShims
   runtime
   CompatibilityOverride
   stubs
   CommandLineSupport
   core
-  SwiftOnoneSupport
+  CodiraOnoneSupport
   Concurrency
   Concurrency/InternalShims)
 
@@ -96,13 +96,16 @@ endforeach()
 message(STATUS "plist[${StdlibSources}/Info.plist.in] -> Core/Info.plist.in")
 copy_files("" "Core" FILES "Info.plist.in")
 
+message(STATUS "plist[${StdlibSources}/Info.plist.in] -> Supplemental/Synchronization/Info.plist.in")
+copy_files("" "Supplemental/Synchronization" FILES "Info.plist.in")
+
 # Platform Overlays
 
 # Copy magic linker symbols
 copy_library_sources("linker-support" "" "Overlay")
 
 message(STATUS "Clang[${StdlibSources}/public/ClangOverlays] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/clang")
-copy_files(public/ClangOverlays Overlay/clang FILES float.swift.gyb)
+copy_files(public/ClangOverlays Overlay/clang FILES float.code.gyb)
 
 # Android Overlay
 message(STATUS "Android modulemaps[${StdlibSources}/Platform] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/Android/clang")
@@ -111,26 +114,26 @@ copy_files(public/Platform Overlay/Android/clang
     android.modulemap
     posix_filesystem.apinotes
     spawn.apinotes
-    SwiftAndroidNDK.h
-    SwiftBionic.h)
+    CodiraAndroidNDK.h
+    CodiraBionic.h)
 
 message(STATUS "Android Android[${StdlibSources}/Platform] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/Android/Android")
 copy_files(public/Platform Overlay/Android/Android
   FILES
-    Android.swift
-    Platform.swift
-    POSIXError.swift
-    TiocConstants.swift
-    tgmath.swift.gyb)
+    Android.code
+    Platform.code
+    POSIXError.code
+    TiocConstants.code
+    tgmath.code.gyb)
 
 message(STATUS "Android Math[${StdlibSources}/Platform] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/Android/Math")
 copy_files(public/Platform Overlay/Android/Math
   FILES
-    Math.swift)
+    Math.code)
 
 # Windows Overlay
 message(STATUS "WinSDK[${StdlibSources}/public/Windows] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/Windows/WinSDK")
-copy_files(public/Windows Overlay/Windows/WinSDK FILES WinSDK.swift)
+copy_files(public/Windows Overlay/Windows/WinSDK FILES WinSDK.code)
 
 message(STATUS "Windows modulemaps[${StdlibSources}/Platform] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/Windows/clang")
 copy_files(public/Platform Overlay/Windows/clang
@@ -143,30 +146,32 @@ copy_files(public/Platform Overlay/Windows/clang
 message(STATUS "CRT[${StdlibSources}/public/Platform] -> ${CMAKE_CURRENT_LIST_DIR}/Overlay/Windows/CRT")
 copy_files(public/Platform Overlay/Windows/CRT
   FILES
-    ucrt.swift
-    Platform.swift
-    POSIXError.swift
-    TiocConstants.swift
-    tgmath.swift.gyb)
+    ucrt.code
+    Platform.code
+    POSIXError.code
+    TiocConstants.code
+    tgmath.code.gyb)
 
 # TODO: Add source directories for the platform overlays, supplemental
 # libraries, and test support libraries.
 
 # Supplemental Libraries
+copy_library_sources("Synchronization" "public" "Supplemental")
+
 
 # Copy StringProcessing, RegexParser, RegexBuilder
 if(NOT DEFINED StringProcessing_ROOT_DIR)
   find_path(StringProcessing_ROOT_DIR
-    "swift-experimental-string-processing/Package.swift"
+    "language-experimental-string-processing/Package.code"
     HINTS "${CMAKE_CURRENT_LIST_DIR}/../../")
 endif()
 message(STATUS "String Processing Root: ${StringProcessing_ROOT_DIR}")
 
 copy_library_sources(_RegexParser "Sources" "Supplemental/StringProcessing"
-  ROOT "${StringProcessing_ROOT_DIR}/swift-experimental-string-processing")
+  ROOT "${StringProcessing_ROOT_DIR}/language-experimental-string-processing")
 copy_library_sources(_StringProcessing "Sources" "Supplemental/StringProcessing"
-  ROOT "${StringProcessing_ROOT_DIR}/swift-experimental-string-processing")
+  ROOT "${StringProcessing_ROOT_DIR}/language-experimental-string-processing")
 copy_library_sources(_CUnicode "Sources" "Supplemental/StringProcessing/_StringProcessing"
-  ROOT "${StringProcessing_ROOT_DIR}/swift-experimental-string-processing")
+  ROOT "${StringProcessing_ROOT_DIR}/language-experimental-string-processing")
 copy_library_sources(RegexBuilder "Sources" "Supplemental/StringProcessing"
-  ROOT "${StringProcessing_ROOT_DIR}/swift-experimental-string-processing")
+  ROOT "${StringProcessing_ROOT_DIR}/language-experimental-string-processing")

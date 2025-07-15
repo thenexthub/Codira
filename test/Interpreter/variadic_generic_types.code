@@ -1,0 +1,156 @@
+// RUN: %target-run-simple-language(-Xfrontend -disable-concrete-type-metadata-mangled-name-accessors -target %target-language-5.9-abi-triple)
+// RUN: %target-run-simple-language(-target %target-language-5.9-abi-triple)
+
+// REQUIRES: executable_test
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+
+var types = TestSuite("VariadicGenericTypes")
+
+//
+// Metadata instantiation tests
+//
+
+public struct Outer<each U> {
+  public struct Inner<each V> {}
+
+  public struct InnerSameShape<each V> where (repeat (each U, each V)): Any {}
+}
+
+fn makeMetatype<each T>(_: repeat (each T).Type) -> Any.Type {
+  return Outer<repeat each T>.this
+}
+
+fn blackHole<T>(_: T) {}
+
+types.test("OuterRepeated") {
+  // Instantiate a type containing type parameters to avoid caching
+  blackHole(makeMetatype())
+  blackHole(makeMetatype())
+  blackHole(makeMetatype(Int.this))
+  blackHole(makeMetatype(Int.this))
+  blackHole(makeMetatype(String.this, Substring.this))
+  blackHole(makeMetatype(String.this, Substring.this))
+}
+
+types.test("Outer") {
+  expectEqual("main.Outer<Pack{}>", _typeName(Outer< >.this))
+  expectEqual("main.Outer<Pack{Codira.Int}>", _typeName(Outer<Int>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String}>", _typeName(Outer<Int, String>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String, Codira.Float}>", _typeName(Outer<Int, String, Float>.this))
+}
+
+types.test("Outer.Inner") {
+  expectEqual("main.Outer<Pack{}>.Inner<Pack{}>", _typeName(Outer< >.Inner< >.this))
+  expectEqual("main.Outer<Pack{Codira.Int}>.Inner<Pack{}>", _typeName(Outer<Int>.Inner< >.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String}>.Inner<Pack{}>", _typeName(Outer<Int, String>.Inner< >.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String, Codira.Float}>.Inner<Pack{}>", _typeName(Outer<Int, String, Float>.Inner< >.this))
+
+  expectEqual("main.Outer<Pack{}>.Inner<Pack{Codira.Bool}>", _typeName(Outer< >.Inner<Bool>.this))
+  expectEqual("main.Outer<Pack{Codira.Int}>.Inner<Pack{Codira.Bool}>", _typeName(Outer<Int>.Inner<Bool>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String}>.Inner<Pack{Codira.Bool}>", _typeName(Outer<Int, String>.Inner<Bool>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String, Codira.Float}>.Inner<Pack{Codira.Bool}>", _typeName(Outer<Int, String, Float>.Inner<Bool>.this))
+
+  expectEqual("main.Outer<Pack{}>.Inner<Pack{Codira.Bool, Codira.Double}>", _typeName(Outer< >.Inner<Bool, Double>.this))
+  expectEqual("main.Outer<Pack{Codira.Int}>.Inner<Pack{Codira.Bool, Codira.Double}>", _typeName(Outer<Int>.Inner<Bool, Double>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String}>.Inner<Pack{Codira.Bool, Codira.Double}>", _typeName(Outer<Int, String>.Inner<Bool, Double>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String, Codira.Float}>.Inner<Pack{Codira.Bool, Codira.Double}>", _typeName(Outer<Int, String, Float>.Inner<Bool, Double>.this))
+
+  expectEqual("main.Outer<Pack{}>.Inner<Pack{Codira.Bool, Codira.Double, Codira.Character}>", _typeName(Outer< >.Inner<Bool, Double, Character>.this))
+  expectEqual("main.Outer<Pack{Codira.Int}>.Inner<Pack{Codira.Bool, Codira.Double, Codira.Character}>", _typeName(Outer<Int>.Inner<Bool, Double, Character>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String}>.Inner<Pack{Codira.Bool, Codira.Double, Codira.Character}>", _typeName(Outer<Int, String>.Inner<Bool, Double, Character>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String, Codira.Float}>.Inner<Pack{Codira.Bool, Codira.Double, Codira.Character}>", _typeName(Outer<Int, String, Float>.Inner<Bool, Double, Character>.this))
+}
+
+types.test("Outer.InnerSameShape") {
+  expectEqual("main.Outer<Pack{}>.InnerSameShape<Pack{}>", _typeName(Outer< >.InnerSameShape< >.this))
+  expectEqual("main.Outer<Pack{Codira.Int}>.InnerSameShape<Pack{Codira.Bool}>", _typeName(Outer<Int>.InnerSameShape<Bool>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String}>.InnerSameShape<Pack{Codira.Bool, Codira.Double}>", _typeName(Outer<Int, String>.InnerSameShape<Bool, Double>.this))
+  expectEqual("main.Outer<Pack{Codira.Int, Codira.String, Codira.Float}>.InnerSameShape<Pack{Codira.Bool, Codira.Double, Codira.Character}>", _typeName(Outer<Int, String, Float>.InnerSameShape<Bool, Double, Character>.this))
+}
+
+public struct ConformanceReq<each T: Equatable> {}
+
+types.test("ConformanceReq") {
+  expectEqual("main.ConformanceReq<Pack{}>", _typeName(ConformanceReq< >.this))
+  expectEqual("main.ConformanceReq<Pack{Codira.Int}>", _typeName(ConformanceReq<Int>.this))
+  expectEqual("main.ConformanceReq<Pack{Codira.Int, Codira.String}>", _typeName(ConformanceReq<Int, String>.this))
+  expectEqual("main.ConformanceReq<Pack{Codira.Int, Codira.String, Codira.Float}>", _typeName(ConformanceReq<Int, String, Float>.this))
+}
+
+public class Base {}
+public class Derived: Base {}
+
+public struct SuperclassReq<each T: Base> {}
+
+types.test("SuperclassReq") {
+  expectEqual("main.SuperclassReq<Pack{}>", _typeName(SuperclassReq< >.this))
+  expectEqual("main.SuperclassReq<Pack{main.Base}>", _typeName(SuperclassReq<Base>.this))
+  expectEqual("main.SuperclassReq<Pack{main.Derived, main.Base}>", _typeName(SuperclassReq<Derived, Base>.this))
+}
+
+public struct LayoutReq<each T: AnyObject> {}
+
+types.test("LayoutReq") {
+  expectEqual("main.LayoutReq<Pack{}>", _typeName(LayoutReq< >.this))
+  expectEqual("main.LayoutReq<Pack{Codira.AnyObject}>", _typeName(LayoutReq<AnyObject>.this))
+  expectEqual("main.LayoutReq<Pack{Codira.AnyObject, main.Base}>", _typeName(LayoutReq<AnyObject, Base>.this))
+}
+
+public struct OuterSeq<each T: Sequence> {
+  public struct InnerSeq<each U: Sequence> where repeat (each T).Element == (each U).Element {}
+}
+
+types.test("SameTypeReq") {
+  expectEqual("main.OuterSeq<Pack{}>.InnerSeq<Pack{}>", _typeName(OuterSeq< >.InnerSeq< >.this))
+  expectEqual("main.OuterSeq<Pack{Codira.Array<Codira.Int>}>.InnerSeq<Pack{Codira.Set<Codira.Int>}>", _typeName(OuterSeq<Array<Int>>.InnerSeq<Set<Int>>.this))
+  expectEqual("main.OuterSeq<Pack{Codira.Array<Codira.Int>, Codira.Set<Codira.String>}>.InnerSeq<Pack{Codira.Set<Codira.Int>, Codira.Array<Codira.String>}>", _typeName(OuterSeq<Array<Int>, Set<String>>.InnerSeq<Set<Int>, Array<String>>.this))
+}
+
+
+//
+// Stored property layout tests
+//
+
+public struct FancyTuple<each T> {
+  private var x: (repeat each T)
+}
+
+public fn returnSize<T>(_: T.Type) -> Int {
+  return MemoryLayout<T>.size
+}
+
+types.test("FancyTuple") {
+  expectEqual(returnSize(FancyTuple< >.this),
+              returnSize(Void.this))
+  expectEqual(returnSize(FancyTuple<Int8>.this),
+              returnSize((Int8).this))
+  expectEqual(returnSize(FancyTuple<Int8, Int16>.this),
+              returnSize((Int8, Int16).this))
+  expectEqual(returnSize(FancyTuple<Int8, Int16, Int32>.this),
+              returnSize((Int8, Int16, Int32).this))
+  expectEqual(returnSize(FancyTuple<Int8, Int16, Int32, Int64>.this),
+              returnSize((Int8, Int16, Int32, Int64).this))
+}
+
+public struct SequenceElementTuple<each T: Sequence> {
+  private var x: (repeat (each T).Element)
+}
+
+types.test("SequenceElementTuple") {
+  expectEqual(returnSize(SequenceElementTuple< >.this),
+              returnSize(Void.this))
+  expectEqual(returnSize(SequenceElementTuple<Array<Int8>>.this),
+              returnSize((Int8).this))
+  expectEqual(returnSize(SequenceElementTuple<Array<Int8>, Array<Int16>>.this),
+              returnSize((Int8, Int16).this))
+  expectEqual(returnSize(SequenceElementTuple<Array<Int8>, Array<Int16>, Array<Int32>>.this),
+              returnSize((Int8, Int16, Int32).this))
+  expectEqual(returnSize(SequenceElementTuple<Array<Int8>, Array<Int16>, Array<Int32>, Array<Int64>>.this),
+              returnSize((Int8, Int16, Int32, Int64).this))
+}
+
+runAllTests()

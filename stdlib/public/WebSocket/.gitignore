@@ -1,8 +1,0 @@
-.DS_Store
-/.build
-/Packages
-/*.xcodeproj
-DerivedData
-.swiftpm
-Package.resolved
-.devcontainer/

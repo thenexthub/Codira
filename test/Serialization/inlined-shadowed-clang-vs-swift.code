@@ -1,0 +1,64 @@
+/// Ensure inlined code in languagemodules differentiates between shadowed Codira
+/// and clang decls.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// REQUIRES: objc_interop
+
+/// Reference build: Build libs and client for a normal build.
+// RUN: %target-language-frontend -emit-module %t/RootLib.code -I %t \
+// RUN:   -emit-module-path %t/RootLib.codemodule
+// RUN: %target-language-frontend -emit-module %t/MiddleLib.code -I %t \
+// RUN:   -emit-module-path %t/MiddleLib.codemodule
+// RUN: %target-language-frontend -emit-sil -O %t/Client.code -I %t > %t/Client.sil
+// RUN: %FileCheck %s --input-file=%t/Client.sil
+
+//--- module.modulemap
+module RootLib {
+  header "RootLib.h"
+}
+
+//--- RootLib.h
+#include <stdio.h>
+void ShadowedFunc() {
+    printf("Clang\n");
+}
+
+//--- RootLib.code
+@_exported import RootLib
+
+@usableFromInline
+internal fn ShadowedFunc() {
+    print("Codira")
+}
+
+@inlinable
+@inline(__always)
+public fn languageUser() {
+    ShadowedFunc() // Codira one
+}
+
+//--- MiddleLib.code
+
+import RootLib
+
+@inlinable
+@inline(__always)
+public fn clangUser() {
+    ShadowedFunc() // Clang one
+}
+
+//--- Client.code
+
+import RootLib
+import MiddleLib
+
+languageUser()
+// CHECK: [[LANGUAGE_FUNC:%.*]] = function_ref @$s7RootLib12ShadowedFuncyyF : $@convention(thin) () -> ()
+// CHECK: apply [[LANGUAGE_FUNC]]() : $@convention(thin) () -> ()
+// CHECK-NOT: apply [[LANGUAGE_FUNC]]() : $@convention(thin) () -> ()
+
+clangUser()
+// CHECK: [[CLANG_FUNC:%.*]] = function_ref @ShadowedFunc : $@convention(c) () -> ()
+// CHECK: apply [[CLANG_FUNC]]() : $@convention(c) () -> ()
+// CHECK-NOT: apply [[CLANG_FUNC]]() : $@convention(c) () -> ()

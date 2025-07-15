@@ -1,0 +1,10 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=MutableMembers -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop -Xcc -DUSE_MUTATING -I %language_src_root/lib/ClangImporter/CodiraBridging | %FileCheck %s
+
+// CHECK: struct HasPublicMutableMember {
+// CHECK:   mutating fn foo() -> Int32
+// CHECK:   var a: Int32
+// CHECK: }
+
+// CHECK: struct HasPrivateMutableMember {
+// CHECK:   mutating fn bar()
+// CHECK: }

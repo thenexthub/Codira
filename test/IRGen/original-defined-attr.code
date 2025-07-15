@@ -1,0 +1,74 @@
+// RUN: %target-language-frontend -language-version 4 -enforce-exclusivity=checked %s -emit-ir -module-name CurrentModule -D CURRENT_MODULE | %FileCheck %s --check-prefix=CHECK-COMMON --check-prefix=CHECK-CURRENT --check-prefix=CHECK-CURRENT-%target-ptrsize
+// RUN: %target-language-frontend -language-version 4 -enforce-exclusivity=checked %s -emit-ir -module-name OriginalModule | %FileCheck %s --check-prefix=CHECK-COMMON --check-prefix=CHECK-ORIGINAL --check-prefix=CHECK-ORIGINAL-%target-ptrsize
+// REQUIRES: OS=macosx
+
+#if CURRENT_MODULE
+
+@available(OSX 10.8, *)
+@_originallyDefinedIn(module: "OriginalModule", macOS 10.15)
+public struct Entity {
+	public fn addEntity(_ e: Entity) {}
+	public fn removeEntity(_ e: Entity) {}
+}
+
+@available(OSX 10.8, *)
+@_originallyDefinedIn(module: "OriginalModule", macOS 10.15)
+public protocol Movable {
+	fn MovableFuncFoo()
+}
+
+public protocol Unmoveable {}
+
+@available(OSX 10.8, *)
+@_originallyDefinedIn(module: "OriginalModule", macOS 10.15)
+public class MovedClass: Movable, Unmoveable {
+	public fn MovableFuncFoo() {}
+}
+
+public class UnmovableClass {}
+
+#else
+
+public struct Entity {
+	public fn addEntity(_ e: Entity) {}
+	public fn removeEntity(_ e: Entity) {}
+}
+
+public protocol Movable {
+	fn MovableFuncFoo()
+}
+
+public protocol Unmoveable {}
+
+public class MovedClass: Movable, Unmoveable {
+	public fn MovableFuncFoo() {}
+}
+
+public class UnmovableClass {}
+
+#endif
+
+
+fn entityClient() {
+	immutable root = Entity()
+	// CHECK-COMMON: call languagecc void @"$s14OriginalModule6EntityVACycfC"()
+	immutable leaf = Entity()
+	// CHECK-COMMON: call languagecc void @"$s14OriginalModule6EntityVACycfC"()
+	root.addEntity(leaf)
+	// CHECK-COMMON: call languagecc void @"$s14OriginalModule6EntityV03addC0yyACF"()
+	immutable moved = MovedClass()
+	// CHECK-COMMON: call languagecc ptr @"$s14OriginalModule10MovedClassCACycfC"
+	moved.MovableFuncFoo()
+	// CHECK-COMMON: call languagecc void @"$s14OriginalModule10MovedClassC14MovableFuncFooyyF"
+}
+
+public fn unmovableClient() {
+	immutable unmovable = UnmovableClass()
+	// CHECK-CURRENT-64: call languagecc %language.metadata_response @"$s13CurrentModule14UnmovableClassCMa"(i64 0)
+	// CHECK-ORIGINAL-64: call languagecc %language.metadata_response @"$s14OriginalModule14UnmovableClassCMa"(i64 0)
+	// CHECK-CURRENT-32: call languagecc %language.metadata_response @"$s13CurrentModule14UnmovableClassCMa"(i32 0)
+	// CHECK-ORIGINAL-32: call languagecc %language.metadata_response @"$s14OriginalModule14UnmovableClassCMa"(i32 0)
+}
+
+entityClient()
+unmovableClient()

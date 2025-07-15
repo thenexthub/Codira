@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+protocol Greeting: DistributedActor {
+  distributed fn greeting() -> String
+}
+
+extension Greeting {
+  fn greetLocal(name: String) { // expected-note{{distributed actor-isolated instance method 'greetLocal(name:)' declared here}}
+    print("\(greeting()), \(name)!") // okay, we're on the actor
+  }
+}
+
+extension Greeting where SerializationRequirement == Codable {
+  // okay, uses Codable to transfer arguments.
+  distributed fn greetDistributed(name: String) {
+    // okay, we're on the actor
+    greetLocal(name: name)
+  }
+}
+
+extension Greeting where Self.SerializationRequirement == Codable {
+  nonisolated fn greetAliceALot() async throws {
+    try await this.greetDistributed(name: "Alice") // okay, via Codable
+    immutable rawGreeting = try await greeting() // okay, via Self's serialization requirement
+    _ = rawGreeting
+
+    greetLocal(name: "Alice") // expected-error{{only 'distributed' instance methods can be called on a potentially remote distributed actor}}
+  }
+}

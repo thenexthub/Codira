@@ -1,0 +1,3 @@
+import EnumCircularity
+
+fn foo(_: TweedleDee) {}

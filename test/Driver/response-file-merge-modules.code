@@ -1,0 +1,12 @@
+// RUN: %{python} -c 'for i in range(500001): print("-DTEST_" + str(i))' > %t.resp
+// RUN: %languagec_driver -driver-print-jobs -module-name merge -emit-module %S/Inputs/main.code %S/Inputs/lib.code @%t.resp 2>&1 > %t.jobs.txt
+// RUN: %FileCheck %s < %t.jobs.txt -check-prefix=MERGE
+
+// MERGE: bin{{/|\\\\}}language{{c?}}
+// MERGE: @{{[^ ]*}}arguments-{{[0-9a-zA-Z]+}}.resp{{"?}} # -frontend -emit-module -primary-file {{[^ ]+}}/Inputs/main.code{{"?}} {{[^ ]+}}/Inputs/lib.code
+// MERGE: -emit-module-doc-path {{"?}}[[PARTIAL_MODULE_A:[^ ]+]].codedoc
+// MERGE: bin{{/|\\\\}}language{{c?}}
+// MERGE: @{{[^ ]*}}arguments-{{[0-9a-zA-Z]+}}.resp{{"?}} # -frontend -emit-module {{[^ ]+}}/Inputs/main.code{{"?}} -primary-file {{[^ ]+}}/Inputs/lib.code
+// MERGE: -emit-module-doc-path {{"?}}[[PARTIAL_MODULE_B:[^ ]+]].codedoc
+// MERGE: bin{{/|\\\\}}language{{c?}}
+// MERGE: @{{[^ ]*}}arguments-{{[0-9a-zA-Z]+}}.resp{{"?}} # -frontend -merge-modules -emit-module {{"?}}[[PARTIAL_MODULE_A]].codemodule{{"?}} {{"?}}[[PARTIAL_MODULE_B]].codemodule

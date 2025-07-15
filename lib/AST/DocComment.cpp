@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// This file implements extraction of documentation comments from a Swift
+/// This file implements extraction of documentation comments from a Codira
 /// Markup AST tree.
 ///
 //===----------------------------------------------------------------------===//
@@ -33,17 +34,17 @@
 
 using namespace language;
 
-void *DocComment::operator new(size_t Bytes, swift::markup::MarkupContext &MC,
+void *DocComment::operator new(size_t Bytes, language::markup::MarkupContext &MC,
                                unsigned Alignment) {
   return MC.allocate(Bytes, Alignment);
 }
 
 namespace {
-std::optional<swift::markup::ParamField *>
-extractParamOutlineItem(swift::markup::MarkupContext &MC,
-                        swift::markup::MarkupASTNode *Node) {
+std::optional<language::markup::ParamField *>
+extractParamOutlineItem(language::markup::MarkupContext &MC,
+                        language::markup::MarkupASTNode *Node) {
 
-  auto Item = dyn_cast<swift::markup::Item>(Node);
+  auto Item = dyn_cast<language::markup::Item>(Node);
   if (!Item)
     return std::nullopt;
 
@@ -52,7 +53,7 @@ extractParamOutlineItem(swift::markup::MarkupContext &MC,
     return std::nullopt;
 
   auto FirstChild = Children.front();
-  auto FirstParagraph = dyn_cast<swift::markup::Paragraph>(FirstChild);
+  auto FirstParagraph = dyn_cast<language::markup::Paragraph>(FirstChild);
   if (!FirstParagraph)
     return std::nullopt;
 
@@ -61,7 +62,7 @@ extractParamOutlineItem(swift::markup::MarkupContext &MC,
     return std::nullopt;
 
   auto ParagraphText =
-      dyn_cast<swift::markup::Text>(FirstParagraphChildren.front());
+      dyn_cast<language::markup::Text>(FirstParagraphChildren.front());
   if (!ParagraphText)
     return std::nullopt;
 
@@ -75,19 +76,19 @@ extractParamOutlineItem(swift::markup::MarkupContext &MC,
 
   ParagraphText->setLiteralContent(Remainder.ltrim());
 
-  return swift::markup::ParamField::create(MC, Name, Children);
+  return language::markup::ParamField::create(MC, Name, Children);
 }
 
 bool extractParameterOutline(
-    swift::markup::MarkupContext &MC, swift::markup::List *L,
-    SmallVectorImpl<swift::markup::ParamField *> &ParamFields) {
-  SmallVector<swift::markup::MarkupASTNode *, 8> NormalItems;
+    language::markup::MarkupContext &MC, language::markup::List *L,
+    SmallVectorImpl<language::markup::ParamField *> &ParamFields) {
+  SmallVector<language::markup::MarkupASTNode *, 8> NormalItems;
   auto Children = L->getChildren();
   if (Children.empty())
     return false;
 
   for (auto Child : Children) {
-    auto I = dyn_cast<swift::markup::Item>(Child);
+    auto I = dyn_cast<language::markup::Item>(Child);
     if (!I) {
       NormalItems.push_back(Child);
       continue;
@@ -100,7 +101,7 @@ bool extractParameterOutline(
     }
 
     auto FirstChild = ItemChildren.front();
-    auto FirstParagraph = dyn_cast<swift::markup::Paragraph>(FirstChild);
+    auto FirstParagraph = dyn_cast<language::markup::Paragraph>(FirstChild);
     if (!FirstParagraph) {
       NormalItems.push_back(Child);
       continue;
@@ -113,7 +114,7 @@ bool extractParameterOutline(
     }
 
     auto HeadingText
-        = dyn_cast<swift::markup::Text>(FirstParagraphChildren.front());
+        = dyn_cast<language::markup::Text>(FirstParagraphChildren.front());
     if (!HeadingText) {
       NormalItems.push_back(Child);
       continue;
@@ -125,7 +126,7 @@ bool extractParameterOutline(
       continue;
     }
 
-    auto Rest = ArrayRef<swift::markup::MarkupASTNode *>(
+    auto Rest = ArrayRef<language::markup::MarkupASTNode *>(
         ItemChildren.begin() + 1, ItemChildren.end());
     if (Rest.empty()) {
       NormalItems.push_back(Child);
@@ -133,7 +134,7 @@ bool extractParameterOutline(
     }
 
     for (auto Child : Rest) {
-      auto SubList = dyn_cast<swift::markup::List>(Child);
+      auto SubList = dyn_cast<language::markup::List>(Child);
       if (!SubList)
         continue;
 
@@ -154,13 +155,13 @@ bool extractParameterOutline(
 }
 
 bool extractSeparatedParams(
-    swift::markup::MarkupContext &MC, swift::markup::List *L,
-    SmallVectorImpl<swift::markup::ParamField *> &ParamFields) {
-  SmallVector<swift::markup::MarkupASTNode *, 8> NormalItems;
+    language::markup::MarkupContext &MC, language::markup::List *L,
+    SmallVectorImpl<language::markup::ParamField *> &ParamFields) {
+  SmallVector<language::markup::MarkupASTNode *, 8> NormalItems;
   auto Children = L->getChildren();
 
   for (auto Child : Children) {
-    auto I = dyn_cast<swift::markup::Item>(Child);
+    auto I = dyn_cast<language::markup::Item>(Child);
     if (!I) {
       NormalItems.push_back(Child);
       continue;
@@ -173,7 +174,7 @@ bool extractSeparatedParams(
     }
 
     auto FirstChild = ItemChildren.front();
-    auto FirstParagraph = dyn_cast<swift::markup::Paragraph>(FirstChild);
+    auto FirstParagraph = dyn_cast<language::markup::Paragraph>(FirstChild);
     if (!FirstParagraph) {
       NormalItems.push_back(Child);
       continue;
@@ -186,7 +187,7 @@ bool extractSeparatedParams(
     }
 
     auto ParagraphText
-        = dyn_cast<swift::markup::Text>(FirstParagraphChildren.front());
+        = dyn_cast<language::markup::Text>(FirstParagraphChildren.front());
     if (!ParagraphText) {
       NormalItems.push_back(Child);
       continue;
@@ -218,13 +219,13 @@ bool extractSeparatedParams(
 }
 
 bool extractSimpleField(
-    swift::markup::MarkupContext &MC, swift::markup::List *L,
-    swift::markup::CommentParts &Parts,
-    SmallVectorImpl<const swift::markup::MarkupASTNode *> &BodyNodes) {
+    language::markup::MarkupContext &MC, language::markup::List *L,
+    language::markup::CommentParts &Parts,
+    SmallVectorImpl<const language::markup::MarkupASTNode *> &BodyNodes) {
   auto Children = L->getChildren();
-  SmallVector<swift::markup::MarkupASTNode *, 8> NormalItems;
+  SmallVector<language::markup::MarkupASTNode *, 8> NormalItems;
   for (auto Child : Children) {
-    auto I = dyn_cast<swift::markup::Item>(Child);
+    auto I = dyn_cast<language::markup::Item>(Child);
     if (!I) {
       NormalItems.push_back(Child);
       continue;
@@ -237,7 +238,7 @@ bool extractSimpleField(
     }
 
     auto FirstParagraph
-        = dyn_cast<swift::markup::Paragraph>(ItemChildren.front());
+        = dyn_cast<language::markup::Paragraph>(ItemChildren.front());
     if (!FirstParagraph) {
       NormalItems.push_back(Child);
       continue;
@@ -250,7 +251,7 @@ bool extractSimpleField(
     }
 
     auto ParagraphText
-        = dyn_cast<swift::markup::Text>(ParagraphChildren.front());
+        = dyn_cast<language::markup::Text>(ParagraphChildren.front());
     if (!ParagraphText) {
       NormalItems.push_back(Child);
       continue;
@@ -262,21 +263,21 @@ bool extractSimpleField(
     Tag = Tag.ltrim().rtrim();
     Remainder = Remainder.ltrim();
 
-    if (!swift::markup::isAFieldTag(Tag)) {
+    if (!language::markup::isAFieldTag(Tag)) {
       NormalItems.push_back(Child);
       continue;
     }
 
     ParagraphText->setLiteralContent(Remainder);
-    auto Field = swift::markup::createSimpleField(MC, Tag, ItemChildren);
+    auto Field = language::markup::createSimpleField(MC, Tag, ItemChildren);
 
-    if (auto RF = dyn_cast<swift::markup::ReturnsField>(Field)) {
+    if (auto RF = dyn_cast<language::markup::ReturnsField>(Field)) {
       Parts.ReturnsField = RF;
-    } else if (auto TF = dyn_cast<swift::markup::ThrowsField>(Field)) {
+    } else if (auto TF = dyn_cast<language::markup::ThrowsField>(Field)) {
       Parts.ThrowsField = TF;
-    } else if (auto TF = dyn_cast<swift::markup::TagField>(Field)) {
-      llvm::SmallString<64> Scratch;
-      llvm::raw_svector_ostream OS(Scratch);
+    } else if (auto TF = dyn_cast<language::markup::TagField>(Field)) {
+      toolchain::SmallString<64> Scratch;
+      toolchain::raw_svector_ostream OS(Scratch);
       printInlinesUnder(TF, OS);
       Parts.Tags.insert(MC.allocateCopy(OS.str()));
     } else if (auto LKF = dyn_cast<markup::LocalizationKeyField>(Field)) {
@@ -293,7 +294,7 @@ bool extractSimpleField(
 }
 } // namespace
 
-void swift::printBriefComment(RawComment RC, llvm::raw_ostream &OS) {
+void language::printBriefComment(RawComment RC, toolchain::raw_ostream &OS) {
   markup::MarkupContext MC;
   markup::LineList LL = MC.getLineList(RC);
   auto *markupDoc = markup::parseDocument(MC, LL);
@@ -301,33 +302,33 @@ void swift::printBriefComment(RawComment RC, llvm::raw_ostream &OS) {
   auto children = markupDoc->getChildren();
   if (children.empty())
     return;
-  auto FirstParagraph = dyn_cast<swift::markup::Paragraph>(children.front());
+  auto FirstParagraph = dyn_cast<language::markup::Paragraph>(children.front());
   if (!FirstParagraph)
     return;
-  swift::markup::printInlinesUnder(FirstParagraph, OS);
+  language::markup::printInlinesUnder(FirstParagraph, OS);
 }
 
-swift::markup::CommentParts
-swift::extractCommentParts(swift::markup::MarkupContext &MC,
-                    swift::markup::MarkupASTNode *Node) {
+language::markup::CommentParts
+language::extractCommentParts(language::markup::MarkupContext &MC,
+                    language::markup::MarkupASTNode *Node) {
 
-  swift::markup::CommentParts Parts;
+  language::markup::CommentParts Parts;
   auto Children = Node->getChildren();
   if (Children.empty())
     return Parts;
 
   auto FirstParagraph
-      = dyn_cast<swift::markup::Paragraph>(Node->getChildren().front());
+      = dyn_cast<language::markup::Paragraph>(Node->getChildren().front());
   if (FirstParagraph)
     Parts.Brief = FirstParagraph;
 
-  SmallVector<const swift::markup::MarkupASTNode *, 4> BodyNodes;
-  SmallVector<swift::markup::ParamField *, 8> ParamFields;
+  SmallVector<const language::markup::MarkupASTNode *, 4> BodyNodes;
+  SmallVector<language::markup::ParamField *, 8> ParamFields;
 
   // Look for special top-level lists
   size_t StartOffset = FirstParagraph == nullptr ? 0 : 1;
   for (auto C = Children.begin() + StartOffset; C != Children.end(); ++C) {
-    if (auto L = dyn_cast<swift::markup::List>(*C)) {
+    if (auto L = dyn_cast<language::markup::List>(*C)) {
       // Could be one of the following:
       // 1. A parameter outline:
       //    - Parameters:
@@ -347,8 +348,8 @@ swift::extractCommentParts(swift::markup::MarkupContext &MC,
   }
 
   // Copy BodyNodes and ParamFields into the MarkupContext.
-  Parts.BodyNodes = MC.allocateCopy(llvm::ArrayRef(BodyNodes));
-  Parts.ParamFields = MC.allocateCopy(llvm::ArrayRef(ParamFields));
+  Parts.BodyNodes = MC.allocateCopy(toolchain::ArrayRef(BodyNodes));
+  Parts.ParamFields = MC.allocateCopy(toolchain::ArrayRef(ParamFields));
 
   for (auto Param : Parts.ParamFields) {
     auto ParamParts = extractCommentParts(MC, Param);
@@ -361,13 +362,13 @@ swift::extractCommentParts(swift::markup::MarkupContext &MC,
 DocComment *DocComment::create(const Decl *D, markup::MarkupContext &MC,
                                RawComment RC) {
   assert(!RC.isEmpty());
-  swift::markup::LineList LL = MC.getLineList(RC);
-  auto *Doc = swift::markup::parseDocument(MC, LL);
+  language::markup::LineList LL = MC.getLineList(RC);
+  auto *Doc = language::markup::parseDocument(MC, LL);
   auto Parts = extractCommentParts(MC, Doc);
   return new (MC) DocComment(D, Doc, Parts);
 }
 
-void DocComment::addInheritanceNote(swift::markup::MarkupContext &MC,
+void DocComment::addInheritanceNote(language::markup::MarkupContext &MC,
                                     TypeDecl *base) {
   auto text = MC.allocateCopy("This documentation comment was inherited from ");
   auto name = MC.allocateCopy(base->getNameStr());
@@ -382,10 +383,10 @@ void DocComment::addInheritanceNote(swift::markup::MarkupContext &MC,
   SmallVector<const markup::MarkupASTNode *, 8> BodyNodes{
     Parts.BodyNodes.begin(), Parts.BodyNodes.end()};
   BodyNodes.push_back(note);
-  Parts.BodyNodes = MC.allocateCopy(llvm::ArrayRef(BodyNodes));
+  Parts.BodyNodes = MC.allocateCopy(toolchain::ArrayRef(BodyNodes));
 }
 
-DocComment *swift::getSingleDocComment(swift::markup::MarkupContext &MC,
+DocComment *language::getSingleDocComment(language::markup::MarkupContext &MC,
                                        const Decl *D) {
   PrettyStackTraceDecl StackTrace("parsing comment for", D);
 

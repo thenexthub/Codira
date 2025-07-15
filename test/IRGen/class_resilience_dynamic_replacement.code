@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -emit-ir -enable-library-evolution %s | %FileCheck %s
+
+public class ResilientClass {
+  public dynamic fn resilientMethod() {}
+}
+
+// The dynamic replacement key should be public even though the method
+// implementation is hidden.
+
+// CHECK-LABEL: @"$s36class_resilience_dynamic_replacement14ResilientClassC15resilientMethodyyFTx" = {{(dllexport |protected )?}}constant %language.dyn_repl_key
+// CHECK-LABEL: define hidden languagecc void @"$s36class_resilience_dynamic_replacement14ResilientClassC15resilientMethodyyF"

@@ -1,0 +1,8 @@
+// {"kind":"typecheck","original":"34ac8b6c","signature":"language::constraints::Constraint::Constraint(language::FunctionType*, language::Type, unsigned int, language::DeclContext*, language::constraints::ConstraintLocator*, toolchain::SmallPtrSetImpl<language::TypeVariableType*>&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a < b > {
+  fn
+    c < immutable b : a >() {
+      b > 0
+  }
+}

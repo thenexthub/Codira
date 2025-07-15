@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+
+// RUN: mkdir -p %t/onone %t/wmo
+// RUN: %target-build-language -emit-module -emit-module-path %t/onone/library.codemodule -module-name=library -emit-library %S/Inputs/library1.code %S/Inputs/library2.code -o %t/onone/%target-library-name(rary) -language-version 4
+// RUN: %target-build-language %S/main.code -I %t/onone/ -o %t/onone/main -language-version 4 -L%t/onone -lrary
+
+// RUN: %target-build-language -emit-module -emit-module-path %t/wmo/library.codemodule -module-name=library -emit-library -O -wmo %S/Inputs/library1.code %S/Inputs/library2.code -o %t/wmo/%target-library-name(rary) -language-version 4
+// RUN: %target-build-language %S/main.code -I %t/wmo/ -o %t/wmo/main -language-version 4 -L%t/wmo -lrary
+
+import library
+
+hasDefaultArgument()

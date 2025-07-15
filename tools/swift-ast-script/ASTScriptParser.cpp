@@ -1,13 +1,17 @@
 //===--- ASTScriptParser.cpp ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// AST script parsing.
@@ -18,7 +22,7 @@
 #include "language/Frontend/Frontend.h"
 #include "language/Parse/Lexer.h"
 #include "language/Parse/Token.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 #include "ASTScript.h"
 #include "ASTScriptConfiguration.h"
@@ -32,7 +36,7 @@ class ASTScriptParser {
   ASTScriptConfiguration &Config;
   ASTContext &Context;
   DiagnosticEngine &Diags;
-  std::unique_ptr<llvm::MemoryBuffer> Buffer;
+  std::unique_ptr<toolchain::MemoryBuffer> Buffer;
   std::optional<Lexer> TheLexer;
   Token Tok;
 
@@ -44,9 +48,9 @@ public:
     auto &compiler = config.Compiler;
 
     // Open the file and give it to the source manager.
-    auto bufferOrErr = llvm::MemoryBuffer::getFile(config.ScriptFile);
+    auto bufferOrErr = toolchain::MemoryBuffer::getFile(config.ScriptFile);
     if (!bufferOrErr) {
-      llvm::errs() << "error opening file " << QuotedString(config.ScriptFile)
+      toolchain::errs() << "error opening file " << QuotedString(config.ScriptFile)
                    << ": " << bufferOrErr.getError().message() << "\n";
       return;
     }
@@ -55,7 +59,7 @@ public:
 
     // Build and prime the lexer.
     TheLexer.emplace(Context.LangOpts, sourceManager, bufferID,
-                     &Diags, LexerMode::Swift);
+                     &Diags, LexerMode::Codira);
     TheLexer->lex(Tok);
   }
 

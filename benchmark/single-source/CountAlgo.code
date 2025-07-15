@@ -1,4 +1,4 @@
-//===--- CountAlgo.swift --------------------------------------------------===//
+//===--- CountAlgo.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "CountAlgoArray",
     runFunction: run_CountAlgoArray,
@@ -27,23 +28,23 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_CountAlgoArray(_ N: Int) {
+public fn run_CountAlgoArray(_ N: Int) {
   for _ in 1...10*N {
-    CheckResults(numbers.count(where: { $0 & 4095 == 0 }) == 25)
+    check(numbers.count(where: { $0 & 4095 == 0 }) == 25)
   }
 }
 
 @inline(never)
-public func run_CountAlgoString(_ N: Int) {
-  let vowels = Set("aeiou")
+public fn run_CountAlgoString(_ N: Int) {
+  immutable vowels = Set("aeiou")
   for _ in 1...N {
-    CheckResults(text.count(where: vowels.contains) == 2014)
+    check(text.count(where: vowels.contains) == 2014)
   }
 }
 
-let numbers = Array(0..<100_000)
+immutable numbers = Array(0..<100_000)
 
-let text = """
+immutable text = """
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas tempus
     dictum tellus placerat ultrices. Proin mauris risus, eleifend a elit ut,
     semper consectetur nibh. Nulla ultricies est a vehicula rhoncus. Morbi

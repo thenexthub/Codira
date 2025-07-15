@@ -11,27 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
 
 // These tests are shared between partition(by:) and sort().
 public struct PartitionExhaustiveTest {
-  public let sequence: [Int]
-  public let loc: SourceLoc
+  public immutable sequence: [Int]
+  public immutable loc: SourceLoc
 
   public init(
     _ sequence: [Int],
     file: String = #file, line: UInt = #line
   ) {
-    self.sequence = sequence
-    self.loc = SourceLoc(file, line, comment: "test data")
+    this.sequence = sequence
+    this.loc = SourceLoc(file, line, comment: "test data")
   }
 }
 
 enum SillyError : Error { case JazzHands }
 
-public let partitionExhaustiveTests = [
+public immutable partitionExhaustiveTests = [
   PartitionExhaustiveTest([]),
   PartitionExhaustiveTest([ 10 ]),
   PartitionExhaustiveTest([ 10, 10 ]),
@@ -54,7 +55,7 @@ public let partitionExhaustiveTests = [
 ]
 
 //Random collection of 30 elements
- public let largeElementSortTests = [
+ public immutable largeElementSortTests = [
    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
      16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
    [30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18,
@@ -67,7 +68,7 @@ public let partitionExhaustiveTests = [
      15, 14, 13, 12,  24, 23, 22, 21, 8, 17, 16, 7, 6, 30, 29, 25],
  ]
 
-public func withInvalidOrderings(_ body: (@escaping (Int, Int) -> Bool) -> Void) {
+public fn withInvalidOrderings(_ body: (@escaping (Int, Int) -> Bool) -> Void) {
   // Test some ordering predicates that don't create strict weak orderings
   body { (_,_) in true }
   body { (_,_) in false }
@@ -77,7 +78,7 @@ public func withInvalidOrderings(_ body: (@escaping (Int, Int) -> Bool) -> Void)
   body { (_,_) in defer {i += 1}; return i % 5 == 0 }
 }
 
-internal func _mapInPlace<C : MutableCollection>(
+internal fn _mapInPlace<C : MutableCollection>(
   _ elements: inout C,
   _ transform: (C.Element) -> C.Element
 ) {
@@ -86,20 +87,20 @@ internal func _mapInPlace<C : MutableCollection>(
   }
 }
 
-internal func makeBufferAccessLoggingMutableCollection<
+internal fn makeBufferAccessLoggingMutableCollection<
   C
 >(wrapping c: C) -> BufferAccessLoggingMutableBidirectionalCollection<C> {
   return BufferAccessLoggingMutableBidirectionalCollection(wrapping: c)
 }
 
-internal func makeBufferAccessLoggingMutableCollection<
+internal fn makeBufferAccessLoggingMutableCollection<
   C
 >(wrapping c: C) -> BufferAccessLoggingMutableRandomAccessCollection<C> {
   return BufferAccessLoggingMutableRandomAccessCollection(wrapping: c)
 }
 
 extension TestSuite {
-  public func addMutableCollectionTests<
+  public fn addMutableCollectionTests<
     C : MutableCollection,
     CollectionWithEquatableElement : MutableCollection,
     CollectionWithComparableElement : MutableCollection
@@ -130,7 +131,7 @@ extension TestSuite {
     var testNamePrefix = testNamePrefix
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -149,24 +150,24 @@ extension TestSuite {
       collectionIsBidirectional: collectionIsBidirectional
     )
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    func makeWrappedCollectionWithComparableElement(
+    fn makeWrappedCollectionWithComparableElement(
       _ elements: [MinimalComparableValue]
     ) -> CollectionWithComparableElement {
       return makeCollectionOfComparable(elements.map(wrapValueIntoComparable))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
 //===----------------------------------------------------------------------===//
 // subscript(_: Index)
 //===----------------------------------------------------------------------===//
 
 if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
-  self.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/NonEmpty/Set") {
+  this.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/NonEmpty/Set") {
     var c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
     var index = c.endIndex
     expectCrashLater()
@@ -174,7 +175,7 @@ if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
     c[index] = wrapValue(OpaqueValue(9999))
   }
 
-  self.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/Empty/Set") {
+  this.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/Empty/Set") {
     var c = makeWrappedCollection([])
     var index = c.endIndex
     expectCrashLater()
@@ -182,30 +183,30 @@ if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
     c[index] = wrapValue(OpaqueValue(9999))
   }
 
-  let tests = cartesianProduct(
+  immutable tests = cartesianProduct(
     subscriptRangeTests,
     _SubSequenceSubscriptOnIndexMode.all)
 
-  self.test("\(testNamePrefix).SubSequence.subscript(_: Index)/Set/OutOfBounds")
+  this.test("\(testNamePrefix).SubSequence.subscript(_: Index)/Set/OutOfBounds")
     .forEach(in: tests) {
     (test, mode) in
-    let elements = test.collection
-    let sliceFromLeft = test.bounds.lowerBound
-    let sliceFromRight = elements.count - test.bounds.upperBound
+    immutable elements = test.collection
+    immutable sliceFromLeft = test.bounds.lowerBound
+    immutable sliceFromRight = elements.count - test.bounds.upperBound
     print("\(elements)/sliceFromLeft=\(sliceFromLeft)/sliceFromRight=\(sliceFromRight)")
-    let base = makeWrappedCollection(elements)
-    let sliceStartIndex =
+    immutable base = makeWrappedCollection(elements)
+    immutable sliceStartIndex =
       base.index(base.startIndex, offsetBy: sliceFromLeft)
-    let sliceEndIndex = base.index(
+    immutable sliceEndIndex = base.index(
       base.startIndex,
       offsetBy: elements.count - sliceFromRight)
     var slice = base[sliceStartIndex..<sliceEndIndex]
-    expectType(C.SubSequence.self, &slice)
+    expectType(C.SubSequence.this, &slice)
 
     var index: C.Index = base.startIndex
     switch mode {
     case .inRange:
-      let sliceNumericIndices =
+      immutable sliceNumericIndices =
         sliceFromLeft..<(elements.count - sliceFromRight)
       for (i, index) in base.indices.enumerated() {
         if sliceNumericIndices.contains(i) {
@@ -248,7 +249,7 @@ if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
 // subscript(_: Range)
 //===----------------------------------------------------------------------===//
 
-self.test("\(testNamePrefix).subscript(_: Range)/Set/semantics") {
+this.test("\(testNamePrefix).subscript(_: Range)/Set/semantics") {
   for test in subscriptRangeTests {
     var expectedCollection = test.collection
     _mapInPlace(&expectedCollection[test.bounds(in: expectedCollection)]) {
@@ -259,13 +260,13 @@ self.test("\(testNamePrefix).subscript(_: Range)/Set/semantics") {
       // Call setter with new elements coming from a different collection.
       var c = makeWrappedCollection(test.collection)
 
-      let newElements = makeWrappedCollection(
+      immutable newElements = makeWrappedCollection(
         test.expected.map { OpaqueValue($0.value + 90000) })
       c[test.bounds(in: c)] = newElements[...]
 
       // FIXME: improve checkForwardCollection to check the SubSequence type.
       /*
-      // TODO: swift-3-indexing-model: uncomment the following.
+      // TODO: language-3-indexing-model: uncomment the following.
       checkForwardCollection(
         expectedCollection.map(wrapValue),
         c,
@@ -277,7 +278,7 @@ self.test("\(testNamePrefix).subscript(_: Range)/Set/semantics") {
 
     do {
       // Call setter implicitly through an inout mutation.
-      let c = makeWrappedCollection(test.collection)
+      immutable c = makeWrappedCollection(test.collection)
 
       var s = c[test.bounds(in: c)]
       _mapInPlace(&s) {
@@ -286,7 +287,7 @@ self.test("\(testNamePrefix).subscript(_: Range)/Set/semantics") {
 
       // FIXME: improve checkForwardCollection to check the SubSequence type.
       /*
-      // TODO: swift-3-indexing-model: uncomment the following.
+      // TODO: language-3-indexing-model: uncomment the following.
       checkForwardCollection(
         expectedCollection.map(wrapValue),
         c,
@@ -299,27 +300,27 @@ self.test("\(testNamePrefix).subscript(_: Range)/Set/semantics") {
 }
 
 if isFixedLengthCollection {
-  self.test("\(testNamePrefix).subscript(_: Range)/Set/LargerRange") {
+  this.test("\(testNamePrefix).subscript(_: Range)/Set/LargerRange") {
     var c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
-    let newElements = makeWrappedCollection([ 91010, 92020, 93030, 94040 ].map(OpaqueValue.init))
+    immutable newElements = makeWrappedCollection([ 91010, 92020, 93030, 94040 ].map(OpaqueValue.init))
 
     expectCrashLater()
     c[...] = newElements[...]
   }
 
-  self.test("\(testNamePrefix).subscript(_: Range)/Set/SmallerRange") {
+  this.test("\(testNamePrefix).subscript(_: Range)/Set/SmallerRange") {
     var c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
-    let newElements = makeWrappedCollection([ 91010, 92020 ].map(OpaqueValue.init))
+    immutable newElements = makeWrappedCollection([ 91010, 92020 ].map(OpaqueValue.init))
 
     expectCrashLater()
     c[...] = newElements[...]
   }
 } else {
-  self.test("\(testNamePrefix).subscript(_: Range)/Set/DifferentlySizedRange") {
+  this.test("\(testNamePrefix).subscript(_: Range)/Set/DifferentlySizedRange") {
     for test in replaceRangeTests {
       var c = makeWrappedCollection(test.collection)
-      let newElements = makeWrappedCollection(test.newElements)
-      let rangeToReplace = test.rangeSelection.range(in: c)
+      immutable newElements = makeWrappedCollection(test.newElements)
+      immutable rangeToReplace = test.rangeSelection.range(in: c)
 
       c[rangeToReplace] = newElements[...]
 
@@ -332,41 +333,41 @@ if isFixedLengthCollection {
 }
 
 if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
-  let tests = cartesianProduct(
+  immutable tests = cartesianProduct(
     subscriptRangeTests,
     _SubSequenceSubscriptOnRangeMode.all)
 
-  self.test("\(testNamePrefix).SubSequence.subscript(_: Range)/Set/OutOfBounds")
+  this.test("\(testNamePrefix).SubSequence.subscript(_: Range)/Set/OutOfBounds")
     .forEach(in: tests) {
     (test, mode) in
-    let elements = test.collection
-    let sliceFromLeft = test.bounds.lowerBound
-    let sliceFromRight = elements.count - test.bounds.upperBound
+    immutable elements = test.collection
+    immutable sliceFromLeft = test.bounds.lowerBound
+    immutable sliceFromRight = elements.count - test.bounds.upperBound
     print("\(elements)/sliceFromLeft=\(sliceFromLeft)/sliceFromRight=\(sliceFromRight)")
-    let base = makeWrappedCollection(elements)
-    let sliceStartIndex =
+    immutable base = makeWrappedCollection(elements)
+    immutable sliceStartIndex =
       base.index(base.startIndex, offsetBy: sliceFromLeft)
-    let sliceEndIndex = base.index(
+    immutable sliceEndIndex = base.index(
       base.startIndex,
       offsetBy: elements.count - sliceFromRight)
     var slice = base[sliceStartIndex..<sliceEndIndex]
-    expectType(C.SubSequence.self, &slice)
+    expectType(C.SubSequence.this, &slice)
 
     var bounds: Range<C.Index> = base.startIndex..<base.startIndex
     switch mode {
     case .inRange:
-      let sliceNumericIndices =
+      immutable sliceNumericIndices =
         sliceFromLeft..<(elements.count - sliceFromRight + 1)
       for (i, subSliceStartIndex) in base.indices.enumerated() {
         for (j, subSliceEndIndex) in base.indices.enumerated() {
           if i <= j &&
             sliceNumericIndices.contains(i) &&
             sliceNumericIndices.contains(j) {
-            let newValues = makeWrappedCollection(
+            immutable newValues = makeWrappedCollection(
               elements[i..<j].map { OpaqueValue($0.value + 90000) }
             )
             slice[subSliceStartIndex..<subSliceEndIndex] = newValues[...]
-            let subSlice = slice[subSliceStartIndex..<subSliceEndIndex]
+            immutable subSlice = slice[subSliceStartIndex..<subSliceEndIndex]
             for (k, index) in subSlice.indices.enumerated() {
               expectEqual(
                 elements[i + k].value + 90000,
@@ -378,7 +379,7 @@ if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
                 extractValue(slice[index]).value,
                 extractValue(subSlice[index]).value)
             }
-            let oldValues = makeWrappedCollection(Array(elements[i..<j]))
+            immutable oldValues = makeWrappedCollection(Array(elements[i..<j]))
             slice[subSliceStartIndex..<subSliceEndIndex] = oldValues[...]
           }
         }
@@ -386,28 +387,28 @@ if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
       return
     case .outOfRangeToTheLeftEmpty:
       if sliceFromLeft == 0 { return }
-      let index = base.index(
+      immutable index = base.index(
         base.startIndex,
         offsetBy: sliceFromLeft - 1)
       bounds = index..<index
       break
     case .outOfRangeToTheLeftNonEmpty:
       if sliceFromLeft == 0 { return }
-      let index = base.index(
+      immutable index = base.index(
         base.startIndex,
         offsetBy: sliceFromLeft - 1)
       bounds = index..<sliceStartIndex
       break
     case .outOfRangeToTheRightEmpty:
       if sliceFromRight == 0 { return }
-      let index = base.index(
+      immutable index = base.index(
         base.startIndex,
         offsetBy: elements.count - sliceFromRight + 1)
       bounds = index..<index
       break
     case .outOfRangeToTheRightNonEmpty:
       if sliceFromRight == 0 { return }
-      let index = base.index(
+      immutable index = base.index(
         base.startIndex,
         offsetBy: elements.count - sliceFromRight + 1)
       bounds = sliceEndIndex..<index
@@ -430,10 +431,10 @@ if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
       break
     }
 
-    let count: Int =
+    immutable count: Int =
       base.distance(from: bounds.lowerBound, to: bounds.upperBound)
-    let newValues = makeWrappedCollection(Array(elements[0..<count]))
-    let newSlice = newValues[...]
+    immutable newValues = makeWrappedCollection(Array(elements[0..<count]))
+    immutable newSlice = newValues[...]
 
     expectCrashLater()
     slice[bounds] = newSlice
@@ -444,15 +445,15 @@ if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
 // withContiguousMutableStorageIfAvailable()
 //===----------------------------------------------------------------------===//
 
-self.test("\(testNamePrefix).withContiguousMutableStorageIfAvailable()/semantics") {
+this.test("\(testNamePrefix).withContiguousMutableStorageIfAvailable()/semantics") {
   for test in subscriptRangeTests {
     var c = makeWrappedCollection(test.collection)
     var result = c.withContiguousMutableStorageIfAvailable {
       (bufferPointer) -> OpaqueValue<Array<OpaqueValue<Int>>> in
-      let value = OpaqueValue(bufferPointer.map(extractValue))
+      immutable value = OpaqueValue(bufferPointer.map(extractValue))
       return value
     }
-    expectType(Optional<OpaqueValue<Array<OpaqueValue<Int>>>>.self, &result)
+    expectType(Optional<OpaqueValue<Array<OpaqueValue<Int>>>>.this, &result)
     if withUnsafeMutableBufferPointerIsSupported {
       expectEqualSequence(test.collection, result!.value) { $0.value == $1.value }
     } else {
@@ -465,21 +466,21 @@ self.test("\(testNamePrefix).withContiguousMutableStorageIfAvailable()/semantics
 // sort()
 //===----------------------------------------------------------------------===//
 
-func checkSortedPredicateThrow(
+fn checkSortedPredicateThrow(
   sequence: [Int],
   lessImpl: ((Int, Int) -> Bool),
   throwIndex: Int
 ) {
-  let extract = extractValue
-  let throwElement = sequence[throwIndex]
+  immutable extract = extractValue
+  immutable throwElement = sequence[throwIndex]
   var thrown = false
-  let elements: [OpaqueValue<Int>] =
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
   var result: [C.Element] = []
-  let c = makeWrappedCollection(elements)
-  let closureLifetimeTracker = LifetimeTracked(0)
+  immutable c = makeWrappedCollection(elements)
+  immutable closureLifetimeTracker = LifetimeTracked(0)
   do {
     result = try c.sorted {
       (lhs, rhs) throws -> Bool in
@@ -503,36 +504,36 @@ func checkSortedPredicateThrow(
     expectEqual(0, result.count)
   } else {
     // Check that the elements are sorted.
-    let extractedResult = result.map(extract)
+    immutable extractedResult = result.map(extract)
     for i in extractedResult.indices {
       if i != extractedResult.index(before: extractedResult.endIndex) {
-        let first = extractedResult[i].value
-        let second = extractedResult[extractedResult.index(after: i)].value
-        let result = lessImpl(second, first)
+        immutable first = extractedResult[i].value
+        immutable second = extractedResult[extractedResult.index(after: i)].value
+        immutable result = lessImpl(second, first)
         expectFalse(result)
       }
     }
   }
 }
 
-self.test("\(testNamePrefix).sorted/DispatchesThroughDirectStorageAccessors/WhereElementIsComparable") {
-  let sequence = [ 5, 4, 3, 2, 1 ]
-  let elements: [MinimalComparableValue] =
+this.test("\(testNamePrefix).sorted/DispatchesThroughDirectStorageAccessors/WhereElementIsComparable") {
+  immutable sequence = [ 5, 4, 3, 2, 1 ]
+  immutable elements: [MinimalComparableValue] =
     zip(sequence, 0..<sequence.count).map {
       MinimalComparableValue($0, identity: $1)
     }
-  let c = makeWrappedCollectionWithComparableElement(elements)
+  immutable c = makeWrappedCollectionWithComparableElement(elements)
 
-  let lc = LoggingMutableCollection(wrapping: c)
+  immutable lc = LoggingMutableCollection(wrapping: c)
 
-  let result = lc.sorted()
-  let extractedResult = result.map(extractValueFromComparable)
+  immutable result = lc.sorted()
+  immutable extractedResult = result.map(extractValueFromComparable)
 
-  let actualWUMBPIF = lc.log._withUnsafeMutableBufferPointerIfSupported[type(of: lc)]
-  let actualWCMSIA =  lc.log.withContiguousMutableStorageIfAvailable[type(of: lc)]
+  immutable actualWUMBPIF = lc.log._withUnsafeMutableBufferPointerIfSupported[type(of: lc)]
+  immutable actualWCMSIA =  lc.log.withContiguousMutableStorageIfAvailable[type(of: lc)]
 
-  let actualWUMBPIFNonNil = lc.log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[type(of: lc)]
-  let actualWCMSIANonNil =  lc.log.withContiguousMutableStorageIfAvailableNonNilReturns[type(of: lc)]
+  immutable actualWUMBPIFNonNil = lc.log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[type(of: lc)]
+  immutable actualWCMSIANonNil =  lc.log.withContiguousMutableStorageIfAvailableNonNilReturns[type(of: lc)]
 
   // This sort operation is not in-place.
   // The collection is copied into an array before sorting.
@@ -542,7 +543,7 @@ self.test("\(testNamePrefix).sorted/DispatchesThroughDirectStorageAccessors/Wher
   expectEqualSequence([ 1, 2, 3, 4, 5 ], extractedResult.map { $0.value })
 }
 
-func checkSort_WhereElementIsComparable(
+fn checkSort_WhereElementIsComparable(
   sequence: [Int],
   equalImpl: @escaping ((Int, Int) -> Bool),
   lessImpl: @escaping ((Int, Int) -> Bool),
@@ -551,20 +552,20 @@ func checkSort_WhereElementIsComparable(
   MinimalComparableValue.equalImpl.value = equalImpl
   MinimalComparableValue.lessImpl.value = lessImpl
 
-  let extract = extractValueFromComparable
-  let elements: [MinimalComparableValue] =
+  immutable extract = extractValueFromComparable
+  immutable elements: [MinimalComparableValue] =
     zip(sequence, 0..<sequence.count).map {
       MinimalComparableValue($0, identity: $1)
     }
-  let c = makeWrappedCollectionWithComparableElement(elements)
-  let result = c.sorted()
+  immutable c = makeWrappedCollectionWithComparableElement(elements)
+  immutable result = c.sorted()
 
   // Check that the original collection is unchanged.
   expectEqualSequence(
     elements.map { $0.value },
     c.map { extract($0).value })
 
-  let extractedResult = result.map(extract)
+  immutable extractedResult = result.map(extract)
 
   // Check that we didn't lose any elements.
   expectEqualsUnordered(
@@ -575,15 +576,15 @@ func checkSort_WhereElementIsComparable(
   if verifyOrder {
     for i in extractedResult.indices {
       if i != extractedResult.index(before: extractedResult.endIndex) {
-        let first = extractedResult[i].value
-        let second = extractedResult[extractedResult.index(after: i)].value
+        immutable first = extractedResult[i].value
+        immutable second = extractedResult[extractedResult.index(after: i)].value
         expectFalse(lessImpl(second, first))
       }
     }
   }
 }
 
-self.test("\(testNamePrefix).sorted/WhereElementIsComparable") {
+this.test("\(testNamePrefix).sorted/WhereElementIsComparable") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       checkSort_WhereElementIsComparable(
@@ -595,7 +596,7 @@ self.test("\(testNamePrefix).sorted/WhereElementIsComparable") {
   }
 }
 
-self.test("\(testNamePrefix).sorted/WhereElementIsComparable/InvalidOrderings") {
+this.test("\(testNamePrefix).sorted/WhereElementIsComparable/InvalidOrderings") {
   withInvalidOrderings { (comparisonPredicate: @escaping (Int, Int) -> Bool) in
     for i in 0..<7 {
       forAllPermutations(i) { (sequence) in
@@ -612,7 +613,7 @@ self.test("\(testNamePrefix).sorted/WhereElementIsComparable/InvalidOrderings") 
   }
 }
 
-self.test("\(testNamePrefix).sorted/ThrowingPredicate") {
+this.test("\(testNamePrefix).sorted/ThrowingPredicate") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       for i in 0..<sequence.count {
@@ -625,7 +626,7 @@ self.test("\(testNamePrefix).sorted/ThrowingPredicate") {
   }
 }
 
-self.test("\(testNamePrefix).sorted/ThrowingPredicateWithLargeNumberElements") {
+this.test("\(testNamePrefix).sorted/ThrowingPredicateWithLargeNumberElements") {
   for sequence in largeElementSortTests {
       for i in 0..<sequence.count {
       checkSortedPredicateThrow(
@@ -637,24 +638,24 @@ self.test("\(testNamePrefix).sorted/ThrowingPredicateWithLargeNumberElements") {
 }
 
 
-self.test("\(testNamePrefix).sorted/DispatchesThroughDirectStorageAccessors/Predicate") {
-  let sequence = [ 5, 4, 3, 2, 1 ]
-  let elements: [OpaqueValue<Int>] =
+this.test("\(testNamePrefix).sorted/DispatchesThroughDirectStorageAccessors/Predicate") {
+  immutable sequence = [ 5, 4, 3, 2, 1 ]
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
-  let c = makeWrappedCollection(elements)
+  immutable c = makeWrappedCollection(elements)
 
-  let lc = LoggingMutableCollection(wrapping: c)
+  immutable lc = LoggingMutableCollection(wrapping: c)
 
-  let result = lc.sorted { extractValue($0).value < extractValue($1).value }
-  let extractedResult = result.map(extractValue)
+  immutable result = lc.sorted { extractValue($0).value < extractValue($1).value }
+  immutable extractedResult = result.map(extractValue)
 
-  let actualWUMBPIF = lc.log._withUnsafeMutableBufferPointerIfSupported[type(of: lc)]
-  let actualWCMSIA =  lc.log.withContiguousMutableStorageIfAvailable[type(of: lc)]
+  immutable actualWUMBPIF = lc.log._withUnsafeMutableBufferPointerIfSupported[type(of: lc)]
+  immutable actualWCMSIA =  lc.log.withContiguousMutableStorageIfAvailable[type(of: lc)]
 
-  let actualWUMBPIFNonNil = lc.log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[type(of: lc)]
-  let actualWCMSIAIFNonNil =  lc.log.withContiguousMutableStorageIfAvailableNonNilReturns[type(of: lc)]
+  immutable actualWUMBPIFNonNil = lc.log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[type(of: lc)]
+  immutable actualWCMSIAIFNonNil =  lc.log.withContiguousMutableStorageIfAvailableNonNilReturns[type(of: lc)]
 
   // This sort operation is not in-place.
   // The collection is copied into an array before sorting.
@@ -664,20 +665,20 @@ self.test("\(testNamePrefix).sorted/DispatchesThroughDirectStorageAccessors/Pred
   expectEqualSequence([ 1, 2, 3, 4, 5 ], extractedResult.map { $0.value })
 }
 
-func checkSort_Predicate(
+fn checkSort_Predicate(
   sequence: [Int],
   equalImpl: @escaping ((Int, Int) -> Bool),
   lessImpl: @escaping ((Int, Int) -> Bool),
   verifyOrder: Bool
 ) {
-  let extract = extractValue
-  let elements: [OpaqueValue<Int>] =
+  immutable extract = extractValue
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
-  let c = makeWrappedCollection(elements)
-  let closureLifetimeTracker = LifetimeTracked(0)
-  let result = c.sorted {
+  immutable c = makeWrappedCollection(elements)
+  immutable closureLifetimeTracker = LifetimeTracked(0)
+  immutable result = c.sorted {
     (lhs, rhs) in
     _blackHole(closureLifetimeTracker)
     return lessImpl(extractValue(lhs).value, extractValue(rhs).value)
@@ -688,7 +689,7 @@ func checkSort_Predicate(
     elements.map { $0.value },
     c.map { extract($0).value })
 
-  let extractedResult = result.map(extract)
+  immutable extractedResult = result.map(extract)
 
   // Check that we didn't lose any elements.
   expectEqualsUnordered(
@@ -699,15 +700,15 @@ func checkSort_Predicate(
   if verifyOrder {
     for i in extractedResult.indices {
       if i != extractedResult.index(before: extractedResult.endIndex) {
-        let first = extractedResult[i].value
-        let second = extractedResult[extractedResult.index(after: i)].value
+        immutable first = extractedResult[i].value
+        immutable second = extractedResult[extractedResult.index(after: i)].value
         expectFalse(lessImpl(second, first))
       }
     }
   }
 }
 
-self.test("\(testNamePrefix).sorted/Predicate") {
+this.test("\(testNamePrefix).sorted/Predicate") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       checkSort_Predicate(
@@ -719,7 +720,7 @@ self.test("\(testNamePrefix).sorted/Predicate") {
   }
 }
 
-self.test("\(testNamePrefix).sorted/Predicate/InvalidOrderings") {
+this.test("\(testNamePrefix).sorted/Predicate/InvalidOrderings") {
   withInvalidOrderings { (comparisonPredicate: @escaping (Int, Int) -> Bool) in
     for i in 0..<7 {
       forAllPermutations(i) { (sequence) in
@@ -736,7 +737,7 @@ self.test("\(testNamePrefix).sorted/Predicate/InvalidOrderings") {
   }
 }
 
-self.test("\(testNamePrefix).sorted/ThrowingPredicate") {
+this.test("\(testNamePrefix).sorted/ThrowingPredicate") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       for i in 0..<sequence.count {
@@ -749,7 +750,7 @@ self.test("\(testNamePrefix).sorted/ThrowingPredicate") {
   }
 }
 
-self.test("\(testNamePrefix).sorted/ThrowingPredicateWithLargeNumberElements") {
+this.test("\(testNamePrefix).sorted/ThrowingPredicateWithLargeNumberElements") {
   for sequence in largeElementSortTests {
       for i in 0..<sequence.count {
       checkSortedPredicateThrow(
@@ -765,26 +766,26 @@ self.test("\(testNamePrefix).sorted/ThrowingPredicateWithLargeNumberElements") {
 // partition(by:)
 //===----------------------------------------------------------------------===//
 
-func checkPartition(
+fn checkPartition(
   sequence: [Int],
   pivotValue: Int,
   lessImpl: ((Int, Int) -> Bool),
   verifyOrder: Bool
 ) {
-  let elements: [OpaqueValue<Int>] =
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
 
   var c = makeWrappedCollection(elements)
-  let closureLifetimeTracker = LifetimeTracked(0)
-  let pivot = c.partition(by: { val in
+  immutable closureLifetimeTracker = LifetimeTracked(0)
+  immutable pivot = c.partition(by: { val in
     _blackHole(closureLifetimeTracker)
     return !lessImpl(extractValue(val).value, pivotValue)
   })
 
   // Check that we didn't lose any elements.
-  let identities = c.map { extractValue($0).identity }
+  immutable identities = c.map { extractValue($0).identity }
   expectEqualsUnordered(0..<sequence.count, identities)
 
   if verifyOrder {
@@ -801,7 +802,7 @@ func checkPartition(
   }
 }
 
-self.test("\(testNamePrefix).partition") {
+this.test("\(testNamePrefix).partition") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       checkPartition(
@@ -827,7 +828,7 @@ self.test("\(testNamePrefix).partition") {
   }
 }
 
-self.test("\(testNamePrefix).partition/InvalidOrderings") {
+this.test("\(testNamePrefix).partition/InvalidOrderings") {
   withInvalidOrderings { (comparisonPredicate) in
     for i in 0..<7 {
       forAllPermutations(i) { (sequence) in
@@ -845,7 +846,7 @@ self.test("\(testNamePrefix).partition/InvalidOrderings") {
 
   } // addMutableCollectionTests
 
-  public func addMutableBidirectionalCollectionTests<
+  public fn addMutableBidirectionalCollectionTests<
     C : BidirectionalCollection & MutableCollection,
     CollectionWithEquatableElement : BidirectionalCollection & MutableCollection,
     CollectionWithComparableElement : BidirectionalCollection & MutableCollection
@@ -875,7 +876,7 @@ self.test("\(testNamePrefix).partition/InvalidOrderings") {
     var testNamePrefix = testNamePrefix
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -912,18 +913,18 @@ self.test("\(testNamePrefix).partition/InvalidOrderings") {
       outOfBoundsIndexOffset: outOfBoundsIndexOffset,
       outOfBoundsSubscriptOffset: outOfBoundsSubscriptOffset)
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
 //===----------------------------------------------------------------------===//
 // subscript(_: Index)
 //===----------------------------------------------------------------------===//
 
 if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
-  self.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Left/NonEmpty/Set") {
+  this.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Left/NonEmpty/Set") {
     var c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
     var index = c.startIndex
     expectCrashLater()
@@ -931,7 +932,7 @@ if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
     c[index] = wrapValue(OpaqueValue(9999))
   }
 
-  self.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Left/Empty/Set") {
+  this.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Left/Empty/Set") {
     var c = makeWrappedCollection([])
     var index = c.startIndex
     expectCrashLater()
@@ -944,7 +945,7 @@ if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
 // reverse()
 //===----------------------------------------------------------------------===//
 
-self.test("\(testNamePrefix).reverse()") {
+this.test("\(testNamePrefix).reverse()") {
   for test in reverseTests {
     var c = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
     c.reverse()
@@ -958,36 +959,36 @@ self.test("\(testNamePrefix).reverse()") {
 // partition(by:)
 //===----------------------------------------------------------------------===//
 
-self.test("\(testNamePrefix).partition/DispatchesThroughDirectStorageAccessors") {
-  let sequence = [ 5, 4, 3, 2, 1 ]
-  let elements: [OpaqueValue<Int>] =
+this.test("\(testNamePrefix).partition/DispatchesThroughDirectStorageAccessors") {
+  immutable sequence = [ 5, 4, 3, 2, 1 ]
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
-  let c = makeWrappedCollection(elements)
+  immutable c = makeWrappedCollection(elements)
   var lc = makeBufferAccessLoggingMutableCollection(wrapping: c)
 
-  let closureLifetimeTracker = LifetimeTracked(0)
-  let first = c.first
-  let pivot = lc.partition(by: { val in
+  immutable closureLifetimeTracker = LifetimeTracked(0)
+  immutable first = c.first
+  immutable pivot = lc.partition(by: { val in
     _blackHole(closureLifetimeTracker)
     return !(extractValue(val).value < extractValue(first!).value)
   })
 
-  let actualWUMBPIF = lc.log._withUnsafeMutableBufferPointerIfSupported[type(of: lc)]
-  let actualWCMSIA =  lc.log.withContiguousMutableStorageIfAvailable[type(of: lc)]
+  immutable actualWUMBPIF = lc.log._withUnsafeMutableBufferPointerIfSupported[type(of: lc)]
+  immutable actualWCMSIA =  lc.log.withContiguousMutableStorageIfAvailable[type(of: lc)]
 
-  let actualWUMBPIFNonNil = lc.log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[type(of: lc)]
-  let actualWCMSIAIFNonNil =  lc.log.withContiguousMutableStorageIfAvailableNonNilReturns[type(of: lc)]
+  immutable actualWUMBPIFNonNil = lc.log._withUnsafeMutableBufferPointerIfSupportedNonNilReturns[type(of: lc)]
+  immutable actualWCMSIAIFNonNil =  lc.log.withContiguousMutableStorageIfAvailableNonNilReturns[type(of: lc)]
 
   expectEqual(1, actualWUMBPIF + actualWCMSIA)
   expectEqual(
     withUnsafeMutableBufferPointerIsSupported ? 1 : 0,
     actualWUMBPIFNonNil + actualWCMSIAIFNonNil)
 
-  if #available(SwiftStdlib 5.5, *) {
+  if #available(CodiraStdlib 5.5, *) {
     // `partition(by:)` is expected to dispatch to the public API in releases
-    // that contain https://github.com/apple/swift/pull/36003.
+    // that contain https://github.com/apple/language/pull/36003.
     expectEqual(0, actualWUMBPIF)
     expectEqual(0, actualWUMBPIFNonNil)
   }
@@ -1001,7 +1002,7 @@ self.test("\(testNamePrefix).partition/DispatchesThroughDirectStorageAccessors")
 
   } // addMutableBidirectionalCollectionTests
 
-  public func addMutableRandomAccessCollectionTests<
+  public fn addMutableRandomAccessCollectionTests<
     C : RandomAccessCollection & MutableCollection,
     CollectionWithEquatableElement : RandomAccessCollection & MutableCollection,
     CollectionWithComparableElement : RandomAccessCollection & MutableCollection
@@ -1031,7 +1032,7 @@ self.test("\(testNamePrefix).partition/DispatchesThroughDirectStorageAccessors")
     var testNamePrefix = testNamePrefix
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -1066,35 +1067,35 @@ self.test("\(testNamePrefix).partition/DispatchesThroughDirectStorageAccessors")
       outOfBoundsIndexOffset: outOfBoundsIndexOffset,
       outOfBoundsSubscriptOffset: outOfBoundsSubscriptOffset)
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    func makeWrappedCollectionWithComparableElement(
+    fn makeWrappedCollectionWithComparableElement(
       _ elements: [MinimalComparableValue]
     ) -> CollectionWithComparableElement {
       return makeCollectionOfComparable(elements.map(wrapValueIntoComparable))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
 //===----------------------------------------------------------------------===//
 // sort()
 //===----------------------------------------------------------------------===//
 
-func checkSortPredicateThrow(
+fn checkSortPredicateThrow(
   sequence: [Int],
   lessImpl: ((Int, Int) -> Bool),
   throwIndex: Int
 ) {
-  let extract = extractValue
-  let throwElement = sequence[throwIndex]
-  let elements: [OpaqueValue<Int>] =
+  immutable extract = extractValue
+  immutable throwElement = sequence[throwIndex]
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
   var c = makeWrappedCollection(elements)
-  let closureLifetimeTracker = LifetimeTracked(0)
+  immutable closureLifetimeTracker = LifetimeTracked(0)
   do {
     try c.sort {
       (lhs, rhs) throws -> Bool in
@@ -1113,7 +1114,7 @@ func checkSortPredicateThrow(
 }
 
 
-func checkSortInPlace_WhereElementIsComparable(
+fn checkSortInPlace_WhereElementIsComparable(
   sequence: [Int],
   equalImpl: @escaping ((Int, Int) -> Bool),
   lessImpl: @escaping ((Int, Int) -> Bool),
@@ -1122,8 +1123,8 @@ func checkSortInPlace_WhereElementIsComparable(
   MinimalComparableValue.equalImpl.value = equalImpl
   MinimalComparableValue.lessImpl.value = lessImpl
 
-  let extract = extractValueFromComparable
-  let elements: [MinimalComparableValue] =
+  immutable extract = extractValueFromComparable
+  immutable elements: [MinimalComparableValue] =
     zip(sequence, 0..<sequence.count).map {
       MinimalComparableValue($0, identity: $1)
     }
@@ -1131,7 +1132,7 @@ func checkSortInPlace_WhereElementIsComparable(
   var c = makeWrappedCollectionWithComparableElement(elements)
   c.sort()
 
-  let extractedResult = c.map(extract)
+  immutable extractedResult = c.map(extract)
 
   // Check that we didn't lose any elements.
   expectEqualsUnordered(
@@ -1142,15 +1143,15 @@ func checkSortInPlace_WhereElementIsComparable(
   if verifyOrder {
     for i in extractedResult.indices {
       if i != extractedResult.index(before: extractedResult.endIndex) {
-        let first = extractedResult[i].value
-        let second = extractedResult[extractedResult.index(after: i)].value
+        immutable first = extractedResult[i].value
+        immutable second = extractedResult[extractedResult.index(after: i)].value
         expectFalse(lessImpl(second, first))
       }
     }
   }
 }
 
-self.test("\(testNamePrefix).sort/WhereElementIsEquatable") {
+this.test("\(testNamePrefix).sort/WhereElementIsEquatable") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       checkSortInPlace_WhereElementIsComparable(
@@ -1162,7 +1163,7 @@ self.test("\(testNamePrefix).sort/WhereElementIsEquatable") {
   }
 }
 
-self.test("\(testNamePrefix).sort/WhereElementIsEquatable/InvalidOrderings") {
+this.test("\(testNamePrefix).sort/WhereElementIsEquatable/InvalidOrderings") {
   withInvalidOrderings { (comparisonPredicate : @escaping (Int, Int) -> Bool) in
     for i in 0..<7 {
       forAllPermutations(i) { (sequence) in
@@ -1179,7 +1180,7 @@ self.test("\(testNamePrefix).sort/WhereElementIsEquatable/InvalidOrderings") {
   }
 }
 
-self.test("\(testNamePrefix).sort/ThrowingPredicate") {
+this.test("\(testNamePrefix).sort/ThrowingPredicate") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       for i in 0..<sequence.count {
@@ -1192,7 +1193,7 @@ self.test("\(testNamePrefix).sort/ThrowingPredicate") {
   }
 }
 
-self.test("\(testNamePrefix).sort/ThrowingPredicateWithLargeNumberElements") {
+this.test("\(testNamePrefix).sort/ThrowingPredicateWithLargeNumberElements") {
   for sequence in largeElementSortTests {
     for i in 0..<sequence.count {
       checkSortPredicateThrow(
@@ -1204,27 +1205,27 @@ self.test("\(testNamePrefix).sort/ThrowingPredicateWithLargeNumberElements") {
 }
 
 
-func checkSortInPlace_Predicate(
+fn checkSortInPlace_Predicate(
   sequence: [Int],
   equalImpl: @escaping ((Int, Int) -> Bool),
   lessImpl: @escaping ((Int, Int) -> Bool),
   verifyOrder: Bool
 ) {
-  let extract = extractValue
-  let elements: [OpaqueValue<Int>] =
+  immutable extract = extractValue
+  immutable elements: [OpaqueValue<Int>] =
     zip(sequence, 0..<sequence.count).map {
       OpaqueValue($0, identity: $1)
     }
 
   var c = makeWrappedCollection(elements)
-  let closureLifetimeTracker = LifetimeTracked(0)
+  immutable closureLifetimeTracker = LifetimeTracked(0)
   c.sort {
     (lhs, rhs) in
     _blackHole(closureLifetimeTracker)
     return lessImpl(extractValue(lhs).value, extractValue(rhs).value)
   }
 
-  let extractedResult = c.map(extract)
+  immutable extractedResult = c.map(extract)
 
   // Check that we didn't lose any elements.
   expectEqualsUnordered(
@@ -1235,15 +1236,15 @@ func checkSortInPlace_Predicate(
   if verifyOrder {
     for i in extractedResult.indices {
       if i != extractedResult.index(before: extractedResult.endIndex) {
-        let first = extractedResult[i].value
-        let second = extractedResult[extractedResult.index(after: i)].value
+        immutable first = extractedResult[i].value
+        immutable second = extractedResult[extractedResult.index(after: i)].value
         expectFalse(lessImpl(second, first))
       }
     }
   }
 }
 
-self.test("\(testNamePrefix).sort/Predicate") {
+this.test("\(testNamePrefix).sort/Predicate") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       checkSortInPlace_Predicate(
@@ -1255,7 +1256,7 @@ self.test("\(testNamePrefix).sort/Predicate") {
   }
 }
 
-self.test("\(testNamePrefix).sort/Predicate/InvalidOrderings") {
+this.test("\(testNamePrefix).sort/Predicate/InvalidOrderings") {
   withInvalidOrderings { (comparisonPredicate : @escaping (Int, Int) -> Bool) in
     for i in 0..<7 {
       forAllPermutations(i) { (sequence) in
@@ -1272,7 +1273,7 @@ self.test("\(testNamePrefix).sort/Predicate/InvalidOrderings") {
   }
 }
 
-self.test("\(testNamePrefix).sort/ThrowingPredicate") {
+this.test("\(testNamePrefix).sort/ThrowingPredicate") {
   for test in partitionExhaustiveTests {
     forAllPermutations(test.sequence) { (sequence) in
       for i in 0..<sequence.count {
@@ -1285,7 +1286,7 @@ self.test("\(testNamePrefix).sort/ThrowingPredicate") {
   }
 }
 
-self.test("\(testNamePrefix).sort/ThrowingPredicateWithLargeNumberElements") {
+this.test("\(testNamePrefix).sort/ThrowingPredicateWithLargeNumberElements") {
   for sequence in largeElementSortTests {
     for i in 0..<sequence.count {
       checkSortPredicateThrow(

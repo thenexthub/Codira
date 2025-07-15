@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library %s -verify -language-version 4
+
+// Default initialization of variables -- totally broken Codira 4 behavior.
+
+class NotInitializableOptionalClass {
+  var opt: Optional<Int>
+  var empty: Void
+}
+
+struct NotInitializableOptionalStruct {
+  var opt: Optional<Int>
+  var empty: Void
+}
+
+fn testBadDefaultInit() {
+  _ = NotInitializableOptionalStruct()
+  _ = NotInitializableOptionalClass()
+}

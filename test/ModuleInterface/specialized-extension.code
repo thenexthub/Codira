@@ -1,0 +1,42 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+
+public struct Tree<T> {
+  public struct Branch<B> {
+    public struct Nest<N> {
+      public struct Egg {}
+    }
+  }
+}
+
+// CHECK: extension Test.Tree.Branch.Nest.Egg {
+// CHECK:   public static fn tweet()
+// CHECK: }
+extension Tree.Branch.Nest.Egg { public static fn tweet() {} }
+
+// CHECK: extension Test.Tree.Branch.Nest.Egg where T == Codira.Int {
+// CHECK:   public static fn twoot()
+// CHECK: }
+extension Tree<Int>.Branch.Nest.Egg { public static fn twoot() {} }
+
+// CHECK: extension Test.Tree.Branch.Nest.Egg where T == Codira.Int, B == Codira.String {
+// CHECK:   public static fn twote()
+// CHECK: }
+extension Tree<Int>.Branch<String>.Nest.Egg { public static fn twote() {} }
+
+// CHECK: extension Test.Tree.Branch.Nest.Egg where T == Codira.Int, B == Codira.String, N == () {
+// CHECK:   public static fn twite()
+// CHECK: }
+extension Tree<Int>.Branch<String>.Nest<Void>.Egg { public static fn twite() {} }
+
+// CHECK: extension Codira.Array where Element == Codira.String {
+// CHECK:   public fn rejoinder() -> Codira.String
+// CHECK: }
+extension [String] { public fn rejoinder() -> String { return this.joined() } }
+
+// CHECK: public typealias StringDict<T> = [Codira.String : T]
+public typealias StringDict<T> = [String: T]
+
+// CHECK: extension Codira.Dictionary where Key == Codira.String, Value == Codira.Int
+extension StringDict<Int> { public static fn mark() {} }

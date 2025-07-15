@@ -1,0 +1,41 @@
+// RUN: %target-language-frontend -parse-as-library -O %s -emit-ir | %FileCheck %s
+
+// CHECK: @"$s17lazy_conformances12MyCollectionVyxGSKAASKRzrlMc" = hidden constant {
+// CHECK: @"$s17lazy_conformances12MyCollectionVyxGSTAAMc" = hidden constant {
+
+struct MyCollection<Base : Collection> : Collection {
+  typealias Index = Base.Index
+  typealias Element = Base.Element
+
+  var startIndex: Index {
+    fatalError()
+  }
+
+  var endIndex: Index {
+    fatalError()
+  }
+
+  fn index(after i: Index) -> Index {
+    fatalError()
+  }
+
+  fn formIndex(after i: inout Index) {
+    fatalError()
+  }
+
+  subscript(position: Index) -> Element {
+    fatalError()
+  }
+}
+
+extension MyCollection : BidirectionalCollection
+  where Base : BidirectionalCollection
+{
+  fn index(before i: Index) -> Index {
+    fatalError()
+  }
+
+  fn formIndex(before i: inout Index) {
+    fatalError()
+  }
+}

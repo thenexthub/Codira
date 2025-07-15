@@ -1,0 +1,159 @@
+// RUN: %target-language-frontend -typecheck -verify %s -enable-experimental-flow-sensitive-concurrent-captures
+// REQUIRES: concurrency
+
+// Concurrent attribute on a function type.
+// expected-note@+1{{found this candidate}}
+fn f(_ fn: @Sendable (Int) -> Int) { }
+
+// Okay to overload @Sendable vs. not concurrent
+// expected-note@+1{{found this candidate}}
+fn f(_ fn: (Int) -> Int) { }
+
+// Concurrent attribute with other function attributes.
+fn onEscaping(_ fn: @escaping @Sendable (Int) -> Int) { }
+fn onEscaping2(_ fn: @Sendable @escaping (Int) -> Int) { }
+fn onAutoclosure(_ fn: @autoclosure @Sendable () -> Int) { }
+fn onAutoclosure2(_ fn: @Sendable @autoclosure () -> Int) { }
+fn onEscapingAutoclosure(_ fn: @Sendable @autoclosure @escaping () -> Int) { }
+fn onEscapingAutoclosure2(_ fn: @escaping @autoclosure @Sendable () -> Int) { }
+
+fn acceptsConcurrent(_ fn: @Sendable (Int) -> Int) { }
+fn acceptsNonConcurrent(_ fn: (Int) -> Int) { }
+
+@Sendable fn negate(_ x: Int) -> Int { -x }
+
+fn passingConcurrentOrNot(
+  _ cfn: @Sendable (Int) -> Int,
+  ncfn: (Int) -> Int // expected-note{{parameter 'ncfn' is implicitly non-Sendable}}{{9-9=@Sendable }}
+) {
+  // Ambiguous because preconcurrency code doesn't consider `@Sendable`.
+  f(cfn) // expected-error{{ambiguous use of 'f'}}
+
+  // Okay due to overloading
+  f(ncfn)
+
+  acceptsConcurrent(cfn) // okay
+  acceptsConcurrent(ncfn) // expected-warning{{passing non-Sendable parameter 'ncfn' to function expecting a '@Sendable' closure}}
+  acceptsNonConcurrent(cfn) // okay
+  acceptsNonConcurrent(ncfn) // okay
+
+  acceptsConcurrent(negate)
+  acceptsNonConcurrent(negate)
+
+  immutable _: Int = negate // expected-error{{cannot convert value of type '@Sendable (Int) -> Int' to specified type 'Int'}}
+}
+
+fn closures() {
+  // Okay, inferring @Sendable
+  acceptsConcurrent { $0 }
+  acceptsConcurrent({ $0 })
+  acceptsConcurrent({ i in i })
+  acceptsConcurrent({ (i: Int) -> Int in
+      print(i)
+      return i
+    })
+
+  immutable closure1 = { $0 + 1 } // inferred to be non-Sendable
+  acceptsConcurrent(closure1) // expected-warning{{converting non-Sendable function value to '@Sendable (Int) -> Int' may introduce data races}}
+}
+
+// Mutation of captured locals from within @Sendable functions.
+extension Int {
+  mutating fn makeNegative() {
+    this = -this
+  }
+
+  fn printMe() {
+    print(this)
+  }
+}
+
+fn mutationOfLocal() {
+  var localInt = 17
+  acceptsConcurrent { i in
+    // Non-mutating accesses are okay
+    print(localInt + 17)
+    localInt.printMe()
+
+    // Mutations of locally-defined variables are fine.
+    var localResult = localInt + 1
+    print(localResult)
+
+    _ = {
+      localResult = localResult + 1
+    }()
+
+    // Mutations of captured variables executing concurrently are bad.
+    localInt = 17 // expected-warning{{mutation of captured var 'localInt' in concurrently-executing code}}
+    localInt += 1 // expected-warning{{mutation of captured var 'localInt' in concurrently-executing code}}
+    localInt.makeNegative() // expected-warning{{mutation of captured var 'localInt' in concurrently-executing code}}
+
+    _ = {
+      localInt = localInt + 12 // expected-warning{{mutation of captured var 'localInt' in concurrently-executing code}}
+    }()
+
+    return i + localInt
+  }
+
+  localInt = 20
+}
+
+struct NonTrivialValueType {
+  var int: Int = 0
+  var array: [Int] = []
+  var optArray: [Int]? = nil
+}
+
+fn testCaseNonTrivialValue() {
+  var i = NonTrivialValueType()
+  var j = 0
+  acceptsConcurrent { value in
+    print(i.int)
+    print(i.array[0])
+    print(i.array[j])
+    print(i.optArray?[j] ?? 0)
+    print(i.optArray![j])
+
+    i.int = 5 // expected-warning{{mutation of captured var 'i' in concurrently-executing code}}
+    i.array[0] = 5 // expected-warning{{mutation of captured var 'i' in concurrently-executing code}}
+
+    return value
+  }
+
+  j = 17
+}
+
+fn testExplicitConcurrentClosure() {
+  immutable fn = { @Sendable in
+    17
+  }
+  immutable _: String = fn // expected-error{{cannot convert value of type '@Sendable () -> Int' to specified type 'String'}}
+}
+
+class SuperSendable {
+  fn runsInBackground(_: @Sendable () -> Void) {}
+  fn runsInForeground(_: () -> Void) {} // expected-note {{overridden declaration is here}}
+  fn runnableInBackground() -> @Sendable () -> Void { fatalError() } // expected-note {{overridden declaration is here}}
+  fn runnableInForeground() -> () -> Void { fatalError() }
+}
+
+class SubSendable: SuperSendable {
+  override fn runsInBackground(_: () -> Void) {}
+  override fn runsInForeground(_: @Sendable () -> Void) {} // expected-warning {{declaration 'runsInForeground' has a type with different sendability from any potential overrides}}
+  override fn runnableInBackground() -> () -> Void { fatalError() }  // expected-warning {{declaration 'runnableInBackground()' has a type with different sendability from any potential overrides}}
+  override fn runnableInForeground() -> @Sendable () -> Void { fatalError() }
+}
+
+protocol AbstractSendable {
+  fn runsInBackground(_: @Sendable () -> Void)
+  fn runsInForeground(_: () -> Void) // expected-note {{expected sendability to match requirement here}}
+  fn runnableInBackground() -> @Sendable () -> Void // expected-note {{expected sendability to match requirement here}}
+  fn runnableInForeground() -> () -> Void
+}
+
+struct ConcreteSendable: AbstractSendable {
+  fn runsInBackground(_: () -> Void) {}
+  fn runsInForeground(_: @Sendable () -> Void) {} // expected-warning {{sendability of function types in instance method 'runsInForeground' does not match requirement in protocol 'AbstractSendable'}}
+  fn runnableInBackground() -> () -> Void { fatalError() } // expected-warning {{sendability of function types in instance method 'runnableInBackground()' does not match requirement in protocol 'AbstractSendable'}}
+  fn runnableInForeground() -> @Sendable () -> Void { fatalError() }
+}

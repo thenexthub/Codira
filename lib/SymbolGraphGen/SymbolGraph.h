@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPH_H
-#define SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPH_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPH_H
+#define LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPH_H
 
 #include "Edge.h"
 #include "Symbol.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Markup/Markup.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/VersionTuple.h"
 
 namespace language {
 namespace symbolgraphgen {
@@ -64,17 +65,17 @@ struct SymbolGraph {
    The semantic version of the module that this symbol graph describes,
    if known.
    */
-  std::optional<llvm::VersionTuple> ModuleVersion;
+  std::optional<toolchain::VersionTuple> ModuleVersion;
 
   /**
    The symbols in a module: the nodes in the graph.
    */
-  llvm::SetVector<Symbol> Nodes;
+  toolchain::SetVector<Symbol> Nodes;
 
   /**
    The relationships between symbols: the edges in the graph.
    */
-  llvm::SetVector<Edge> Edges;
+  toolchain::SetVector<Edge> Edges;
 
   /**
    True if this graph is for a single symbol, rather than an entire module.
@@ -84,7 +85,7 @@ struct SymbolGraph {
   SymbolGraph(SymbolGraphASTWalker &Walker, ModuleDecl &M,
               std::optional<ModuleDecl *> ExtendedModule,
               markup::MarkupContext &Ctx,
-              std::optional<llvm::VersionTuple> ModuleVersion = std::nullopt,
+              std::optional<toolchain::VersionTuple> ModuleVersion = std::nullopt,
               bool IsForSingleNode = false);
 
   // MARK: - Utilities
@@ -193,30 +194,30 @@ struct SymbolGraph {
   // MARK: - Serialization
 
   /// Serialize this symbol graph's JSON to an output stream.
-  void serialize(llvm::json::OStream &OS);
+  void serialize(toolchain::json::OStream &OS);
 
   /// Serialize the overall declaration fragments for a `ValueDecl`.
   void
   serializeDeclarationFragments(StringRef Key, const Symbol &S,
-                                llvm::json::OStream &OS);
+                                toolchain::json::OStream &OS);
 
   /// Get the declaration fragments for a symbol when viewed in a navigator
   /// where there is limited horizontal space.
   void
   serializeNavigatorDeclarationFragments(StringRef Key,
                                          const Symbol &S,
-                                         llvm::json::OStream &OS);
+                                         toolchain::json::OStream &OS);
 
   /// Get the declaration fragments for a symbol when it is viewed
   /// as a subheading and/or part of a larger group of symbol listings.
   void
   serializeSubheadingDeclarationFragments(StringRef Key, const Symbol &S,
-                                          llvm::json::OStream &OS);
+                                          toolchain::json::OStream &OS);
 
   /// Get the overall declaration for a symbol.
   void
   serializeDeclarationFragments(StringRef Key, Type T, Type BaseTy,
-                                llvm::json::OStream &OS);
+                                toolchain::json::OStream &OS);
 
   /// Returns `true` if the declaration has a name that makes it
   /// implicitly internal/private, such as underscore prefixes,
@@ -227,7 +228,7 @@ struct SymbolGraph {
   /// privacy.
   bool isImplicitlyPrivate(
       const Decl *D,
-      llvm::function_ref<bool(const Decl *)> IgnoreContext = nullptr) const;
+      toolchain::function_ref<bool(const Decl *)> IgnoreContext = nullptr) const;
 
   /// Returns `true` if the declaration has an availability attribute
   /// that marks it as unconditionally unavailable on all platforms (i.e., where
@@ -255,4 +256,4 @@ struct SymbolGraph {
 } // end namespace symbolgraphgen
 } // end namespace language 
 
-#endif // SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPH_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPH_H

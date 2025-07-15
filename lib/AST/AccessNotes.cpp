@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Implements access notes, which allow certain modifiers or attributes to be
@@ -26,9 +27,9 @@
 #include "language/AST/Module.h" // DeclContext::isModuleScopeContext()
 #include "language/Basic/Assertions.h"
 #include "language/Parse/ParseDeclName.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/YAMLTraits.h"
 
 namespace language {
 
@@ -106,7 +107,7 @@ bool AccessNoteDeclName::empty() const {
   return !name;
 }
 
-void AccessNoteDeclName::print(llvm::raw_ostream &os) const {
+void AccessNoteDeclName::print(toolchain::raw_ostream &os) const {
   if (accessorKind)
     os << getAccessorLabel(*accessorKind) << "ter:";
 
@@ -116,14 +117,14 @@ void AccessNoteDeclName::print(llvm::raw_ostream &os) const {
 }
 
 void AccessNoteDeclName::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 NullablePtr<const AccessNote> AccessNotesFile::lookup(ValueDecl *VD) const {
   assert(VD != nullptr);
 
-  auto iter = llvm::find_if(Notes, [&](const AccessNote &note) -> bool {
+  auto iter = toolchain::find_if(Notes, [&](const AccessNote &note) -> bool {
     return note.Name.matches(VD);
   });
 
@@ -131,15 +132,15 @@ NullablePtr<const AccessNote> AccessNotesFile::lookup(ValueDecl *VD) const {
 }
 
 void AccessNotesFile::dump() const {
-  dump(llvm::dbgs());
-  llvm::dbgs() << "\n";
+  dump(toolchain::dbgs());
+  toolchain::dbgs() << "\n";
 }
 void AccessNote::dump() const {
-  dump(llvm::dbgs());
-  llvm::dbgs() << "\n";
+  dump(toolchain::dbgs());
+  toolchain::dbgs() << "\n";
 }
 
-void AccessNotesFile::dump(llvm::raw_ostream &os) const {
+void AccessNotesFile::dump(toolchain::raw_ostream &os) const {
   os << "(access_notes reason='" << Reason << "'";
   for (const auto &note : Notes) {
     os << "\n";
@@ -148,7 +149,7 @@ void AccessNotesFile::dump(llvm::raw_ostream &os) const {
   os << ")";
 }
 
-void AccessNote::dump(llvm::raw_ostream &os, int indent) const {
+void AccessNote::dump(toolchain::raw_ostream &os, int indent) const {
   os.indent(indent) << "(note name='";
   Name.print(os);
   os << "'";
@@ -168,28 +169,28 @@ void AccessNote::dump(llvm::raw_ostream &os, int indent) const {
 
 }
 
-LLVM_YAML_DECLARE_SCALAR_TRAITS(swift::AccessNoteDeclName, QuotingType::Single)
-LLVM_YAML_DECLARE_SCALAR_TRAITS(swift::ObjCSelector, QuotingType::Single)
-LLVM_YAML_IS_SEQUENCE_VECTOR(swift::AccessNote)
-LLVM_YAML_DECLARE_MAPPING_TRAITS(swift::AccessNotesFile)
+TOOLCHAIN_YAML_DECLARE_SCALAR_TRAITS(language::AccessNoteDeclName, QuotingType::Single)
+TOOLCHAIN_YAML_DECLARE_SCALAR_TRAITS(language::ObjCSelector, QuotingType::Single)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(language::AccessNote)
+TOOLCHAIN_YAML_DECLARE_MAPPING_TRAITS(language::AccessNotesFile)
 
 // Not using macro to avoid validation issues.
-template <> struct llvm::yaml::MappingTraits<swift::AccessNote> {
-  static void mapping(IO &IO, swift::AccessNote &Obj);
-  static std::string validate(IO &IO, swift::AccessNote &Obj);
+template <> struct toolchain::yaml::MappingTraits<language::AccessNote> {
+  static void mapping(IO &IO, language::AccessNote &Obj);
+  static std::string validate(IO &IO, language::AccessNote &Obj);
 };
 
 namespace language {
 
 static void
-convertToErrorAndJoin(const llvm::SMDiagnostic &diag, void *ctxPtr) {
+convertToErrorAndJoin(const toolchain::SMDiagnostic &diag, void *ctxPtr) {
   ASTContext &ctx = *(ASTContext*)ctxPtr;
 
   SourceLoc loc{diag.getLoc()};
   assert(ctx.SourceMgr.isOwning(loc));
 
   switch (diag.getKind()) {
-  case llvm::SourceMgr::DK_Error:
+  case toolchain::SourceMgr::DK_Error:
     ctx.Diags.diagnose(loc, diag::error_in_access_notes_file,
                        diag.getMessage());
     break;
@@ -202,8 +203,8 @@ convertToErrorAndJoin(const llvm::SMDiagnostic &diag, void *ctxPtr) {
 }
 
 std::optional<AccessNotesFile>
-AccessNotesFile::load(ASTContext &ctx, const llvm::MemoryBuffer *buffer) {
-  llvm::yaml::Input yamlIn(llvm::MemoryBufferRef(*buffer), (void *)&ctx,
+AccessNotesFile::load(ASTContext &ctx, const toolchain::MemoryBuffer *buffer) {
+  toolchain::yaml::Input yamlIn(toolchain::MemoryBufferRef(*buffer), (void *)&ctx,
                            convertToErrorAndJoin, &ctx);
   yamlIn.setAllowUnknownKeys(true);
 
@@ -218,14 +219,14 @@ AccessNotesFile::load(ASTContext &ctx, const llvm::MemoryBuffer *buffer) {
 }
 
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
-using AccessNote = swift::AccessNote;
-using AccessNotesFile = swift::AccessNotesFile;
-using ASTContext = swift::ASTContext;
-using AccessNoteDeclName = swift::AccessNoteDeclName;
-using ObjCSelector = swift::ObjCSelector;
+using AccessNote = language::AccessNote;
+using AccessNotesFile = language::AccessNotesFile;
+using ASTContext = language::ASTContext;
+using AccessNoteDeclName = language::AccessNoteDeclName;
+using ObjCSelector = language::ObjCSelector;
 
 void ScalarTraits<AccessNoteDeclName>::
 output(const AccessNoteDeclName &name, void *ctxPtr, raw_ostream &os) {
@@ -234,7 +235,7 @@ output(const AccessNoteDeclName &name, void *ctxPtr, raw_ostream &os) {
 
 StringRef ScalarTraits<AccessNoteDeclName>::
 input(StringRef str, void *ctxPtr, AccessNoteDeclName &name) {
-  auto &ctx = *static_cast<swift::ASTContext *>(ctxPtr);
+  auto &ctx = *static_cast<language::ASTContext *>(ctxPtr);
 
   name = AccessNoteDeclName(ctx, str);
   return name.empty() ? "invalid declaration name" : "";
@@ -247,7 +248,7 @@ void ScalarTraits<ObjCSelector>::output(const ObjCSelector &selector,
 
 StringRef ScalarTraits<ObjCSelector>::input(StringRef str, void *ctxPtr,
                                             ObjCSelector &selector) {
-  auto &ctx = *static_cast<swift::ASTContext *>(ctxPtr);
+  auto &ctx = *static_cast<language::ASTContext *>(ctxPtr);
 
   if (auto sel = ObjCSelector::parse(ctx, str)) {
     selector = *sel;

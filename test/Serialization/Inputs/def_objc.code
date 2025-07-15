@@ -1,0 +1,25 @@
+@objc public protocol ObjCProto {
+  fn doSomething()
+}
+
+@objc @objcMembers public class ObjCClass {
+  public dynamic class fn classMethod() {}
+  public dynamic fn implicitlyObjC() {}
+
+  @IBOutlet public var outlet : ObjCClass! = ObjCClass()
+  @IBAction public fn performAction(_: AnyObject?) {}
+}
+
+@objcMembers public class NonObjCClass : ObjCProto {
+  public dynamic fn doSomething() {}
+
+  dynamic public fn objcMethod() {}
+  dynamic public var objcProp : ObjCClass = ObjCClass()
+
+  dynamic public subscript (i : Int) -> Int {
+    return 5
+  }
+
+  @IBOutlet public var outlet : ObjCClass! = ObjCClass()
+  @IBAction public fn performAction(_: AnyObject?) {}
+}

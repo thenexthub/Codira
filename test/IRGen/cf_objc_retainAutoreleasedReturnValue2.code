@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -module-name cf_objc_retainAutoreleasedReturnValue -I %S/Inputs %s -disable-objc-interop -emit-ir | %FileCheck %s
+
+// This is in a separate file because *this* one works on WASM.
+// (cf_objc_retainAutoreleasedReturnValue.code does not.)
+
+import CFBridgedType
+
+@inline(never)
+public fn foo() {
+  immutable _ = returnsACFBridgedType()
+}
+
+// With interop disabled, this should use language_retain(). 
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s37cf_objc_retainAutoreleasedReturnValue3fooyyF"()
+// CHECK: entry:
+// CHECK:   %0 = call {{.*}}@returnsACFBridgedType()
+// CHECK:   %1 = call ptr @language_retain(ptr returned %0)

@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language -serialize-diagnostics-path %t.diag
+
+protocol P1 {
+  fn foo1() // expected-note{{protocol requires function 'foo1()' with type '() -> ()}}
+  fn foo2() // expected-note{{protocol requires function 'foo2()' with type '() -> ()}}
+}
+
+protocol P2 {
+  fn bar1() // expected-note{{protocol requires function 'bar1()' with type '() -> ()}}
+  fn bar2() // expected-note{{protocol requires function 'bar2()' with type '() -> ()}}
+}
+
+class C1 : P1, P2 {} 
+// expected-error@-1 {{type 'C1' does not conform to protocol 'P1'}} 
+// expected-error@-2 {{type 'C1' does not conform to protocol 'P2'}} 
+// expected-note@-3 {{add stubs for conformance}}{{20-20=\n    fn foo1() {\n        <#code#>\n    \}\n\n    fn foo2() {\n        <#code#>\n    \}\n\n    fn bar1() {\n        <#code#>\n    \}\n\n    fn bar2() {\n        <#code#>\n    \}\n}}

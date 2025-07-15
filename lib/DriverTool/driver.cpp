@@ -1,4 +1,4 @@
-//===--- driver.cpp - Swift Compiler Driver -------------------------------===//
+//===--- driver.cpp - Codira Compiler Driver -------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This is the entry point to the swift compiler driver.
+// This is the entry point to the language compiler driver.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsDriver.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVMInitialize.h"
-#include "language/Basic/InitializeSwiftModules.h"
+#include "language/Basic/ToolchainInitializer.h"
+#include "language/Basic/InitializeCodiraModules.h"
 #include "language/Basic/PrettyStackTrace.h"
 #include "language/Basic/Program.h"
 #include "language/Basic/TaskQueue.h"
@@ -35,23 +36,23 @@
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/FrontendTool/FrontendTool.h"
 #include "language/DriverTool/DriverTool.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/ConvertUTF.h"
-#include "llvm/Support/Errno.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/TargetParser/Host.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Program.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/StringSaver.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/TargetParser/Host.h"
-#include "llvm/TargetParser/Triple.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/ConvertUTF.h"
+#include "toolchain/Support/Errno.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/TargetParser/Host.h"
+#include "toolchain/Support/ManagedStatic.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Program.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/StringSaver.h"
+#include "toolchain/Support/TargetSelect.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/TargetParser/Host.h"
+#include "toolchain/TargetParser/Triple.h"
 
 #include <csignal>
 #include <memory>
@@ -66,62 +67,62 @@ using namespace language::driver;
 
 std::string getExecutablePath(const char *FirstArg) {
   void *P = (void *)(intptr_t)getExecutablePath;
-  return llvm::sys::fs::getMainExecutable(FirstArg, P);
+  return toolchain::sys::fs::getMainExecutable(FirstArg, P);
 }
 
 /// Run 'sil-opt'
 extern int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr);
 
-/// Run 'sil-func-extractor'
+/// Run 'sil-fn-extractor'
 extern int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr);
 
 /// Run 'sil-nm'
 extern int sil_nm_main(ArrayRef<const char *> argv, void *MainAddr);
 
-/// Run 'sil-llvm-gen'
-extern int sil_llvm_gen_main(ArrayRef<const char *> argv, void *MainAddr);
+/// Run 'sil-toolchain-gen'
+extern int sil_toolchain_gen_main(ArrayRef<const char *> argv, void *MainAddr);
 
 /// Run 'sil-passpipeline-dumper'
 extern int sil_passpipeline_dumper_main(ArrayRef<const char *> argv, void *MainAddr);
 
-/// Run 'swift-dependency-tool'
-extern int swift_dependency_tool_main(ArrayRef<const char *> argv, void *MainAddr);
+/// Run 'language-dependency-tool'
+extern int language_dependency_tool_main(ArrayRef<const char *> argv, void *MainAddr);
 
-/// Run 'swift-llvm-opt'
-extern int swift_llvm_opt_main(ArrayRef<const char *> argv, void *MainAddr);
+/// Run 'language-toolchain-opt'
+extern int language_toolchain_opt_main(ArrayRef<const char *> argv, void *MainAddr);
 
-/// Run 'swift-autolink-extract'.
+/// Run 'language-autolink-extract'.
 extern int autolink_extract_main(ArrayRef<const char *> Args, const char *Argv0,
                                  void *MainAddr);
 
 extern int modulewrap_main(ArrayRef<const char *> Args, const char *Argv0,
                            void *MainAddr);
 
-/// Run 'swift-symbolgraph-extract'
-extern int swift_symbolgraph_extract_main(ArrayRef<const char *> Args, const char *Argv0,
+/// Run 'language-symbolgraph-extract'
+extern int language_symbolgraph_extract_main(ArrayRef<const char *> Args, const char *Argv0,
 void *MainAddr);
 
-/// Run 'swift-synthesize-interface'
-extern int swift_synthesize_interface_main(ArrayRef<const char *> Args,
+/// Run 'language-synthesize-interface'
+extern int language_synthesize_interface_main(ArrayRef<const char *> Args,
                                            const char *Argv0, void *MainAddr);
 
-/// Run 'swift-api-digester'
-extern int swift_api_digester_main(ArrayRef<const char *> Args,
+/// Run 'language-api-digester'
+extern int language_api_digester_main(ArrayRef<const char *> Args,
                                    const char *Argv0, void *MainAddr);
 
-/// Run 'swift-cache-tool'
-extern int swift_cache_tool_main(ArrayRef<const char *> Args, const char *Argv0,
+/// Run 'language-cache-tool'
+extern int language_cache_tool_main(ArrayRef<const char *> Args, const char *Argv0,
                                  void *MainAddr);
 
-/// Run 'swift-parse-test'
-extern int swift_parse_test_main(ArrayRef<const char *> Args, const char *Argv0,
+/// Run 'language-parse-test'
+extern int language_parse_test_main(ArrayRef<const char *> Args, const char *Argv0,
                                  void *MainAddr);
 
 /// Determine if the given invocation should run as a "subcommand".
 ///
-/// Examples of "subcommands" are 'swift build' or 'swift test', which are
-/// usually used to invoke the Swift package manager executables 'swift-build'
-/// and 'swift-test', respectively.
+/// Examples of "subcommands" are 'language build' or 'language test', which are
+/// usually used to invoke the Codira package manager executables 'language-build'
+/// and 'language-test', respectively.
 ///
 /// \param ExecName The name of the argv[0] we were invoked as.
 /// \param SubcommandName On success, the full name of the subcommand to invoke.
@@ -132,10 +133,10 @@ static bool shouldRunAsSubcommand(StringRef ExecName,
                                   const ArrayRef<const char *> Args) {
   assert(!Args.empty());
 
-  // If we are not run as 'swift', don't do anything special. This doesn't work
-  // with symlinks with alternate names, but we can't detect 'swift' vs 'swiftc'
+  // If we are not run as 'language', don't do anything special. This doesn't work
+  // with symlinks with alternate names, but we can't detect 'language' vs 'languagec'
   // if we try and resolve using the actual executable path.
-  if (ExecName != "swift" && ExecName != "swift-legacy-driver")
+  if (ExecName != "language" && ExecName != "language-legacy-driver")
     return false;
 
   // If there are no program arguments, always invoke as normal.
@@ -160,7 +161,7 @@ static bool shouldRunAsSubcommand(StringRef ExecName,
   }
 
   // Form the subcommand name.
-  SubcommandName.assign("swift-");
+  SubcommandName.assign("language-");
   SubcommandName.append(Subcommand);
 
   return true;
@@ -171,37 +172,37 @@ static bool shouldDisallowNewDriver(DiagnosticEngine &diags,
                                     const ArrayRef<const char *> argv) {
   // We are expected to use the legacy driver to `exec` an overload
   // for testing purposes.
-  if (llvm::sys::Process::GetEnv("SWIFT_OVERLOAD_DRIVER").has_value()) {
+  if (toolchain::sys::Process::GetEnv("LANGUAGE_OVERLOAD_DRIVER").has_value()) {
     return false;
   }
   StringRef disableArg = "-disallow-use-new-driver";
-  StringRef disableEnv = "SWIFT_USE_OLD_DRIVER";
-  auto shouldWarn = !llvm::sys::Process::
-    GetEnv("SWIFT_AVOID_WARNING_USING_OLD_DRIVER").has_value();
+  StringRef disableEnv = "LANGUAGE_USE_OLD_DRIVER";
+  auto shouldWarn = !toolchain::sys::Process::
+    GetEnv("LANGUAGE_AVOID_WARNING_USING_OLD_DRIVER").has_value();
 
   // We explicitly are on the fallback to the legacy driver from the new driver.
   // Do not forward.
-  if (ExecName == "swift-legacy-driver" ||
-      ExecName == "swiftc-legacy-driver") {
+  if (ExecName == "language-legacy-driver" ||
+      ExecName == "languagec-legacy-driver") {
     if (shouldWarn)
       diags.diagnose(SourceLoc(), diag::old_driver_deprecated, disableArg);
     return true;
   }
 
   // We are not invoking the driver, so don't forward.
-  if (ExecName != "swift" && ExecName != "swiftc") {
+  if (ExecName != "language" && ExecName != "languagec") {
     return true;
   }
 
   // If user specified using the old driver, don't forward.
-  if (llvm::find_if(argv, [&](const char* arg) {
+  if (toolchain::find_if(argv, [&](const char* arg) {
     return StringRef(arg) == disableArg;
   }) != argv.end()) {
     if (shouldWarn)
       diags.diagnose(SourceLoc(), diag::old_driver_deprecated, disableArg);
     return true;
   }
-  if (llvm::sys::Process::GetEnv(disableEnv).has_value()) {
+  if (toolchain::sys::Process::GetEnv(disableEnv).has_value()) {
     if (shouldWarn)
       diags.diagnose(SourceLoc(), diag::old_driver_deprecated, disableEnv);
     return true;
@@ -209,29 +210,29 @@ static bool shouldDisallowNewDriver(DiagnosticEngine &diags,
   return false;
 }
 
-static bool appendSwiftDriverName(SmallString<256> &buffer) {
-  assert(llvm::sys::fs::exists(buffer));
-  if (auto driverNameOp = llvm::sys::Process::GetEnv("SWIFT_OVERLOAD_DRIVER")) {
-    llvm::sys::path::append(buffer, *driverNameOp);
+static bool appendCodiraDriverName(SmallString<256> &buffer) {
+  assert(toolchain::sys::fs::exists(buffer));
+  if (auto driverNameOp = toolchain::sys::Process::GetEnv("LANGUAGE_OVERLOAD_DRIVER")) {
+    toolchain::sys::path::append(buffer, *driverNameOp);
     return true;
   }
 
-  StringRef execSuffix(llvm::Triple(llvm::sys::getProcessTriple()).isOSWindows() ? ".exe" : "");
-  llvm::sys::path::append(buffer, "swift-driver" + execSuffix);
-  if (llvm::sys::fs::exists(buffer)) {
+  StringRef execSuffix(toolchain::Triple(toolchain::sys::getProcessTriple()).isOSWindows() ? ".exe" : "");
+  toolchain::sys::path::append(buffer, "language-driver" + execSuffix);
+  if (toolchain::sys::fs::exists(buffer)) {
     return true;
   }
-  llvm::sys::path::remove_filename(buffer);
-  llvm::sys::path::append(buffer, "swift-driver-new" + execSuffix);
-  if (llvm::sys::fs::exists(buffer)) {
+  toolchain::sys::path::remove_filename(buffer);
+  toolchain::sys::path::append(buffer, "language-driver-new" + execSuffix);
+  if (toolchain::sys::fs::exists(buffer)) {
     return true;
   }
 
   return false;
 }
 
-static llvm::SmallVector<const char *, 32> eraseFirstArg(ArrayRef<const char *> argv){
-  llvm::SmallVector<const char *, 32> newArgv;
+static toolchain::SmallVector<const char *, 32> eraseFirstArg(ArrayRef<const char *> argv){
+  toolchain::SmallVector<const char *, 32> newArgv;
   newArgv.push_back(argv[0]);
   for (const char *arg : argv.slice(2)) {
     newArgv.push_back(arg);
@@ -243,8 +244,8 @@ static int run_driver(StringRef ExecName,
                        ArrayRef<const char *> argv,
                        const ArrayRef<const char *> originalArgv) {
   // This is done here and not done in FrontendTool.cpp, because
-  // FrontendTool.cpp is linked to tools, which don't use swift modules.
-  initializeSwiftModules();
+  // FrontendTool.cpp is linked to tools, which don't use language modules.
+  initializeCodiraModules();
 
   bool isRepl = false;
 
@@ -255,19 +256,19 @@ static int run_driver(StringRef ExecName,
 
     if (FirstArg == "-frontend") {
       return performFrontend(
-          llvm::ArrayRef(argv.data() + 2, argv.data() + argv.size()), argv[0],
+          toolchain::ArrayRef(argv.data() + 2, argv.data() + argv.size()), argv[0],
           (void *)(intptr_t)getExecutablePath);
     }
     if (FirstArg == "-modulewrap") {
       return modulewrap_main(
-          llvm::ArrayRef(argv.data() + 2, argv.data() + argv.size()), argv[0],
+          toolchain::ArrayRef(argv.data() + 2, argv.data() + argv.size()), argv[0],
           (void *)(intptr_t)getExecutablePath);
     }
     if (FirstArg == "-sil-opt") {
       return sil_opt_main(eraseFirstArg(argv),
                           (void *)(intptr_t)getExecutablePath);
     }
-    if (FirstArg == "-sil-func-extractor") {
+    if (FirstArg == "-sil-fn-extractor") {
       return sil_func_extractor_main(eraseFirstArg(argv),
                                      (void *)(intptr_t)getExecutablePath);
     }
@@ -275,29 +276,29 @@ static int run_driver(StringRef ExecName,
       return sil_nm_main(eraseFirstArg(argv),
                          (void *)(intptr_t)getExecutablePath);
     }
-    if (FirstArg == "-sil-llvm-gen") {
-      return sil_llvm_gen_main(eraseFirstArg(argv),
+    if (FirstArg == "-sil-toolchain-gen") {
+      return sil_toolchain_gen_main(eraseFirstArg(argv),
                                (void *)(intptr_t)getExecutablePath);
     }
     if (FirstArg == "-sil-passpipeline-dumper") {
       return sil_passpipeline_dumper_main(eraseFirstArg(argv),
                                           (void *)(intptr_t)getExecutablePath);
     }
-    if (FirstArg == "-swift-dependency-tool") {
-      return swift_dependency_tool_main(eraseFirstArg(argv),
+    if (FirstArg == "-language-dependency-tool") {
+      return language_dependency_tool_main(eraseFirstArg(argv),
                                         (void *)(intptr_t)getExecutablePath);
     }
-    if (FirstArg == "-swift-llvm-opt") {
-      return swift_llvm_opt_main(eraseFirstArg(argv),
+    if (FirstArg == "-language-toolchain-opt") {
+      return language_toolchain_opt_main(eraseFirstArg(argv),
                                  (void *)(intptr_t)getExecutablePath);
     }
 
-    // Run the integrated Swift frontend when called as "swift-frontend" but
+    // Run the integrated Codira frontend when called as "language-frontend" but
     // without a leading "-frontend".
     if (!FirstArg.starts_with("--driver-mode=")
-        && ExecName == "swift-frontend") {
+        && ExecName == "language-frontend") {
       return performFrontend(
-          llvm::ArrayRef(argv.data() + 1, argv.data() + argv.size()), argv[0],
+          toolchain::ArrayRef(argv.data() + 1, argv.data() + argv.size()), argv[0],
           (void *)(intptr_t)getExecutablePath);
     }
 
@@ -317,21 +318,21 @@ static int run_driver(StringRef ExecName,
   DiagnosticEngine Diags(SM);
   Diags.addConsumer(PDC);
 
-  // Forwarding calls to the swift driver if the C++ driver is invoked as `swift`
-  // or `swiftc`, and an environment variable SWIFT_USE_NEW_DRIVER is defined.
+  // Forwarding calls to the language driver if the C++ driver is invoked as `language`
+  // or `languagec`, and an environment variable LANGUAGE_USE_NEW_DRIVER is defined.
   if (!shouldDisallowNewDriver(Diags, ExecName, argv)) {
-    SmallString<256> NewDriverPath(llvm::sys::path::parent_path(Path));
-    if (appendSwiftDriverName(NewDriverPath) &&
-        llvm::sys::fs::exists(NewDriverPath)) {
+    SmallString<256> NewDriverPath(toolchain::sys::path::parent_path(Path));
+    if (appendCodiraDriverName(NewDriverPath) &&
+        toolchain::sys::fs::exists(NewDriverPath)) {
       std::vector<const char *> subCommandArgs;
       // Rewrite the program argument.
       subCommandArgs.push_back(NewDriverPath.c_str());
       if (!DriverModeArg.empty()) {
         subCommandArgs.push_back(DriverModeArg.data());
-      } else if (ExecName == "swiftc") {
-        subCommandArgs.push_back("--driver-mode=swiftc");
-      } else if (ExecName == "swift") {
-        subCommandArgs.push_back("--driver-mode=swift");
+      } else if (ExecName == "languagec") {
+        subCommandArgs.push_back("--driver-mode=languagec");
+      } else if (ExecName == "language") {
+        subCommandArgs.push_back("--driver-mode=language");
       }
       // Push these non-op frontend arguments so the build log can indicate
       // the new driver is used.
@@ -355,8 +356,8 @@ static int run_driver(StringRef ExecName,
       ExecuteInPlace(NewDriverPath.c_str(), subCommandArgs.data());
 
       // If we reach here then an error occurred (typically a missing path).
-      std::string ErrorString = llvm::sys::StrError();
-      llvm::errs() << "error: unable to invoke subcommand: " << subCommandArgs[0]
+      std::string ErrorString = toolchain::sys::StrError();
+      toolchain::errs() << "error: unable to invoke subcommand: " << subCommandArgs[0]
                    << " (" << ErrorString << ")\n";
       return 2;
     } else
@@ -367,10 +368,10 @@ static int run_driver(StringRef ExecName,
   // Now that we have determined above that we are not going to
   // forward the invocation to the new driver, ensure the rest of the
   // downstream driver execution refers to itself by the appropriate name.
-  if (ExecName == "swift-legacy-driver")
-    ExecName = "swift";
-  else if (ExecName == "swiftc-legacy-driver")
-    ExecName = "swiftc";
+  if (ExecName == "language-legacy-driver")
+    ExecName = "language";
+  else if (ExecName == "languagec-legacy-driver")
+    ExecName = "languagec";
   
   Driver TheDriver(Path, ExecName, argv, Diags);
   switch (TheDriver.getDriverKind()) {
@@ -381,39 +382,39 @@ static int run_driver(StringRef ExecName,
   case Driver::DriverKind::SILNM:
     return sil_nm_main(argv, (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::SILLLVMGen:
-    return sil_llvm_gen_main(argv, (void *)(intptr_t)getExecutablePath);
+    return sil_toolchain_gen_main(argv, (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::SILPassPipelineDumper:
     return sil_passpipeline_dumper_main(argv, (void *)(intptr_t)getExecutablePath);
-  case Driver::DriverKind::SwiftDependencyTool:
-    return swift_dependency_tool_main(argv, (void *)(intptr_t)getExecutablePath);
-  case Driver::DriverKind::SwiftLLVMOpt:
-    return swift_llvm_opt_main(argv, (void *)(intptr_t)getExecutablePath);
+  case Driver::DriverKind::CodiraDependencyTool:
+    return language_dependency_tool_main(argv, (void *)(intptr_t)getExecutablePath);
+  case Driver::DriverKind::CodiraLLVMOpt:
+    return language_toolchain_opt_main(argv, (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::AutolinkExtract:
     return autolink_extract_main(
       TheDriver.getArgsWithoutProgramNameAndDriverMode(argv),
       argv[0], (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::SymbolGraph:
-      return swift_symbolgraph_extract_main(TheDriver.getArgsWithoutProgramNameAndDriverMode(argv), argv[0], (void *)(intptr_t)getExecutablePath);
+      return language_symbolgraph_extract_main(TheDriver.getArgsWithoutProgramNameAndDriverMode(argv), argv[0], (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::SynthesizeInterface:
-    return swift_synthesize_interface_main(
+    return language_synthesize_interface_main(
         TheDriver.getArgsWithoutProgramNameAndDriverMode(argv), argv[0],
         (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::APIDigester:
-    return swift_api_digester_main(
+    return language_api_digester_main(
         TheDriver.getArgsWithoutProgramNameAndDriverMode(argv), argv[0],
         (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::CacheTool:
-    return swift_cache_tool_main(
+    return language_cache_tool_main(
         TheDriver.getArgsWithoutProgramNameAndDriverMode(argv), argv[0],
         (void *)(intptr_t)getExecutablePath);
   case Driver::DriverKind::ParseTest:
-    return swift_parse_test_main(argv, argv[0],
+    return language_parse_test_main(argv, argv[0],
                                  (void *)(intptr_t)getExecutablePath);
   default:
     break;
   }
 
-  std::unique_ptr<llvm::opt::InputArgList> ArgList =
+  std::unique_ptr<toolchain::opt::InputArgList> ArgList =
     TheDriver.parseArgStrings(ArrayRef<const char*>(argv).slice(1));
   if (Diags.hadAnyError())
     return 1;
@@ -445,7 +446,7 @@ static int run_driver(StringRef ExecName,
   return 0;
 }
 
-int swift::mainEntry(int argc_, const char **argv_) {
+int language::mainEntry(int argc_, const char **argv_) {
 #if defined(_WIN32)
   LPWSTR *wargv_ = CommandLineToArgvW(GetCommandLineW(), &argc_);
   std::vector<std::string> utf8Args;
@@ -455,13 +456,13 @@ int swift::mainEntry(int argc_, const char **argv_) {
     const wchar_t *wideArg = wargv_[i];
     int wideArgLen = std::wcslen(wideArg);
     utf8Args.push_back("");
-    llvm::ArrayRef<char> uRef((const char *)wideArg,
+    toolchain::ArrayRef<char> uRef((const char *)wideArg,
                               (const char *)(wideArg + wideArgLen));
-    llvm::convertUTF16ToUTF8String(uRef, utf8Args[i]);
+    toolchain::convertUTF16ToUTF8String(uRef, utf8Args[i]);
   }
 
   std::vector<const char *> utf8CStrs;
-  llvm::transform(utf8Args, std::back_inserter(utf8CStrs),
+  toolchain::transform(utf8Args, std::back_inserter(utf8CStrs),
                   std::mem_fn(&std::string::c_str));
   argv_ = utf8CStrs.data();
 #else
@@ -474,9 +475,9 @@ int swift::mainEntry(int argc_, const char **argv_) {
   // may be passed through response files in the event of command line length
   // restrictions.
   SmallVector<const char *, 256> ExpandedArgs(&argv_[0], &argv_[argc_]);
-  llvm::BumpPtrAllocator Allocator;
-  llvm::StringSaver Saver(Allocator);
-  swift::driver::ExpandResponseFilesWithRetry(Saver, ExpandedArgs);
+  toolchain::BumpPtrAllocator Allocator;
+  toolchain::StringSaver Saver(Allocator);
+  language::driver::ExpandResponseFilesWithRetry(Saver, ExpandedArgs);
 
   // Initialize the stack trace using the parsed argument vector with expanded
   // response files.
@@ -490,10 +491,10 @@ int swift::mainEntry(int argc_, const char **argv_) {
   PROGRAM_START(ThrowawayExpandedArgc, ThrowawayExpandedArgv);
   ArrayRef<const char *> argv(ExpandedArgs);
 
-  PrettyStackTraceSwiftVersion versionStackTrace;
+  PrettyStackTraceCodiraVersion versionStackTrace;
 
   // Check if this invocation should execute a subcommand.
-  StringRef ExecName = llvm::sys::path::stem(argv[0]);
+  StringRef ExecName = toolchain::sys::path::stem(argv[0]);
   SmallString<256> SubcommandName;
   if (shouldRunAsSubcommand(ExecName, SubcommandName, argv)) {
     // Preserve argv for the stack trace.
@@ -502,13 +503,13 @@ int swift::mainEntry(int argc_, const char **argv_) {
     // We are running as a subcommand, try to find the subcommand adjacent to
     // the executable we are running as.
     SmallString<256> SubcommandPath(SubcommandName);
-    auto result = llvm::sys::findProgramByName(SubcommandName,
-      { llvm::sys::path::parent_path(getExecutablePath(argv[0])) });
+    auto result = toolchain::sys::findProgramByName(SubcommandName,
+      { toolchain::sys::path::parent_path(getExecutablePath(argv[0])) });
     if (!result.getError()) {
       SubcommandPath = *result;
     } else {
       // If we didn't find the tool there, let the OS search for it.
-      result = llvm::sys::findProgramByName(SubcommandName);
+      result = toolchain::sys::findProgramByName(SubcommandName);
       // Search for the program and use the path if found. If there was an
       // error, ignore it and just let the exec fail.
       if (!result.getError())
@@ -523,8 +524,8 @@ int swift::mainEntry(int argc_, const char **argv_) {
     ExecuteInPlace(SubcommandPath.c_str(), subCommandArgs.data());
 
     // If we reach here then an error occurred (typically a missing path).
-    std::string ErrorString = llvm::sys::StrError();
-    llvm::errs() << "error: unable to invoke subcommand: " << subCommandArgs[0]
+    std::string ErrorString = toolchain::sys::StrError();
+    toolchain::errs() << "error: unable to invoke subcommand: " << subCommandArgs[0]
                  << " (" << ErrorString << ")\n";
     return 2;
   }

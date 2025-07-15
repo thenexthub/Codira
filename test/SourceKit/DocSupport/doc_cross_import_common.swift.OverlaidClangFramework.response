@@ -1,0 +1,87 @@
+fn fromOverlaidClangFramework()
+
+fn fromOverlaidClangFrameworkOverlay()
+
+
+// MARK: - BystandingLibrary Additions
+
+// Available when BystandingLibrary is imported with OverlaidClangFramework
+fn fromOverlaidClangFrameworkCrossImport()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 0,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5,
+    key.length: 26
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 35,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 40,
+    key.length: 33
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 78,
+    key.length: 39
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 81,
+    key.length: 35
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 118,
+    key.length: 76
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 194,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 199,
+    key.length: 37
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "fromOverlaidClangFramework()",
+    key.usr: "c:@F@fromOverlaidClangFramework",
+    key.offset: 0,
+    key.length: 33,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromOverlaidClangFramework</decl.name>()</decl.function.free>"
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "fromOverlaidClangFrameworkOverlay()",
+    key.usr: "s:22OverlaidClangFramework04fromabC7OverlayyyF",
+    key.offset: 35,
+    key.length: 40,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromOverlaidClangFrameworkOverlay</decl.name>()</decl.function.free>"
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "fromOverlaidClangFrameworkCrossImport()",
+    key.usr: "s:41_OverlaidClangFramework_BystandingLibrary04fromabC11CrossImportyyF",
+    key.offset: 194,
+    key.length: 44,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromOverlaidClangFrameworkCrossImport</decl.name>()</decl.function.free>",
+    key.required_bystanders: [
+      "BystandingLibrary"
+    ]
+  }
+]

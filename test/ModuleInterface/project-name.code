@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module %s -I %t \
+// RUN:   -module-name Library -project-name ProjectName \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-interface-path %t/Library.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Library.private.codeinterface \
+// RUN:   -emit-package-module-interface-path %t/Library.package.codeinterface
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.private.codeinterface) -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.package.codeinterface) -module-name Library
+
+// RUN: %FileCheck %s < %t/Library.codeinterface --check-prefix CHECK-PUBLIC
+// RUN: %FileCheck %s < %t/Library.private.codeinterface --check-prefix CHECK-NONPUBLIC
+// RUN: %FileCheck %s < %t/Library.package.codeinterface --check-prefix CHECK-NONPUBLIC
+
+// CHECK-PUBLIC-NOT: -project-name
+
+// CHECK-NONPUBLIC: language-module-flags-ignorable:
+// CHECK-NONPUBLIC-SAME: -project-name ProjectName
+
+public fn foo() {}

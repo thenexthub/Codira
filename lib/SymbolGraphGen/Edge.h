@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_EDGE_H
-#define SWIFT_SYMBOLGRAPHGEN_EDGE_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_EDGE_H
+#define LANGUAGE_SYMBOLGRAPHGEN_EDGE_H
 
-#include "llvm/Support/JSON.h"
+#include "toolchain/Support/JSON.h"
 #include "language/AST/Decl.h"
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 #include "JSON.h"
 #include "Symbol.h"
@@ -33,7 +34,7 @@ struct SymbolGraph;
 struct RelationshipKind {
   StringRef Name;
   
-  RelationshipKind(llvm::StringRef Name) : Name(Name) {}
+  RelationshipKind(toolchain::StringRef Name) : Name(Name) {}
   
   /**
    A symbol A is a member of another symbol B.
@@ -50,7 +51,7 @@ struct RelationshipKind {
   /**
    A symbol A conforms to an interface/protocol symbol B.
    
-   For example, a class `C` that conforms to protocol `P` in Swift would use
+   For example, a class `C` that conforms to protocol `P` in Codira would use
    this relationship.
    
    The implied inverse of this relationship is a symbol B that has
@@ -112,7 +113,7 @@ struct RelationshipKind {
    A symbol A extends a symbol B with members or conformances.
 
    This relationship describes the connection between extension blocks
-   (swift.extension symbols) and the type they extend.
+   (language.extension symbols) and the type they extend.
 
    The implied inverse of this relationship is a symbol B that is extended
    by an extension block symbol A.
@@ -147,17 +148,17 @@ struct Edge {
   /// the conformance.
   const ExtensionDecl *ConformanceExtension;
   
-  void serialize(llvm::json::OStream &OS) const;
+  void serialize(toolchain::json::OStream &OS) const;
 };
   
 } // end namespace symbolgraphgen 
 } // end namespace language
 
-namespace llvm {
-using SymbolGraph = swift::symbolgraphgen::SymbolGraph;
-using Symbol = swift::symbolgraphgen::Symbol;
-using Edge = swift::symbolgraphgen::Edge;
-using ExtensionDecl = swift::ExtensionDecl;
+namespace toolchain {
+using SymbolGraph = language::symbolgraphgen::SymbolGraph;
+using Symbol = language::symbolgraphgen::Symbol;
+using Edge = language::symbolgraphgen::Edge;
+using ExtensionDecl = language::ExtensionDecl;
 template <> struct DenseMapInfo<Edge> {
   static inline Edge getEmptyKey() {
     return {
@@ -194,6 +195,6 @@ template <> struct DenseMapInfo<Edge> {
                                                    RHS.ConformanceExtension);
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_SYMBOLGRAPHGEN_EDGE_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_EDGE_H

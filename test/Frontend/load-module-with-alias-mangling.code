@@ -1,0 +1,27 @@
+/// Test mangling with module aliasing
+
+// RUN: %empty-directory(%t)
+
+/// Create a module Bar
+// RUN: echo 'public class Klass {}' > %t/FileBar.code
+// RUN: %target-language-frontend -module-name Bar %t/FileBar.code -emit-module -emit-module-path %t/Bar.codemodule
+
+/// Check Bar.codemodule is created
+// RUN: test -f %t/Bar.codemodule
+
+/// Create a module Foo that imports Cat with -module-alias Cat=Bar
+// RUN: echo 'import Cat' > %t/FileFoo.code
+// RUN: echo 'public fn meow() -> Cat.Klass? { return nil }' >> %t/FileFoo.code
+// RUN: %target-language-frontend -module-name Foo %t/FileFoo.code -module-alias Cat=Bar -I %t -emit-module -emit-module-path %t/Foo.codemodule -c -o %t/ResultFoo.o
+
+/// Check Foo.codemodule is created
+// RUN: test -f %t/Foo.codemodule
+
+/// Check the mangled name for fn meow contains the real module name Bar
+// RUN: toolchain-objdump -t %t/ResultFoo.o | %FileCheck %s -check-prefix=CHECK-A
+// CHECK-A: s3Foo4meow3Bar5KlassCSgyF
+
+/// Check demangling shows the real module name Bar
+// RUN: toolchain-objdump -t %t/ResultFoo.o | language-demangle | %FileCheck %s -check-prefix=CHECK-B
+// CHECK-B: Foo.meow() -> Bar.Klass?
+

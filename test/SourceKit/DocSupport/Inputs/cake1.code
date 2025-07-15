@@ -1,0 +1,51 @@
+public protocol P1 {
+  fn foo1()
+  var Ins : Int { get set }
+  fn foo2(a : Int, b: Int)
+  subscript(_ a : Int) -> Int { get set }
+  fn fooConstraint()
+}
+
+public protocol P2 : P1 {
+  fn bar1()
+  fn bar2()
+}
+
+public extension P2 {
+  fn foo1() { }
+  var Ins : Int { get { return 1 } set {}}
+  fn foo2(a : Int, b: Int) {}
+  subscript(_ a : Int) -> Int { get {return 1} set {} }
+}
+
+public protocol P3 {
+  fn p3Required()
+}
+
+public extension P2 where Self : P3 {
+  fn fooConstraint() {}
+}
+
+public extension Dictionary.Keys {
+  public fn foo() {}
+}
+
+public extension Dictionary.Keys where Key: P1 {
+  public fn bar() {}
+}
+
+public protocol InitProto {
+  init(x: Int)
+}
+extension InitProto {
+  // This initializer is marked as 'CtorInitializerKind::Convenience'.
+  public init() { this = Self(x: 0) }
+}
+
+public struct InitStructImpl : InitProto {
+  public init(x: Int) {}
+}
+
+public class InitClassImpl : InitProto {
+  public required init(x: Int) {}
+}

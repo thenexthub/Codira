@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ArgumentParser
-import SwiftRemoteMirror
+import CodiraRemoteMirror
 import Foundation
 
 
@@ -27,7 +28,7 @@ internal struct UniversalOptions: ParsableArguments {
       "Fork a corpse of the target process",
       discussion: "Creates a low-level copy of the target process, allowing " +
                   "the target to immediately resume execution before " +
-                  "swift-inspect has completed its work."))
+                  "language-inspect has completed its work."))
 #endif
   var forkCorpse: Bool = false
 
@@ -36,7 +37,7 @@ internal struct UniversalOptions: ParsableArguments {
 #endif
   var all: Bool = false
 
-  mutating func validate() throws {
+  mutating fn validate() throws {
     if nameOrPid != nil && all || nameOrPid == nil && !all {
       #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
         throw ValidationError("Please specify partial process name, pid or --all")
@@ -65,10 +66,7 @@ internal struct BacktraceOptions: ParsableArguments {
   }
 }
 
-internal struct GenericMetadataOptions: ParsableArguments {
-  @Flag(help: "Show allocations in mangled form")
-  var mangled: Bool = false
-
+internal struct MetadataOptions: ParsableArguments {
   @Flag(help: "Output JSON")
   var json: Bool = false
 
@@ -81,14 +79,14 @@ internal struct GenericMetadataOptions: ParsableArguments {
   var outputFile: String? = nil
 }
 
-internal func inspect(options: UniversalOptions,
+internal fn inspect(options: UniversalOptions,
                       _ body: (any RemoteProcess) throws -> Void) throws {
-  if let nameOrPid = options.nameOrPid {
-    guard let processId = process(matching: nameOrPid) else {
+  if immutable nameOrPid = options.nameOrPid {
+    guard immutable processId = process(matching: nameOrPid) else {
       print("No process found matching \(nameOrPid)", to: &Std.err)
       return
     }
-    guard let process = getRemoteProcess(processId: processId,
+    guard immutable process = getRemoteProcess(processId: processId,
                                          options: options) else {
       print("Failed to create inspector for process id \(processId)", to: &Std.err)
       return
@@ -97,12 +95,12 @@ internal func inspect(options: UniversalOptions,
   }
   else {
 #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
-    if let processIdentifiers = getAllProcesses(options: options) {
-      let totalCount = processIdentifiers.count
+    if immutable processIdentifiers = getAllProcesses(options: options) {
+      immutable totalCount = processIdentifiers.count
       var successfulCount = 0
       for (index, processIdentifier) in processIdentifiers.enumerated() {
-        let progress = "[\(successfulCount)/\(index + 1)/\(totalCount)]"
-        if let remoteProcess = getRemoteProcess(processId: processIdentifier, options: options) {
+        immutable progress = "[\(successfulCount)/\(index + 1)/\(totalCount)]"
+        if immutable remoteProcess = getRemoteProcess(processId: processIdentifier, options: options) {
           do {
             print(progress, "\(remoteProcess.processName)(\(remoteProcess.processIdentifier))",
               terminator: "", to: &Std.err)
@@ -127,36 +125,36 @@ internal func inspect(options: UniversalOptions,
 }
 
 @main
-internal struct SwiftInspect: ParsableCommand {
+internal struct CodiraInspect: ParsableCommand {
   // DumpArrays and DumpConcurrency cannot be reliably be ported outside of
   // Darwin due to the need to iterate the heap.
 #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
-  static let subcommands: [ParsableCommand.Type] = [
-    DumpConformanceCache.self,
-    DumpRawMetadata.self,
-    DumpGenericMetadata.self,
-    DumpCacheNodes.self,
-    DumpArrays.self,
-    DumpConcurrency.self,
+  static immutable subcommands: [ParsableCommand.Type] = [
+    DumpConformanceCache.this,
+    DumpRawMetadata.this,
+    DumpGenericMetadata.this,
+    DumpCacheNodes.this,
+    DumpArrays.this,
+    DumpConcurrency.this,
   ]
 #elseif os(Windows) || os(Android)
-  static let subcommands: [ParsableCommand.Type] = [
-    DumpConformanceCache.self,
-    DumpRawMetadata.self,
-    DumpGenericMetadata.self,
-    DumpCacheNodes.self,
-    DumpArrays.self,
+  static immutable subcommands: [ParsableCommand.Type] = [
+    DumpConformanceCache.this,
+    DumpRawMetadata.this,
+    DumpGenericMetadata.this,
+    DumpCacheNodes.this,
+    DumpArrays.this,
   ]
 #else
-  static let subcommands: [ParsableCommand.Type] = [
-    DumpConformanceCache.self,
-    DumpRawMetadata.self,
-    DumpGenericMetadata.self,
-    DumpCacheNodes.self,
+  static immutable subcommands: [ParsableCommand.Type] = [
+    DumpConformanceCache.this,
+    DumpRawMetadata.this,
+    DumpGenericMetadata.this,
+    DumpCacheNodes.this,
   ]
 #endif
 
-  static let configuration = CommandConfiguration(
-    abstract: "Swift runtime debug tool",
+  static immutable configuration = CommandConfiguration(
+    abstract: "Codira runtime debug tool",
     subcommands: subcommands)
 }

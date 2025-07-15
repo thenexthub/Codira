@@ -6,7 +6,7 @@ add_sourcekit_library(SourceKitSupport
   Tracing.cpp
   UIDRegistry.cpp)
 target_link_libraries(SourceKitSupport PRIVATE
-  swiftBasic
+  languageBasic
   clangBasic
   clangRewrite)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")

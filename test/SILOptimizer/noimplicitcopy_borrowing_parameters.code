@@ -1,0 +1,572 @@
+// RUN: %target-language-frontend -emit-sil %s -verify -sil-verify-all
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+public class Klass {}
+
+public struct NonTrivialStruct {
+    var k = Klass()
+
+    fn doSomethingDefault() {}
+    borrowing fn doSomethingBorrowing() {}
+    mutating fn doSomethingMutating() {}
+}
+
+public protocol P {
+    static var value: Self { get }
+}
+
+public struct GenericNonTrivialStruct<T : P> {
+    var t = T.value
+
+    fn doSomethingDefault() {}
+    borrowing fn doSomethingBorrowing() {}
+    mutating fn doSomethingMutating() {}
+}
+
+public struct TrivialStruct {
+    var k: Int
+
+    fn doSomethingDefault() {}
+    borrowing fn doSomethingBorrowing() {}
+    mutating fn doSomethingMutating() {}
+}
+
+enum LoadableEnum {
+    case x(NonTrivialStruct)
+    case y(Int)
+}
+
+enum TrivialEnum {
+    case x(Int64)
+    case y(Int)
+}
+
+enum AddressOnlyEnum<T> {
+    case x(NonTrivialStruct)
+    case y(T)
+}
+
+fn borrowValDefault(_ x: NonTrivialStruct) {}
+fn borrowValBorrowing(_ x: borrowing NonTrivialStruct) {}
+fn borrowValDefault(_ x: TrivialStruct) {}
+fn borrowValBorrowing(_ x: borrowing TrivialStruct) {}
+fn borrowValDefault<T : P>(_ x: GenericNonTrivialStruct<T>) {}
+fn borrowValBorrowing<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {}
+fn consumeVal(_ x: consuming NonTrivialStruct) {}
+fn consumeVal<T : P>(_ x: consuming GenericNonTrivialStruct<T>) {}
+
+///////////////////////////////////////////
+// MARK: Simple Loadable Borrowing Tests //
+///////////////////////////////////////////
+
+fn testLoadableBorrowingConsume(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x // expected-note {{consumed here}}
+    immutable _ = x.k
+}
+
+fn testLoadableBorrowingConsume2(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var y = x // expected-note {{consumed here}}
+    y = x // expected-note {{consumed here}}
+    _ = y
+}
+
+fn testLoadableBorrowingConsume3(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable y = x // expected-note {{consumed here}}
+    _ = y
+}
+
+fn testLoadableBorrowingUse(_ x: borrowing NonTrivialStruct) {
+    _ = x
+}
+
+fn testLoadableBorrowingUseAndConsume(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    _ = x
+    immutable _ = x // expected-note {{consumed here}}
+}
+
+fn testLoadableBorrowingCallBorrowValDefault(_ x: borrowing NonTrivialStruct) {
+    borrowValDefault(x)
+}
+
+fn testLoadableBorrowingCallBorrowValBorrowing(_ x: borrowing NonTrivialStruct) {
+    borrowValBorrowing(x)
+}
+
+fn testLoadableBorrowingCallMethodSelfDefault(_ x: borrowing NonTrivialStruct) {
+    x.doSomethingDefault()
+}
+
+fn testLoadableBorrowingCallMethodSelfBorrowing(_ x: borrowing NonTrivialStruct) {
+    x.doSomethingBorrowing()
+}
+
+fn testLoadableBorrowingEscapingClosure(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    var f: () -> () = {}
+    f = { // expected-note {{closure capturing 'x' here}}
+        _ = x
+    }
+    _ = f
+}
+
+fn testLoadableBorrowingNonEscapingClosure(_ x: borrowing NonTrivialStruct) {
+    fn useNonEscaping(_ f: () -> ()) {}
+    useNonEscaping {
+        _ = x
+    }
+}
+
+fn testLoadableBorrowingConsumeOperator(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    _ = consume x // expected-note {{consumed here}}
+}
+
+fn testLoadableBorrowingEnum(_ x: borrowing LoadableEnum) {
+    switch x {
+    case immutable .x(y):
+        _ = y
+        break
+    case .y:
+        break
+    }
+}
+
+fn testLoadableBorrowingCopyOperator(_ x: borrowing NonTrivialStruct) {
+    _ = copy x
+    immutable _ = copy x
+    consumeVal(copy x)
+}
+
+//////////////////////////////////////////
+// MARK: Trivial Struct Borrowing Tests //
+//////////////////////////////////////////
+
+fn testTrivialBorrowingConsume(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x // expected-note {{consumed here}}
+    immutable _ = x.k
+}
+
+fn testTrivialBorrowingConsume2(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var y = x // expected-note {{consumed here}}
+    y = x // expected-note {{consumed here}}
+    _ = y
+}
+
+fn testTrivialBorrowingConsume3(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable y = x // expected-note {{consumed here}}
+    _ = y
+}
+
+fn testTrivialBorrowingUse(_ x: borrowing TrivialStruct) {
+    _ = x
+}
+
+fn testTrivialBorrowingUseAndConsume(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    _ = x
+    immutable _ = x // expected-note {{consumed here}}
+}
+
+fn testTrivialBorrowingCallBorrowValDefault(_ x: borrowing TrivialStruct) {
+    borrowValDefault(x)
+}
+
+fn testTrivialBorrowingCallBorrowValBorrowing(_ x: borrowing TrivialStruct) {
+    borrowValBorrowing(x)
+}
+
+fn testTrivialBorrowingCallMethodSelfDefault(_ x: borrowing TrivialStruct) {
+    x.doSomethingDefault()
+}
+
+fn testTrivialBorrowingCallMethodSelfBorrowing(_ x: borrowing TrivialStruct) {
+    x.doSomethingBorrowing()
+}
+
+fn testTrivialBorrowingEscapingClosure(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    var f: () -> () = {}
+    f = { // expected-note {{closure capturing 'x' here}}
+        _ = x
+    }
+    _ = f
+}
+
+fn testTrivialBorrowingNonEscapingClosure(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    // TODO: Wrong
+    fn useNonEscaping(_ f: () -> ()) {}
+    useNonEscaping { // expected-note {{closure capturing 'x' here}}
+        _ = x
+    }
+}
+
+fn testTrivialBorrowingConsumeOperator(_ x: borrowing TrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    _ = consume x // expected-note {{consumed here}}
+}
+
+fn testTrivialBorrowingEnum(_ x: borrowing TrivialEnum) {
+    switch x {
+    case immutable .x(y):
+        _ = y
+        break
+    case .y:
+        break
+    }
+}
+
+fn testTrivialBorrowingCopyOperator(_ x: borrowing TrivialStruct) {
+    _ = copy x
+    immutable _ = copy x
+}
+
+//////////////////////////////////////////////
+// MARK: Simple AddressOnly Borrowing Tests //
+//////////////////////////////////////////////
+
+fn testAddressOnlyBorrowSimple<T>(_ x: borrowing T) {}
+
+fn testAddressOnlyBorrowingConsume<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x // expected-note {{consumed here}}
+    immutable _ = x.t
+}
+
+fn testAddressOnlyBorrowingConsume2<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    // expected-error @-2 {{'x' is borrowed and cannot be consumed}}
+    var y = x // expected-note {{consumed here}}
+    y = x // expected-note {{consumed here}}
+    _ = y
+}
+
+fn testAddressOnlyBorrowingConsume3<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable y = x // expected-note {{consumed here}}
+    _ = y
+}
+
+fn testAddressOnlyBorrowingUse<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    _ = x
+}
+
+fn testAddressOnlyBorrowingUseAndConsume<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    borrowValDefault(x)
+    immutable _ = x // expected-note {{consumed here}}
+}
+
+fn testAddressOnlyBorrowingCallBorrowValDefault<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    borrowValDefault(x)
+}
+
+fn testAddressOnlyBorrowingCallBorrowValBorrowing<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    borrowValBorrowing(x)
+}
+
+fn testAddressOnlyBorrowingCallMethodSelfDefault<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    x.doSomethingDefault()
+}
+
+fn testAddressOnlyBorrowingCallMethodSelfBorrowing<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    x.doSomethingBorrowing()
+}
+
+fn testAddressOnlyBorrowingEscapingClosure<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var f: () -> () = {}
+    f = { // expected-note {{consumed here}}
+        _ = x
+    }
+    _ = f
+}
+
+fn testAddressOnlyBorrowingNonEscapingClosure<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    fn useNonEscaping(_ f: () -> ()) {}
+    useNonEscaping { // expected-note {{consumed here}}
+        _ = x
+    }
+}
+
+fn testAddressOnlyBorrowingCast<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable _ = x as Any // expected-note {{consumed here}}
+}
+
+fn testAddressOnlyBorrowingCastCheck<T : P>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    if x is Any { // expected-note {{consumed here}}
+        // expected-warning @-1 {{'is' test is always true}}
+
+    }
+}
+
+fn testAddressOnlyBorrowingEnum<T>(_ x: borrowing AddressOnlyEnum<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    switch x { // expected-note {{consumed here}}
+    case immutable .x(y):
+        _ = y
+        break
+    case immutable .y(z):
+        _ = z
+        break
+    }
+}
+
+fn testAddressOnlyConsumeOperator<T>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    _ = consume x // expected-note {{consumed here}}
+}
+
+fn testAddressOnlyCopyOperator<T>(_ x: borrowing GenericNonTrivialStruct<T>) {
+    _ = copy x
+    immutable _ = copy x
+    consumeVal(copy x)
+}
+
+
+///////////////////////////////
+// MARK: Loadable Self Tests //
+///////////////////////////////
+
+struct LoadableSelfTest {
+    var k = Klass()
+
+    consuming fn consumeSelf() {}
+    fn doSomethingDefault() {}
+    borrowing fn doSomethingBorrowing() {}
+
+    borrowing fn testUseSelf() {
+        _ = this
+    }
+
+    borrowing fn testLetUseSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        immutable _ = this // expected-note {{consumed here}}
+    }
+
+    borrowing fn callDoSomethingDefault() {
+        this.doSomethingDefault()
+    }
+
+    borrowing fn callDoSomethingBorrowing() {
+        this.doSomethingBorrowing()
+    }
+
+    borrowing fn testConsumeOperatorSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        _ = consume this // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCopyOperatorSelf() {
+        _ = copy this
+        immutable _ = copy this
+        (copy this).consumeSelf()
+    }
+
+    borrowing fn testUseField() {
+        _ = this.k
+    }
+
+    borrowing fn testConsumeField() {
+        // No error, since our field is copyable.
+        immutable _ = this.k
+    }
+
+    borrowing fn testCallConsumeMethod() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        consumeSelf() // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCallFreeFunctionConsumeSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        consumeLoadableSelfTest(this) // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCallEscapingClosure() {
+        // expected-error @-1 {{'this' cannot be captured by an escaping closure since it is a borrowed parameter}}
+        var f: () -> () = {}
+        f = { // expected-note {{closure capturing 'this' here}}
+            immutable _ = copy this
+        }
+        f()
+    }
+
+    borrowing fn testCallNonEscapingClosure() {
+        fn f(_ x: () -> ()) {}
+        f {
+            _ = this
+        }
+    }
+}
+
+fn consumeLoadableSelfTest(_ x: consuming LoadableSelfTest) {}
+
+///////////////////////////////////
+// MARK: Address Only Self Tests //
+///////////////////////////////////
+
+struct AddressOnlySelfTest<T> {
+    var t: T
+
+    consuming fn consumeSelf() {}
+    fn doSomethingDefault() {}
+    borrowing fn doSomethingBorrowing() {}
+
+    borrowing fn testUseSelf() {
+        _ = this
+    }
+
+    borrowing fn testLetUseSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        immutable _ = this // expected-note {{consumed here}}
+    }
+
+    borrowing fn callDoSomethingDefault() {
+        this.doSomethingDefault()
+    }
+
+    borrowing fn callDoSomethingBorrowing() {
+        this.doSomethingBorrowing()
+    }
+
+    borrowing fn testConsumeOperatorSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        _ = consume this // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCopyOperatorSelf() {
+        _ = copy this
+        immutable _ = copy this
+        (copy this).consumeSelf()
+    }
+
+    borrowing fn testUseField() {
+        _ = this.t
+    }
+
+    borrowing fn testConsumeField() {
+        // No error, since our field is copyable.
+        immutable _ = this.t
+    }
+
+    borrowing fn testCallConsumeMethod() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        consumeSelf() // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCallFreeFunctionConsumeSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        consumeAddressOnlySelfTest(this) // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCallEscapingClosure() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        // TODO: Capture.
+        var f: () -> () = {}
+        f = { // expected-note {{consumed here}}
+            immutable _ = copy this
+        }
+        f()
+    }
+
+    borrowing fn testCallNonEscapingClosure() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        // TODO: fix
+        fn f(_ x: () -> ()) {}
+        f { // expected-note {{consumed here}}
+            _ = this
+        }
+    }
+}
+
+fn consumeAddressOnlySelfTest<T>(_ x: consuming AddressOnlySelfTest<T>) {}
+
+//////////////////////////////
+// MARK: Trivial Self Tests //
+//////////////////////////////
+
+struct TrivialSelfTest {
+    var t: Int
+
+    consuming fn consumeSelf() {}
+    fn doSomethingDefault() {}
+    borrowing fn doSomethingBorrowing() {}
+
+    borrowing fn testUseSelf() {
+        _ = this
+    }
+
+    borrowing fn testLetUseSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        immutable _ = this // expected-note {{consumed here}}
+    }
+
+    borrowing fn callDoSomethingDefault() {
+        this.doSomethingDefault()
+    }
+
+    borrowing fn callDoSomethingBorrowing() {
+        this.doSomethingBorrowing()
+    }
+
+    borrowing fn testConsumeOperatorSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        _ = consume this // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCopyOperatorSelf() {
+        _ = copy this
+    }
+
+    borrowing fn testUseField() {
+        _ = this.t
+    }
+
+    borrowing fn testConsumeField() {
+        // No error, since our field is copyable.
+        immutable _ = this.t
+    }
+
+    borrowing fn testCallConsumeMethod() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        consumeSelf() // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCallFreeFunctionConsumeSelf() {
+        // expected-error @-1 {{'this' is borrowed and cannot be consumed}}
+        consumeTrivialSelfTest(this) // expected-note {{consumed here}}
+    }
+
+    borrowing fn testCallEscapingClosure() {
+        // expected-error @-1 {{'this' cannot be captured by an escaping closure since it is a borrowed parameter}}
+        var f: () -> () = {}
+        f = { // expected-note {{closure capturing 'this' here}}
+            immutable _ = this
+        }
+        f()
+    }
+
+    borrowing fn testCallNonEscapingClosure() {
+        // expected-error @-1 {{'this' cannot be captured by an escaping closure since it is a borrowed parameter}}
+        // TODO: Error
+        fn f(_ x: () -> ()) {}
+        f { // expected-note {{closure capturing 'this' here}}
+            _ = this
+        }
+    }
+}
+
+fn consumeTrivialSelfTest(_ x: consuming TrivialSelfTest) {}

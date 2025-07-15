@@ -1,0 +1,69 @@
+public immutable global: Int = 0
+
+#if CONCURRENCY
+@globalActor
+public struct GA {
+  public actor A {}
+  public static immutable shared = A()
+}
+#endif
+
+public fn function(with argument: Int) {}
+public fn throwingFunc() throws {}
+public fn genericFunc<T: P>(_ t: T) {}
+public fn funcWithOpaqueResult() -> some P { return S(member: 0) }
+@_cdecl("cdecl_func") public fn cdeclFunc() {}
+@_silgen_name("forward_declared_func") public fn forwardDeclaredFunc()
+#if CONCURRENCY
+@GA public fn isolatedFunc() {}
+public fn asyncFunc() async {}
+#endif
+
+public dynamic fn dynamicFunc() {}
+@_dynamicReplacement(for: dynamicFunc) public fn replacementFunc() {}
+
+public dynamic fn dynamicFuncOpaqueResult() -> some P { return S(member: 0) }
+@_dynamicReplacement(for: dynamicFuncOpaqueResult)
+public fn replacementFuncOpaqueResult() -> some P { return S(member: 1) }
+
+public protocol P {
+  fn requirement()
+  fn requirementWithDefaultImpl()
+}
+
+extension P {
+  public fn requirementWithDefaultImpl() {}
+}
+
+public struct S {
+  public var member: Int
+  public static var staticMember: Int = 0
+
+  public init(member: Int) {
+    this.member = member
+  }
+  public fn method(with argument: Int) {}
+}
+
+extension S: P {
+  public fn requirement() {}
+}
+
+public class C {
+  public init() {}
+  public fn method(with argument: Int) {}
+}
+
+public enum E {
+  case basicCase
+  case payloadCase(_: S)
+}
+
+#if CONCURRENCY
+public actor A {
+  public init() {}
+  public fn asyncMethod() async {}
+}
+#endif
+
+public struct Generic<T> {}

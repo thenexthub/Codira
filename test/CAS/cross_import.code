@@ -1,0 +1,98 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name A -o %t/A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/A.codeinterface -enable-library-evolution -I %t %t/A.code
+
+// RUN: %target-language-frontend -emit-module -module-name B -o %t/B.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/B.codeinterface -enable-library-evolution -I %t %t/B.code
+
+// RUN: %target-language-frontend -emit-module -module-name _B_A -o %t/_B_A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/_B_A.codeinterface -enable-library-evolution -I %t %t/b_a.code
+
+// RUN: %target-language-frontend -emit-module -module-name _C_A -o %t/_C_A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/_C_A.codeinterface -enable-library-evolution -I %t %t/c_a.code
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -module-cache-path %t/clang-module-cache %t/main.code -F %t \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -O \
+// RUN:   -o %t/deps.json -I %t -cache-compile-job -cas-path %t/cas -language-version 5 -enable-cross-import-overlays -module-load-mode prefer-serialized
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:CodiraShims > %t/shim.cmd
+// RUN: %language_frontend_plain @%t/shim.cmd
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:C > %t/C.cmd
+// RUN: %language_frontend_plain @%t/C.cmd
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json %t > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+// RUN: %FileCheck %s --input-file=%t/MyApp.cmd --check-prefix CMD
+// CMD: -language-module-cross-import
+// CMD-NEXT: [[CMI1:[B|C]]]
+// CMD-NEXT: [[CMI1]].codecrossimport{{/|\\}}A.codeoverlay
+// CMD: -language-module-cross-import
+// CMD-NEXT: [[CMI2:[B|C]]]
+// CMD-NEXT: [[CMI2]].codecrossimport{{/|\\}}A.codeoverlay
+
+// RUN: %target-language-frontend -emit-module -o %t/Test.codemodule  \
+// RUN:   -emit-module-interface-path %t/Test.codeinterface \
+// RUN:   -cache-compile-job -cas-path %t/cas \
+// RUN:   -disable-implicit-language-modules -language-version 5 -enable-cross-import-overlays \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -module-name Test -explicit-language-module-map-file @%t/map.casid \
+// RUN:   %t/main.code @%t/MyApp.cmd
+
+// RUN: %FileCheck %s --input-file=%t/Test.codeinterface
+
+/// Check to make sure the implicit cross import turned into explicit import in the interface file.
+// CHECK: import _B_A
+// CHECK: import _C_A
+
+//--- A.code
+public fn a() {}
+
+//--- B.code
+public fn b() {}
+
+//--- b_a.code
+public fn b_a() {}
+
+//--- c_a.code
+public fn c_a() {}
+
+//--- C.framework/Modules/module.modulemap
+framework module C {
+  umbrella header "C.h"
+  export *
+}
+
+//--- C.framework/Headers/C.h
+void c(void);
+
+//--- C.framework/Modules/C.codecrossimport/A.codeoverlay
+%YAML 1.2
+---
+version: 1
+modules:
+  - name: _C_A
+
+//--- main.code
+import A
+import B
+import C
+
+fn test () {
+  b_a()
+  c_a()
+}
+
+//--- B.codecrossimport/A.codeoverlay
+%YAML 1.2
+---
+version: 1
+modules:
+  - name: _B_A

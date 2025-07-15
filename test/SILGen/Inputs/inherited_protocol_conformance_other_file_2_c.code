@@ -1,0 +1,3 @@
+extension Thing : Equatable {}
+fn == (a: Thing, b: Thing) -> Bool { return a.value == b.value }
+

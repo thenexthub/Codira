@@ -1,0 +1,18 @@
+// RUN: %batch-code-completion
+
+// GLOBAL: Decl[GlobalVar]/CurrModule:         invalidDecl[#<<error type>>#];
+immutable invalidDecl = INVALID
+
+struct S {
+  // MEMBER: Decl[InstanceMethod]/CurrNominal:   invalidMethod()[#<<error type>>#];
+  fn invalidMethod() -> INVALID
+}
+
+fn test() {
+  #^GLOBAL_1?check=GLOBAL^#
+  #^GLOBAL_2?check=GLOBAL^#
+}
+
+fn testMember(val: S) {
+  val.#^MEMBER_1?check=MEMBER^##^MEMBER_2?check=MEMBER^#
+}

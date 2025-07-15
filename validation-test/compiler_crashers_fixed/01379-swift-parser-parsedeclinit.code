@@ -1,0 +1,69 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn b: I.e {
+class A {
+fn f.A> (x) {
+}
+class A? {
+}
+}
+typealias A : start, U) -> String) {
+immutable a {
+protocol A {
+fn g<T : l) {
+}
+}
+convenience init([unowned this.startIndex)("\(a
+case A, immutable h> {
+var b {
+class A>(() {
+var b: b(""")
+}
+typealias b = Int) -> V {
+fn a(f<d = 0.a<T) -> {
+i> Any, """""
+}
+fn b() {
+return {
+protocol b {
+immutable c = b, x in x }
+case .h : T> {
+}
+fn g> ()).init(g<U) -> {
+}
+immutable d<U -> S : T> Int -> {
+return { _, immutable h : Boolean>() {
+}
+}
+}
+}
+}
+convenience init(x) {
+fn d<Y> T>? {
+}
+}
+}
+}
+}
+protocol b {
+init<d = D> S {
+var a<T where T! {
+struct Q<T -> Any {
+}
+}
+}
+typealias d : b: b) {
+case c]() -> {
+}
+}
+fn b>

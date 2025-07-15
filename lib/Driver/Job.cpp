@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -18,20 +19,20 @@
 #include "language/Basic/STLExtras.h"
 #include "language/Driver/Job.h"
 #include "language/Driver/PrettyStackTrace.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Program.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Program.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace language::driver;
 
 CommandOutput::CommandOutput(StringRef dummyBase, OutputFileMap &dummyOFM)
     : Inputs({CommandInputPair(dummyBase, "")}), DerivedOutputMap(dummyOFM) {
-  setAdditionalOutputForType(file_types::TY_SwiftDeps, dummyBase);
+  setAdditionalOutputForType(file_types::TY_CodiraDeps, dummyBase);
 }
 
 StringRef CommandOutput::getOutputForInputAndType(StringRef PrimaryInputFile,
@@ -300,7 +301,7 @@ StringRef CommandOutput::getBaseInput(size_t Index) const {
   return Inputs[Index].Base;
 }
 
-static void escapeAndPrintString(llvm::raw_ostream &os, StringRef Str) {
+static void escapeAndPrintString(toolchain::raw_ostream &os, StringRef Str) {
   if (Str.empty()) {
     // Special-case the empty string.
     os << "\"\"";
@@ -327,7 +328,7 @@ static void escapeAndPrintString(llvm::raw_ostream &os, StringRef Str) {
       os << '\\';
       // Fall-through to the default case, since we still need to print the
       // character.
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     default:
       os << c;
     }
@@ -361,11 +362,11 @@ CommandOutput::print(raw_ostream &out) const {
 
 void
 CommandOutput::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
-void CommandOutput::writeOutputFileMap(llvm::raw_ostream &out) const {
+void CommandOutput::writeOutputFileMap(toolchain::raw_ostream &out) const {
   SmallVector<StringRef, 4> inputs;
   for (const CommandInputPair &IP : Inputs) {
     assert(IP.Base == IP.Primary && !IP.Base.empty() &&
@@ -378,14 +379,14 @@ void CommandOutput::writeOutputFileMap(llvm::raw_ostream &out) const {
 Job::~Job() = default;
 
 void Job::printArguments(raw_ostream &os,
-                         const llvm::opt::ArgStringList &Args) {
+                         const toolchain::opt::ArgStringList &Args) {
   interleave(Args,
              [&](const char *Arg) { escapeAndPrintString(os, Arg); },
              [&] { os << ' '; });
 }
 
 void Job::dump() const {
-  printCommandLineAndEnvironment(llvm::errs());
+  printCommandLineAndEnvironment(toolchain::errs());
 }
 
 ArrayRef<const char *> Job::getArgumentsForTaskExecution() const {
@@ -449,14 +450,14 @@ void Job::printSummary(raw_ostream &os) const {
 
   os << "{" << getSource().getClassName() << ": ";
   interleave(
-      Outputs, [&](StringRef Arg) { os << llvm::sys::path::filename(Arg); },
+      Outputs, [&](StringRef Arg) { os << toolchain::sys::path::filename(Arg); },
       [&] { os << ' '; });
   if (actual_out > limit) {
     os << " ... " << (actual_out-limit) << " more";
   }
   os << " <= ";
   interleave(
-      Inputs, [&](StringRef Arg) { os << llvm::sys::path::filename(Arg); },
+      Inputs, [&](StringRef Arg) { os << toolchain::sys::path::filename(Arg); },
       [&] { os << ' '; });
   if (actual_in > limit) {
     os << " ... " << (actual_in-limit) << " more";
@@ -468,7 +469,7 @@ void Job::printSummary(raw_ostream &os) const {
 bool Job::writeArgsToResponseFile() const {
   assert(hasResponseFile());
   std::error_code EC;
-  llvm::raw_fd_ostream OS(ResponseFile->path, EC, llvm::sys::fs::OF_None);
+  toolchain::raw_fd_ostream OS(ResponseFile->path, EC, toolchain::sys::fs::OF_None);
   if (EC) {
     return true;
   }
@@ -480,7 +481,7 @@ bool Job::writeArgsToResponseFile() const {
   return false;
 }
 
-StringRef Job::getFirstSwiftPrimaryInput() const {
+StringRef Job::getFirstCodiraPrimaryInput() const {
   const JobAction &source = getSource();
   if (!isa<CompileJobAction>(source))
     return StringRef();
@@ -488,22 +489,4 @@ StringRef Job::getFirstSwiftPrimaryInput() const {
   if (auto *inputInput = dyn_cast<InputAction>(firstInput))
     return inputInput->getInputArg().getValue();
   return StringRef();
-}
-
-BatchJob::BatchJob(const JobAction &Source,
-                   SmallVectorImpl<const Job *> &&Inputs,
-                   std::unique_ptr<CommandOutput> Output,
-                   const char *Executable, llvm::opt::ArgStringList Arguments,
-                   EnvironmentVector ExtraEnvironment,
-                   std::vector<FilelistInfo> Infos,
-                   ArrayRef<const Job *> Combined, int64_t &NextQuasiPID,
-                   std::optional<ResponseFileInfo> ResponseFile)
-    : Job(Source, std::move(Inputs), std::move(Output), Executable, Arguments,
-          ExtraEnvironment, Infos, ResponseFile),
-      CombinedJobs(Combined.begin(), Combined.end()),
-      QuasiPIDBase(NextQuasiPID) {
-
-  assert(QuasiPIDBase < 0);
-  NextQuasiPID -= CombinedJobs.size();
-  assert(NextQuasiPID < 0);
 }

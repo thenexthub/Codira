@@ -1,0 +1,9 @@
+add_language_unittest(CodiraIDETests
+  CodeCompletionToken.cpp
+  FuzzyStringMatcherTest.cpp
+  Placeholders.cpp
+  )
+target_link_libraries(CodiraIDETests
+  PRIVATE
+  languageIDE
+)

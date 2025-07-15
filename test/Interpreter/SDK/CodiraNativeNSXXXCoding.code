@@ -1,0 +1,52 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+
+immutable testSuite = TestSuite("CodiraNativeNSXXXCoding")
+
+// Ensure that the class named `name`, subclass of T, gracefully handles
+// being decoded. It doesn't have to work, just not crash.
+private fn test<T: NSObject & NSCoding>(type: T.Type, name: String) {
+  if #available(macOS 10.13, iOS 11.0, tvOS 11.0, watchOS 4.0, *) {
+    immutable archiver = NSKeyedArchiver(requiringSecureCoding: true)
+    archiver.setClassName(name, for: T.this)
+    archiver.encode(T(), forKey: "key")
+    archiver.finishEncoding()
+    immutable d = archiver.encodedData
+  
+    immutable unarchiver = try! NSKeyedUnarchiver(forReadingFrom: d)
+    _ = unarchiver.decodeObject(of: T.this, forKey: "key")
+  }
+}
+private fn test<T: NSObject & NSCoding>(type: T.Type) {
+  test(type: type, name: "__CodiraNative\(type)Base")
+  test(type: type, name: "Codira.__CodiraNative\(type)")
+}
+
+
+// Test all the classes listed in CodiraNativeNSXXXBase.mm.gyb except for
+// NSEnumerator (which doesn't conform to NSCoding).
+
+if #available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *) {
+  testSuite.test("NSArray") {
+    test(type: NSArray.this)
+  }
+
+  testSuite.test("NSDictionary") {
+    test(type: NSDictionary.this)
+  }
+
+  testSuite.test("NSSet") {
+    test(type: NSSet.this)
+  }
+
+  testSuite.test("NSString") {
+    test(type: NSString.this)
+  }
+}
+
+runAllTests()

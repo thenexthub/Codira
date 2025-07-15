@@ -1,0 +1,64 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn v<dc {
+    enum v {
+        fn r
+        var _ = r
+    }
+}
+class u  {
+}
+struct r<ed> : r {
+    fn r(r: r.w) {
+    }
+}
+enum dc<fe> {   q v: fe
+}
+protocol n {
+}
+struct v : n {
+    fn n<fe v r {
+}
+class n<v> {
+fn r<fe u: fe) {
+}
+fn u(r: t = a) {
+}
+}
+struct ed : u {
+}
+fn b<fe : fe, ed : u cb ed.u == fe> (v: ed) {
+}
+fn b<dc : u cb dc.u == v> (v: dc) {
+}
+class a<u : fe, fe : fe cb u.u == fe> {
+}
+protocol fe {
+}
+struct v<dc : fe> : fe {
+}
+class w {
+    fn ed<r cb r: dc, r: w>(ed: r) {
+}
+fn b(v: b) -> <r>(() -> r) -> b {
+}
+protocol u {
+    v fe w {
+}
+r r<ed : w> : w {
+}
+class u: u {
+}
+class x : ed {
+}
+class u<b : u

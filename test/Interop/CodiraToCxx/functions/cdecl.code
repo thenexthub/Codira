@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name CdeclFunctions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/cdecl.h
+// RUN: %FileCheck %s < %t/cdecl.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/cdecl.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+// CHECK-LABEL: namespace CdeclFunctions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("CdeclFunctions") {
+
+// CHECK: namespace _impl {
+// CHECK: LANGUAGE_EXTERN int cfuncPassTwo(int x, int y) LANGUAGE_NOEXCEPT;
+// CHECK: }
+
+@_cdecl("cfuncPassTwo")
+public fn differentCDeclName(x: CInt, y: CInt) -> CInt { return x + y }
+
+// CHECK: LANGUAGE_INLINE_THUNK int differentCDeclName(int x, int y) noexcept LANGUAGE_SYMBOL("{{.*}}") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK: return CdeclFunctions::_impl::cfuncPassTwo(x, y);
+// CHECK: }

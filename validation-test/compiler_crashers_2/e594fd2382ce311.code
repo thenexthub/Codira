@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::MissingCallFailure::diagnoseAsError()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < each b {
+  init(repeat each b) fn c < each d { a<repeat each d, String >(repeat e, {
+    ""

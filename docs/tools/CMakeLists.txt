@@ -1,9 +1,9 @@
-include(SwiftManpage)
+include(CodiraManpage)
 
 manpage(
-    SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/swift.pod"
-    PAGE_HEADER "Swift Documentation"
-    MAN_FILE_BASENAME swift
+    SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/language.pod"
+    PAGE_HEADER "Codira Documentation"
+    MAN_FILE_BASENAME language
     MAN_SECTION 1
     INSTALL_IN_COMPONENT compiler)
 

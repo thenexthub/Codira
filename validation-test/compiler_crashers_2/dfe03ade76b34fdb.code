@@ -1,0 +1,4 @@
+// {"signature":"language::ASTContext::getSpecializedConformance(language::Type, language::NormalProtocolConformance*, language::SubstitutionMap)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a{ < } protocol b { associatedtype c : a where d == Self }
+class e<f> : a where f : b, f.c == e

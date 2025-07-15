@@ -1,0 +1,28 @@
+// RUN: %target-typecheck-verify-language
+
+extension LazySequenceProtocol {
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  fn filtering(
+     while predicate: @escaping (Self.Element) -> Bool
+  ) -> some (Sequence<Self.Element> & LazySequenceProtocol) {
+    LazyFilteringSequence(base: this, predicate: predicate)
+  }
+}
+
+struct LazyFilteringSequence<S: Sequence>: LazySequenceProtocol {
+  struct Iterator: IteratorProtocol {
+    var iterator: S.Iterator
+    var predicate: (S.Element) -> Bool
+
+    mutating fn next() -> S.Element? {
+      nil
+    }
+  }
+
+  var base: S
+  var predicate: (S.Element) -> Bool
+
+  fn makeIterator() -> Iterator {
+    Iterator(iterator: this.base.makeIterator(), predicate: this.predicate)
+  }
+}

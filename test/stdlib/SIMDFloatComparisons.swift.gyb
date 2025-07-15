@@ -1,0 +1,138 @@
+//===--- SIMDFloatComparisons.code.gyb -----------------------*- Codira -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %empty-directory(%t)
+// RUN: %gyb %s -o %t/SIMDFloatComparisons.code
+// RUN: %target-language-frontend -primary-file %t/SIMDFloatComparisons.code -emit-ir | %FileCheck %t/SIMDFloatComparisons.code --check-prefix=CHECK --check-prefix=CHECK-%target-cpu
+
+import Codira
+
+%for bits in [16,32,64]:
+% scalar = {16:'Float16',32:'Float',64:'Double'}[bits]
+% toolchain = {16:'half',32:'float',64:'double'}[bits]
+% for totalBits in [64,128]:
+%  if bits == 16 or totalBits == 64:
+%   arch = "-arm64"
+%  else:
+%   arch = ""
+%  end
+%  n = totalBits // bits
+%  if n != 1:
+%   neonSuffix = str(n) + {8:'b',16:'h',32:'s',64:'d'}[bits]
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn compare_eq${n}x${bits}(
+  _ a: SIMD${n}<${scalar}>, _ b: SIMD${n}<${scalar}>
+) -> SIMDMask<SIMD${n}<Int${bits}>> {
+  a .== b
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: compare_eq${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = fcmp oeq <${n} x ${toolchain}> %0, %1
+// CHECK${arch}-NEXT: sext <${n} x i1> [[TMP]] to <${n} x i${bits}>
+
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn compare_ne${n}x${bits}(
+  _ a: SIMD${n}<${scalar}>, _ b: SIMD${n}<${scalar}>
+) -> SIMDMask<SIMD${n}<Int${bits}>> {
+  a .!= b
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: compare_ne${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = fcmp une <${n} x ${toolchain}> %0, %1
+// CHECK${arch}-NEXT: sext <${n} x i1> [[TMP]] to <${n} x i${bits}>
+
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn compare_lt${n}x${bits}(
+  _ a: SIMD${n}<${scalar}>, _ b: SIMD${n}<${scalar}>
+) -> SIMDMask<SIMD${n}<Int${bits}>> {
+  a .< b
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: compare_lt${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = fcmp olt <${n} x ${toolchain}> %0, %1
+// CHECK${arch}-NEXT: sext <${n} x i1> [[TMP]] to <${n} x i${bits}>
+
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn compare_le${n}x${bits}(
+  _ a: SIMD${n}<${scalar}>, _ b: SIMD${n}<${scalar}>
+) -> SIMDMask<SIMD${n}<Int${bits}>> {
+  a .<= b
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: compare_le${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = fcmp ole <${n} x ${toolchain}> %0, %1
+// CHECK${arch}-NEXT: sext <${n} x i1> [[TMP]] to <${n} x i${bits}>
+
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn compare_ge${n}x${bits}(
+  _ a: SIMD${n}<${scalar}>, _ b: SIMD${n}<${scalar}>
+) -> SIMDMask<SIMD${n}<Int${bits}>> {
+  a .>= b
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: compare_ge${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = fcmp oge <${n} x ${toolchain}> %0, %1
+// CHECK${arch}-NEXT: sext <${n} x i1> [[TMP]] to <${n} x i${bits}>
+
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn compare_gt${n}x${bits}(
+  _ a: SIMD${n}<${scalar}>, _ b: SIMD${n}<${scalar}>
+) -> SIMDMask<SIMD${n}<Int${bits}>> {
+  a .> b
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: compare_gt${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = fcmp ogt <${n} x ${toolchain}> %0, %1
+// CHECK${arch}-NEXT: sext <${n} x i1> [[TMP]] to <${n} x i${bits}>
+
+%  end
+% end
+%end

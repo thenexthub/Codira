@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -emit-ir -verify %s
+
+// compiler_crashers/029-class-with-anyobject-type-constraint.code
+// Test case submitted to project by https://github.com/jansabbe (Jan Sabbe)
+
+protocol Fooable { fn foo() }
+
+class A<B: Fooable> where B: AnyObject{
+}

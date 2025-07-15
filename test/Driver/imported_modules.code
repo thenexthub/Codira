@@ -1,0 +1,19 @@
+// RUN: %target-build-language -emit-imported-modules -module-name test %s %S/Inputs/imported_modules/imported_modules2.code -o %t.importedmodules
+// RUN: diff %t.importedmodules %S/Inputs/imported_modules/imported_modules.importedmodules
+
+import A.B.C
+import X
+import Y
+import enum Foo.Member
+// The overlaying Codira module should not be loaded.
+import InvalidOverlay
+
+#if canImport(Codira) // To wit, true
+import Codira
+#else
+import Garbage
+#endif
+
+#if !canImport(Codira) // To wit, false
+import Garbage
+#endif

@@ -42,15 +42,15 @@ class ExecutorTrackingInfo {
   /// the right executor. It would make sense for that to be a
   /// separate thread-local variable (or whatever is most efficient
   /// on the target platform).
-  static SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(
+  static LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(
       Pointer<ExecutorTrackingInfo>, ActiveInfoInThread,
-      SWIFT_CONCURRENCY_EXECUTOR_TRACKING_INFO_KEY);
+      LANGUAGE_CONCURRENCY_EXECUTOR_TRACKING_INFO_KEY);
 
   /// The active executor.
   ExecutorRef ActiveExecutor = ExecutorRef::generic();
 
   /// Whether this context allows switching.  Some contexts do not;
-  /// for example, we do not allow switching from swift_job_run
+  /// for example, we do not allow switching from language_job_run
   /// unless the passed-in executor is generic.
   bool AllowsSwitching = true;
 
@@ -110,8 +110,8 @@ public:
 class ActiveTask {
   /// A thread-local variable pointing to the active tracking
   /// information about the current thread, if any.
-  static SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(Pointer<AsyncTask>, Value,
-                                            SWIFT_CONCURRENCY_TASK_KEY);
+  static LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(Pointer<AsyncTask>, Value,
+                                            LANGUAGE_CONCURRENCY_TASK_KEY);
 
 public:
   static void set(AsyncTask *task) { Value.set(task); }
@@ -119,42 +119,42 @@ public:
 };
 
 /// Define the thread-locals.
-SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(
+LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(
   Pointer<AsyncTask>,
   ActiveTask::Value,
-  SWIFT_CONCURRENCY_TASK_KEY);
+  LANGUAGE_CONCURRENCY_TASK_KEY);
 
-SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(
+LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(
   Pointer<ExecutorTrackingInfo>,
   ExecutorTrackingInfo::ActiveInfoInThread,
-  SWIFT_CONCURRENCY_EXECUTOR_TRACKING_INFO_KEY);
+  LANGUAGE_CONCURRENCY_EXECUTOR_TRACKING_INFO_KEY);
 
 } // namespace
 
-SWIFT_CC(swift)
-AsyncTask *swift::swift_task_getCurrent() {
+LANGUAGE_CC(language)
+AsyncTask *language::language_task_getCurrent() {
   return ActiveTask::get();
 }
 
-AsyncTask *swift::_swift_task_clearCurrent() {
+AsyncTask *language::_language_task_clearCurrent() {
   auto task = ActiveTask::get();
   ActiveTask::set(nullptr);
   return task;
 }
 
-void swift::adoptTaskVoucher(AsyncTask *task) {
+void language::adoptTaskVoucher(AsyncTask *task) {
   ExecutorTrackingInfo::current()->swapToJob(task);
 }
 
-void swift::restoreTaskVoucher(AsyncTask *task) {
+void language::restoreTaskVoucher(AsyncTask *task) {
   ExecutorTrackingInfo::current()->restoreVoucher(task);
 }
 
-static swift_once_t voucherDisableCheckOnce;
+static language_once_t voucherDisableCheckOnce;
 static bool vouchersDisabled;
 
 namespace {
-  struct _SwiftNSOperatingSystemVersion{
+  struct _CodiraNSOperatingSystemVersion{
     intptr_t majorVersion;
     intptr_t minorVersion;
     intptr_t patchVersion;
@@ -162,11 +162,11 @@ namespace {
 }
 
 extern "C"
-_SwiftNSOperatingSystemVersion
-_swift_stdlib_operatingSystemVersion() __attribute__((const));
+_CodiraNSOperatingSystemVersion
+_language_stdlib_operatingSystemVersion() __attribute__((const));
 
 static void _initializeVouchersDisabled(void *ctxt) {
-  auto osVersion = _swift_stdlib_operatingSystemVersion();
+  auto osVersion = _language_stdlib_operatingSystemVersion();
   #if TARGET_OS_WATCH
   vouchersDisabled = (
     osVersion.majorVersion == 8 &&
@@ -188,7 +188,7 @@ static void _initializeVouchersDisabled(void *ctxt) {
 }
 
 bool VoucherManager::vouchersAreDisabled() {
-  swift_once(&voucherDisableCheckOnce,
+  language_once(&voucherDisableCheckOnce,
              &_initializeVouchersDisabled,
              nullptr);
   return vouchersDisabled;

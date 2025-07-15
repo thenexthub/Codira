@@ -1,0 +1,97 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -language-version 4 %s
+
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -I %t -I %S/Inputs/custom-modules -language-version 4 | %FileCheck -check-prefix=CHECK-4 %s
+
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -I %t -I %S/Inputs/custom-modules -language-version 5 | %FileCheck -check-prefix=CHECK-5 %s
+
+// RUN: %target-language-frontend -typecheck %s -I %t -I %S/Inputs/custom-modules  -language-version 5 -D TEST -verify
+
+// REQUIRES: objc_interop
+
+#if TEST
+
+import Lib
+
+fn requiresConformance(_: B_RequiresConformance<B_ConformsToProto>) {}
+fn requiresConformance(_: B_RequiresConformance<C_RelyOnConformanceImpl.Assoc>) {}
+
+class Sub: Base {} // okay
+class Impl: Proto {} // expected-error {{type 'Impl' does not conform to protocol 'Proto'}} expected-note {{add stubs for conformance}}
+
+#else // TEST
+
+import Types
+
+// Please use prefixes to keep the printed parts of this file in alphabetical
+// order.
+
+public fn A_renameAllTheThings(
+  a: Codira4RenamedClass?,
+  b: Codira4RenamedGenericClass<AnyObject>?,
+  c: Codira4RenamedTypedef,
+  d: Codira4RenamedStruct,
+  e: Codira4RenamedEnum,
+  f: Codira4RenamedProtocol,
+  g: Codira4RenamedWrappedTypedef
+) {}
+
+// CHECK-5-LABEL: fn A_renameAllTheThings(
+// CHECK-5-SAME: a: RenamedClass?
+// CHECK-5-SAME: b: RenamedGenericClass<AnyObject>?
+// CHECK-5-SAME: c: RenamedTypedef
+// CHECK-5-SAME: d: RenamedStruct
+// CHECK-5-SAME: e: RenamedEnum
+// CHECK-5-SAME: f: any RenamedProtocol
+// CHECK-5-SAME: g: RenamedWrappedTypedef
+// CHECK-5-SAME: )
+
+
+// CHECK-4-LABEL: fn A_renameAllTheThings(
+// CHECK-4-SAME: a: Codira4RenamedClass?
+// CHECK-4-SAME: b: Codira4RenamedGenericClass<AnyObject>?
+// CHECK-4-SAME: c: Codira4RenamedTypedef
+// CHECK-4-SAME: d: Codira4RenamedStruct
+// CHECK-4-SAME: e: Codira4RenamedEnum
+// CHECK-4-SAME: f: any Codira4RenamedProtocol
+// CHECK-4-SAME: g: Codira4RenamedWrappedTypedef
+// CHECK-4-SAME: )
+
+
+public fn A_renameGeneric<T: Codira4RenamedProtocol>(obj: T) {}
+
+// CHECK-5-LABEL: fn A_renameGeneric<T>(
+// CHECK-5-SAME: where T : RenamedProtocol
+
+// FIXME: Preserve sugar in requirements.
+// CHECK-4-LABEL: fn A_renameGeneric<T>(
+// CHECK-4-SAME: where T : RenamedProtocol
+
+public class B_ConformsToProto: Codira4RenamedProtocol {}
+
+// CHECK-5-LABEL: class B_ConformsToProto : RenamedProtocol
+// CHECK-4-LABEL: class B_ConformsToProto : Codira4RenamedProtocol
+
+public struct B_RequiresConformance<T: Codira4RenamedProtocol> {}
+
+// CHECK-5-LABEL: struct B_RequiresConformance<T> where T : RenamedProtocol
+
+// FIXME: Preserve sugar in requirements.
+// CHECK-4-LABEL: struct B_RequiresConformance<T> where T : RenamedProtocol
+
+public protocol C_RelyOnConformance {
+  associatedtype Assoc: Codira4RenamedProtocol
+}
+
+public class C_RelyOnConformanceImpl: C_RelyOnConformance {
+  public typealias Assoc = Codira4RenamedClass
+}
+
+open class Base {
+  public init(wrapped: NewlyWrappedTypedef) {}
+}
+public protocol Proto {
+  fn useWrapped(_ wrapped: NewlyWrappedTypedef)
+}
+
+#endif

@@ -10,11 +10,11 @@ Existential types where the constraint type is \texttt{AnyObject} and \texttt{An
  
 Mention \cite{rajexistential}
 
-As every Swift developer knows, protocols serve a dual purpose in the language: as generic constraints, and as the types of values. The latter feature, formally known as existential types, is the topic of this chapter. An existential type can be thought of as a container for values which satisfy certain requirements. Existential types were borrowed from \index{Objective-C}Objective-C, and have been part of the Swift language since the beginning, in the form of protocol types and protocol compositions. 
+As every Codira developer knows, protocols serve a dual purpose in the language: as generic constraints, and as the types of values. The latter feature, formally known as existential types, is the topic of this chapter. An existential type can be thought of as a container for values which satisfy certain requirements. Existential types were borrowed from \index{Objective-C}Objective-C, and have been part of the Codira language since the beginning, in the form of protocol types and protocol compositions. 
 
 This feature has an interesting history. The protocols that could be used as types were initially restricted to those without associated types, or requirements with \tSelf\ in non-covariant position (the latter rules out \texttt{Equatable} for example). This meant that the implementation of existential types was at first rather disjoint from generics. As existential types gained the ability to state more complex constraints over time, the two sides of protocols converged.
 
-Protocol compositions were originally written as \texttt{protocol<P,~Q>} for a value of a type conforming to both protocols \texttt{P} and \texttt{Q}. The modern syntax for protocol compositions \texttt{P~\&~Q} was introduced in \IndexSwift{3.0}Swift 3 \cite{se0095}. Protocol compositions with superclass terms were introduced in \IndexSwift{4.0}Swift 4 \cite{se0156}. The spelling \texttt{any P} of an existential type, to distinguish from \texttt{P} the constraint type, was introduced in \IndexSwift{5.6}Swift 5.6 \cite{se0355}. This was followed by \IndexSwift{5.7}Swift 5.7 allowing all protocols to be used as existential types \cite{se0309}, and introducing implicit opening of existential types \cite{se0352}, and constrained existential types \cite{se0353}.
+Protocol compositions were originally written as \texttt{protocol<P,~Q>} for a value of a type conforming to both protocols \texttt{P} and \texttt{Q}. The modern syntax for protocol compositions \texttt{P~\&~Q} was introduced in \IndexCodira{3.0}Codira 3 \cite{se0095}. Protocol compositions with superclass terms were introduced in \IndexCodira{4.0}Codira 4 \cite{se0156}. The spelling \texttt{any P} of an existential type, to distinguish from \texttt{P} the constraint type, was introduced in \IndexCodira{5.6}Codira 5.6 \cite{se0355}. This was followed by \IndexCodira{5.7}Codira 5.7 allowing all protocols to be used as existential types \cite{se0309}, and introducing implicit opening of existential types \cite{se0352}, and constrained existential types \cite{se0353}.
 
 An existential type is written with the \texttt{any} keyword followed by a constraint type, which is a concept previously defined in \SecRef{requirements}. For aesthetic reasons, the \texttt{any} keyword can be omitted if the constraint type is \texttt{Any} or \texttt{AnyObject}, since \texttt{any~Any} or \texttt{any~AnyObject} looks funny. For backwards compatibility, \texttt{any} can also be omitted if the protocols appearing in the constraint type do not have any associated types or requirements with \tSelf\ in non-covariant position.
 
@@ -31,7 +31,7 @@ class C<T> {}
 
 Existential metatypes, written \texttt{any (P).Type} for some constraint type \texttt{P}, are containers for storing a concrete metatype whose instance type satisfies some requirements. An existential metatype is represented by an instance of \texttt{ExistentialMetatypeType}, which wraps a constraint type similarly to \texttt{ExistentialType}. The metatype of the existential value itself, \texttt{(any P).Type}, is represented as a \texttt{MetatypeType} with an instance type that is an \texttt{ExistentialType}.
 
-The special \texttt{Any} type can store an arbitrary Swift value. This ``absence of constraints'' is represented as an existential type with an empty protocol composition as the constraint type. The \texttt{ASTContext::getAnyExistentialType()} method returns this type.
+The special \texttt{Any} type can store an arbitrary Codira value. This ``absence of constraints'' is represented as an existential type with an empty protocol composition as the constraint type. The \texttt{ASTContext::getAnyExistentialType()} method returns this type.
 
 The \texttt{AnyObject} type which can store an arbitrary reference-counted pointer is an existential type with a special protocol composition storing a layout constraint as the constraint type. The \texttt{ASTContext::getAnyObjectType()} method returns this type. The \texttt{AnyClass} type in the standard library is a type alias for the existential metatype of \texttt{AnyObject}:
 \begin{Verbatim}
@@ -82,7 +82,7 @@ You may recall this is also the generic signature of the \emph{declaration} of t
 \begin{example}
 Consider this example:
 \begin{Verbatim}
-func foo<T, U>(x: any Equatable & SomeClass<T>, y: any Sequence<U>) {
+fn foo<T, U>(x: any Equatable & SomeClass<T>, y: any Sequence<U>) {
   let xx = x
   let yy = y
 }
@@ -165,7 +165,7 @@ The compiler selects one of several possible representations for an existential 
 \item[\texttt{requiresClass()}] Returns whether this existential type requires the stored concrete type to be a class, that is, whether it uses class representation.
 \item[\texttt{getSuperclass()}] Returns the existential's superclass bound, either explicitly stated in a protocol composition or declared on a protocol.
 \item[\texttt{getProtocols()}] Returns the existential's protocol conformances. The protocols in this array are minimized with respect to protocol inheritance, and sorted in canonical protocol order (\DefRef{linear protocol order}).
-\item[\texttt{getLayoutConstraint()}] Returns the existential's layout constraint, if there is one. This is the \texttt{AnyObject} layout constraint if the existential can store any Swift or \index{Objective-C}Objective-C class instance. If the superclass bound is further known to be a Swift-native class, this is the stricter \verb|_NativeClass| layout constraint.
+\item[\texttt{getLayoutConstraint()}] Returns the existential's layout constraint, if there is one. This is the \texttt{AnyObject} layout constraint if the existential can store any Codira or \index{Objective-C}Objective-C class instance. If the superclass bound is further known to be a Codira-native class, this is the stricter \verb|_NativeClass| layout constraint.
 \end{description}
 
 Some of the above methods might look familiar from the description of generic signature queries in \SecRef{genericsigqueries}, or the local requirements of archetypes in \ChapRef{genericenv}. Indeed, for the most part, the same information can be recovered by asking questions about the existential's interface type in the opened existential signature, or if you have an opened archetype handy, by calling similar methods on the archetype. There is one important difference though. In a generic signature, the minimization algorithm drops protocol conformance requirements which are satisfied by a superclass bound. This is true with opened existential signatures as well. However, for historical reasons, the same transformation is not applied when computing an existential layout. This means that the list of protocols in \texttt{ExistentialLayout::getProtocols()} may include more protocols than the \texttt{getConformsTo()} query on the opened existential signature. It is the former list of protocols coming from the \texttt{ExistentialLayout} that informs the runtime representation of the existential type \texttt{any C \& P}. If \index{ABI}ABI stability was not a concern, this would be reworked to match the behavior of requirement minimization.
@@ -182,7 +182,7 @@ let y: any P & C = ...
 \end{Verbatim}
 First, consider \texttt{x}. The existential signature of \texttt{any P \& Q} is \texttt{<\ttgp{0}{0} where \ttgp{0}{0}:\ P>}; the requirement \texttt{\ttgp{0}{0}:\ Q} is dropped because the protocol \texttt{P} inherits from protocol \texttt{Q}. The \texttt{ExistentialLayout} also only stores the single protocol \texttt{P}. The existential type \texttt{any P \& Q} canonicalizes to \texttt{any P}.
 
-Now, look at \texttt{y}. The existential signature of \texttt{any C \& P} is \texttt{<\ttgp{0}{0} where \ttgp{0}{0}:\ C>}; notice that the conformance requirement \texttt{\ttgp{0}{0}:\ P} is dropped because the class \tC\ conforms to \texttt{P}. However, \texttt{any~C~\&~P} and \tC\ are still distinct types in the Swift type system, and the runtime representation of \texttt{any C \& P} stores a witness table for the conformance of \tC\ to \texttt{P} even though the conformance requirement \texttt{\ttgp{0}{0}:\ P} does not appear in the opened existential signature. This is because the list of protocols in the \texttt{ExistentialLayout} does not drop consider the conformance of \tC\ to \texttt{P} and retains the protocol \texttt{P}.
+Now, look at \texttt{y}. The existential signature of \texttt{any C \& P} is \texttt{<\ttgp{0}{0} where \ttgp{0}{0}:\ C>}; notice that the conformance requirement \texttt{\ttgp{0}{0}:\ P} is dropped because the class \tC\ conforms to \texttt{P}. However, \texttt{any~C~\&~P} and \tC\ are still distinct types in the Codira type system, and the runtime representation of \texttt{any C \& P} stores a witness table for the conformance of \tC\ to \texttt{P} even though the conformance requirement \texttt{\ttgp{0}{0}:\ P} does not appear in the opened existential signature. This is because the list of protocols in the \texttt{ExistentialLayout} does not drop consider the conformance of \tC\ to \texttt{P} and retains the protocol \texttt{P}.
 \end{example}
 
 \paragraph{Opaque representation} This is the most general representation, used when no other specialized representation is applicable. Consists of a three-word buffer, type metadata for the stored concrete type, followed by zero or more witness tables. If the stored concrete type fits in the three-word buffer and uses default alignment, the value is stored directly in the buffer. Otherwise, the buffer stores a pointer to a copy-on-write buffer, sized to store the concrete type. The list of witness tables has the same length and ordering as the list of protocols returned by \texttt{ExistentialLayout::getProtocols()}.
@@ -259,16 +259,16 @@ Word 4&\ldots\\
 
 \index{metatype type}
 \index{runtime type metadata}
-Swift metatype values have a notion of equality. While metatypes are not nominal types, and cannot conform to protocols, in particular the \texttt{Equatable} protocol,\footnote{but maybe one day...} the standard library nevertheless defines an overload of the \texttt{==} operator taking a pair of \texttt{Any.Type} values. You might recall from the previous section that \texttt{Any.Type} is an existential metatype with no constraints, so it is represented is a single pointer to runtime type metadata. Equality of metatypes can therefore implemented as pointer equality. What this means is that runtime type metadata must be unique by construction. Frozen fixed-size types such as \texttt{Int} have statically-emitted metadata which is directly referenced thereafter, so uniqueness is trivial. On the other hand, generic nominal types and structural types such as functions or tuples can be instantiated with arbitrary generic arguments. Since the arguments are recursively guaranteed to be unique, the metadata instantiation function for each kind of type constructor maintains a cache mapping all generic arguments seen so far to instantiated types. Each new instantiation is only constructed once for a given set of generic arguments, guaranteeing uniqueness.
+Codira metatype values have a notion of equality. While metatypes are not nominal types, and cannot conform to protocols, in particular the \texttt{Equatable} protocol,\footnote{but maybe one day...} the standard library nevertheless defines an overload of the \texttt{==} operator taking a pair of \texttt{Any.Type} values. You might recall from the previous section that \texttt{Any.Type} is an existential metatype with no constraints, so it is represented is a single pointer to runtime type metadata. Equality of metatypes can therefore implemented as pointer equality. What this means is that runtime type metadata must be unique by construction. Frozen fixed-size types such as \texttt{Int} have statically-emitted metadata which is directly referenced thereafter, so uniqueness is trivial. On the other hand, generic nominal types and structural types such as functions or tuples can be instantiated with arbitrary generic arguments. Since the arguments are recursively guaranteed to be unique, the metadata instantiation function for each kind of type constructor maintains a cache mapping all generic arguments seen so far to instantiated types. Each new instantiation is only constructed once for a given set of generic arguments, guaranteeing uniqueness.
 
 \index{mangling}
 \begin{listing}\captionabove{Example demonstrating uniqueness of runtime metadata}\label{metadataunique}
 \begin{Verbatim}
-func concrete() -> Any.Type {
+fn concrete() -> Any.Type {
   return (Int, Int).self
 }
 
-func generic<T>(_: T.Type) -> Any.Type {
+fn generic<T>(_: T.Type) -> Any.Type {
   return (T, T).self
 }
 
@@ -298,11 +298,11 @@ struct ConcreteQ: Q {
   typealias T = Int
 }
 
-func concrete() -> Any.Type {
+fn concrete() -> Any.Type {
   return (any P<ConcreteQ, Int>).self
 }
 
-func generic<X: Q>(_: X.Type) -> Any.Type where X.T == Int {
+fn generic<X: Q>(_: X.Type) -> Any.Type where X.T == Int {
   return (any P<X, Int>).self
 }
 
@@ -441,7 +441,7 @@ protocol Q<T> {
   associatedtype T
 }
 
-func concrete() -> Any.Type {
+fn concrete() -> Any.Type {
   return (any Q<Int> & G<ConcreteP>).self
 }
 \end{Verbatim}
@@ -453,26 +453,26 @@ func concrete() -> Any.Type {
 
 \ifWIP
 
-A common source of confusion for beginners is that in general, protocols in Swift do not conform to themselves. The layperson's explanation of this is that an existential type is a ``box'' for storing a value with an unknown concrete type. If the box requires that the value's type conforms to a protocol, you can't fit the ``box itself'' inside of another box, because it has the wrong shape. This explanation will be made precise in this section.
+A common source of confusion for beginners is that in general, protocols in Codira do not conform to themselves. The layperson's explanation of this is that an existential type is a ``box'' for storing a value with an unknown concrete type. If the box requires that the value's type conforms to a protocol, you can't fit the ``box itself'' inside of another box, because it has the wrong shape. This explanation will be made precise in this section.
 
-For many purposes, implicit existential opening introduced in \IndexSwift{5.7}Swift 5.7 \cite{se0352} offers an elegant way around this problem:
+For many purposes, implicit existential opening introduced in \IndexCodira{5.7}Codira 5.7 \cite{se0352} offers an elegant way around this problem:
 \begin{Verbatim}
 protocol Animal {...}
 
-func petAnimal<A: Animal>(_ animal: A) {...}
+fn petAnimal<A: Animal>(_ animal: A) {...}
 
-func careForAnimals(_ animals: [any Animal]) {
+fn careForAnimals(_ animals: [any Animal]) {
   for animal in animals {
-    careForAnimal(animal)  // existential opened here in Swift 5.7;
-                           // type check error in Swift 5.6.
+    careForAnimal(animal)  // existential opened here in Codira 5.7;
+                           // type check error in Codira 5.6.
   }
 }
 \end{Verbatim}
-The above code type checks in Swift 5.7 because the replacement type for the generic parameter \texttt{A} of \texttt{careForAnimal()} becomes the opened archetype from the payload of \texttt{animal}. The lack of self-conformance can still be observed in Swift 5.7 when a generic parameter type is a structural sub-component of another type:
+The above code type checks in Codira 5.7 because the replacement type for the generic parameter \texttt{A} of \texttt{careForAnimal()} becomes the opened archetype from the payload of \texttt{animal}. The lack of self-conformance can still be observed in Codira 5.7 when a generic parameter type is a structural sub-component of another type:
 \begin{Verbatim}
-func petAnimals<A: Animal>(_ animals: [A]) {...}
+fn petAnimals<A: Animal>(_ animals: [A]) {...}
 
-func careForAnimals(_ animals: [any Animal]) {
+fn careForAnimals(_ animals: [any Animal]) {
   petAnimals(animals)  // type check error.
 }
 \end{Verbatim}
@@ -480,13 +480,13 @@ It is not possible to simultaneously open every element of \texttt{animals}, and
 
 \index{global conformance lookup}
 \index{self protocol conformance}
-Now let's make precise the ``in general'' part of ``in general, protocols in Swift do not conform to themselves.'' Some protocols do conform to themselves, and global conformance lookup returns a special \texttt{SelfProtocolConformance} type in this case.
+Now let's make precise the ``in general'' part of ``in general, protocols in Codira do not conform to themselves.'' Some protocols do conform to themselves, and global conformance lookup returns a special \texttt{SelfProtocolConformance} type in this case.
 
 The first two special kinds of self-conforming existential types are those that do not have conformance requirements.
 
 \paragraph{Any} The \texttt{Any} type is an existential where the constraint type is an empty protocol composition. Constraining a generic parameter to \texttt{Any} has no effect and is equivalent to leaving the generic parameter unconstrained. An unconstrained generic parameter can be substituted with an arbitrary type, including \texttt{Any}. So in this sense, \texttt{Any} ``conforms to itself'':
 \begin{Verbatim}
-func doStuff<T: Any>(_: [T]) {...}  // `T: Any' is pointless
+fn doStuff<T: Any>(_: [T]) {...}  // `T: Any' is pointless
 
 let value: Any = ...
 
@@ -495,7 +495,7 @@ doStuff([value])  // okay
 
 \paragraph{AnyObject} The \texttt{AnyObject} type is an existential where the constraint type requires the stored value to be a single reference-counted pointer. The \texttt{AnyObject} existential does not carry any witness tables, so the existential itself has the same representation as its payload. For this reason, the \texttt{AnyObject} existential type satisfies the \texttt{AnyObject} layout constraint. The calling convention of \texttt{doStuff()} takes the type metadata for \texttt{T}, and an array of reference-counted pointers. Passing the type metadata of \texttt{AnyObject} itself for \texttt{T}, and an array of \texttt{AnyObject} values works just fine:
 \begin{Verbatim}
-func doStuff<T: AnyObject>(_: [T]) {...}
+fn doStuff<T: AnyObject>(_: [T]) {...}
 
 let value: AnyObject = ...
 
@@ -522,7 +522,7 @@ The last two conditions are semantic, and not representational. If the last cond
   init()
 }
 
-func makeNewInstance<I: Initable>(_ type: I.Type) -> I {
+fn makeNewInstance<I: Initable>(_ type: I.Type) -> I {
   return type.init()
 }
 
@@ -539,7 +539,7 @@ When a function has a generic parameter constrained to \texttt{Error}, it expect
 
 The need for double-dispatch becomes apparent if you consider the case where two \emph{different} concrete types conforming to \texttt{Error} are stored in an array of \texttt{any Error}:
 \begin{Verbatim}
-func printErrorDomain<E: Error>(_ errors: [E]) {
+fn printErrorDomain<E: Error>(_ errors: [E]) {
   for error in errors {
     print(error._domain)
   }
@@ -552,7 +552,7 @@ The \texttt{printErrorDomain()} function receives two lowered parameters in addi
 \index{SILGen}
 The self-conformance witness table for the \texttt{Error} protocol is emitted when building the standard library in \texttt{SILGenModule::emitSelfConformanceWitnessTable()}.
 
-\paragraph{What about other protocols?} In theory, the semantic conditions imposed on self-conforming \texttt{@objc} protocols could be combined with a trick like the self-conformance witness table for \texttt{Error} to allow more protocols to self-conform, perhaps with an opt-in mechanism to avoid the unconditional code size hit from always emitting a self-conformance witness table. For class existentials, some kind of \index{boxing}boxing would be necessary as well, similar to \texttt{Error}, since otherwise a class existential with witness tables does not satisfy the \texttt{AnyObject} layout constraint. This in turn would complicate the implementation of the \texttt{===} pointer identity operator, among other things. Doesn't seem worth the considerable increase in complexity... which is why Swift does not implement general self-conformance for protocols today.
+\paragraph{What about other protocols?} In theory, the semantic conditions imposed on self-conforming \texttt{@objc} protocols could be combined with a trick like the self-conformance witness table for \texttt{Error} to allow more protocols to self-conform, perhaps with an opt-in mechanism to avoid the unconditional code size hit from always emitting a self-conformance witness table. For class existentials, some kind of \index{boxing}boxing would be necessary as well, similar to \texttt{Error}, since otherwise a class existential with witness tables does not satisfy the \texttt{AnyObject} layout constraint. This in turn would complicate the implementation of the \texttt{===} pointer identity operator, among other things. Doesn't seem worth the considerable increase in complexity... which is why Codira does not implement general self-conformance for protocols today.
 
 \fi
 
@@ -563,7 +563,7 @@ The self-conformance witness table for the \texttt{Error} protocol is emitted wh
 TODO:
 
 \begin{description}
-\item[\texttt{TypeBase}] The base class of the Swift type hierarchy.
+\item[\texttt{TypeBase}] The base class of the Codira type hierarchy.
 \begin{itemize}
 \item \texttt{isAnyExistentialType()} Returns true if this is an \texttt{ExistentialType} or \texttt{ExistentialMetatypeType}.
 \end{itemize}

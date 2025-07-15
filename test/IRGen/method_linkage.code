@@ -1,0 +1,134 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -primary-file %s -emit-ir -enable-library-evolution | %FileCheck %s --check-prefix=RESILIENT
+
+// Test if all methods which go into a vtable have at least the visibility of its class.
+// Reason: Derived classes from "outside" still have to put the less visible base members
+// into their vtables.
+
+// Method descriptors linkage:
+
+// - internal initializer descriptor has hidden linkage when class is public:
+// CHECK-LABEL: @"$s14method_linkage11PublicClassCACycfCTq" = hidden alias
+
+// - internal initializer descriptor has hidden linkage when class is open:
+// CHECK-LABEL: @"$s14method_linkage9OpenClassCACycfCTq" = hidden alias
+
+// - private method descriptor has internal linkage even though class is open:
+// CHECK: @"$s14method_linkage9OpenClassC4pfoo0{{.*}}FTq" = internal alias
+
+class Base {
+  // CHECK: define hidden languagecc void @"$s14method_linkage4Base{{.*}}3foo0
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage4Base{{.*}}3foo0
+  fileprivate fn foo() {
+  }
+
+  // CHECK: define internal languagecc void @"$s14method_linkage4Base{{.*}}3bar0
+  // RESILIENT: define internal languagecc void @"$s14method_linkage4Base{{.*}}3bar0
+  fileprivate final fn bar() {
+  }
+
+  // CHECK: define hidden languagecc void @"$s14method_linkage4Base{{.*}}5other0
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage4Base{{.*}}5other0
+  fileprivate fn other() {
+  }
+
+  // CHECK: define hidden languagecc void @"$s14method_linkage4BaseC4prop{{.*}}LLytvg
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage4BaseC4prop{{.*}}LLytvg
+  fileprivate var prop: () {
+    return ()
+  }
+}
+class Derived : Base {
+  // CHECK: define hidden languagecc void @"$s14method_linkage7Derived{{.*}}3foo0
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage7Derived{{.*}}3foo0
+  fileprivate final override fn foo() {
+  }
+
+  // CHECK: define hidden languagecc void @"$s14method_linkage7DerivedC4prop{{.*}}LLytvg
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage7DerivedC4prop{{.*}}LLytvg
+  fileprivate final override var prop: () {
+    return ()
+  }
+}
+
+extension Base {
+  // CHECK: define internal languagecc void @"$s14method_linkage4Base{{.*}}7extfunc0
+  // RESILIENT: define internal languagecc void @"$s14method_linkage4Base{{.*}}7extfunc0
+  fileprivate fn extfunc() {
+  }
+}
+
+public class PublicClass {
+  internal init() {}
+
+  // CHECK: define hidden languagecc void @"$s14method_linkage11PublicClass{{.*}}4pfoo0
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage11PublicClass{{.*}}4pfoo0
+  fileprivate fn pfoo() {
+  }
+
+  // CHECK: define hidden languagecc void @"$s14method_linkage11PublicClassC4pbaryyF
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage11PublicClassC4pbaryyF
+  internal fn pbar() {
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage11PublicClassC4pbazyyF"
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage11PublicClassC4pbazyyF"
+  public fn pbaz() {
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage11PublicClassC5pquuxyyF"
+  // RESILIENT: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage11PublicClassC5pquuxyyF"
+  public final fn pquux() {
+  }
+}
+
+open class OpenClass {
+  internal init() {}
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage9OpenClassC4pfoo0
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage9OpenClassC4pfoo0
+  fileprivate fn pfoo() {
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage9OpenClassC4pbaryyF
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage9OpenClassC4pbaryyF
+  internal fn pbar() {
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage9OpenClassC4pbazyyF"
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage9OpenClassC4pbazyyF"
+  public fn pbaz() {
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage9OpenClassC5pquuxyyF"
+  // RESILIENT: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage9OpenClassC5pquuxyyF"
+  public final fn pquux() {
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage9OpenClassC4prop{{.*}}LLytvg
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage9OpenClassC4prop{{.*}}LLytvg
+  fileprivate var prop: () {
+    return ()
+  }
+}
+
+open class OpenSubclass : OpenClass {
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage12OpenSubclassC4prop{{.*}}LLytvg
+  // RESILIENT: define hidden languagecc void @"$s14method_linkage12OpenSubclassC4prop{{.*}}LLytvg
+  fileprivate final override var prop: () {
+    return ()
+  }
+
+  // CHECK: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage12OpenSubclassC4pbazyyF"
+  // RESILIENT: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s14method_linkage12OpenSubclassC4pbazyyF"
+  public final override fn pbaz() {}
+}
+
+// Just in case anyone wants to delete unused methods...
+fn callit(b: Base) {
+  b.foo()
+  b.bar()
+  b.other()
+  b.extfunc()
+  _ = b.prop
+}

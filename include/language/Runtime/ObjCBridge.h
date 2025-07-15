@@ -1,4 +1,4 @@
-//===--- ObjCBridge.h - Swift Language Objective-C Bridging ABI -*- C++ -*-===//
+//===--- ObjCBridge.h - Codira Language Objective-C Bridging ABI -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI for interacting with Objective-C.
+// Codira ABI for interacting with Objective-C.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_OBJCBRIDGE_H
-#define SWIFT_ABI_OBJCBRIDGE_H
+#ifndef LANGUAGE_ABI_OBJCBRIDGE_H
+#define LANGUAGE_ABI_OBJCBRIDGE_H
 
 #include "language/Runtime/Config.h"
 #include <cstdint>
@@ -34,7 +35,7 @@ struct HeapObject;
 
 } // end namespace language
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include <objc/objc.h>
 #include <objc/runtime.h>
 #include <objc/objc-api.h>
@@ -77,21 +78,21 @@ OBJC_EXPORT const struct { char c; } objc_absolute_packed_isa_class_mask;
 
 namespace language {
 
-// Root -dealloc implementation for classes with Swift reference counting.
+// Root -dealloc implementation for classes with Codira reference counting.
 // This function should be used to implement -dealloc in a root class with
-// Swift reference counting. [super dealloc] MUST NOT be called after this,
+// Codira reference counting. [super dealloc] MUST NOT be called after this,
 // for the object will have already been deallocated by the time
 // this function returns.
-SWIFT_RUNTIME_EXPORT
-void swift_rootObjCDealloc(HeapObject *self);
+LANGUAGE_RUNTIME_EXPORT
+void language_rootObjCDealloc(HeapObject *self);
 
-// Uses Swift bridging to box a C string into an NSString without introducing
+// Uses Codira bridging to box a C string into an NSString without introducing
 // a link-time dependency on NSString.
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-id swift_stdlib_NSStringFromUTF8(const char *cstr, int len);
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+id language_stdlib_NSStringFromUTF8(const char *cstr, int len);
 
 }
 
-#endif // SWIFT_OBJC_INTEROP
+#endif // LANGUAGE_OBJC_INTEROP
 
-#endif // SWIFT_ABI_OBJCBRIDGE_H
+#endif // LANGUAGE_ABI_OBJCBRIDGE_H

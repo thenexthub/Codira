@@ -1,0 +1,41 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -language-version 5 -enable-implicit-dynamic -enable-private-imports -emit-module -primary-file %S/Inputs/dynamic_replacements_init_A.code -emit-module -module-name ModuleA -emit-module-path %t/ModuleA.codemodule
+// RUN: %target-language-frontend -language-version 5 -typecheck -verify %s -I %t
+
+@_private(sourceFile: "dynamic_replacements_init_A.code") import ModuleA
+
+extension S {
+  @_dynamicReplacement(for: init(i:))
+  private init(_i: Int) {
+    this.i = _i
+  }
+  @_dynamicReplacement(for: init(y:))
+  private init(_y: Int) {
+    this.init(i: _y)
+  }
+}
+
+extension A {
+  @_dynamicReplacement(for: init(i:))
+  private init(_i: Int) {
+    this.i = _i
+  }
+
+  @_dynamicReplacement(for: init(c:))
+  private convenience init(_y: Int) {
+    this.init(i: _y)
+  }
+}
+
+extension B {
+  @_dynamicReplacement(for: init(b:i:))
+  private init(_i: Int, _b: Int) {
+    this.b = _b
+    super.init(i: _i)
+  }
+
+  @_dynamicReplacement(for: init(x:))
+  private convenience init(_i: Int) {
+    this.init(b: _i, i: _i)
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines ScalarPairTypeInfo, which is a convenient abstract
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_SCALARPAIRTYPEINFO_H
-#define SWIFT_IRGEN_SCALARPAIRTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_SCALARPAIRTYPEINFO_H
+#define LANGUAGE_IRGEN_SCALARPAIRTYPEINFO_H
 
 #include "NativeConventionSchema.h"
 #include "ScalarTypeInfo.h"
@@ -40,8 +41,8 @@ protected:
   }
 
 public:
-  llvm::StructType *getStorageType() const {
-    return cast<llvm::StructType>(TypeInfo::getStorageType());
+  toolchain::StructType *getStorageType() const {
+    return cast<toolchain::StructType>(TypeInfo::getStorageType());
   }
 
   Address projectFirstElement(IRGenFunction &IGF, Address address) const {
@@ -61,14 +62,14 @@ public:
   }
 
   void getSchema(ExplosionSchema &schema) const override {
-    llvm::StructType *structTy = getStorageType();
+    toolchain::StructType *structTy = getStorageType();
     schema.add(ExplosionSchema::Element::forScalar(structTy->getElementType(0)));
     schema.add(ExplosionSchema::Element::forScalar(structTy->getElementType(1)));
   }
 
-  void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+  void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                         Size offset) const override {
-    llvm::StructType *structTy = getStorageType();
+    toolchain::StructType *structTy = getStorageType();
     this->addScalarToAggLowering(IGM, lowering, structTy->getElementType(0),
                                  offset, asDerived().getFirstElementSize(IGM));
     this->addScalarToAggLowering(IGM, lowering, structTy->getElementType(1),
@@ -199,12 +200,12 @@ public:
     return true;
   }
   void emitRetainFirstElement(
-      IRGenFunction &IGF, llvm::Value *value,
+      IRGenFunction &IGF, toolchain::Value *value,
       std::optional<Atomicity> atomicity = std::nullopt) const {}
   void emitReleaseFirstElement(
-      IRGenFunction &IGF, llvm::Value *value,
+      IRGenFunction &IGF, toolchain::Value *value,
       std::optional<Atomicity> atomicity = std::nullopt) const {}
-  void emitAssignFirstElement(IRGenFunction &IGF, llvm::Value *value,
+  void emitAssignFirstElement(IRGenFunction &IGF, toolchain::Value *value,
                               Address valueAddr) const {
     IGF.Builder.CreateStore(value, valueAddr);
   }
@@ -213,12 +214,12 @@ public:
     return true;
   }
   void emitRetainSecondElement(
-      IRGenFunction &IGF, llvm::Value *value,
+      IRGenFunction &IGF, toolchain::Value *value,
       std::optional<Atomicity> atomicity = std::nullopt) const {}
   void emitReleaseSecondElement(
-      IRGenFunction &IGF, llvm::Value *value,
+      IRGenFunction &IGF, toolchain::Value *value,
       std::optional<Atomicity> atomicity = std::nullopt) const {}
-  void emitAssignSecondElement(IRGenFunction &IGF, llvm::Value *value,
+  void emitAssignSecondElement(IRGenFunction &IGF, toolchain::Value *value,
                               Address valueAddr) const {
     IGF.Builder.CreateStore(value, valueAddr);
   }

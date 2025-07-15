@@ -1,0 +1,128 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop)
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -O)
+//
+// REQUIRES: executable_test
+
+import CustomDestructor
+import StdlibUnittest
+
+var CXXDestructorTestSuite = TestSuite("CXXDestructor")
+
+protocol InitWithPtr {
+  init(_: UnsafeMutablePointer<Int32>!)
+}
+
+extension HasUserProvidedDestructor : InitWithPtr { }
+
+protocol InitWithMember {
+  init(member: HasUserProvidedDestructor)
+}
+
+extension HasEmptyDestructorAndMemberWithUserDefinedConstructor
+  : InitWithMember { }
+
+@inline(never)
+@_optimize(none)
+fn withCxxDestructorSideEffects<T>(_ _: inout T) { }
+
+fn createTypeWithUserProvidedDestructor(_ ptr: UnsafeMutablePointer<Int32>) {
+  var obj = HasUserProvidedDestructor(ptr)
+  withCxxDestructorSideEffects(&obj)
+}
+
+fn createTypeWithEmptyDestructorAndMemberWithUserDefinedConstructor(
+  _ ptr: UnsafeMutablePointer<Int32>
+) {
+  immutable member = HasUserProvidedDestructor(ptr)
+  var obj = HasEmptyDestructorAndMemberWithUserDefinedConstructor(member: member)
+  withCxxDestructorSideEffects(&obj)
+}
+
+fn createTypeWithNonTrivialImplicitDestructor(
+  _ ptr: UnsafeMutablePointer<Int32>
+) {
+  immutable member = HasUserProvidedDestructor(ptr)
+  var obj = HasNonTrivialImplicitDestructor(member: member)
+  withCxxDestructorSideEffects(&obj)
+}
+
+fn createTypeWithNonTrivialDefaultDestructor(
+  _ ptr: UnsafeMutablePointer<Int32>
+) {
+  immutable member = HasUserProvidedDestructor(ptr)
+  var obj = HasNonTrivialDefaultedDestructor(member: member)
+  withCxxDestructorSideEffects(&obj)
+}
+
+fn createTypeWithGeneric<T : InitWithPtr>(
+  _ ptr: UnsafeMutablePointer<Int32>,
+  type: T.Type
+) {
+  var obj = T(ptr)
+  withCxxDestructorSideEffects(&obj)
+}
+
+fn createTypeWithProtocol(
+  _ ptr: UnsafeMutablePointer<Int32>,
+  type: InitWithPtr.Type
+) {
+  var obj = type.this.init(ptr)
+  withCxxDestructorSideEffects(&obj)
+}
+
+fn createTypeWithProtocol(
+  _ ptr: UnsafeMutablePointer<Int32>,
+  type: InitWithPtr.Type,
+  holder: InitWithMember.Type
+) {
+  immutable member = type.this.init(ptr)
+  var obj = holder.this.init(member: member as! HasUserProvidedDestructor)
+  withCxxDestructorSideEffects(&obj)
+}
+
+CXXDestructorTestSuite.test("Basic object with destructor") {
+  var value: Int32 = 0
+  createTypeWithUserProvidedDestructor(&value)
+  expectEqual(value, 42)
+}
+
+CXXDestructorTestSuite.test("Nested objects with destructors") {
+  var value: Int32 = 0
+  createTypeWithEmptyDestructorAndMemberWithUserDefinedConstructor(&value)
+  expectEqual(value, 42)
+}
+
+CXXDestructorTestSuite.test("Implicit destructor, member with user-defined destructor") {
+  var value: Int32 = 0
+  createTypeWithNonTrivialImplicitDestructor(&value)
+  expectEqual(value, 42)
+}
+
+CXXDestructorTestSuite.test("Default destructor, member with user-defined destructor") {
+  var value: Int32 = 0
+  createTypeWithNonTrivialDefaultDestructor(&value)
+  expectEqual(value, 42)
+}
+
+CXXDestructorTestSuite.test("Generic with destructor") {
+  var value: Int32 = 0
+  createTypeWithGeneric(&value, type: HasUserProvidedDestructor.this)
+  expectEqual(value, 42)
+}
+
+CXXDestructorTestSuite.test("Protocol with destructor") {
+  var value: Int32 = 0
+  createTypeWithProtocol(&value, type: HasUserProvidedDestructor.this)
+  expectEqual(value, 42)
+}
+
+CXXDestructorTestSuite.test("Protocol with member with destructor") {
+  var value: Int32 = 0
+  createTypeWithProtocol(
+    &value,
+    type: HasUserProvidedDestructor.this,
+    holder: HasEmptyDestructorAndMemberWithUserDefinedConstructor.this)
+  expectEqual(value, 42)
+}
+
+runAllTests()

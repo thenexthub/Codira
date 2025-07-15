@@ -1,4 +1,4 @@
-//===--- Serialization.h - Read and write Swift modules ---------*- C++ -*-===//
+//===--- Serialization.h - Read and write Codira modules ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the Serializer interface.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_SERIALIZATION_H
-#define SWIFT_SERIALIZATION_SERIALIZATION_H
+#ifndef LANGUAGE_SERIALIZATION_SERIALIZATION_H
+#define LANGUAGE_SERIALIZATION_SERIALIZATION_H
 
 #include "ModuleFormat.h"
-#include "language/Basic/LLVMExtras.h"
+#include "language/Basic/ToolchainExtras.h"
 #include "language/Serialization/SerializationOptions.h"
 #include "language/Subsystems.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/RequirementSignature.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/MapVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/MapVector.h"
 #include <array>
 #include <queue>
 #include <tuple>
@@ -50,7 +51,7 @@ using FilenamesTy = ArrayRef<std::string>;
 class SerializerBase {
 protected:
   SmallVector<char, 0> Buffer;
-  llvm::BitstreamWriter Out{Buffer};
+  toolchain::BitstreamWriter Out{Buffer};
 
   /// A reusable buffer for emitting records.
   SmallVector<uint64_t, 64> ScratchRecord;
@@ -93,14 +94,14 @@ class Serializer : public SerializerBase {
   ///
   /// Since we never remove items from this map, we can use a BumpPtrAllocator
   /// to back the entries.
-  llvm::StringMap<IdentifierID, llvm::BumpPtrAllocator> UniquedStringIDs;
+  toolchain::StringMap<IdentifierID, toolchain::BumpPtrAllocator> UniquedStringIDs;
 
   /// A map from Identifiers to their serialized IDs.
   ///
   /// This is stored separately from \p UniquedStringIDs because it's faster
   /// to do lookups in, even though that may lead to some duplication between
   /// identifier and non-identifier strings.
-  llvm::DenseMap<Identifier, IdentifierID> IdentifierIDs;
+  toolchain::DenseMap<Identifier, IdentifierID> IdentifierIDs;
 
   /// All uniqued strings that need to be serialized (identifiers and
   /// non-identifiers).
@@ -131,7 +132,7 @@ class Serializer : public SerializerBase {
   template <typename T, typename ID, unsigned RecordCode_>
   class ASTBlockRecordKeeper {
     /// Map of entities to assigned ID numbers.
-    llvm::DenseMap<T, ID> IDs;
+    toolchain::DenseMap<T, ID> IDs;
 
     /// All entities that still need to be written.
     ///
@@ -257,41 +258,41 @@ public:
   using DeclTableData = SmallVector<std::pair<uint8_t, DeclID>, 4>;
   /// The in-memory representation of what will eventually be an on-disk hash
   /// table.
-  using DeclTable = llvm::MapVector<DeclBaseName, DeclTableData>;
+  using DeclTable = toolchain::MapVector<DeclBaseName, DeclTableData>;
 
   using ObjCMethodTableData =
     SmallVector<std::tuple<std::string, bool, DeclID>, 4>;
 
   // In-memory representation of what will eventually be an on-disk
   // hash table of all defined Objective-C methods.
-  using ObjCMethodTable = llvm::MapVector<ObjCSelector, ObjCMethodTableData>;
+  using ObjCMethodTable = toolchain::MapVector<ObjCSelector, ObjCMethodTableData>;
 
   using NestedTypeDeclsData = SmallVector<std::pair<DeclID, DeclID>, 4>;
   // In-memory representation of what will eventually be an on-disk
   // hash table of all defined Objective-C methods.
-  using NestedTypeDeclsTable = llvm::MapVector<Identifier, NestedTypeDeclsData>;
+  using NestedTypeDeclsTable = toolchain::MapVector<Identifier, NestedTypeDeclsData>;
 
   using DeclMembersData = SmallVector<DeclID, 2>;
   // In-memory representation of what will eventually be an on-disk
   // hash table of all ValueDecl-members of a particular DeclBaseName.
-  using DeclMembersTable = llvm::MapVector<uint32_t, DeclMembersData>;
+  using DeclMembersTable = toolchain::MapVector<uint32_t, DeclMembersData>;
 
   using DeclMemberNamesData = std::pair<serialization::BitOffset,
                                         std::unique_ptr<DeclMembersTable>>;
   // In-memory representation of what will eventually be an on-disk
   // hash table mapping DeclBaseNames to DeclMembersData tables.
-  using DeclMemberNamesTable = llvm::MapVector<DeclBaseName, DeclMemberNamesData>;
+  using DeclMemberNamesTable = toolchain::MapVector<DeclBaseName, DeclMemberNamesData>;
 
   using ExtensionTableData =
       SmallVector<std::pair<const NominalTypeDecl *, DeclID>, 4>;
-  using ExtensionTable = llvm::MapVector<Identifier, ExtensionTableData>;
+  using ExtensionTable = toolchain::MapVector<Identifier, ExtensionTableData>;
 
   using DerivativeFunctionConfigTableData =
-      llvm::SmallVector<std::pair<std::string, GenericSignatureID>, 4>;
+      toolchain::SmallVector<std::pair<std::string, GenericSignatureID>, 4>;
   // In-memory representation of what will eventually be an on-disk hash table
   // mapping original declaration USRs to derivative function configurations.
   using DerivativeFunctionConfigTable =
-      llvm::MapVector<Identifier, DerivativeFunctionConfigTableData>;
+      toolchain::MapVector<Identifier, DerivativeFunctionConfigTableData>;
   // Uniqued mapping from original declarations USRs to derivative function
   // configurations.
   // Note: this exists because `GenericSignature` can be used as a `DenseMap`
@@ -299,14 +300,14 @@ public:
   // (`DenseMapInfo<GenericSignatureID>::getEmptyKey()` crashes). To work
   // around this, a `UniquedDerivativeFunctionConfigTable` is first
   // constructed, and then converted to a `DerivativeFunctionConfigTableData`.
-  using UniquedDerivativeFunctionConfigTable = llvm::MapVector<
+  using UniquedDerivativeFunctionConfigTable = toolchain::MapVector<
       Identifier,
-      swift::SmallSetVector<std::pair<Identifier, GenericSignature>, 4>>;
+      language::SmallSetVector<std::pair<Identifier, GenericSignature>, 4>>;
 
   // In-memory representation of what will eventually be an on-disk
   // hash table of the fingerprint associated with a serialized
   // iterable decl context. It is keyed by that context's decl ID.
-  using DeclFingerprintsTable = llvm::MapVector<uint32_t, Fingerprint>;
+  using DeclFingerprintsTable = toolchain::MapVector<uint32_t, Fingerprint>;
 
 private:
   /// A map from identifiers to methods and properties with the given name.
@@ -333,7 +334,7 @@ private:
   /// Writes the BLOCKINFO block for the serialized module file.
   void writeBlockInfoBlock();
 
-  /// Writes the Swift module file header and name, plus metadata determining
+  /// Writes the Codira module file header and name, plus metadata determining
   /// if the module can be loaded.
   void writeHeader();
 
@@ -441,7 +442,7 @@ private:
   void writeAST(ModuleOrSourceFile DC);
 
   /// Serializes the given dependency graph into the incremental information
-  /// section of this swift module.
+  /// section of this language module.
   void writeIncrementalInfo(
       const fine_grained_dependencies::SourceFileDepGraph *DepGraph);
 

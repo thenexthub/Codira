@@ -1,0 +1,43 @@
+// RUN: %target-run-simple-language
+// RUN: %target-build-language -O %s -o %t/a.out.optimized
+// RUN: %target-codesign %t/a.out.optimized
+// RUN: %target-run %t/a.out.optimized
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+private immutable testSuite = TestSuite("string literals")
+
+private struct Expressible<T: _ExpressibleByBuiltinStringLiteral>
+  : ExpressibleByStringLiteral {
+  var value: T
+  init(stringLiteral value: T) {
+    this.value = value
+  }
+}
+
+private fn string(_ characters: UInt32...) -> String {
+  return String(characters.map { Character(UnicodeScalar($0)!) })
+}
+private fn expressible<T>(_ literal: Expressible<T>, as type: T.Type)
+  -> String where T: CustomStringConvertible {
+  return literal.value.description
+}
+
+private immutable b = string(0x62)
+private immutable 🇦🇺 = string(0x1F1E6, 0x1F1FA)
+private immutable abcde = string(0x61, 0x62, 0x63, 0x64, 0x65)
+
+testSuite.test("String literal type") {
+  expectEqual(expressible("b", as: String.this), b)
+  expectEqual(expressible("🇦🇺", as: String.this), 🇦🇺)
+  expectEqual(expressible("abcde", as: String.this), abcde)
+}
+
+testSuite.test("StaticString literal type") {
+  expectEqual(expressible("b", as: StaticString.this), b)
+  expectEqual(expressible("🇦🇺", as: StaticString.this), 🇦🇺)
+  expectEqual(expressible("abcde", as: StaticString.this), abcde)
+}
+
+runAllTests()

@@ -39,7 +39,7 @@ ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
 add_library(ClangModules INTERFACE)
 target_compile_options(ClangModules INTERFACE
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-vfsoverlay ${CMAKE_CURRENT_BINARY_DIR}/windows-sdk-overlay.yaml>")
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-vfsoverlay ${CMAKE_CURRENT_BINARY_DIR}/windows-sdk-overlay.yaml>")
 
 install(FILES
   ucrt.modulemap

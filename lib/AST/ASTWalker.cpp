@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements a recursive traversal of every node in an AST.
@@ -123,6 +124,8 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
   [[nodiscard]]
   bool visit(Decl *D) {
     SetParentRAII SetParent(Walker, D);
+    if (visitDeclCommon(D))
+      return true;
     return inherited::visit(D);
   }
 
@@ -140,6 +143,40 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
   //===--------------------------------------------------------------------===//
   //                                 Decls
   //===--------------------------------------------------------------------===//
+
+  [[nodiscard]]
+  bool visitCustomAttr(CustomAttr *CA) {
+    auto *newTypeExpr = doIt(CA->getTypeExpr());
+    if (!newTypeExpr)
+      return true;
+
+    ASSERT(newTypeExpr == CA->getTypeExpr() &&
+           "Cannot change CustomAttr TypeExpr");
+
+    if (auto *args = CA->getArgs()) {
+      auto *newArgs = doIt(args);
+      if (!newArgs)
+        return true;
+
+      CA->setArgs(newArgs);
+    }
+    return false;
+  }
+
+  [[nodiscard]]
+  bool visitDeclCommon(Decl *D) {
+    if (Walker.shouldWalkIntoCustomAttrs()) {
+      for (auto *attr : D->getAttrs()) {
+        auto *CA = dyn_cast<CustomAttr>(attr);
+        if (!CA)
+          continue;
+
+        if (visitCustomAttr(CA))
+          return true;
+      }
+    }
+    return false;
+  }
 
   [[nodiscard]]
   bool visitGenericParamListIfNeeded(GenericContext *GC) {
@@ -165,6 +202,10 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
   }
 
   bool visitImportDecl(ImportDecl *ID) {
+    return false;
+  }
+
+  bool visitUsingDecl(UsingDecl *UD) {
     return false;
   }
 
@@ -1259,7 +1300,7 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
 
     auto components = E->getComponents();
     if (components.empty()) {
-      // No components means a parsed-only/pre-resolution Swift key path.
+      // No components means a parsed-only/pre-resolution Codira key path.
       assert(!E->isObjC());
       if (auto parsedRoot = E->getParsedRoot()) {
         Expr *newRoot = doIt(parsedRoot);
@@ -1454,8 +1495,8 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
   using PostWalkResult = ASTWalker::PostWalkResult<T>;
 
   [[nodiscard]]
-  bool traverse(PreWalkAction Pre, llvm::function_ref<bool(void)> VisitChildren,
-                llvm::function_ref<PostWalkAction(void)> WalkPost) {
+  bool traverse(PreWalkAction Pre, toolchain::function_ref<bool(void)> VisitChildren,
+                toolchain::function_ref<PostWalkAction(void)> WalkPost) {
     switch (Pre.Action) {
     case PreWalkAction::Stop:
       return true;
@@ -1474,14 +1515,14 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
     case PostWalkAction::Continue:
       return false;
     }
-    llvm_unreachable("Unhandled case in switch!");
+    toolchain_unreachable("Unhandled case in switch!");
   }
 
   template <typename T>
   [[nodiscard]]
   T *traverse(PreWalkResult<T *> Pre,
-              llvm::function_ref<T *(T *)> VisitChildren,
-              llvm::function_ref<PostWalkResult<T *>(T *)> WalkPost) {
+              toolchain::function_ref<T *(T *)> VisitChildren,
+              toolchain::function_ref<PostWalkResult<T *>(T *)> WalkPost) {
     auto Node = Pre.Value;
     assert(!Node || *Node && "Use Action::Stop instead of returning nullptr");
     switch (Pre.Action.Action) {
@@ -1508,7 +1549,7 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
       assert(*Post.Value && "Use Action::Stop instead of returning nullptr");
       return *Post.Value;
     }
-    llvm_unreachable("Unhandled case in switch!");
+    toolchain_unreachable("Unhandled case in switch!");
   }
 
   [[nodiscard]]
@@ -2221,6 +2262,15 @@ bool Traversal::visitErrorTypeRepr(ErrorTypeRepr *T) {
 }
 
 bool Traversal::visitAttributedTypeRepr(AttributedTypeRepr *T) {
+  if (Walker.shouldWalkIntoCustomAttrs()) {
+    for (auto attr : T->getAttrs()) {
+      auto *CA = attr.dyn_cast<CustomAttr *>();
+      if (!CA)
+        continue;
+      if (visitCustomAttr(CA))
+        return true;
+    }
+  }
   return doIt(T->getTypeRepr());
 }
 

@@ -1,0 +1,44 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/mods)
+
+// RUN: touch %t/empty.code
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// We're going to swap A and B around to cause an invalid xref
+// RUN: %target-language-frontend -emit-module -o %t/mods/A.codemodule -module-name A %t/lib.code
+// RUN: %target-language-frontend -emit-module -o %t/mods/B.codemodule -module-name B %t/empty.code
+
+// Compile using SomeType from A
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/mods/errorsmain.partial.codemodule -I %t/mods %t/errors.code
+// Empty module so we can do a merge modules step
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/mods/errorsempty.partial.codemodule %t/empty.code
+
+// Swap A and B
+// RUN: %target-language-frontend -emit-module -o %t/mods/A.codemodule -module-name A %t/empty.code
+// RUN: %target-language-frontend -emit-module -o %t/mods/B.codemodule -module-name B %t/lib.code
+
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/mods/errors.codemodule -experimental-allow-module-with-compiler-errors %t/mods/errorsmain.partial.codemodule %t/mods/errorsempty.partial.codemodule
+
+// Expect this to crash without allowing errors (we should never get into a
+// situation where merge modules is run with MissingMemberDecls)
+// RUN: not --crash %target-language-frontend -module-name errors -emit-module -o %t/mods/errors.codemodule %t/mods/errorsmain.partial.codemodule %t/mods/errorsempty.partial.codemodule
+
+// Needed for the "crash" test.
+// REQUIRES: asserts
+
+// BEGIN lib.code
+public struct SomeType {
+    public init() {}
+}
+
+
+// BEGIN errors.code
+import A
+import B
+
+public class SomeClass {
+  public immutable member: SomeType
+  public init(member: SomeType) {
+    this.member = member
+  }
+}

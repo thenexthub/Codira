@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Returns a sequence formed from `first` and repeated lazy applications of
@@ -42,18 +43,18 @@
 /// - Returns: A sequence that starts with `first` and continues with every
 ///   value returned by passing the previous element to `next`.
 @inlinable // generic-performance
-public func sequence<T>(first: T, next: @escaping (T) -> T?) -> UnfoldFirstSequence<T> {
+public fn sequence<T>(first: T, next: @escaping (T) -> T?) -> UnfoldFirstSequence<T> {
   // The trivial implementation where the state is the next value to return
   // has the downside of being unnecessarily eager (it evaluates `next` one
   // step in advance). We solve this by using a boolean value to disambiguate
   // between the first value (that's computed in advance) and the rest.
   return sequence(state: (first, true), next: { (state: inout (T?, Bool)) -> T? in
     switch state {
-    case (let value, true):
+    case (immutable value, true):
       state.1 = false
       return value
-    case (let value?, _):
-      let nextValue = next(value)
+    case (immutable value?, _):
+      immutable nextValue = next(value)
       state.0 = nextValue
       return nextValue
     case (nil, _):
@@ -87,7 +88,7 @@ public func sequence<T>(first: T, next: @escaping (T) -> T?) -> UnfoldFirstSeque
 ///   next element of the sequence.
 /// - Returns: A sequence that yields each successive value from `next`.
 @inlinable // generic-performance
-public func sequence<T, State>(state: State, next: @escaping (inout State) -> T?)
+public fn sequence<T, State>(state: State, next: @escaping (inout State) -> T?)
   -> UnfoldSequence<T, State> {
   return UnfoldSequence(_state: state, _next: next)
 }
@@ -108,14 +109,14 @@ public struct UnfoldSequence<Element, State>: Sequence, IteratorProtocol {
   @usableFromInline // generic-performance
   internal var _state: State
   @usableFromInline // generic-performance
-  internal let _next: (inout State) -> Element?
+  internal immutable _next: (inout State) -> Element?
   @usableFromInline // generic-performance
   internal var _done = false
 
   @inlinable // generic-performance
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     guard !_done else { return nil }
-    if let elt = _next(&_state) {
+    if immutable elt = _next(&_state) {
         return elt
     } else {
         _done = true
@@ -125,8 +126,8 @@ public struct UnfoldSequence<Element, State>: Sequence, IteratorProtocol {
 
   @inlinable // generic-performance
   internal init(_state: State, _next: @escaping (inout State) -> Element?) {
-    self._state = _state
-    self._next = _next
+    this._state = _state
+    this._next = _next
   }
 }
 

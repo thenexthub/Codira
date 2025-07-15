@@ -1,0 +1,45 @@
+// RUN: %target-language-frontend -emit-sil %s
+
+// These cases are similar to https://github.com/languagelang/language/issues/80657,
+// but we can avoid hitting the same issue for non-enum members.
+
+struct S {
+  immutable y = 0
+  fn foo(_ x: Int) {
+    immutable _ = { [this] in
+      switch x {
+      case y: break
+      default: break
+      }
+    }
+  }
+}
+
+class C {
+  immutable y = 0
+  fn foo(_ x: Int) {
+    immutable _ = { [this] in
+      switch x {
+      case y: break
+      default: break
+      }
+    }
+  }
+}
+
+enum E {
+  case e
+
+  fn bar() -> Int {0}
+
+  fn foo() {
+    _ = { [this] in
+      switch 0 {
+      case bar():
+        break
+      default:
+        break
+      }
+    }
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types for representing types and conformances
@@ -18,11 +19,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_PROTOCOLASSOCIATIONS_H
-#define SWIFT_AST_PROTOCOLASSOCIATIONS_H
+#ifndef LANGUAGE_AST_PROTOCOLASSOCIATIONS_H
+#define LANGUAGE_AST_PROTOCOLASSOCIATIONS_H
 
 #include "language/AST/Decl.h"
-#include "llvm/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/DenseMapInfo.h"
 
 namespace language {
 
@@ -53,7 +54,7 @@ class AssociatedConformance {
   CanType Association;
   ProtocolDecl *Requirement;
 
-  using SourceInfo = llvm::DenseMapInfo<ProtocolDecl*>;
+  using SourceInfo = toolchain::DenseMapInfo<ProtocolDecl*>;
 
   explicit AssociatedConformance(ProtocolDecl *specialValue)
       : Source(specialValue), Association(CanType()), Requirement(nullptr) {}
@@ -89,7 +90,7 @@ public:
   }
 
   unsigned getHashValue() const {
-    return hash_value(llvm::hash_combine(Source,
+    return hash_value(toolchain::hash_combine(Source,
                                          Association.getPointer(),
                                          Requirement));
   }
@@ -104,22 +105,22 @@ public:
 
 } // end namespace language
 
-namespace llvm {
-  template <> struct DenseMapInfo<swift::AssociatedConformance> {
-    static inline swift::AssociatedConformance getEmptyKey() {
-      return swift::AssociatedConformance::getEmptyKey();
+namespace toolchain {
+  template <> struct DenseMapInfo<language::AssociatedConformance> {
+    static inline language::AssociatedConformance getEmptyKey() {
+      return language::AssociatedConformance::getEmptyKey();
     }
 
-    static inline swift::AssociatedConformance getTombstoneKey() {
-      return swift::AssociatedConformance::getTombstoneKey();
+    static inline language::AssociatedConformance getTombstoneKey() {
+      return language::AssociatedConformance::getTombstoneKey();
     }
 
-    static unsigned getHashValue(swift::AssociatedConformance val) {
+    static unsigned getHashValue(language::AssociatedConformance val) {
       return val.getHashValue();
     }
 
-    static bool isEqual(swift::AssociatedConformance lhs,
-                        swift::AssociatedConformance rhs) {
+    static bool isEqual(language::AssociatedConformance lhs,
+                        language::AssociatedConformance rhs) {
       return lhs == rhs;
     }
   };

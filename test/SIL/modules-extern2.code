@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-as-library
+// RUN: %target-language-frontend -c -I %t %t/Main.code -o %t/a.o
+
+// BEGIN MyModule.code
+
+@_silgen_name("some_forward_declared_api")
+@_alwaysEmitIntoClient
+fn some_forward_declared_api()
+
+@_transparent
+public fn publicFuncInAModule() {
+  some_forward_declared_api()
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+@_silgen_name("some_forward_declared_api")
+fn some_forward_declared_api()
+
+some_forward_declared_api()
+publicFuncInAModule()

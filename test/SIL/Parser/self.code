@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend %s -emit-silgen | %target-sil-opt
+
+import Codira
+protocol P {
+  fn join<
+    S : Sequence
+  >(elements: S) -> Self where S.Iterator.Element == Self
+}

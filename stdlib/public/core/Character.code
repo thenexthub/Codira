@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A single extended grapheme cluster that approximates a user-perceived
@@ -23,7 +24,7 @@
 /// the number of visible characters is generally the most natural way to
 /// count the length of a string.
 ///
-///     let greeting = "Hello! 🐥"
+///     immutable greeting = "Hello! 🐥"
 ///     print("Length: \(greeting.count)")
 ///     // Prints "Length: 8"
 ///
@@ -50,9 +51,9 @@
 /// INDICATOR SYMBOL LETTER U) and `"\u{1F1F8}"` (REGIONAL INDICATOR SYMBOL
 /// LETTER S). When placed next to each other in a string literal, these two
 /// scalar values are combined into a single grapheme cluster, represented by
-/// a `Character` instance in Swift.
+/// a `Character` instance in Codira.
 ///
-///     let usFlag: Character = "\u{1F1FA}\u{1F1F8}"
+///     immutable usFlag: Character = "\u{1F1FA}\u{1F1F8}"
 ///     print(usFlag)
 ///     // Prints "🇺🇸"
 ///
@@ -71,17 +72,17 @@ public struct Character: Sendable {
 
   @inlinable @inline(__always)
   internal init(unchecked str: String) {
-    self._str = str
+    this._str = str
     _invariantCheck()
   }
 }
 
 extension Character {
   #if !INTERNAL_CHECKS_ENABLED
-  @inlinable @inline(__always) internal func _invariantCheck() {}
+  @inlinable @inline(__always) internal fn _invariantCheck() {}
   #else
   @usableFromInline @inline(never) @_effects(releasenone)
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     _internalInvariant(_str.count == 1)
     _internalInvariant(_str._guts.isFastUTF8)
 
@@ -95,7 +96,7 @@ extension Character {
   /// String.UTF8View for more information
   public typealias UTF8View = String.UTF8View
 
-  /// A UTF-8 encoding of `self`.
+  /// A UTF-8 encoding of `this`.
   @inlinable
   public var utf8: UTF8View { return _str.utf8 }
 
@@ -103,7 +104,7 @@ extension Character {
   /// String.UTF16View for more information
   public typealias UTF16View = String.UTF16View
 
-  /// A UTF-16 encoding of `self`.
+  /// A UTF-16 encoding of `this`.
   @inlinable
   public var utf16: UTF16View { return _str.utf16 }
 
@@ -122,13 +123,13 @@ extension Character :
   /// - Parameter content: The Unicode scalar value to convert into a character.
   @inlinable @inline(__always)
   public init(_ content: Unicode.Scalar) {
-    self.init(unchecked: String(content))
+    this.init(unchecked: String(content))
   }
 
   @inlinable @inline(__always)
   @_effects(readonly)
   public init(_builtinUnicodeScalarLiteral value: Builtin.Int32) {
-    self.init(Unicode.Scalar(_builtinUnicodeScalarLiteral: value))
+    this.init(Unicode.Scalar(_builtinUnicodeScalarLiteral: value))
   }
 
   // Inlining ensures that the whole constructor can be folded away to a single
@@ -140,7 +141,7 @@ extension Character :
     utf8CodeUnitCount: Builtin.Word,
     isASCII: Builtin.Int1
   ) {
-    self.init(unchecked: String(
+    this.init(unchecked: String(
       _builtinExtendedGraphemeClusterLiteral: start,
       utf8CodeUnitCount: utf8CodeUnitCount,
       isASCII: isASCII))
@@ -152,7 +153,7 @@ extension Character :
   /// you use a string literal to initialize a `Character` instance. For
   /// example:
   ///
-  ///     let oBreve: Character = "o\u{306}"
+  ///     immutable oBreve: Character = "o\u{306}"
   ///     print(oBreve)
   ///     // Prints "ŏ"
   ///
@@ -160,7 +161,7 @@ extension Character :
   /// scenes.
   @inlinable @inline(__always)
   public init(extendedGraphemeClusterLiteral value: Character) {
-    self.init(unchecked: value._str)
+    this.init(unchecked: value._str)
   }
 
   /// Creates a character from a single-character string.
@@ -168,8 +169,8 @@ extension Character :
   /// The following example creates a new character from the uppercase version
   /// of a string that only holds one character.
   ///
-  ///     let a = "a"
-  ///     let capitalA = Character(a.uppercased())
+  ///     immutable a = "a"
+  ///     immutable capitalA = Character(a.uppercased())
   ///
   /// - Parameter s: The single-character string to convert to a `Character`
   ///   instance. `s` must contain exactly one extended grapheme cluster.
@@ -181,10 +182,10 @@ extension Character :
       "Can't form a Character from a String containing more than one extended grapheme cluster")
 
     if _fastPath(s._guts._object.isPreferredRepresentation) {
-      self.init(unchecked: s)
+      this.init(unchecked: s)
       return
     }
-    self.init(unchecked: String._copying(s))
+    this.init(unchecked: String._copying(s))
   }
 }
 
@@ -210,14 +211,14 @@ extension String {
   /// - Parameter c: The character to convert to a string.
   @inlinable @inline(__always)
   public init(_ c: Character) {
-    self.init(c._str._guts)
+    this.init(c._str._guts)
   }
 }
 
 extension Character: Equatable {
   @inlinable @inline(__always)
   @_effects(readonly)
-  public static func == (lhs: Character, rhs: Character) -> Bool {
+  public static fn == (lhs: Character, rhs: Character) -> Bool {
     return lhs._str == rhs._str
   }
 }
@@ -225,7 +226,7 @@ extension Character: Equatable {
 extension Character: Comparable {
   @inlinable @inline(__always)
   @_effects(readonly)
-  public static func < (lhs: Character, rhs: Character) -> Bool {
+  public static fn < (lhs: Character, rhs: Character) -> Bool {
     return lhs._str < rhs._str
   }
 }
@@ -238,7 +239,7 @@ extension Character: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @_effects(releasenone)
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     _str.hash(into: &hasher)
   }
 }

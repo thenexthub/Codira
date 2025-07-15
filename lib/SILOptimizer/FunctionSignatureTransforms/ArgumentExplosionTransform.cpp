@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -25,13 +26,13 @@
 #define DEBUG_TYPE "fso-argument-explosion-transform"
 #include "FunctionSignatureOpts.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool> FSODisableArgExplosion(
+static toolchain::cl::opt<bool> FSODisableArgExplosion(
     "sil-fso-disable-arg-explosion",
-    llvm::cl::desc("Do not perform argument explosion during FSO. Intended "
+    toolchain::cl::desc("Do not perform argument explosion during FSO. Intended "
                    "only for testing purposes"));
 
 //===----------------------------------------------------------------------===//
@@ -138,7 +139,7 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
 
   // No passes can optimize this argument, so just bail.
   if (!argDesc.canOptimizeLiveArg()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "The argument is of a type that cannot be exploded.");
     return false;
   }
@@ -150,7 +151,7 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
   // Note that ProjectionTree::isSingleton returns true for enums since they are
   // sums and not products and so only have a single top-level node.
   if (argDesc.ProjTree.isSingleton()) {
-    LLVM_DEBUG(llvm::dbgs() << "The argument's type is a singleton.");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "The argument's type is a singleton.");
     return false;
   }
 
@@ -161,7 +162,7 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
   // If the global type expansion heuristic does not allow the type to be
   // expanded, it will not be exploded.
   if (!shouldExpand(module, type)) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "The argument is of a type which should not be expanded.");
     return false;
   }
@@ -179,13 +180,13 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
   // Explosion makes sense only if some but not all of the leaves are live.  The
   // dead argument transformation will try to eliminate the argument.
   if (!mayExplodeGivenLiveLeafCountUpperBound(liveLeafCountUpperBound)) {
-    LLVM_DEBUG(llvm::dbgs() << "The argument has no live leaves.");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "The argument has no live leaves.");
     return false;
   }
 
   // To determine whether some but not all of the leaves are used, the total
   // leaf count must be retrieved.
-  llvm::SmallVector<SILType, 32> allLeaves;
+  toolchain::SmallVector<SILType, 32> allLeaves;
   argDesc.ProjTree.getAllLeafTypes(allLeaves);
   unsigned const leafCount = allLeaves.size();
 
@@ -199,8 +200,8 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
           /*hasKnownDeadNontrivialLeaves=*/false,
           /*willSpecializationIntroduceThunk=*/
           willSpecializationIntroduceThunk)) {
-    LLVM_DEBUG(
-        llvm::dbgs()
+    TOOLCHAIN_DEBUG(
+        toolchain::dbgs()
         << "Without considering the liveness of non-trivial leaves, it has "
            "already been determined that there are already fewer ("
         << liveLeafCountUpperBound
@@ -215,16 +216,16 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
   }
 
   auto *function = argument->getFunction();
-  unsigned const nontrivialLeafCount = llvm::count_if(
+  unsigned const nontrivialLeafCount = toolchain::count_if(
       allLeaves, [&](SILType type) { return !type.isTrivial(*function); });
 
-  llvm::SmallVector<const ProjectionTreeNode *, 32> liveLeaves;
+  toolchain::SmallVector<const ProjectionTreeNode *, 32> liveLeaves;
   argDesc.ProjTree.getLiveLeafNodes(liveLeaves);
   // NOTE: The value obtained here is an upper bound because the
   //       owned-to-guaranteed transformation may eliminate some live
   //       non-trivial leaves, leaving the count lower.
   unsigned const liveNontrivialLeafCountUpperBound =
-      llvm::count_if(liveLeaves, [&](const ProjectionTreeNode *leaf) {
+      toolchain::count_if(liveLeaves, [&](const ProjectionTreeNode *leaf) {
         return !leaf->getType().isTrivial(*function);
       });
 
@@ -248,8 +249,8 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
           nontrivialLeafCount,
       /*willSpecializationIntroduceThunk=*/willSpecializationIntroduceThunk);
   if (shouldExplodeGivenUpperBounds) {
-    LLVM_DEBUG(
-        llvm::dbgs()
+    TOOLCHAIN_DEBUG(
+        toolchain::dbgs()
         << "Without considering the expected results of the "
            "owned-to-guaranteed transformation, there are already fewer ("
         << liveNontrivialLeafCountUpperBound
@@ -285,11 +286,11 @@ shouldExplode(FunctionSignatureTransformDescriptor &transformDesc,
     if (auto maybeReleases =
             epilogueReleaseMatcher.getPartiallyPostDomReleaseSet(argument)) {
       auto releases = maybeReleases.value();
-      llvm::SmallPtrSet<SILInstruction *, 8> users;
+      toolchain::SmallPtrSet<SILInstruction *, 8> users;
       users.insert(std::begin(releases), std::end(releases));
 
       for (auto *leaf : liveLeaves) {
-        if (llvm::all_of(leaf->getNonProjUsers(), [&](Operand *operand) {
+        if (toolchain::all_of(leaf->getNonProjUsers(), [&](Operand *operand) {
               return users.count(operand->getUser());
             })) {
           // Every non-projection user of the leaf is an epilogue release.  The
@@ -385,11 +386,11 @@ void FunctionSignatureTransform::ArgumentExplosionFinalizeOptimizedFunction() {
     // OK, we need to explode this argument.
     unsigned ArgOffset = ++TotalArgIndex;
     unsigned OldArgIndex = ArgOffset - 1;
-    llvm::SmallVector<SILValue, 8> LeafValues;
+    toolchain::SmallVector<SILValue, 8> LeafValues;
 
     // We do this in the same order as leaf types since ProjTree expects that
     // the order of leaf values matches the order of leaf types.
-    llvm::SmallVector<const ProjectionTreeNode *, 8> LeafNodes;
+    toolchain::SmallVector<const ProjectionTreeNode *, 8> LeafNodes;
     AD.ProjTree.getLiveLeafNodes(LeafNodes);
 
     for (auto *Node : LeafNodes) {

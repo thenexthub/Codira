@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This top-level API rewrites the extended lifetime of a SILValue:
@@ -83,16 +84,16 @@
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 
 using namespace language;
-using llvm::SmallSetVector;
+using toolchain::SmallSetVector;
 
-llvm::Statistic swift::NumCopiesAndMovesEliminated = {
+toolchain::Statistic language::NumCopiesAndMovesEliminated = {
     DEBUG_TYPE, "NumCopiesAndMovesEliminated",
     "number of copy_value and move_value instructions removed"};
 
-llvm::Statistic swift::NumCopiesGenerated = {
+toolchain::Statistic language::NumCopiesGenerated = {
     DEBUG_TYPE, "NumCopiesGenerated",
     "number of copy_value instructions created"};
 
@@ -133,8 +134,8 @@ static bool isDestroyOfCopyOf(SILInstruction *instruction, SILValue def) {
 //===----------------------------------------------------------------------===//
 
 bool CanonicalizeOSSALifetime::computeCanonicalLiveness() {
-  LLVM_DEBUG(llvm::dbgs() << "Computing canonical liveness from:\n";
-             getCurrentDef()->print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Computing canonical liveness from:\n";
+             getCurrentDef()->print(toolchain::dbgs()));
   SmallVector<unsigned, 8> indexWorklist;
   ValueSet visitedDefs(getCurrentDef()->getFunction());
   auto addDefToWorklist = [&](Def def) {
@@ -158,12 +159,12 @@ bool CanonicalizeOSSALifetime::computeCanonicalLiveness() {
     auto index = indexWorklist.pop_back_val();
     auto def = discoveredDefs[index];
     auto value = def.value;
-    LLVM_DEBUG(llvm::dbgs() << "  Uses of value:\n";
-               value->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Uses of value:\n";
+               value->print(toolchain::dbgs()));
 
     for (Operand *use : value->getUses()) {
-      LLVM_DEBUG(llvm::dbgs() << "    Use:\n";
-                 use->getUser()->print(llvm::dbgs()));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Use:\n";
+                 use->getUser()->print(toolchain::dbgs()));
 
       auto *user = use->getUser();
       // Recurse through copies.
@@ -200,13 +201,13 @@ bool CanonicalizeOSSALifetime::computeCanonicalLiveness() {
       case OperandOwnership::NonUse:
         break;
       case OperandOwnership::TrivialUse:
-        llvm_unreachable("this operand cannot handle ownership");
+        toolchain_unreachable("this operand cannot handle ownership");
 
       // Conservatively treat a conversion to an unowned value as a pointer
       // escape. Is it legal to canonicalize ForwardingUnowned?
       case OperandOwnership::ForwardingUnowned:
       case OperandOwnership::PointerEscape:
-        LLVM_DEBUG(llvm::dbgs() << "      Value escaped! Giving up\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "      Value escaped! Giving up\n");
         return false;
       case OperandOwnership::InstantaneousUse:
       case OperandOwnership::UnownedInstantaneousUse:
@@ -236,7 +237,7 @@ bool CanonicalizeOSSALifetime::computeCanonicalLiveness() {
       case OperandOwnership::Borrow:
         if (liveness->updateForBorrowingOperand(use)
               != InnerBorrowKind::Contained) {
-          LLVM_DEBUG(llvm::dbgs() << "      Inner borrow can't be contained! Giving up\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "      Inner borrow can't be contained! Giving up\n");
           return false;
         }
         break;
@@ -244,7 +245,7 @@ bool CanonicalizeOSSALifetime::computeCanonicalLiveness() {
       case OperandOwnership::AnyInteriorPointer:
         if (liveness->checkAndUpdateInteriorPointer(use) !=
             AddressUseKind::NonEscaping) {
-          LLVM_DEBUG(llvm::dbgs()
+          TOOLCHAIN_DEBUG(toolchain::dbgs()
                      << "      Inner address use is escaping! Giving up\n");
           return false;
         }
@@ -343,13 +344,13 @@ void CanonicalizeOSSALifetime::extendLivenessToDeadEnds() {
   //
   // OSSALifetimeCompletion considers the lifetime of a single value.  Such
   // lifetimes never continue beyond consumes.
-  std::optional<llvm::SmallPtrSet<SILInstruction *, 8>> lastUsers;
+  std::optional<toolchain::SmallPtrSet<SILInstruction *, 8>> lastUsers;
   auto isConsumeOnBoundary = [&](SILInstruction *instruction) -> bool {
     if (!lastUsers) {
       // Avoid computing lastUsers if possible.
       auto *function = getCurrentDef()->getFunction();
       auto *deadEnds = deadEndBlocksAnalysis->get(function);
-      llvm::SmallVector<SILBasicBlock *, 8> completeConsumingBlocks(
+      toolchain::SmallVector<SILBasicBlock *, 8> completeConsumingBlocks(
           consumingBlocks.getArrayRef());
       for (auto &block : *function) {
         if (!deadEnds->isDeadEnd(&block))
@@ -533,7 +534,7 @@ endsAccessOverlappingPrunedBoundary(SILInstruction *inst) {
     return domTree->properlyDominates(beginAccess->getParent(),
                                       getCurrentDef()->getParentBlock());
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 // Find all overlapping access scopes and extend pruned liveness to cover them:
@@ -624,12 +625,12 @@ void CanonicalizeOSSALifetime::extendLivenessThroughOverlappingAccess() {
       // original liveness ended.
       bool findLastConsume =
           consumingBlocks.contains(bb)
-          && llvm::none_of(bb->getSuccessorBlocks(), [&](auto *successor) {
+          && toolchain::none_of(bb->getSuccessorBlocks(), [&](auto *successor) {
                return blocksToVisit.contains(successor)
                       && liveness->getBlockLiveness(successor)
                              == PrunedLiveBlocks::Dead;
              });
-      for (auto &inst : llvm::reverse(*bb)) {
+      for (auto &inst : toolchain::reverse(*bb)) {
         if (findLastConsume) {
           findLastConsume = !destroys.contains(&inst);
           continue;
@@ -698,7 +699,7 @@ void CanonicalizeOSSALifetime::findOriginalBoundary(
 ///   [Extend liveness down to the boundary between green blocks and uncolored.]
 void CanonicalizeOSSALifetime::visitExtendedUnconsumedBoundary(
     ArrayRef<SILInstruction *> consumes,
-    llvm::function_ref<void(SILInstruction *, PrunedLiveness::LifetimeEnding)>
+    toolchain::function_ref<void(SILInstruction *, PrunedLiveness::LifetimeEnding)>
         visitor) {
   auto currentDef = getCurrentDef();
 
@@ -823,7 +824,7 @@ namespace {
 /// values with overlapping live ranges and failing to find a fixed point
 /// because their destroys are repeatedly hoisted over one another.
 class ExtendBoundaryToDestroys final {
-  using InstructionPredicate = llvm::function_ref<bool(SILInstruction *)>;
+  using InstructionPredicate = toolchain::function_ref<bool(SILInstruction *)>;
   SSAPrunedLiveness &liveness;
   PrunedLivenessBoundary const &originalBoundary;
   SILValue currentDef;
@@ -1189,10 +1190,10 @@ void CanonicalizeOSSALifetime::insertDestroysOnBoundary(
           insertDestroyBeforeInstruction(insertionPoint, getCurrentDef(),
                                          isDeadEnd(insertionPoint), consumes,
                                          newDestroys, getCallbacks());
-          LLVM_DEBUG(llvm::dbgs() << "  Destroy after terminator "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Destroy after terminator "
                                   << *instruction << " at beginning of ";
-                     successor->printID(llvm::dbgs(), false);
-                     llvm::dbgs() << "\n";);
+                     successor->printID(toolchain::dbgs(), false);
+                     toolchain::dbgs() << "\n";);
         }
         continue;
       }
@@ -1200,7 +1201,7 @@ void CanonicalizeOSSALifetime::insertDestroysOnBoundary(
       insertDestroyBeforeInstruction(insertionPoint, getCurrentDef(),
                                      isDeadEnd(insertionPoint), consumes,
                                      newDestroys, getCallbacks());
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "  Destroy at last use " << insertionPoint << "\n");
       continue;
     }
@@ -1210,7 +1211,7 @@ void CanonicalizeOSSALifetime::insertDestroysOnBoundary(
     insertDestroyBeforeInstruction(insertionPoint, getCurrentDef(),
                                    isDeadEnd(insertionPoint), consumes,
                                    newDestroys, getCallbacks());
-    LLVM_DEBUG(llvm::dbgs() << "  Destroy on edge " << edgeDestination << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Destroy on edge " << edgeDestination << "\n");
   }
   for (auto *def : boundary.deadDefs) {
     if (auto *arg = dyn_cast<SILArgument>(def)) {
@@ -1218,7 +1219,7 @@ void CanonicalizeOSSALifetime::insertDestroysOnBoundary(
       insertDestroyBeforeInstruction(insertionPoint, getCurrentDef(),
                                      isDeadEnd(insertionPoint), consumes,
                                      newDestroys, getCallbacks());
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "  Destroy after dead def arg " << arg << "\n");
     } else {
       auto *instruction = cast<SILInstruction>(def);
@@ -1227,7 +1228,7 @@ void CanonicalizeOSSALifetime::insertDestroysOnBoundary(
       insertDestroyBeforeInstruction(insertionPoint, getCurrentDef(),
                                      isDeadEnd(insertionPoint), consumes,
                                      newDestroys, getCallbacks());
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "  Destroy after dead def inst " << instruction << "\n");
     }
   }
@@ -1240,7 +1241,7 @@ void CanonicalizeOSSALifetime::insertDestroysOnBoundary(
 /// The lifetime extends beyond given consuming use. Copy the value.
 ///
 /// This can set the operand value, but cannot invalidate the use iterator.
-void swift::copyLiveUse(Operand *use, InstModCallbacks &instModCallbacks) {
+void language::copyLiveUse(Operand *use, InstModCallbacks &instModCallbacks) {
   SILInstruction *user = use->getUser();
   SILBuilderWithScope builder(user->getIterator());
 
@@ -1250,7 +1251,7 @@ void swift::copyLiveUse(Operand *use, InstModCallbacks &instModCallbacks) {
   use->set(copy);
 
   ++NumCopiesGenerated;
-  LLVM_DEBUG(llvm::dbgs() << "  Copying at last use " << *copy);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Copying at last use " << *copy);
 }
 
 /// Revisit the def-use chain of currentDef. Mark unneeded original
@@ -1277,7 +1278,7 @@ void CanonicalizeOSSALifetime::rewriteCopies(
       // delete it.
       if (!consumes.claimConsume(destroy)) {
         instsToDelete.insert(destroy);
-        LLVM_DEBUG(llvm::dbgs() << "  Removing " << *destroy);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Removing " << *destroy);
         ++NumDestroysEliminated;
       } else if (pruneDebugMode) {
         // If this destroy was marked as a final destroy, add it to liveness so
@@ -1345,7 +1346,7 @@ void CanonicalizeOSSALifetime::rewriteCopies(
           reusedCopyOp->set(srcCopy);
         } else {
           if (instsToDelete.insert(srcCopy)) {
-            LLVM_DEBUG(llvm::dbgs() << "  Removing " << *srcCopy);
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Removing " << *srcCopy);
             ++NumCopiesAndMovesEliminated;
           }
         }
@@ -1366,7 +1367,7 @@ void CanonicalizeOSSALifetime::rewriteCopies(
               deadEndBlocksAnalysis->get(getCurrentDef()->getFunction()))) {
         continue;
       }
-      LLVM_DEBUG(llvm::dbgs() << "  Removing debug_value: " << *dvi);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Removing debug_value: " << *dvi);
       deleter.forceDelete(dvi);
     }
   }
@@ -1382,10 +1383,10 @@ void CanonicalizeOSSALifetime::rewriteCopies(
 //===----------------------------------------------------------------------===//
 
 bool CanonicalizeOSSALifetime::computeLiveness() {
-  LLVM_DEBUG(llvm::dbgs() << "  Canonicalizing: " << currentDef);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Canonicalizing: " << currentDef);
 
   if (currentDef->getOwnershipKind() != OwnershipKind::Owned) {
-    LLVM_DEBUG(llvm::dbgs() << "  not owned, never mind\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  not owned, never mind\n");
     return false;
   }
 
@@ -1405,11 +1406,11 @@ bool CanonicalizeOSSALifetime::computeLiveness() {
 
   // Step 1: compute liveness
   if (!computeCanonicalLiveness()) {
-    LLVM_DEBUG(llvm::dbgs() << "Failed to compute canonical liveness?!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Failed to compute canonical liveness?!\n");
     clear();
     return false;
   }
-  if (respectsDeadEnds()) {
+  if (respectsDeadEnds() && hasAnyDeadEnds()) {
     if (respectsDeinitBarriers()) {
       extendLexicalLivenessToDeadEnds();
     }
@@ -1466,7 +1467,7 @@ bool CanonicalizeOSSALifetime::canonicalizeValueLifetime(
 
   // Step 1: Compute liveness.
   if (!computeLiveness()) {
-    LLVM_DEBUG(llvm::dbgs() << "Failed to compute liveness boundary!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Failed to compute liveness boundary!\n");
     return false;
   }
 
@@ -1511,7 +1512,7 @@ static FunctionTest CanonicalizeOSSALifetimeTest(
         lexicalLifetimeEnds.push_back(arguments.takeInstruction());
       }
       canonicalizer.canonicalizeValueLifetime(value, lexicalLifetimeEnds);
-      function.print(llvm::outs());
+      function.print(toolchain::outs());
     });
 } // end namespace language::test
 
@@ -1519,10 +1520,10 @@ static FunctionTest CanonicalizeOSSALifetimeTest(
 //                              MARK: Debugging
 //===----------------------------------------------------------------------===//
 
-SWIFT_ASSERT_ONLY_DECL(
+LANGUAGE_ASSERT_ONLY_DECL(
   void CanonicalOSSAConsumeInfo::dump() const {
-    llvm::dbgs() << "Consumes:";
+    toolchain::dbgs() << "Consumes:";
     for (auto &blockAndInst : finalBlockConsumes) {
-      llvm::dbgs() << "  " << *blockAndInst.getSecond();
+      toolchain::dbgs() << "  " << *blockAndInst.getSecond();
     }
   })

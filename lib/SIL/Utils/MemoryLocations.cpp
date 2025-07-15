@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-memory-locations"
@@ -21,7 +22,7 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -146,7 +147,7 @@ void MemoryLocations::analyzeLocations(SILFunction *function) {
       if (!function->getConventions().useLoweredAddresses())
         break;
 
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case SILArgumentConvention::Indirect_Inout:
       analyzeLocation(funcArg);
       break;
@@ -251,7 +252,7 @@ const MemoryLocations::Bits &MemoryLocations::getNonTrivialLocations() {
 void MemoryLocations::dump() const {
   unsigned idx = 0;
   for (const Location &loc : locations) {
-    llvm::dbgs() << "location #" << idx << ": sublocs=" << loc.subLocations
+    toolchain::dbgs() << "location #" << idx << ": sublocs=" << loc.subLocations
                  << ", parent=" << loc.parentIdx
                  << ", parentbits=" << loc.selfAndParents
                  << ", #f=" << loc.numFieldsNotCoveredBySubfields
@@ -464,7 +465,7 @@ void MemoryLocations::initFieldsCounter(Location &loc) {
   SILFunction *function = loc.representativeValue->getFunction();
   SILType ty = loc.representativeValue->getType();
   if (StructDecl *decl = ty.getStructOrBoundGenericStruct()) {
-    if (decl->isResilient(function->getModule().getSwiftModule(),
+    if (decl->isResilient(function->getModule().getCodiraModule(),
                           function->getResilienceExpansion())) {
       loc.numFieldsNotCoveredBySubfields = INT_MAX;
       return;

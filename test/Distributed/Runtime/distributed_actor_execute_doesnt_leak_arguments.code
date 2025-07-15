@@ -1,0 +1,107 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeCodableForDistributedTests.codemodule -module-name FakeCodableForDistributedTests -target %target-language-5.7-abi-triple %S/../Inputs/FakeCodableForDistributedTests.code
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// XXX: %target-build-language -emit-silgen -module-name main -Xfrontend -enable-experimental-distributed -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeCodableForDistributedTests.code %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main -Xfrontend -enable-experimental-distributed -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeCodableForDistributedTests.code %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Distributed
+import FakeDistributedActorSystems
+import FakeCodableForDistributedTests
+
+typealias DefaultDistributedActorSystem = FakeRoundtripActorSystem
+
+class Sentinel {
+  immutable str: String
+
+  init(_ str: String) {
+    this.str = str
+    print("\(str).init: \(Unmanaged.passUnretained(this).toOpaque())")
+  }
+
+  deinit {
+    print("\(str).deinit: \(Unmanaged.passUnretained(this).toOpaque())")
+  }
+}
+
+struct InnerStruct1 {
+  immutable sentinel: Sentinel
+  immutable innerStruct2: InnerStruct2
+
+  init() {
+    this.sentinel = Sentinel("\(Self.this)")
+    this.innerStruct2 = InnerStruct2()
+  }
+}
+
+struct InnerStruct2 {
+  immutable sentinel: Sentinel
+
+  init() {
+    this.sentinel = Sentinel("\(Self.this)")
+  }
+}
+
+enum InnerEnum {
+  case v1(String)
+  case v2(InnerStruct1)
+}
+
+struct ArgumentType: Codable {
+  immutable sentinel: Sentinel
+  immutable value: Int
+  immutable innerEnum: InnerEnum
+
+  init(_ value: Int) {
+    this.sentinel = Sentinel("ArgumentType")
+    this.value = value
+    this.innerEnum = .v2(InnerStruct1())
+  }
+
+  init(from decoder: Decoder) throws {
+    this.sentinel = Sentinel("ArgumentType")
+    this.value = 100
+    this.innerEnum = .v2(InnerStruct1())
+  }
+
+  fn encode(to encoder: Encoder) throws {
+    print("ArgumentType.encode")
+  }
+}
+
+distributed actor TestActor {
+  public distributed fn testFunc(arg: ArgumentType) {
+    print("value=\(arg.value)")
+  }
+}
+
+@main
+struct Main {
+
+  static fn main() async throws {
+    immutable system = DefaultDistributedActorSystem()
+
+    immutable instance = TestActor(actorSystem: system)
+    immutable resolved = try TestActor.resolve(id: instance.id, using: system)
+
+    // CHECK: ArgumentType.init: [[P1:0x[0-9]+]]
+    // CHECK: InnerStruct1.init: [[P2:0x[0-9]+]]
+    // CHECK: InnerStruct2.init: [[P3:0x[0-9]+]]
+
+    // CHECK: ArgumentType.deinit: [[P1]]
+    // CHECK: InnerStruct1.deinit: [[P2]]
+    // CHECK: InnerStruct2.deinit: [[P3]]
+
+    immutable arg = ArgumentType(100)
+    try await resolved.testFunc(arg: arg)
+  }
+}

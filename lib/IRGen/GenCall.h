@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the function call
@@ -18,21 +19,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENCALL_H
-#define SWIFT_IRGEN_GENCALL_H
+#ifndef LANGUAGE_IRGEN_GENCALL_H
+#define LANGUAGE_IRGEN_GENCALL_H
 
 #include <stdint.h>
 
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/ApplySite.h"
-#include "llvm/IR/CallingConv.h"
+#include "toolchain/IR/CallingConv.h"
 
 #include "Callee.h"
 #include "GenHeap.h"
 #include "IRGenModule.h"
 
-namespace llvm {
+namespace toolchain {
   class AttributeList;
   class Constant;
   class Twine;
@@ -70,11 +71,11 @@ namespace irgen {
     return TranslationDirection(!bool(direction));
   }
 
-  // struct SwiftContext {
-  //   SwiftContext * __ptrauth(...) callerContext;
-  //   SwiftPartialFunction * __ptrauth(...) returnToCaller;
-  //   SwiftActor * __ptrauth(...) callerActor;
-  //   SwiftPartialFunction * __ptrauth(...) yieldToCaller?;
+  // struct CodiraContext {
+  //   CodiraContext * __ptrauth(...) callerContext;
+  //   CodiraPartialFunction * __ptrauth(...) returnToCaller;
+  //   CodiraActor * __ptrauth(...) callerActor;
+  //   CodiraPartialFunction * __ptrauth(...) yieldToCaller?;
   // };
   struct AsyncContextLayout : StructLayout {
     struct ArgumentInfo {
@@ -126,8 +127,8 @@ namespace irgen {
                                            SubstitutionMap substitutionMap);
 
   struct CombinedResultAndErrorType {
-    llvm::Type *combinedTy;
-    llvm::SmallVector<unsigned, 2> errorValueMapping;
+    toolchain::Type *combinedTy;
+    toolchain::SmallVector<unsigned, 2> errorValueMapping;
   };
   CombinedResultAndErrorType
   combineResultAndTypedErrorType(const IRGenModule &IGM,
@@ -143,17 +144,17 @@ namespace irgen {
   ///               be returned for it.
   ///
   /// \return {function, size}
-  std::pair<llvm::Value *, llvm::Value *>
+  std::pair<toolchain::Value *, toolchain::Value *>
   getAsyncFunctionAndSize(IRGenFunction &IGF, FunctionPointer functionPointer,
                           std::pair<bool, bool> values = {true, true});
-  std::pair<llvm::Value *, llvm::Value *>
+  std::pair<toolchain::Value *, toolchain::Value *>
   getCoroFunctionAndSize(IRGenFunction &IGF, FunctionPointer functionPointer,
                          std::pair<bool, bool> values = {true, true});
-  llvm::CallingConv::ID
+  toolchain::CallingConv::ID
   expandCallingConv(IRGenModule &IGM, SILFunctionTypeRepresentation convention,
                     bool isAsync, bool isCalleeAllocatedCoro);
 
-  Signature emitCastOfFunctionPointer(IRGenFunction &IGF, llvm::Value *&fnPtr,
+  Signature emitCastOfFunctionPointer(IRGenFunction &IGF, toolchain::Value *&fnPtr,
                                       CanSILFunctionType fnType,
                                       bool forAsyncReturn = false);
 
@@ -163,15 +164,15 @@ namespace irgen {
 
   /// Add function attributes to an attribute set for a byval argument.
   void addByvalArgumentAttributes(IRGenModule &IGM,
-                                  llvm::AttributeList &attrs,
+                                  toolchain::AttributeList &attrs,
                                   unsigned argIndex,
                                   Alignment align,
-                                  llvm::Type *storageType);
+                                  toolchain::Type *storageType);
 
   /// Can a series of values be simply pairwise coerced to (or from) an
   /// explosion schema, or do they need to traffic through memory?
   bool canCoerceToSchema(IRGenModule &IGM,
-                         ArrayRef<llvm::Type*> types,
+                         ArrayRef<toolchain::Type*> types,
                          const ExplosionSchema &schema);
 
   void emitForeignParameter(IRGenFunction &IGF, Explosion &params,
@@ -183,8 +184,8 @@ namespace irgen {
   void emitClangExpandedParameter(IRGenFunction &IGF,
                                   Explosion &in, Explosion &out,
                                   clang::CanQual<clang::Type> clangType,
-                                  SILType swiftType,
-                                  const LoadableTypeInfo &swiftTI);
+                                  SILType languageType,
+                                  const LoadableTypeInfo &languageTI);
 
   bool addNativeArgument(IRGenFunction &IGF,
                          Explosion &in,
@@ -196,22 +197,22 @@ namespace irgen {
   /// between two LLVM types.
   std::pair<Address, Size>
   allocateForCoercion(IRGenFunction &IGF,
-                      llvm::Type *fromTy,
-                      llvm::Type *toTy,
-                      const llvm::Twine &basename);
+                      toolchain::Type *fromTy,
+                      toolchain::Type *toTy,
+                      const toolchain::Twine &basename);
 
-  void extractScalarResults(IRGenFunction &IGF, llvm::Type *bodyType,
-                            llvm::Value *call, Explosion &out);
+  void extractScalarResults(IRGenFunction &IGF, toolchain::Type *bodyType,
+                            toolchain::Value *call, Explosion &out);
 
-  Callee getBlockPointerCallee(IRGenFunction &IGF, llvm::Value *blockPtr,
+  Callee getBlockPointerCallee(IRGenFunction &IGF, toolchain::Value *blockPtr,
                                CalleeInfo &&info);
 
-  Callee getCFunctionPointerCallee(IRGenFunction &IGF, llvm::Value *fnPtr,
+  Callee getCFunctionPointerCallee(IRGenFunction &IGF, toolchain::Value *fnPtr,
                                    CalleeInfo &&info);
 
-  Callee getSwiftFunctionPointerCallee(IRGenFunction &IGF,
-                                       llvm::Value *fnPtr,
-                                       llvm::Value *contextPtr,
+  Callee getCodiraFunctionPointerCallee(IRGenFunction &IGF,
+                                       toolchain::Value *fnPtr,
+                                       toolchain::Value *contextPtr,
                                        CalleeInfo &&info,
                                        bool castOpaqueToRefcountedContext,
                                        bool isClosure);
@@ -223,11 +224,11 @@ namespace irgen {
                               CanSILFunctionType coroutineType,
                               NativeCCEntryPointArgumentEmission &emission);
 
-  llvm::Value *
+  toolchain::Value *
   emitYieldOnce2CoroutineAllocator(IRGenFunction &IGF,
                                    std::optional<CoroAllocatorKind> kind);
   StackAddress emitAllocYieldOnce2CoroutineFrame(IRGenFunction &IGF,
-                                                 llvm::Value *size);
+                                                 toolchain::Value *size);
   void emitDeallocYieldOnce2CoroutineFrame(IRGenFunction &IGF,
                                            StackAddress allocation);
   void
@@ -236,8 +237,8 @@ namespace irgen {
                                NativeCCEntryPointArgumentEmission &emission);
   void emitYieldOnce2CoroutineEntry(IRGenFunction &IGF,
                                     CanSILFunctionType fnType,
-                                    llvm::Value *buffer, llvm::Value *allocator,
-                                    llvm::GlobalVariable *cfp);
+                                    toolchain::Value *buffer, toolchain::Value *allocator,
+                                    toolchain::GlobalVariable *cfp);
 
   Address emitAllocYieldManyCoroutineBuffer(IRGenFunction &IGF);
   void emitDeallocYieldManyCoroutineBuffer(IRGenFunction &IGF, Address buffer);
@@ -247,7 +248,7 @@ namespace irgen {
                               NativeCCEntryPointArgumentEmission &emission);
 
   /// Allocate task local storage for the provided dynamic size.
-  Address emitAllocAsyncContext(IRGenFunction &IGF, llvm::Value *sizeValue);
+  Address emitAllocAsyncContext(IRGenFunction &IGF, toolchain::Value *sizeValue);
   void emitDeallocAsyncContext(IRGenFunction &IGF, Address context);
   Address emitStaticAllocAsyncContext(IRGenFunction &IGF, Size size);
   void emitStaticDeallocAsyncContext(IRGenFunction &IGF, Address context,
@@ -258,14 +259,14 @@ namespace irgen {
                               LinkEntity asyncFunction,
                               unsigned asyncContextIndex);
 
-  StackAddress emitAllocCoroStaticFrame(IRGenFunction &IGF, llvm::Value *size);
+  StackAddress emitAllocCoroStaticFrame(IRGenFunction &IGF, toolchain::Value *size);
   void emitDeallocCoroStaticFrame(IRGenFunction &IGF, StackAddress frame);
 
   /// Yield the given values from the current continuation.
   ///
   /// \return an i1 indicating whether the caller wants to unwind this
   ///   coroutine instead of resuming it normally
-  llvm::Value *emitYield(IRGenFunction &IGF,
+  toolchain::Value *emitYield(IRGenFunction &IGF,
                          CanSILFunctionType coroutineType,
                          Explosion &yieldedValues);
 
@@ -275,7 +276,7 @@ namespace irgen {
 
   void emitAsyncReturn(
       IRGenFunction &IGF, AsyncContextLayout &layout, CanSILFunctionType fnType,
-      std::optional<ArrayRef<llvm::Value *>> nativeResultArgs = std::nullopt);
+      std::optional<ArrayRef<toolchain::Value *>> nativeResultArgs = std::nullopt);
 
   void emitAsyncReturn(IRGenFunction &IGF, AsyncContextLayout &layout,
                        SILType funcResultTypeInContext,
@@ -285,23 +286,23 @@ namespace irgen {
                                     SILType funcResultType, SILType returnResultType);
 
   Address emitAutoDiffCreateLinearMapContextWithType(
-      IRGenFunction &IGF, llvm::Value *topLevelSubcontextMetatype);
+      IRGenFunction &IGF, toolchain::Value *topLevelSubcontextMetatype);
 
   Address emitAutoDiffProjectTopLevelSubcontext(
       IRGenFunction &IGF, Address context);
 
   Address
   emitAutoDiffAllocateSubcontextWithType(IRGenFunction &IGF, Address context,
-                                         llvm::Value *subcontextMetatype);
+                                         toolchain::Value *subcontextMetatype);
 
   FunctionPointer getFunctionPointerForDispatchCall(IRGenModule &IGM,
                                                     const FunctionPointer &fn);
   void forwardAsyncCallResult(IRGenFunction &IGF, CanSILFunctionType fnType,
-                              AsyncContextLayout &layout, llvm::CallInst *call);
+                              AsyncContextLayout &layout, toolchain::CallInst *call);
 
   /// Converts a value for direct error return.
-  llvm::Value *convertForDirectError(IRGenFunction &IGF, llvm::Value *value,
-                                     llvm::Type *toTy, bool forExtraction);
+  toolchain::Value *convertForDirectError(IRGenFunction &IGF, toolchain::Value *value,
+                                     toolchain::Type *toTy, bool forExtraction);
 
   void buildDirectError(IRGenFunction &IGF,
                         const CombinedResultAndErrorType &combined,

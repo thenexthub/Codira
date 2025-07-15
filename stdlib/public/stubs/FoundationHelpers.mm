@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains shims to refer to framework functions required by the
@@ -21,7 +22,7 @@
 
 #include "language/Runtime/Config.h"
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #import <CoreFoundation/CoreFoundation.h>
 #include "language/shims/CoreFoundationShims.h"
 #import <objc/runtime.h>
@@ -38,10 +39,10 @@ static CFHashCode(*_CFStringHashCString)(const uint8_t *bytes, CFIndex len);
 static CFHashCode(*_CFStringHashNSString)(id str);
 static CFTypeID(*_CFGetTypeID)(CFTypeRef obj);
 static CFTypeID _CFStringTypeID = 0;
-static swift_once_t initializeBridgingFuncsOnce;
+static language_once_t initializeBridgingFuncsOnce;
 
 extern "C" bool _dyld_is_objc_constant(DyldObjCConstantKind kind,
-                                       const void *addr) SWIFT_RUNTIME_WEAK_IMPORT;
+                                       const void *addr) LANGUAGE_RUNTIME_WEAK_IMPORT;
 
 static void _initializeBridgingFunctionsImpl(void *ctxt) {
   auto getStringTypeID =
@@ -59,48 +60,48 @@ static void _initializeBridgingFunctionsImpl(void *ctxt) {
 }
 
 static inline void initializeBridgingFunctions() {
-  swift_once(&initializeBridgingFuncsOnce,
+  language_once(&initializeBridgingFuncsOnce,
              _initializeBridgingFunctionsImpl,
              nullptr);
 }
 
-__swift_uint8_t
-_swift_stdlib_isNSString(id obj) {
+__language_uint8_t
+_language_stdlib_isNSString(id obj) {
   initializeBridgingFunctions();
   return _CFGetTypeID((CFTypeRef)obj) == _CFStringTypeID ? 1 : 0;
 }
 
-_swift_shims_CFHashCode
-_swift_stdlib_CFStringHashNSString(id _Nonnull obj) {
+_language_shims_CFHashCode
+_language_stdlib_CFStringHashNSString(id _Nonnull obj) {
   initializeBridgingFunctions();
   return _CFStringHashNSString(obj);
 }
 
-_swift_shims_CFHashCode
-_swift_stdlib_CFStringHashCString(const _swift_shims_UInt8 * _Nonnull bytes,
-                                  _swift_shims_CFIndex length) {
+_language_shims_CFHashCode
+_language_stdlib_CFStringHashCString(const _language_shims_UInt8 * _Nonnull bytes,
+                                  _language_shims_CFIndex length) {
   initializeBridgingFunctions();
   return _CFStringHashCString(bytes, length);
 }
 
-const __swift_uint8_t *
-_swift_stdlib_NSStringCStringUsingEncodingTrampoline(id _Nonnull obj,
+const __language_uint8_t *
+_language_stdlib_NSStringCStringUsingEncodingTrampoline(id _Nonnull obj,
                                                   unsigned long encoding) {
-  typedef __swift_uint8_t * _Nullable (*cStrImplPtr)(id, SEL, unsigned long);
+  typedef __language_uint8_t * _Nullable (*cStrImplPtr)(id, SEL, unsigned long);
   cStrImplPtr imp = (cStrImplPtr)class_getMethodImplementation([obj superclass],
                                                                @selector(cStringUsingEncoding:));
   return imp(obj, @selector(cStringUsingEncoding:), encoding);
 }
 
-__swift_uint8_t
-_swift_stdlib_NSStringGetCStringTrampoline(id _Nonnull obj,
-                                         _swift_shims_UInt8 *buffer,
-                                         _swift_shims_CFIndex maxLength,
+__language_uint8_t
+_language_stdlib_NSStringGetCStringTrampoline(id _Nonnull obj,
+                                         _language_shims_UInt8 *buffer,
+                                         _language_shims_CFIndex maxLength,
                                          unsigned long encoding) {
-  typedef __swift_uint8_t (*getCStringImplPtr)(id,
+  typedef __language_uint8_t (*getCStringImplPtr)(id,
                                              SEL,
-                                             _swift_shims_UInt8 *,
-                                             _swift_shims_CFIndex,
+                                             _language_shims_UInt8 *,
+                                             _language_shims_CFIndex,
                                              unsigned long);
   SEL sel = @selector(getCString:maxLength:encoding:);
   getCStringImplPtr imp = (getCStringImplPtr)class_getMethodImplementation([obj superclass], sel);
@@ -109,17 +110,30 @@ _swift_stdlib_NSStringGetCStringTrampoline(id _Nonnull obj,
 
 }
 
-__swift_uint8_t
-_swift_stdlib_dyld_is_objc_constant_string(const void *addr) {
-  return (SWIFT_RUNTIME_WEAK_CHECK(_dyld_is_objc_constant)
-          && SWIFT_RUNTIME_WEAK_USE(_dyld_is_objc_constant(dyld_objc_string_kind, addr))) ? 1 : 0;
+LANGUAGE_RUNTIME_STDLIB_API
+const _language_shims_NSUInteger
+_language_stdlib_NSStringLengthOfBytesInEncodingTrampoline(id _Nonnull obj,
+                                                        unsigned long encoding) {
+  typedef _language_shims_NSUInteger (*getLengthImplPtr)(id,
+                                                      SEL,
+                                                      unsigned long);
+  SEL sel = @selector(lengthOfBytesUsingEncoding:);
+  getLengthImplPtr imp = (getLengthImplPtr)class_getMethodImplementation([obj superclass], sel);
+  
+  return imp(obj, sel, encoding);
+}
+
+__language_uint8_t
+_language_stdlib_dyld_is_objc_constant_string(const void *addr) {
+  return (LANGUAGE_RUNTIME_WEAK_CHECK(_dyld_is_objc_constant)
+          && LANGUAGE_RUNTIME_WEAK_USE(_dyld_is_objc_constant(dyld_objc_string_kind, addr))) ? 1 : 0;
 }
 
 typedef const void * _Nullable (*createIndirectTaggedImplPtr)(id,
                                             SEL,
-                                            const _swift_shims_UInt8 * _Nonnull,
-                                            _swift_shims_CFIndex);
-static swift_once_t lookUpIndirectTaggedStringCreationOnce;
+                                            const _language_shims_UInt8 * _Nonnull,
+                                            _language_shims_CFIndex);
+static language_once_t lookUpIndirectTaggedStringCreationOnce;
 static createIndirectTaggedImplPtr createIndirectTaggedString;
 static Class indirectTaggedStringClass;
 
@@ -133,11 +147,11 @@ static void lookUpIndirectTaggedStringCreationOnceImpl(void *ctxt) {
   indirectTaggedStringClass = cls;
 }
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 const void *
-_swift_stdlib_CreateIndirectTaggedPointerString(const __swift_uint8_t *bytes,
-                                                _swift_shims_CFIndex len) {
-  swift_once(&lookUpIndirectTaggedStringCreationOnce,
+_language_stdlib_CreateIndirectTaggedPointerString(const __language_uint8_t *bytes,
+                                                _language_shims_CFIndex len) {
+  language_once(&lookUpIndirectTaggedStringCreationOnce,
              lookUpIndirectTaggedStringCreationOnceImpl,
              nullptr);
   

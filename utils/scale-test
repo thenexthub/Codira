@@ -2,7 +2,7 @@
 #
 # -*- python -*-
 #
-# Runs a .gyb scale-testing file repeatedly through swiftc while varying a
+# Runs a .gyb scale-testing file repeatedly through languagec while varying a
 # scaling variable 'N', collects json stats from the compiler, transforms the
 # problem to log-space and runs a linear regression to estimate the exponent on
 # the stat's growth curve relative to N.
@@ -27,7 +27,7 @@ import tempfile
 from collections import namedtuple
 from operator import attrgetter
 
-from build_swift.build_swift import shell
+from build_language.build_language import shell
 
 import gyb
 
@@ -39,10 +39,10 @@ from jobstats import load_stats_dir, merge_all_jobstats
 # failed run (possibly racing with probe insertion, or probing the stabs
 # entries, see rdar://problem/7037927 or rdar://problem/11490861 respectively),
 # so we sniff the presence of debug symbols here.
-def has_debuginfo(swiftc):
-    swiftc = shell.which(swiftc)
+def has_debuginfo(languagec):
+    languagec = shell.which(languagec)
     for line in subprocess.check_output(
-            ["dwarfdump", "--file-stats", swiftc]).splitlines():
+            ["dwarfdump", "--file-stats", languagec]).splitlines():
         if '%' not in line:
             continue
         fields = line.split()
@@ -52,7 +52,7 @@ def has_debuginfo(swiftc):
 
 
 def write_input_file(args, ast, d, n):
-    fname = "in%d.swift" % n
+    fname = "in%d.code" % n
     pathname = os.path.join(d, fname)
     with io.open(pathname, 'w+', encoding='utf-8', newline='\n') as f:
         f.write(gyb.execute_template(ast, '', N=n))
@@ -76,10 +76,10 @@ def supports_stats_output_dir(args):
         os.makedirs(sd, 0o700)
         # Write a trivial test program and try running with
         # -stats-output-dir
-        testpath = os.path.join(sd, "test.swift")
+        testpath = os.path.join(sd, "test.code")
         with open(testpath, 'w+') as f:
             f.write("print(1)\n")
-        command = [args.swiftc_binary, '-frontend',
+        command = [args.codec_binary, '-frontend',
                    '-typecheck',
                    '-stats-output-dir', sd, testpath]
         subprocess.check_call(command)
@@ -123,7 +123,7 @@ def run_once_with_primary(args, ast, rng, primary_idx):
         if args.debuginfo:
             extra.append('-g')
 
-        command = [args.swiftc_binary,
+        command = [args.codec_binary,
                    "-frontend", mode,
                    "-o", ofile] + opts + focus + extra + inputs
 
@@ -132,7 +132,7 @@ def run_once_with_primary(args, ast, rng, primary_idx):
 
         if args.dtrace:
             trace = "trace.txt"
-            script = ("pid$target:swiftc:*%s*:entry { @[probefunc] = count() }"
+            script = ("pid$target:languagec:*%s*:entry { @[probefunc] = count() }"
                       % args.select)
             try:
                 subprocess.check_call(
@@ -154,10 +154,10 @@ def run_once_with_primary(args, ast, rng, primary_idx):
             if args.debug:
                 command = ["lldb", "--"] + command
             stats = "stats.json"
-            if args.llvm_stat_reporter:
-                argv = command + ["-Xllvm", "-stats",
-                                  "-Xllvm", "-stats-json",
-                                  "-Xllvm", "-info-output-file=" + stats]
+            if args.toolchain_stat_reporter:
+                argv = command + ["-Xtoolchain", "-stats",
+                                  "-Xtoolchain", "-stats-json",
+                                  "-Xtoolchain", "-info-output-file=" + stats]
             else:
                 argv = command + ["-stats-output-dir", d]
             try:
@@ -166,7 +166,7 @@ def run_once_with_primary(args, ast, rng, primary_idx):
                 if e.returncode != args.expected_exit_code:
                     raise
 
-            if args.llvm_stat_reporter:
+            if args.toolchain_stat_reporter:
                 with open(os.path.join(d, stats)) as f:
                     r = json.load(f)
             else:
@@ -196,28 +196,28 @@ def run_once(args, ast, rng):
 
 def run_many(args):
 
-    if args.dtrace and has_debuginfo(args.swiftc_binary):
+    if args.dtrace and has_debuginfo(args.codec_binary):
         print("")
         print("**************************************************")
         print("")
         print("dtrace is unreliable on binaries w/ debug symbols")
-        print("please run 'strip -S %s'" % args.swiftc_binary)
-        print("or pass a different --swiftc-binary")
+        print("please run 'strip -S %s'" % args.codec_binary)
+        print("or pass a different --languagec-binary")
         print("")
         print("**************************************************")
         print("")
         exit(1)
 
-    if not args.llvm_stat_reporter:
+    if not args.toolchain_stat_reporter:
         if not supports_stats_output_dir(args):
             print("**************************************************")
             print("")
             print("unable to use new-style -stats-output-dir reporting,")
-            print("falling back to old-style -Xllvm -stats-json reporting")
-            print("(run with --llvm-stat-reporter to silence this warning)")
+            print("falling back to old-style -Xtoolchain -stats-json reporting")
+            print("(run with --toolchain-stat-reporter to silence this warning)")
             print("")
             print("**************************************************")
-            args.llvm_stat_reporter = True
+            args.toolchain_stat_reporter = True
 
     if args.file == '-':
         ast = gyb.parse_template('stdin', sys.stdin.read())
@@ -752,8 +752,8 @@ def main():
         '--step', type=int,
         default=10, help='step value for N')
     parser.add_argument(
-        '--swiftc-binary',
-        default="swiftc", help='swift binary to execute')
+        '--languagec-binary',
+        default="languagec", help='language binary to execute')
     parser.add_argument(
         '--tmpdir', type=str,
         default=None, help='directory to create tempfiles in')
@@ -771,7 +771,7 @@ def main():
         '--debug', action='store_true',
         default=False, help='invoke lldb on each scale test')
     parser.add_argument(
-        '--llvm-stat-reporter', action='store_true',
+        '--toolchain-stat-reporter', action='store_true',
         default=False, help='only collect stats via old-style LLVM reporter')
     parser.add_argument(
         '--self-test', action='store_true',

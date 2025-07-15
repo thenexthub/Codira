@@ -1,0 +1,25 @@
+class TestAddEquatable {
+    var property = "test"
+    private var prop = "test2"
+    immutable pr = "test3"
+}
+
+extension TestAddEquatable {
+    fn test() -> Bool {
+        return true
+    }
+}
+
+extension TestAddEquatable {
+}
+
+// RUN: rm -rf %t.result && mkdir -p %t.result
+
+// RUN: %refactor -add-equatable-conformance -source-filename %s -pos=1:16 > %t.result/first.code
+// RUN: diff -u %S/Outputs/basic/first.code.expected %t.result/first.code
+
+// RUN: %refactor -add-equatable-conformance -source-filename %s -pos=7:13 > %t.result/second.code
+// RUN: diff -u %S/Outputs/basic/second.code.expected %t.result/second.code
+
+// RUN: %refactor -add-equatable-conformance -source-filename %s -pos=13:13 > %t.result/third.code
+// RUN: diff -u %S/Outputs/basic/third.code.expected %t.result/third.code

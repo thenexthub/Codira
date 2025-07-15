@@ -1,4 +1,4 @@
-//===--- driver.cpp - Swift Compiler Driver -------------------------------===//
+//===--- driver.cpp - Codira Compiler Driver -------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This is the entry point to the swift compiler driver.
+// This is the entry point to the language compiler driver.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/DriverTool/DriverTool.h"
 
 int main(int argc_, const char **argv_) {
-  return swift::mainEntry(argc_, argv_);
+  return language::mainEntry(argc_, argv_);
 }

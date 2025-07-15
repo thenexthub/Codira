@@ -11,24 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEPENDENCY_SCANDEPENDENCIES_H
-#define SWIFT_DEPENDENCY_SCANDEPENDENCIES_H
+#ifndef LANGUAGE_DEPENDENCY_SCANDEPENDENCIES_H
+#define LANGUAGE_DEPENDENCY_SCANDEPENDENCIES_H
 
 #include "language-c/DependencyScan/DependencyScan.h"
 #include "language/AST/DiagnosticEngine.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/ErrorOr.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/ErrorOr.h"
 #include <unordered_set>
 
-namespace llvm {
+namespace toolchain {
 class StringSaver;
+namespace cas {
+class ObjectStore;
+} // namespace cas
 namespace vfs {
 class FileSystem;
 } // namespace vfs
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -40,14 +44,14 @@ struct ModuleDependencyID;
 struct ModuleDependencyIDHash;
 using ModuleDependencyIDSet =
     std::unordered_set<ModuleDependencyID, ModuleDependencyIDHash>;
-class SwiftDependencyScanningService;
+class CodiraDependencyScanningService;
 
 namespace dependencies {
 class DependencyScanDiagnosticCollector;
 
 using CompilerArgInstanceCacheMap =
-    llvm::StringMap<std::tuple<std::unique_ptr<CompilerInstance>,
-                               std::unique_ptr<SwiftDependencyScanningService>,
+    toolchain::StringMap<std::tuple<std::unique_ptr<CompilerInstance>,
+                               std::unique_ptr<CodiraDependencyScanningService>,
                                std::unique_ptr<ModuleDependenciesCache>>>;
 
 // MARK: FrontendTool dependency scanner entry points
@@ -60,16 +64,18 @@ bool prescanDependencies(CompilerInstance &instance);
 
 // MARK: Dependency scanning execution
 /// Scans the dependencies of the main module of \c instance.
-llvm::ErrorOr<swiftscan_dependency_graph_t>
-performModuleScan(CompilerInstance &instance,
-                  DependencyScanDiagnosticCollector *diagnostics,
-                  ModuleDependenciesCache &cache);
+toolchain::ErrorOr<languagescan_dependency_graph_t>
+performModuleScan(CodiraDependencyScanningService &service,
+                  CompilerInstance &instance,
+                  ModuleDependenciesCache &cache,
+                  DependencyScanDiagnosticCollector *diagnostics = nullptr);
 
 /// Scans the main module of \c instance for all direct module imports
-llvm::ErrorOr<swiftscan_import_set_t>
-performModulePrescan(CompilerInstance &instance,
-                     DependencyScanDiagnosticCollector *diagnostics,
-                     ModuleDependenciesCache &cache);
+toolchain::ErrorOr<languagescan_import_set_t>
+performModulePrescan(CodiraDependencyScanningService &service,
+                     CompilerInstance &instance,
+                     ModuleDependenciesCache &cache,
+                     DependencyScanDiagnosticCollector *diagnostics = nullptr);
 
 namespace incremental {
 /// For the given module dependency graph captured in the 'cache',
@@ -79,7 +85,8 @@ namespace incremental {
 /// be re-scanned.
 void validateInterModuleDependenciesCache(
     const ModuleDependencyID &rootModuleID, ModuleDependenciesCache &cache,
-    const llvm::sys::TimePoint<> &cacheTimeStamp, llvm::vfs::FileSystem &fs,
+    std::shared_ptr<toolchain::cas::ObjectStore> cas,
+    const toolchain::sys::TimePoint<> &cacheTimeStamp, toolchain::vfs::FileSystem &fs,
     DiagnosticEngine &diags, bool emitRemarks = false);
 
 /// Perform a postorder DFS to locate modules whose build recipe is out-of-date
@@ -88,8 +95,9 @@ void validateInterModuleDependenciesCache(
 /// module.
 void outOfDateModuleScan(const ModuleDependencyID &sourceModuleID,
                          const ModuleDependenciesCache &cache,
-                         const llvm::sys::TimePoint<> &cacheTimeStamp,
-                         llvm::vfs::FileSystem &fs, DiagnosticEngine &diags,
+                         std::shared_ptr<toolchain::cas::ObjectStore> cas,
+                         const toolchain::sys::TimePoint<> &cacheTimeStamp,
+                         toolchain::vfs::FileSystem &fs, DiagnosticEngine &diags,
                          bool emitRemarks, ModuleDependencyIDSet &visited,
                          ModuleDependencyIDSet &modulesRequiringRescan);
 
@@ -97,7 +105,8 @@ void outOfDateModuleScan(const ModuleDependencyID &sourceModuleID,
 /// are older than the cache serialization time.
 bool verifyModuleDependencyUpToDate(
     const ModuleDependencyID &moduleID, const ModuleDependenciesCache &cache,
-    const llvm::sys::TimePoint<> &cacheTimeStamp, llvm::vfs::FileSystem &fs,
+    std::shared_ptr<toolchain::cas::ObjectStore> cas,
+    const toolchain::sys::TimePoint<> &cacheTimeStamp, toolchain::vfs::FileSystem &fs,
     DiagnosticEngine &diags, bool emitRemarks);
 } // end namespace incremental
 } // end namespace dependencies

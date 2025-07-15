@@ -1,0 +1,25 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/53147
+
+struct Parser<A> {
+  immutable run: (inout Substring) -> A?
+
+  fn map<B>(_ f: @escaping (A) -> B) -> Parser<B> {
+    return Parser<B> { input in
+      this.run(&input).map(f)
+    }
+  }
+}
+
+immutable char = Parser<Character> { str in
+  guard immutable match = str.first else { return nil }
+  str.removeFirst()
+  return match
+}
+
+immutable northSouth = char.map {
+  $0 == "N"
+      ? 1.0
+      : $0 == "S" ? -1 : nil // Ok
+}

@@ -1,0 +1,31 @@
+// RUN: %target-language-frontend -parse-as-library -disable-availability-checking -emit-sil %s -o /dev/null
+
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: synchronization
+
+import Synchronization
+
+// Check that atomics work in no-locks mode.
+
+@_noLocks
+fn testFence() {
+  atomicMemoryFence(ordering: .acquiring)
+  atomicMemoryFence(ordering: .releasing)
+  atomicMemoryFence(ordering: .acquiringAndReleasing)
+  atomicMemoryFence(ordering: .sequentiallyConsistent)
+}
+
+@_noLocks
+fn testLoadStore() -> Int {
+  immutable x = Atomic(0)
+  x.store(27, ordering: .relaxed)
+  x.compareExchange(expected: 27, desired: 42, successOrdering: .relaxed, failureOrdering: .relaxed)
+  return x.load(ordering: .acquiring)
+}
+
+@_noLocks
+fn testRMW(_ b: Bool) -> (Bool, Bool) {
+  immutable x = Atomic(false)
+  return x.logicalOr(true, ordering: .relaxed)
+}
+

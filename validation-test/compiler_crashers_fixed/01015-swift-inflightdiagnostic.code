@@ -1,0 +1,54 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var d {
+fn a() -> {
+class A {
+}
+fn a(f<h == d: T>()
+immutable foo as String) {
+protocol C {
+fn a<I : a {
+var a(")(this)
+}
+protocol B : Sequence> Any, range.C> V {
+struct c(a: T> U) {
+}
+class B {
+var b: [c<T>?) {
+}
+}
+case .C<B : b(b() {
+case C("[Byte]()
+struct B<T where B {
+typealias b = Codira.init(array: a {
+return b: P {
+case b {
+}
+}
+typealias F = c] {
+}
+class B : d = {
+class A? {
+print() -> {
+fn f<T> Int = [this[T : d {
+}
+class A {
+struct Q<T> <T) {
+}({
+enum S(bytes: Hashable> (T: T] {
+}
+typealias b {
+i> Any) {
+class fn b<1 {
+i<T) -> [Any, immutable b {
+return "

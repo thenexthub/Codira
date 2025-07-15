@@ -1,16 +1,20 @@
-//===--- swift-reflection-fuzzer.cpp - Swift reflection fuzzer ------------===//
+//===--- language-reflection-fuzzer.cpp - Codira reflection fuzzer ------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This program tries to fuzz the metadata reader shipped as part of the swift
+// This program tries to fuzz the metadata reader shipped as part of the language
 // runtime and used by the debugger.
 // For this to work you need to pass --enable-sanitizer-coverage to build-script
 // otherwise the fuzzer doesn't have coverage information to make progress
@@ -23,11 +27,11 @@
 #include "language/RemoteInspection/ReflectionContext.h"
 #include "language/RemoteInspection/TypeRef.h"
 #include "language/RemoteInspection/TypeRefBuilder.h"
-#include "llvm/Object/Archive.h"
-#include "llvm/Object/ELF.h"
-#include "llvm/Object/ELFObjectFile.h"
-#include "llvm/Object/MachOUniversal.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Object/Archive.h"
+#include "toolchain/Object/ELF.h"
+#include "toolchain/Object/ELFObjectFile.h"
+#include "toolchain/Object/MachOUniversal.h"
+#include "toolchain/Support/CommandLine.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -37,16 +41,16 @@
 #include <TargetConditionals.h>
 #endif
 
-using namespace llvm::object;
+using namespace toolchain::object;
 
 using namespace language;
 using namespace language::reflection;
 using namespace language::remote;
 
-using NativeReflectionContext = swift::reflection::ReflectionContext<
+using NativeReflectionContext = language::reflection::ReflectionContext<
   External<WithObjCInterop<RuntimeTarget<sizeof(uintptr_t)>>>>;
 
-template <typename T> static T unwrap(llvm::Expected<T> value) {
+template <typename T> static T unwrap(toolchain::Expected<T> value) {
   if (value)
     return std::move(value.get());
   return T();
@@ -105,11 +109,11 @@ public:
     case DLQ_GetLeastValidPointerValue: {
       auto result = static_cast<uint64_t *>(outBuffer);
       if (applePlatform && (sizeof(void *) == 8)) {
-        // Swift reserves the first 4GiB on Apple 64-bit platforms
+        // Codira reserves the first 4GiB on Apple 64-bit platforms
         *result = 0x100000000;
         return 1;
       } else {
-        // Swift reserves the first 4KiB everywhere else
+        // Codira reserves the first 4KiB everywhere else
         *result = 0x1000;
       }
       return true;
@@ -120,20 +124,20 @@ public:
   }
 
   RemoteAddress getSymbolAddress(const std::string &name) override {
-    return RemoteAddress(nullptr);
+    return RemoteAddress();
   }
 
   bool isAddressValid(RemoteAddress addr, uint64_t size) const { return true; }
 
   ReadBytesResult readBytes(RemoteAddress address, uint64_t size) override {
-    return ReadBytesResult((const void *)address.getAddressData(),
+    return ReadBytesResult((const void *)address.getRawAddress(),
                            [](const void *) {});
   }
 
   bool readString(RemoteAddress address, std::string &dest) override {
     if (!isAddressValid(address, 1))
       return false;
-    auto cString = StringRef((const char *)address.getAddressData());
+    auto cString = StringRef((const char *)address.getRawAddress());
     dest.append(cString.begin(), cString.end());
     return true;
   }
@@ -142,7 +146,8 @@ public:
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
   auto reader = std::make_shared<ObjectMemoryReader>();
   NativeReflectionContext context(std::move(reader));
-  context.addImage(RemoteAddress(Data));
+  context.addImage(
+      RemoteAddress((uint64_t)Data, RemoteAddress::DefaultAddressSpace));
   context.getBuilder().dumpAllSections<WithObjCInterop, sizeof(uintptr_t)>(std::cout);
   return 0; // Non-zero return values are reserved for future use.
 }

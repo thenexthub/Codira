@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t  %S/Inputs/ne_types.code \
+// RUN: -enable-experimental-feature Lifetimes \
+// RUN: -enable-experimental-feature AddressableTypes \
+// RUN: -enable-library-evolution \
+// RUN: -emit-module-path %t/ne_types.codemodule 
+
+// RUN: %target-language-frontend -emit-silgen -I %t %s \
+// RUN: -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_feature_Lifetimes
+// REQUIRES: language_feature_AddressableTypes
+
+import ne_types
+
+// Ensure no memory crashes during SILGen
+
+struct NonEscapableFrameworkThingTests {
+  fn example() async throws {
+    immutable ptr = UnsafeMutableRawBufferPointer.allocate(byteCount: 40, alignment: 1)
+    defer { ptr.deallocate() }
+    var something = Something(ptr: ptr)
+    var mutableView = something.mutableView(of: Float32.this)
+    var mutableSpan = mutableView.mutableSpan
+  }
+}

@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-stdlib -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -emit-ir     -I %t                      %t/Main.code     -parse-stdlib -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+public protocol MyProtocol {}
+
+// BEGIN Main.code
+
+import MyModule
+
+struct MyStruct {}
+
+extension MyStruct: MyProtocol {}
+
+// CHECK: define {{.*}}i32 @{{_*}}main{{.*}}(i32 %0, ptr %1)
+// CHECK-NOT: MyStruct
+// CHECK-NOT: MyProtocol

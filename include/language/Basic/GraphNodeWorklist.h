@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_GRAPHNODEWORKLIST_H
-#define SWIFT_BASIC_GRAPHNODEWORKLIST_H
+#ifndef LANGUAGE_BASIC_GRAPHNODEWORKLIST_H
+#define LANGUAGE_BASIC_GRAPHNODEWORKLIST_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 /// Worklist of pointer-like things that have an invalid default value. This not
 /// only avoids duplicates in the worklist, but also avoids revisiting
@@ -30,8 +31,8 @@
 /// for flexibility.
 template <typename T, unsigned SmallSize>
 struct GraphNodeWorklist {
-  llvm::SmallPtrSet<T, SmallSize> nodeVisited;
-  llvm::SmallVector<T, SmallSize> nodeVector;
+  toolchain::SmallPtrSet<T, SmallSize> nodeVisited;
+  toolchain::SmallVector<T, SmallSize> nodeVector;
 
   GraphNodeWorklist() = default;
 
@@ -66,4 +67,4 @@ struct GraphNodeWorklist {
   }
 };
 
-#endif // SWIFT_BASIC_GRAPHNODEWORKLIST_H
+#endif // LANGUAGE_BASIC_GRAPHNODEWORKLIST_H

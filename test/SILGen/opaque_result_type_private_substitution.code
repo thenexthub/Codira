@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -disable-availability-checking -emit-module %S/Inputs/opaque_result_type_private_substitution_other.code -emit-module-path %t/opaque_result_type_private_substitution_other.codemodule
+// RUN: %target-language-frontend -disable-availability-checking -emit-silgen %s -I %t -DMODULE
+
+// RUN: %target-language-frontend -disable-availability-checking -emit-module %S/Inputs/opaque_result_type_private_substitution_other.code -emit-module-path %t/opaque_result_type_private_substitution_other.codemodule -enable-library-evolution
+// RUN: %target-language-frontend -disable-availability-checking -emit-silgen %s -I %t -DMODULE
+
+// RUN: %target-language-frontend -disable-availability-checking -emit-silgen %s %S/Inputs/opaque_result_type_private_substitution_other.code
+// RUN: %target-language-frontend -disable-availability-checking -emit-silgen -primary-file %s %S/Inputs/opaque_result_type_private_substitution_other.code
+// RUN: %target-language-frontend -disable-availability-checking -emit-silgen -primary-file %s -primary-file %S/Inputs/opaque_result_type_private_substitution_other.code
+
+#if MODULE
+import opaque_result_type_private_substitution_other
+#endif
+
+struct S1: P {
+  var v: some P { S2().foo() }
+}
+
+private struct S2: P {
+  var v: some P { S() }
+}

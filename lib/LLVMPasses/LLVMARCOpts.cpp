@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements optimizations for reference counting, object allocation,
@@ -19,67 +20,67 @@
 //
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "swift-llvm-arc-opts"
+#define DEBUG_TYPE "language-toolchain-arc-opts"
 #include "language/LLVMPasses/Passes.h"
 #include "ARCEntryPointBuilder.h"
 #include "LLVMARCOpts.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/NullablePtr.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IntrinsicInst.h"
-#include "llvm/IR/Module.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/Pass.h"
-#include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Analysis/InstructionSimplify.h"
-#include "llvm/Analysis/Utils/Local.h"
-#include "llvm/Analysis/ValueTracking.h"
-#include "llvm/Transforms/Utils/SSAUpdater.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/IR/InstIterator.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/IR/Instructions.h"
+#include "toolchain/IR/IntrinsicInst.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/Pass.h"
+#include "toolchain/Analysis/AliasAnalysis.h"
+#include "toolchain/Analysis/InstructionSimplify.h"
+#include "toolchain/Analysis/Utils/Local.h"
+#include "toolchain/Analysis/ValueTracking.h"
+#include "toolchain/Transforms/Utils/SSAUpdater.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/IR/InstIterator.h"
+#include "toolchain/IR/IRBuilder.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/CommandLine.h"
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
-using swift::SwiftARCOpt;
+using language::CodiraARCOpt;
 
 STATISTIC(NumNoopDeleted,
-          "Number of no-op swift calls eliminated");
+          "Number of no-op language calls eliminated");
 STATISTIC(NumRetainReleasePairs,
-          "Number of swift retain/release pairs eliminated");
+          "Number of language retain/release pairs eliminated");
 STATISTIC(NumObjCRetainReleasePairs,
           "Number of objc retain/release pairs eliminated");
 STATISTIC(NumAllocateReleasePairs,
-          "Number of swift allocate/release pairs eliminated");
+          "Number of language allocate/release pairs eliminated");
 STATISTIC(NumStoreOnlyObjectsEliminated,
-          "Number of swift stored-only objects eliminated");
+          "Number of language stored-only objects eliminated");
 STATISTIC(NumUnknownObjectRetainReleaseSRed,
           "Number of unknownretain/release strength reduced to retain/release");
 
-llvm::cl::opt<bool>
-DisableARCOpts("disable-llvm-arc-opts", llvm::cl::init(false));
+toolchain::cl::opt<bool>
+DisableARCOpts("disable-toolchain-arc-opts", toolchain::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 //                          Input Function Canonicalizer
 //===----------------------------------------------------------------------===//
 
-/// canonicalizeInputFunction - Functions like swift_retain return an
+/// canonicalizeInputFunction - Functions like language_retain return an
 /// argument as a low-level performance optimization.  This makes it difficult
 /// to reason about pointer equality though, so undo it as an initial
-/// canonicalization step.  After this step, all swift_retain's have been
-/// replaced with swift_retain.
+/// canonicalization step.  After this step, all language_retain's have been
+/// replaced with language_retain.
 ///
 /// This also does some trivial peep-hole optimizations as we go.
 static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
-                                      SwiftRCIdentity &RC) {
+                                      CodiraRCIdentity &RC) {
   bool Changed = false;
   DenseSet<Value *> NativeRefs;
   DenseMap<Value *, TinyPtrVector<Instruction *>> UnknownObjectRetains;
@@ -100,7 +101,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
       case RT_ReleaseN:
       case RT_UnknownObjectReleaseN:
       case RT_BridgeReleaseN:
-        llvm_unreachable("These are only created by LLVMARCContract !");
+        toolchain_unreachable("These are only created by LLVMARCContract !");
       case RT_Unknown:
       case RT_BridgeRelease:
       case RT_AllocObject:
@@ -112,7 +113,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
         break;
       case RT_Retain: {
         CallInst &CI = cast<CallInst>(Inst);
-        Value *ArgVal = RC.getSwiftRCIdentityRoot(CI.getArgOperand(0));
+        Value *ArgVal = RC.getCodiraRCIdentityRoot(CI.getArgOperand(0));
         // retain(null) is a no-op.
         if (isa<ConstantPointerNull>(ArgVal)) {
           CI.eraseFromParent();
@@ -126,7 +127,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
           CI.replaceAllUsesWith(CI.getArgOperand(0));
           Changed = true;
         }
-        // Rewrite unknown retains into swift_retains.
+        // Rewrite unknown retains into language_retains.
         NativeRefs.insert(ArgVal);
         for (auto &X : UnknownObjectRetains[ArgVal]) {
           B.setInsertPoint(X);
@@ -140,7 +141,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
       }
       case RT_UnknownObjectRetain: {
         CallInst &CI = cast<CallInst>(Inst);
-        Value *ArgVal = RC.getSwiftRCIdentityRoot(CI.getArgOperand(0));
+        Value *ArgVal = RC.getCodiraRCIdentityRoot(CI.getArgOperand(0));
         // unknownObjectRetain(null) is a no-op.
         if (isa<ConstantPointerNull>(ArgVal)) {
           CI.eraseFromParent();
@@ -170,7 +171,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
       }
       case RT_Release: {
         CallInst &CI = cast<CallInst>(Inst);
-        Value *ArgVal = RC.getSwiftRCIdentityRoot(CI.getArgOperand(0));
+        Value *ArgVal = RC.getCodiraRCIdentityRoot(CI.getArgOperand(0));
         // release(null) is a no-op.
         if (isa<ConstantPointerNull>(ArgVal)) {
           CI.eraseFromParent();
@@ -178,7 +179,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
           ++NumNoopDeleted;
           continue;
         }
-        // Rewrite unknown releases into swift_releases.
+        // Rewrite unknown releases into language_releases.
         NativeRefs.insert(ArgVal);
         for (auto &X : UnknownObjectReleases[ArgVal]) {
           B.setInsertPoint(X);
@@ -192,7 +193,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
       }
       case RT_UnknownObjectRelease: {
         CallInst &CI = cast<CallInst>(Inst);
-        Value *ArgVal = RC.getSwiftRCIdentityRoot(CI.getArgOperand(0));
+        Value *ArgVal = RC.getCodiraRCIdentityRoot(CI.getArgOperand(0));
         // unknownObjectRelease(null) is a no-op.
         if (isa<ConstantPointerNull>(ArgVal)) {
           CI.eraseFromParent();
@@ -217,7 +218,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
       }
       case RT_ObjCRelease: {
         CallInst &CI = cast<CallInst>(Inst);
-        Value *ArgVal = RC.getSwiftRCIdentityRoot(CI.getArgOperand(0));
+        Value *ArgVal = RC.getCodiraRCIdentityRoot(CI.getArgOperand(0));
         // objc_release(null) is a noop, zap it.
         if (isa<ConstantPointerNull>(ArgVal)) {
           CI.eraseFromParent();
@@ -242,7 +243,7 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
           Changed = true;
         }
 
-        // {objc_retain,swift_unknownObjectRetain}(null) is a noop, delete it.
+        // {objc_retain,language_unknownObjectRetain}(null) is a noop, delete it.
         if (isa<ConstantPointerNull>(ArgVal)) {
           CI.eraseFromParent();
           Changed = true;
@@ -267,10 +268,10 @@ static bool canonicalizeInputFunction(Function &F, ARCEntryPointBuilder &B,
 /// access the released object.  If we get to a retain or allocation of the
 /// object, zap both.
 static bool performLocalReleaseMotion(CallInst &Release, BasicBlock &BB,
-                                      SwiftRCIdentity &RC) {
+                                      CodiraRCIdentity &RC) {
   // FIXME: Call classifier should identify the object for us.  Too bad C++
-  // doesn't have nice Swift-style enums.
-  Value *ReleasedObject = RC.getSwiftRCIdentityRoot(Release.getArgOperand(0));
+  // doesn't have nice Codira-style enums.
+  Value *ReleasedObject = RC.getCodiraRCIdentityRoot(Release.getArgOperand(0));
 
   BasicBlock::iterator BBI = Release.getIterator();
 
@@ -297,7 +298,7 @@ static bool performLocalReleaseMotion(CallInst &Release, BasicBlock &BB,
     case RT_UnknownObjectReleaseN:
     case RT_BridgeReleaseN:
     case RT_ReleaseN:
-        llvm_unreachable("These are only created by LLVMARCContract !");
+        toolchain_unreachable("These are only created by LLVMARCContract !");
     case RT_NoMemoryAccessed:
       // Skip over random instructions that don't touch memory.  They don't need
       // protection by retain/release.
@@ -316,7 +317,7 @@ static bool performLocalReleaseMotion(CallInst &Release, BasicBlock &BB,
       // API to drop multiple retain counts at once.
       CallInst &ThisRelease = cast<CallInst>(*BBI);
       Value *ThisReleasedObject = ThisRelease.getArgOperand(0);
-      ThisReleasedObject = RC.getSwiftRCIdentityRoot(ThisReleasedObject);
+      ThisReleasedObject = RC.getCodiraRCIdentityRoot(ThisReleasedObject);
       if (ThisReleasedObject == ReleasedObject) {
         //Release.dump(); ThisRelease.dump(); BB.getParent()->dump();
         ++BBI;
@@ -328,10 +329,10 @@ static bool performLocalReleaseMotion(CallInst &Release, BasicBlock &BB,
     case RT_UnknownObjectRetain:
     case RT_BridgeRetain:
     case RT_ObjCRetain:
-    case RT_Retain: {  // swift_retain(obj)
+    case RT_Retain: {  // language_retain(obj)
       CallInst &Retain = cast<CallInst>(*BBI);
       Value *RetainedObject = Retain.getArgOperand(0);
-      RetainedObject = RC.getSwiftRCIdentityRoot(RetainedObject);
+      RetainedObject = RC.getCodiraRCIdentityRoot(RetainedObject);
 
       // Since we canonicalized earlier, we know that if our retain has any
       // uses, they were replaced already. This assertion documents this
@@ -358,7 +359,7 @@ static bool performLocalReleaseMotion(CallInst &Release, BasicBlock &BB,
       goto OutOfLoop;
     }
 
-    case RT_AllocObject: {   // %obj = swift_alloc(...)
+    case RT_AllocObject: {   // %obj = language_alloc(...)
       CallInst &Allocation = cast<CallInst>(*BBI);
 
       // If this is an allocation of an unrelated object, just ignore it.
@@ -416,18 +417,18 @@ OutOfLoop:
 /// later in the function if possible, over instructions that provably can't
 /// release the object.  If we get to a release of the object, zap both.
 ///
-/// NOTE: this handles both objc_retain and swift_retain.
+/// NOTE: this handles both objc_retain and language_retain.
 ///
 static bool performLocalRetainMotion(CallInst &Retain, BasicBlock &BB,
-                                     SwiftRCIdentity &RC) {
+                                     CodiraRCIdentity &RC) {
   // FIXME: Call classifier should identify the object for us.  Too bad C++
-  // doesn't have nice Swift-style enums.
-  Value *RetainedObject = RC.getSwiftRCIdentityRoot(Retain.getArgOperand(0));
+  // doesn't have nice Codira-style enums.
+  Value *RetainedObject = RC.getCodiraRCIdentityRoot(Retain.getArgOperand(0));
 
   BasicBlock::iterator BBI = Retain.getIterator(),
                        BBE = BB.getTerminator()->getIterator();
 
-  bool isObjCRetain = Retain.getIntrinsicID() == llvm::Intrinsic::objc_retain;
+  bool isObjCRetain = Retain.getIntrinsicID() == toolchain::Intrinsic::objc_retain;
 
   bool MadeProgress = false;
 
@@ -447,7 +448,7 @@ static bool performLocalRetainMotion(CallInst &Retain, BasicBlock &BB,
     case RT_ReleaseN:
     case RT_UnknownObjectReleaseN:
     case RT_BridgeReleaseN:
-        llvm_unreachable("These are only created by LLVMARCContract !");
+        toolchain_unreachable("These are only created by LLVMARCContract !");
     case RT_NoMemoryAccessed:
     case RT_AllocObject:
     case RT_CheckUnowned:
@@ -463,7 +464,7 @@ static bool performLocalRetainMotion(CallInst &Retain, BasicBlock &BB,
     case RT_UnknownObjectRetain:
     case RT_BridgeRetain:
     case RT_RetainUnowned:
-    case RT_ObjCRetain: {  // swift_retain(obj)
+    case RT_ObjCRetain: {  // language_retain(obj)
       //CallInst &ThisRetain = cast<CallInst>(CurInst);
       //Value *ThisRetainedObject = ThisRetain.getArgOperand(0);
 
@@ -482,7 +483,7 @@ static bool performLocalRetainMotion(CallInst &Retain, BasicBlock &BB,
       // it and the retain.
       CallInst &ThisRelease = cast<CallInst>(CurInst);
       Value *ThisReleasedObject = ThisRelease.getArgOperand(0);
-      ThisReleasedObject = RC.getSwiftRCIdentityRoot(ThisReleasedObject);
+      ThisReleasedObject = RC.getCodiraRCIdentityRoot(ThisReleasedObject);
       if (ThisReleasedObject == RetainedObject) {
         Retain.eraseFromParent();
         ThisRelease.eraseFromParent();
@@ -548,7 +549,7 @@ enum class DtorKind {
   Unknown
 };
 
-/// analyzeDestructor - Given the heap.metadata argument to swift_allocObject,
+/// analyzeDestructor - Given the heap.metadata argument to language_allocObject,
 /// take a look a the destructor and try to decide if it has side effects or any
 /// other bad effects that can prevent it from being optimized.
 static DtorKind analyzeDestructor(Value *P) {
@@ -601,7 +602,7 @@ static DtorKind analyzeDestructor(Value *P) {
       case RT_ReleaseN:
       case RT_UnknownObjectReleaseN:
       case RT_BridgeReleaseN:
-        llvm_unreachable("These are only created by LLVMARCContract !");
+        toolchain_unreachable("These are only created by LLVMARCContract !");
       case RT_NoMemoryAccessed:
       case RT_AllocObject:
       case RT_FixLifetime:
@@ -611,8 +612,8 @@ static DtorKind analyzeDestructor(Value *P) {
         continue;
 
       case RT_RetainUnowned:
-      case RT_BridgeRetain:          // x = swift_bridgeRetain(y)
-      case RT_Retain: {      // swift_retain(obj)
+      case RT_BridgeRetain:          // x = language_bridgeRetain(y)
+      case RT_Retain: {      // language_retain(obj)
 
         // Ignore retains of the "self" object, no resurrection is possible.
         Value *ThisRetainedObject = cast<CallInst>(I).getArgOperand(0);
@@ -717,9 +718,9 @@ static bool performStoreOnlyObjectElimination(CallInst &Allocation,
     case RT_ReleaseN:
     case RT_UnknownObjectReleaseN:
     case RT_BridgeReleaseN:
-      llvm_unreachable("These are only created by LLVMARCContract !");
+      toolchain_unreachable("These are only created by LLVMARCContract !");
     case RT_AllocObject:
-      // If this is a different swift_allocObject than we started with, then
+      // If this is a different language_allocObject than we started with, then
       // there is some computation feeding into a size or alignment computation
       // that we have to keep... unless we can delete *that* entire object as
       // well.
@@ -927,7 +928,7 @@ static void performRedundantCheckUnownedRemoval(BasicBlock &BB) {
 /// performGeneralOptimizations - This does a forward scan over basic blocks,
 /// looking for interesting local optimizations that can be done.
 static bool performGeneralOptimizations(Function &F, ARCEntryPointBuilder &B,
-                                        SwiftRCIdentity &RC) {
+                                        CodiraRCIdentity &RC) {
   bool Changed = false;
 
   // TODO: This is a really trivial local algorithm.  It could be much better.
@@ -988,39 +989,39 @@ static bool performGeneralOptimizations(Function &F, ARCEntryPointBuilder &B,
 }
 
 //===----------------------------------------------------------------------===//
-//                            SwiftARCOpt Pass
+//                            CodiraARCOpt Pass
 //===----------------------------------------------------------------------===//
 
-char SwiftARCOpt::ID = 0;
+char CodiraARCOpt::ID = 0;
 
-INITIALIZE_PASS_BEGIN(SwiftARCOpt,
-                      "swift-llvm-arc-optimize", "Swift LLVM ARC optimization",
+INITIALIZE_PASS_BEGIN(CodiraARCOpt,
+                      "language-toolchain-arc-optimize", "Codira LLVM ARC optimization",
                       false, false)
-INITIALIZE_PASS_DEPENDENCY(SwiftAAWrapperPass)
-INITIALIZE_PASS_END(SwiftARCOpt,
-                    "swift-llvm-arc-optimize", "Swift LLVM ARC optimization",
+INITIALIZE_PASS_DEPENDENCY(CodiraAAWrapperPass)
+INITIALIZE_PASS_END(CodiraARCOpt,
+                    "language-toolchain-arc-optimize", "Codira LLVM ARC optimization",
                     false, false)
 
 // Optimization passes.
-llvm::FunctionPass *swift::createSwiftARCOptPass() {
-  initializeSwiftARCOptPass(*llvm::PassRegistry::getPassRegistry());
-  return new SwiftARCOpt();
+toolchain::FunctionPass *language::createCodiraARCOptPass() {
+  initializeCodiraARCOptPass(*toolchain::PassRegistry::getPassRegistry());
+  return new CodiraARCOpt();
 }
 
-SwiftARCOpt::SwiftARCOpt() : FunctionPass(ID) {
+CodiraARCOpt::CodiraARCOpt() : FunctionPass(ID) {
 }
 
 
-void SwiftARCOpt::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
-  AU.addRequiredID(&SwiftAAWrapperPass::ID);
+void CodiraARCOpt::getAnalysisUsage(toolchain::AnalysisUsage &AU) const {
+  AU.addRequiredID(&CodiraAAWrapperPass::ID);
   AU.setPreservesCFG();
 }
 
-static bool runSwiftARCOpts(Function &F, SwiftRCIdentity &RC) {
+static bool runCodiraARCOpts(Function &F, CodiraRCIdentity &RC) {
   bool Changed = false;
   ARCEntryPointBuilder B(F);
 
-  // First thing: canonicalize swift_retain and similar calls so that nothing
+  // First thing: canonicalize language_retain and similar calls so that nothing
   // uses their result.  This exposes the copy that the function does to the
   // optimizer.
   Changed |= canonicalizeInputFunction(F, B, RC);
@@ -1037,19 +1038,19 @@ static bool runSwiftARCOpts(Function &F, SwiftRCIdentity &RC) {
   return Changed;
 }
 
-bool SwiftARCOpt::runOnFunction(Function &F) {
+bool CodiraARCOpt::runOnFunction(Function &F) {
   if (DisableARCOpts)
     return false;
 
-  return runSwiftARCOpts(F, RC);
+  return runCodiraARCOpts(F, RC);
 }
 
-PreservedAnalyses SwiftARCOptPass::run(llvm::Function &F,
-                                       llvm::FunctionAnalysisManager &AM) {
+PreservedAnalyses CodiraARCOptPass::run(toolchain::Function &F,
+                                       toolchain::FunctionAnalysisManager &AM) {
   bool changed = false;
 
   if (!DisableARCOpts)
-    changed = runSwiftARCOpts(F, RC);
+    changed = runCodiraARCOpts(F, RC);
 
   if (!changed) {
     return PreservedAnalyses::all();

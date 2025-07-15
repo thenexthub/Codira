@@ -3,7 +3,7 @@ Stored and Computed Variables
 =============================
 
 .. warning:: This document has not been updated since the initial design in
-  Swift 1.0.
+  Codira 1.0.
 
 
 Variables are declared using the ``var`` keyword. These declarations are valid

@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language
+
+struct RequiresStrideable<T: Strideable> { }
+
+extension CountableRange {
+  fn testStrideable() {
+    _ = RequiresStrideable<Bound>()
+  }
+
+  fn foo() { }
+}
+
+extension Range {
+  fn foo() { } // not a redefinition
+}
+
+struct RequiresHashable<T: Hashable> { }
+
+extension DictionaryIndex {
+  fn testHashable() {
+    _ = RequiresHashable<Key>()
+  }
+}
+
+extension CountableRange where Element == Int {
+  fn getLowerBoundAsInt() -> Int { return lowerBound }
+}

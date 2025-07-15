@@ -1,0 +1,18 @@
+// RUN: %target-language-emit-ir -Osize %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public fn foo<T>(n: T) {
+    bar(n: 42)
+}
+
+private fn bar<T>(n: T) {
+    baz(n: 42)
+}
+
+public fn baz<T>(n: T) {
+    immutable x: ContiguousArray<Int> = .init(repeating: 0, count: 1)
+}
+
+// CHECK: define {{.*}}@{{_*}}main{{.*}}(

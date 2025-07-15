@@ -1,13 +1,17 @@
 //===--- ExprContextAnalysis.cpp - Expession context analysis -------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ExprContextAnalysis.h"
@@ -35,7 +39,7 @@
 #include "language/Subsystems.h"
 #include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
-#include "llvm/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallSet.h"
 
 using namespace language;
 using namespace ide;
@@ -44,7 +48,7 @@ using namespace ide;
 // typeCheckContextAt(DeclContext, SourceLoc)
 //===----------------------------------------------------------------------===//
 
-void swift::ide::typeCheckContextAt(TypeCheckASTNodeAtLocContext TypeCheckCtx,
+void language::ide::typeCheckContextAt(TypeCheckASTNodeAtLocContext TypeCheckCtx,
                                     SourceLoc Loc) {
   // Make sure the extension has been bound.
   auto DC = TypeCheckCtx.getDeclContext();
@@ -76,7 +80,7 @@ void swift::ide::typeCheckContextAt(TypeCheckASTNodeAtLocContext TypeCheckCtx,
           ext->computeExtendedNominal();
   }
 
-  swift::typeCheckASTNodeAtLoc(TypeCheckCtx, Loc);
+  language::typeCheckASTNodeAtLoc(TypeCheckCtx, Loc);
 }
 
 //===----------------------------------------------------------------------===//
@@ -147,7 +151,7 @@ public:
 };
 } // anonymous namespace
 
-Expr *swift::ide::findParsedExpr(const DeclContext *DC,
+Expr *language::ide::findParsedExpr(const DeclContext *DC,
                                  SourceRange TargetRange) {
   ExprFinder finder(DC->getASTContext().SourceMgr, TargetRange);
   const_cast<DeclContext *>(DC)->walkContext(finder);

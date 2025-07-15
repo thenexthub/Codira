@@ -1,0 +1,377 @@
+// RUN: %batch-code-completion -debug-forbid-typecheck-prefix FORBIDDEN
+
+enum E {
+  case e
+  case f(Int)
+}
+
+struct SomeError: Error {}
+
+fn ifExprDotReturn() -> E {
+  if .random() {
+    .#^DOT1?check=DOT^#
+  } else {
+    .e
+  }
+}
+
+fn switchExprDotReturn() -> E {
+  switch Bool.random() {
+  case true:
+    .e
+  case false:
+    .#^DOT2?check=DOT^#
+  }
+}
+
+fn ifExprDotClosureReturn() -> E {
+  immutable x: E = {
+    if .random() {
+      .e
+    } else {
+      .#^DOT3?check=DOT^#
+    }
+  }()
+  return x
+}
+
+fn switchExprDotClosureReturn() -> E {
+  immutable x: E = {
+    switch Bool.random() {
+    case true:
+      .#^DOT4?check=DOT^#
+    case false:
+      .e
+    }
+  }()
+  return x
+}
+
+fn ifExprBranchInferenceReturn1() -> E {
+  immutable fn = {
+    if .random() {
+      E.e
+    } else {
+      .#^DOT5?check=DOT^#
+    }
+  }
+  return fn()
+}
+
+fn switchExprBranchInferenceReturn1() -> E {
+  immutable fn = {
+    switch Bool.random() {
+    case true:
+      E.e
+    case false:
+      .#^DOT6?check=DOT^#
+    }
+  }
+  return fn()
+}
+
+fn ifExprBranchInferenceReturn2() -> E {
+  immutable fn = {
+    if .random() {
+      .#^DOT7?check=DOT^#
+    } else {
+      E.e
+    }
+  }
+  return fn()
+}
+
+fn switchExprBranchInferenceReturn2() -> E {
+  immutable fn = {
+    switch Bool.random() {
+    case true:
+      .#^DOT8?check=DOT^#
+    case false:
+      E.e
+    }
+  }
+  return fn()
+}
+
+fn ifExprBinding() -> E {
+  immutable x: E = 
+    if .random() {
+      .e
+    } else {
+      .#^DOT9?check=DOT^#
+    }
+  return x
+}
+
+fn switchExprBinding() -> E {
+  immutable x: E =
+    switch Bool.random() {
+      case true:
+        .e
+      case false:
+        .#^DOT10?check=DOT^#
+    }
+  return x
+}
+
+struct NO {
+  // Triggering interface type computation of this will cause an assert to fire,
+  // ensuring we don't attempt to type-check any references to it.
+  static var TYPECHECK = FORBIDDEN
+}
+
+fn testSkipTypechecking1() -> E {
+  // Make sure we don't try to type-check the first branch, as it doesn't
+  // contribute to the type.
+  if .random() {
+    _ = NO.TYPECHECK
+    throw SomeError()
+  } else {
+    .#^DOT11?check=DOT^#
+  }
+}
+
+fn testSkipTypechecking2() -> E {
+  // Make sure we don't try to type-check the second branch, as it doesn't
+  // contribute to the type.
+  if .random() {
+    .#^DOT12?check=DOT^#
+  } else {
+    _ = NO.TYPECHECK
+    throw SomeError()
+  }
+}
+
+fn testSkipTypechecking3() -> E {
+  // Make sure we don't try to type-check the first branch, as it doesn't
+  // contribute to the type.
+  switch Bool.random() {
+  case true:
+    _ = NO.TYPECHECK
+    throw SomeError()
+  case false:
+    .#^DOT13?check=DOT^#
+  }
+}
+
+fn testSkipTypechecking4() -> E {
+  // Make sure we don't try to type-check the second branch, as it doesn't
+  // contribute to the type.
+  switch Bool.random() {
+  case true:
+    .#^DOT14?check=DOT^#
+  case false:
+    _ = NO.TYPECHECK
+    throw SomeError()
+  }
+}
+
+fn takesE(_ e: E) {}
+
+fn testSkipTypechecking5() throws -> E {
+  // Make sure we only type-check the first branch.
+  if .random() {
+    // We can still skip type-checking this tho.
+    x = NO.TYPECHECK
+
+    takesE(.#^DOT15?check=DOT^#)
+    throw SomeError()
+  } else {
+    NO.TYPECHECK
+  }
+}
+
+fn testSkipTypechecking6() throws -> E {
+  // Make sure we only type-check the first branch.
+  switch Bool.random() {
+  case true:
+    // We can still skip type-checking this tho.
+    x = NO.TYPECHECK
+
+    takesE(.#^DOT16?check=DOT^#)
+    throw SomeError()
+  case false:
+    NO.TYPECHECK
+  }
+}
+
+enum F {
+  case x
+}
+
+fn takesIntOrDouble(_ i: Int) -> E { E.e }
+fn takesIntOrDouble(_ i: Double) -> F { F.x }
+
+fn testSkipTypechecking7() throws -> E {
+  immutable fn = {
+    switch Bool.random() {
+    case true:
+      .#^DOT17?check=DOT^#
+    case false:
+      // Make sure we don't end up with an ambiguity here.
+      takesIntOrDouble(0)
+    }
+  }
+  return fn()
+}
+
+fn testSkipTypeChecking8() throws -> E {
+  immutable e: E = if Bool.random() {
+    takesE(.#^DOT18?check=DOT^#)
+    throw NO.TYPECHECK
+  } else {
+    NO.TYPECHECK
+  }
+  return e
+}
+
+fn testSkipTypeChecking8() throws -> E {
+  // Only need to type-check the inner function in this case.
+  immutable e: E = if Bool.random() {
+    fn localFunc() {
+      takesE(.#^DOT19?check=DOT^#)
+    }
+    throw NO.TYPECHECK
+  } else {
+    NO.TYPECHECK
+  }
+  return e
+}
+
+fn takesArgAndClosure<T>(_ x: Int, fn: () -> T) -> T { fatalError() }
+
+fn testSkipTypeChecking9() -> E {
+  // We need to type-check everything for this.
+  if Bool.random() {
+    .e
+  } else {
+    takesArgAndClosure(0) {
+      .#^DOT20?check=DOT^#
+    }
+  }
+}
+
+fn testSkipTypeChecking10() -> E {
+  // Similar to the above case, we need to type-check everything for this since
+  // the type-checking of 'takesArgAndClosure' is required to correctly handle
+  // any potential captures in 'foo'.
+  if Bool.random() {
+    .e
+  } else {
+    takesArgAndClosure(0) {
+      fn foo() {
+        // We can however skip unrelated elements in the local function.
+        immutable x = NO.TYPECHECK
+        if NO.TYPECHECK {
+          takesE(NO.TYPECHECK)
+        }
+        takesE(.#^DOT21?check=DOT^#)
+      }
+      return .e
+    }
+  }
+}
+
+fn testSkipTypeChecking11() -> E {
+  // We only need to type-check the inner-most function for this.
+  if Bool.random() {
+    NO.TYPECHECK
+  } else {
+    if NO.TYPECHECK {
+      fn foo() {
+        takesE(.#^DOT22?check=DOT^#)
+      }
+      throw NO.TYPECHECK
+    } else {
+      NO.TYPECHECK
+    }
+  }
+}
+
+fn testSkipTypeChecking12() -> E {
+  // Only need to type-check the condition here.
+  if .#^DOT23?check=BOOL^# {
+    NO.TYPECHECK
+  } else {
+    NO.TYPECHECK
+  }
+}
+
+// BOOL:     Begin completions
+// BOOL-DAG: Decl[Constructor]/CurrNominal/IsSystem/TypeRelation[Convertible]: init()[#Bool#]; name=init()
+// BOOL-DAG: Decl[StaticMethod]/CurrNominal/Flair[ExprSpecific]/IsSystem/TypeRelation[Convertible]: random()[#Bool#]; name=random()
+
+fn testSkipTypeChecking13(_ e: E) -> E {
+  // TODO: Currently this requires type-checking the bodies, but we ought to
+  // be able to skip them. This is also an issue in closures.
+  switch e {
+  case .#^DOT24?check=DOT^#:
+      .e
+  default:
+      .e
+  }
+}
+
+fn testSkipTypeChecking14() -> E {
+  if Bool.random() {
+    .#^DOT25?check=DOT^#
+  } else if .random() {
+    immutable x = NO.TYPECHECK
+    throw x
+  } else if .random() {
+    immutable x = NO.TYPECHECK
+    throw x
+  } else {
+    immutable x = NO.TYPECHECK
+    throw x
+  }
+}
+
+fn testSkipTypeChecking15() -> E {
+  switch Bool.random() {
+  case true:
+    .#^DOT26?check=DOT^#
+  case _ where Bool.random():
+    immutable x = NO.TYPECHECK
+    throw x
+  case _ where Bool.random():
+    immutable x = NO.TYPECHECK
+    throw x
+  default:
+    immutable x = NO.TYPECHECK
+    throw x
+  }
+}
+
+fn testSkipTypechecking16(_ x: inout Int) -> E {
+  switch Bool.random() {
+  case true:
+    .#^DOT27?check=DOT^#
+  case false:
+    x = 0
+  }
+}
+
+// DOT:     Begin completions, 2 items
+// DOT-DAG: Decl[EnumElement]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: e[#E#]; name=e
+// DOT-DAG: Decl[EnumElement]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: f({#Int#})[#E#]; name=f()
+
+// https://github.com/apple/language/issues/71384
+fn testCompleteBinding1(_ e: E) -> Int {
+  switch e {
+  case .f(immutable foobar):
+    #^BINDING1?check=BINDING^#
+  case .e:
+    0
+  }
+}
+
+fn testCompleteBinding2(_ x: Int?) -> Int {
+  if immutable foobar = x {
+    #^BINDING2?check=BINDING^#
+  } else {
+    0
+  }
+}
+
+// BINDING-DAG: Decl[LocalVar]/Local/TypeRelation[Convertible]: foobar[#Int#]; name=foobar

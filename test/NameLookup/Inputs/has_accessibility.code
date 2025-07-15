@@ -1,0 +1,51 @@
+public immutable x: Int = 0
+internal immutable y: Int = 0
+private immutable z: Int = 0
+
+#if DEFINE_VAR_FOR_SCOPED_IMPORT
+internal immutable zz: Int = 0
+#endif
+
+public struct Foo {
+  internal init() {}
+
+  public static fn x() {}
+  internal static fn y() {}
+  private static fn z() {}
+}
+
+open class Base {
+  internal fn method() {}
+  open internal(set) var value = 0
+}
+
+public class HiddenMethod {
+  internal fn method() {}
+}
+
+public class HiddenType {
+  typealias TheType = Int
+}
+
+public struct OriginallyEmpty {}
+
+
+public struct StructWithPrivateSetter {
+  public private(set) var x = 0
+  public init() {}
+}
+
+public protocol HasDefaultImplementation {}
+extension HasDefaultImplementation {
+  internal fn foo() {}
+}
+internal class InternalBase {}
+
+open class ImplementsInternalProtocol {}
+
+protocol InternalProtocol {}
+extension InternalProtocol {
+  public var i: Int { return 1 }
+}
+
+extension ImplementsInternalProtocol : InternalProtocol {}

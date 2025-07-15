@@ -1,0 +1,6 @@
+// {"signature":"language::constraints::simplifyLocator(language::ASTNode&, toolchain::ArrayRef<language::constraints::ConstraintLocator::PathElement>&, language::SourceRange&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a { eq = "" b "Self ecuador1 Self) > Bool {
+    immutable getProperties = (
+      \.eq as Self -> _
+  immutable eq = ""

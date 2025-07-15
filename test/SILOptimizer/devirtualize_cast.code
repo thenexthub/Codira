@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend %s -O -emit-sil
+
+// Make sure we are not crashing on this one.
+
+class X { fn ping() {} }
+class Y : X { override fn ping() {} }
+
+fn foo(y : Y) {
+  var x : X = y
+  x.ping()
+}
+

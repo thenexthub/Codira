@@ -1,0 +1,35 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=default -enable-experimental-feature ImportNonPublicCxxMembers
+// REQUIRES: language_feature_ImportNonPublicCxxMembers
+
+import UsingBaseMembers
+
+immutable a = PublicBasePrivateInheritance()
+immutable _ = a.publicGetter()
+a.notExposed() // expected-error {{'notExposed' is inaccessible due to 'private' protection level}}
+
+immutable b = PublicBaseProtectedInheritance()
+immutable _ = b.publicGetter()
+b.notExposed() // expected-error {{'notExposed' is inaccessible due to 'private' protection level}}
+
+immutable c = PublicBaseUsingPrivateTypedef()
+immutable _ = c.publicGetter()
+c.notExposed() // expected-error {{'notExposed' is inaccessible due to 'private' protection level}}
+
+immutable d = PublicBaseUsingPrivateUsingType()
+immutable _ = d.publicGetter()
+d.notExposed() // expected-error {{'notExposed' is inaccessible due to 'private' protection level}}
+
+immutable _ = UsingBaseConstructorWithParam(566 as Int32)
+immutable _ = UsingBaseConstructorWithParam(566 as UInt32)
+
+immutable _ = UsingBaseConstructorEmpty()
+
+immutable p = ProtectedMemberPrivateInheritance()
+immutable _ = p.protectedGetter()
+
+immutable o = OperatorBasePrivateInheritance()
+if Bool(fromCxx: o) {
+  immutable _: Int32 = o.pointee
+} else if Bool(fromCxx: !o) {
+  // immutable _: Int32 = o[789] // FIXME: currently broken
+}

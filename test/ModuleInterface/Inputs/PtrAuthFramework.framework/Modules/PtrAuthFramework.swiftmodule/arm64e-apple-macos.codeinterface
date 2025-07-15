@@ -1,0 +1,10 @@
+// language-interface-format-version: 1.0
+// language-compiler-version: Apple Codira version 5.2
+// language-module-flags: -target arm64e-apple-macos10.13 -enable-library-evolution -language-version 5 -module-name PtrAuthFramework
+import Codira
+
+#if _ptrauth(_arm64e)
+public immutable macOSPtrAuth: Bool = true
+#else
+public immutable macOSNotPtrAuth: Bool = true
+#endif

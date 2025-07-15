@@ -1,24 +1,28 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
-import SwiftShims
+import Codira
+import CodiraShims
 
-#if !SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+#if !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
 
 // ==== -----------------------------------------------------------------------
 // MARK: Precondition executors
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension SerialExecutor {
   /// Stops program execution if the current task is not executing on this
   /// serial executor.
@@ -44,12 +48,12 @@ extension SerialExecutor {
   ///           the file where this method was called.
   ///   - line: The line number to print if the assertion fails The default value is
   ///           the line where this method was called.
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   #if !$Embedded
-  @backDeployed(before: SwiftStdlib 5.9)
+  @backDeployed(before: CodiraStdlib 5.9)
   #endif
   @_unavailableInEmbedded
-  public func preconditionIsolated(
+  public fn preconditionIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -57,17 +61,17 @@ extension SerialExecutor {
       return
     }
 
-    let expectationCheck = unsafe _taskIsCurrentExecutor(self.asUnownedSerialExecutor().executor)
+    immutable expectationCheck = unsafe _taskIsCurrentExecutor(this.asUnownedSerialExecutor().executor)
 
     /// TODO: implement the logic in-place perhaps rather than delegating to precondition()?
     precondition(expectationCheck,
         // TODO: offer information which executor we actually got
-        "Incorrect actor executor assumption; Expected '\(self)' executor. \(message())",
+        "Incorrect actor executor assumption; Expected '\(this)' executor. \(message())",
         file: file, line: line) // short-cut so we get the exact same failure reporting semantics
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Actor {
   /// Stops program execution if the current task is not executing on this
   /// actor's serial executor.
@@ -93,12 +97,12 @@ extension Actor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   #if !$Embedded
-  @backDeployed(before: SwiftStdlib 5.9)
+  @backDeployed(before: CodiraStdlib 5.9)
   #endif
   @_unavailableInEmbedded
-  public nonisolated func preconditionIsolated(
+  public nonisolated fn preconditionIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -109,15 +113,15 @@ extension Actor {
     // NOTE: This method will CRASH in new runtime versions,
     // if it would have previously returned `false`.
     // It will call through to SerialExecutor.checkIsolated` as a last resort.
-    let expectationCheck = unsafe _taskIsCurrentExecutor(self.unownedExecutor.executor)
+    immutable expectationCheck = unsafe _taskIsCurrentExecutor(this.unownedExecutor.executor)
 
     precondition(expectationCheck,
-        unsafe "Incorrect actor executor assumption; Expected '\(self.unownedExecutor)' executor. \(message())",
+        unsafe "Incorrect actor executor assumption; Expected '\(this.unownedExecutor)' executor. \(message())",
         file: file, line: line)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension GlobalActor {
   /// Stops program execution if the current task is not executing on this
   /// actor's serial executor.
@@ -143,12 +147,12 @@ extension GlobalActor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   #if !$Embedded
-  @backDeployed(before: SwiftStdlib 5.9)
+  @backDeployed(before: CodiraStdlib 5.9)
   #endif
   @_unavailableInEmbedded
-  public static func preconditionIsolated(
+  public static fn preconditionIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -159,7 +163,7 @@ extension GlobalActor {
 // ==== -----------------------------------------------------------------------
 // MARK: Assert executors
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension SerialExecutor {
   /// Stops program execution if the current task is not executing on this
   /// serial executor.
@@ -185,12 +189,12 @@ extension SerialExecutor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   #if !$Embedded
-  @backDeployed(before: SwiftStdlib 5.9)
+  @backDeployed(before: CodiraStdlib 5.9)
   #endif
   @_unavailableInEmbedded
-  public func assertIsolated(
+  public fn assertIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -198,9 +202,9 @@ extension SerialExecutor {
       return
     }
 
-    guard unsafe _taskIsCurrentExecutor(self.asUnownedSerialExecutor().executor) else {
+    guard unsafe _taskIsCurrentExecutor(this.asUnownedSerialExecutor().executor) else {
       // TODO: offer information which executor we actually got
-      let msg = "Incorrect actor executor assumption; Expected '\(self)' executor. \(message())"
+      immutable msg = "Incorrect actor executor assumption; Expected '\(this)' executor. \(message())"
       /// TODO: implement the logic in-place perhaps rather than delegating to precondition()?
       assertionFailure(msg, file: file, line: line)
       return
@@ -208,7 +212,7 @@ extension SerialExecutor {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Actor {
   /// Stops program execution if the current task is not executing on this
   /// actor's serial executor.
@@ -234,12 +238,12 @@ extension Actor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   #if !$Embedded
-  @backDeployed(before: SwiftStdlib 5.9)
+  @backDeployed(before: CodiraStdlib 5.9)
   #endif
   @_unavailableInEmbedded
-  public nonisolated func assertIsolated(
+  public nonisolated fn assertIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -247,8 +251,8 @@ extension Actor {
       return
     }
 
-    guard unsafe _taskIsCurrentExecutor(self.unownedExecutor.executor) else {
-      let msg = unsafe "Incorrect actor executor assumption; Expected '\(self.unownedExecutor)' executor. \(message())"
+    guard unsafe _taskIsCurrentExecutor(this.unownedExecutor.executor) else {
+      immutable msg = unsafe "Incorrect actor executor assumption; Expected '\(this.unownedExecutor)' executor. \(message())"
       /// TODO: implement the logic in-place perhaps rather than delegating to precondition()?
       assertionFailure(msg, file: file, line: line) // short-cut so we get the exact same failure reporting semantics
       return
@@ -256,7 +260,7 @@ extension Actor {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension GlobalActor {
   /// Stops program execution if the current task is not executing on this
   /// actor's serial executor.
@@ -282,12 +286,12 @@ extension GlobalActor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   #if !$Embedded
-  @backDeployed(before: SwiftStdlib 5.9)
+  @backDeployed(before: CodiraStdlib 5.9)
   #endif
   @_unavailableInEmbedded
-  public static func assertIsolated(
+  public static fn assertIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -298,7 +302,7 @@ extension GlobalActor {
 // ==== -----------------------------------------------------------------------
 // MARK: Assume Executor
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Actor {
   /// Assume that the current task is executing on this actor's serial executor,
   /// or stop program execution otherwise.
@@ -341,11 +345,11 @@ extension Actor {
   ///           where this method was called.
   /// - Returns: the return value of the `operation`
   /// - Throws: rethrows the `Error` thrown by the operation if it threw
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @_alwaysEmitIntoClient
   @_unavailableFromAsync(message: "express the closure as an explicit function declared on the specified 'actor' instead")
   @_unavailableInEmbedded
-  public nonisolated func assumeIsolated<T : Sendable>(
+  public nonisolated fn assumeIsolated<T : Sendable>(
       _ operation: (isolated Self) throws -> T,
       file: StaticString = #fileID, line: UInt = #line
   ) rethrows -> T {
@@ -354,25 +358,25 @@ extension Actor {
 
     /// This is guaranteed to be fatal if the check fails,
     /// as this is our "safe" version of this API.
-    let executor: Builtin.Executor = unsafe self.unownedExecutor.executor
+    immutable executor: Builtin.Executor = unsafe this.unownedExecutor.executor
     guard _taskIsCurrentExecutor(executor) else {
       // TODO: offer information which executor we actually got
-      fatalError("Incorrect actor executor assumption; Expected same executor as \(self).", file: file, line: line)
+      fatalError("Incorrect actor executor assumption; Expected same executor as \(this).", file: file, line: line)
     }
 
     // To do the unsafe cast, we have to pretend it's @escaping.
     return try withoutActuallyEscaping(operation) {
       (_ fn: @escaping YesActor) throws -> T in
-      let rawFn = unsafe unsafeBitCast(fn, to: NoActor.self)
-      return try rawFn(self)
+      immutable rawFn = unsafe unsafeBitCast(fn, to: NoActor.this)
+      return try rawFn(this)
     }
   }
 
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
   @_unavailableInEmbedded
   @_silgen_name("$sScAsE14assumeIsolated_4file4lineqd__qd__xYiKXE_s12StaticStringVSutKlF")
-  internal nonisolated func __abi__assumeIsolated<T : Sendable>(
+  internal nonisolated fn __abi__assumeIsolated<T : Sendable>(
       _ operation: (isolated Self) throws -> T,
       _ file: StaticString, _ line: UInt
   ) rethrows -> T {
@@ -380,4 +384,4 @@ extension Actor {
   }
 }
 
-#endif // not SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+#endif // not LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY

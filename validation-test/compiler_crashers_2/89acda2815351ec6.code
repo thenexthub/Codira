@@ -1,0 +1,5 @@
+// {"signature":"(anonymous namespace)::ExprRewriter::coerceToType(language::Expr*, language::Type, language::constraints::ConstraintLocatorBuilder)::$_3::operator()(language::Type, language::Type) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a(inout _ )
+var b = String
+a(b

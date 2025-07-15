@@ -1,4 +1,4 @@
-//===--- ArrayOfPOD.swift -------------------------------------------------===//
+//===--- ArrayOfPOD.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This benchmark tests creation and destruction of an array of
@@ -21,7 +22,7 @@
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ArrayOfPOD",
     runFunction: run_ArrayOfPOD,
@@ -36,7 +37,7 @@ class RefArray<T> {
 }
 
 @inline(never)
-func genIntArray() {
+fn genIntArray() {
   blackHole(RefArray<Int>(3, count:200_000))
   // should be a nop
 }
@@ -44,11 +45,11 @@ func genIntArray() {
 enum PODEnum {
   case Some(Int)
 
-  init(i:Int) { self = .Some(i) }
+  init(i:Int) { this = .Some(i) }
 }
 
 @inline(never)
-func genEnumArray() {
+fn genEnumArray() {
   blackHole(RefArray<PODEnum>(PODEnum.Some(3)))
   // should be a nop
 }
@@ -58,13 +59,13 @@ struct S {
   var y: Int
 }
 @inline(never)
-func genStructArray() {
+fn genStructArray() {
   blackHole(RefArray<S>(S(x:3, y:4)))
   // should be a nop
 }
 
 @inline(never)
-public func run_ArrayOfPOD(_ n: Int) {
+public fn run_ArrayOfPOD(_ n: Int) {
   for _ in 0..<n {
     genIntArray()
     genEnumArray()

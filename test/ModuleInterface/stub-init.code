@@ -1,0 +1,24 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name test
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name test
+// RUN: %FileCheck %s < %t.codeinterface
+
+public class Base {
+  public init(x: Int) {}
+}
+
+public class Derived: Base {
+  public init(z: Int) {
+    super.init(x: z)
+  }
+}
+
+// CHECK-LABEL: public class Base {
+// CHECK-NEXT:    public init(x: Codira.Int)
+// CHECK-NEXT:    {{(@objc )?}}deinit
+// CHECK-NEXT: }
+
+// CHECK-LABEL: public class Derived : test.Base {
+// CHECK-NEXT:    public init(z: Codira.Int)
+// CHECK-NEXT:    {{(@objc )?}}deinit
+// CHECK-NEXT: }
+

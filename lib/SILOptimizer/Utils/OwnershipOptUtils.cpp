@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -44,11 +45,11 @@ using namespace language;
 //                   Basic scope and lifetime extension API
 //===----------------------------------------------------------------------===//
 
-void swift::extendOwnedLifetime(SILValue ownedValue,
+void language::extendOwnedLifetime(SILValue ownedValue,
                                 PrunedLivenessBoundary &lifetimeBoundary,
                                 InstructionDeleter &deleter) {
   // Gather the current set of destroy_values, which may die.
-  llvm::SmallSetVector<Operand *, 4> extraConsumes;
+  toolchain::SmallSetVector<Operand *, 4> extraConsumes;
   SmallPtrSet<SILInstruction *, 4> extraConsumers;
   for (Operand *use : ownedValue->getUses()) {
     if (use->isConsuming()) {
@@ -91,7 +92,7 @@ void swift::extendOwnedLifetime(SILValue ownedValue,
   }
 }
 
-void swift::extendLocalBorrow(BeginBorrowInst *beginBorrow,
+void language::extendLocalBorrow(BeginBorrowInst *beginBorrow,
                               PrunedLivenessBoundary &guaranteedBoundary,
                               InstructionDeleter &deleter) {
   // Gather the current set of end_borrows, which may die.
@@ -133,7 +134,7 @@ void swift::extendLocalBorrow(BeginBorrowInst *beginBorrow,
   }
 }
 
-bool swift::computeGuaranteedBoundary(SILValue value,
+bool language::computeGuaranteedBoundary(SILValue value,
                                       PrunedLivenessBoundary &boundary) {
   assert(value->getOwnershipKind() == OwnershipKind::Guaranteed);
 
@@ -301,7 +302,7 @@ static void cleanupOperandsBeforeDeletion(SILInstruction *oldValue,
 
     switch (op.get()->getOwnershipKind()) {
     case OwnershipKind::Any:
-      llvm_unreachable("Invalid ownership for value");
+      toolchain_unreachable("Invalid ownership for value");
     case OwnershipKind::Owned: {
       auto *dvi = builder.createDestroyValue(oldValue->getLoc(), op.get());
       callbacks.createdNewInst(dvi);
@@ -316,9 +317,9 @@ static void cleanupOperandsBeforeDeletion(SILInstruction *oldValue,
     case OwnershipKind::None:
       continue;
     case OwnershipKind::Unowned:
-      llvm_unreachable("Unowned object can never be consumed?!");
+      toolchain_unreachable("Unowned object can never be consumed?!");
     }
-    llvm_unreachable("Covered switch isn't covered");
+    toolchain_unreachable("Covered switch isn't covered");
   }
 }
 
@@ -454,7 +455,7 @@ bool OwnershipRAUWHelper::mayIntroduceUnoptimizableCopies() {
   return true;
 }
 
-bool swift::areUsesWithinLexicalValueLifetime(SILValue value,
+bool language::areUsesWithinLexicalValueLifetime(SILValue value,
                                               ArrayRef<Operand *> uses) {
   assert(value->isLexical());
 
@@ -474,7 +475,7 @@ bool swift::areUsesWithinLexicalValueLifetime(SILValue value,
   return false;
 }
 
-bool swift::areUsesWithinValueLifetime(SILValue value, ArrayRef<Operand *> uses,
+bool language::areUsesWithinValueLifetime(SILValue value, ArrayRef<Operand *> uses,
                                        DeadEndBlocks *deBlocks) {
   assert(value->getFunction()->hasOwnership());
 
@@ -543,12 +544,12 @@ class BorrowedLifetimeExtender {
 
   InstModCallbacks &callbacks;
 
-  llvm::SmallVector<PhiValue, 4> reborrowedPhis;
-  llvm::SmallDenseMap<PhiValue, PhiValue, 4> reborrowedToOwnedPhis;
+  toolchain::SmallVector<PhiValue, 4> reborrowedPhis;
+  toolchain::SmallDenseMap<PhiValue, PhiValue, 4> reborrowedToOwnedPhis;
 
   /// Check that all reaching operands are handled. This can be removed once the
   /// utility and OSSA representation are stable.
-  SWIFT_ASSERT_ONLY_DECL(llvm::SmallDenseSet<PhiOperand, 4> reborrowedOperands);
+  LANGUAGE_ASSERT_ONLY_DECL(toolchain::SmallDenseSet<PhiOperand, 4> reborrowedOperands);
 
 public:
   /// Precondition: \p borrowedValue must introduce a local borrow scope
@@ -618,7 +619,7 @@ void BorrowedLifetimeExtender::analyzeExtendedScope() {
     if (auto borrowingOper = BorrowingOperand(endScope)) {
       assert(borrowingOper.isReborrow());
 
-      SWIFT_ASSERT_ONLY(reborrowedOperands.insert(endScope));
+      LANGUAGE_ASSERT_ONLY(reborrowedOperands.insert(endScope));
 
       // TODO: if non-phi reborrows are added, handle multiple results.
       discoverReborrow(borrowingOper.getBorrowIntroducingUserResult());
@@ -1107,7 +1108,7 @@ SILValue OwnershipLifetimeExtender::borrowOverSingleNonLifetimeEndingUser(
       newValue, borrowPt, ArrayRef<SILInstruction *>(nonLifetimeEndingUser));
 }
 
-SILValue swift::makeGuaranteedValueAvailable(SILValue value,
+SILValue language::makeGuaranteedValueAvailable(SILValue value,
                                              SILInstruction *user,
                                              DeadEndBlocks &deBlocks,
                                              InstModCallbacks callbacks) {
@@ -1155,9 +1156,9 @@ SILValue OwnershipRAUWPrepare::prepareUnowned(SILValue newValue) {
   auto &callbacks = ctx.callbacks;
   switch (newValue->getOwnershipKind()) {
   case OwnershipKind::None:
-    llvm_unreachable("Should have been handled elsewhere");
+    toolchain_unreachable("Should have been handled elsewhere");
   case OwnershipKind::Any:
-    llvm_unreachable("Invalid for values");
+    toolchain_unreachable("Invalid for values");
   case OwnershipKind::Unowned:
     // An unowned value can always be RAUWed with another unowned value.
     return newValue;
@@ -1228,7 +1229,7 @@ SILValue OwnershipRAUWPrepare::prepareUnowned(SILValue newValue) {
     return copy;
   }
   }
-  llvm_unreachable("covered switch isn't covered?!");
+  toolchain_unreachable("covered switch isn't covered?!");
 }
 
 SILValue OwnershipRAUWPrepare::prepareReplacement(SILValue newValue) {
@@ -1258,9 +1259,9 @@ SILValue OwnershipRAUWPrepare::prepareReplacement(SILValue newValue) {
     // If our old value was none and our new value is not, we need to do
     // something more complex that we do not support yet, so bail. We should
     // have not called this function in such a case.
-    llvm_unreachable("Should have been handled elsewhere");
+    toolchain_unreachable("Should have been handled elsewhere");
   case OwnershipKind::Any:
-    llvm_unreachable("Invalid for values");
+    toolchain_unreachable("Invalid for values");
   case OwnershipKind::Guaranteed: {
     return getLifetimeExtender().borrowOverValue(newValue, oldValue);
   }
@@ -1280,7 +1281,7 @@ SILValue OwnershipRAUWPrepare::prepareReplacement(SILValue newValue) {
     return prepareUnowned(newValue);
   }
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1314,7 +1315,7 @@ OwnershipRAUWHelper::getReplacementAddress() {
   // guaranteedUsePoints?
   BeginBorrowInst *bbi = extender.borrowCopyOverGuaranteedUses(
       base.getReference(), borrowPt,
-      llvm::ArrayRef(ctx->extraAddressFixupInfo.allAddressUsesFromOldValue));
+      toolchain::ArrayRef(ctx->extraAddressFixupInfo.allAddressUsesFromOldValue));
   auto bbiNext = &*std::next(bbi->getIterator());
   auto *refProjection = cast<SingleValueInstruction>(base.getBaseAddress());
   auto *newBase = refProjection->clone(bbiNext);
@@ -1371,7 +1372,7 @@ OwnershipRAUWHelper::OwnershipRAUWHelper(OwnershipFixupContext &inputCtx,
   // TODO: this could be converted to a bailout if we don't want the client code
   // to explicitly check this case. But then we may want DominanceInfo to be
   // available, which could cheaper in extreme cases because it caches results.
-  SWIFT_ASSERT_ONLY_DECL(auto borrowedVal = BorrowedValue(inputOldValue));
+  LANGUAGE_ASSERT_ONLY_DECL(auto borrowedVal = BorrowedValue(inputOldValue));
   assert((!borrowedVal || !borrowedVal.isLocalScope()
           || checkDominates(inputNewValue->getParentBlock(),
                             inputOldValue->getParentBlock()))
@@ -1490,7 +1491,7 @@ SILValue OwnershipRAUWHelper::prepareReplacement(SILValue rewrittenNewValue) {
     newValue = rewrittenNewValue;
   }
   assert(newValue && "prepareReplacement can only be called once");
-  SWIFT_DEFER { newValue = SILValue(); };
+  LANGUAGE_DEFER { newValue = SILValue(); };
 
   if (!oldValue->getFunction()->hasOwnership())
     return newValue;
@@ -1510,7 +1511,7 @@ OwnershipRAUWHelper::perform(SILValue replacementValue) {
   assert(!newValue && "prepareReplacement() must be called");
 
   // Make sure to always clear our context after we transform.
-  SWIFT_DEFER { ctx->clear(); };
+  LANGUAGE_DEFER { ctx->clear(); };
 
   if (auto *svi = dyn_cast<SingleValueInstruction>(oldValue))
     return replaceAllUsesAndErase(svi, replacementValue, ctx->callbacks);
@@ -1553,9 +1554,9 @@ SILBasicBlock::iterator SingleUseReplacementUtility::handleUnowned() {
   auto &callbacks = ctx.callbacks;
   switch (newValue->getOwnershipKind()) {
   case OwnershipKind::None:
-    llvm_unreachable("Should have been handled elsewhere");
+    toolchain_unreachable("Should have been handled elsewhere");
   case OwnershipKind::Any:
-    llvm_unreachable("Invalid for values");
+    toolchain_unreachable("Invalid for values");
   case OwnershipKind::Unowned:
     // An unowned value can always be RAUWed with another unowned value.
     return replaceSingleUse(use, newValue, callbacks);
@@ -1616,7 +1617,7 @@ SILBasicBlock::iterator SingleUseReplacementUtility::handleUnowned() {
     return replaceSingleUse(use, copy, callbacks);
   }
   }
-  llvm_unreachable("covered switch isn't covered?!");
+  toolchain_unreachable("covered switch isn't covered?!");
 }
 
 SILBasicBlock::iterator SingleUseReplacementUtility::handleGuaranteed() {
@@ -1674,9 +1675,9 @@ SILBasicBlock::iterator SingleUseReplacementUtility::perform() {
     // If our old value was none and our new value is not, we need to do
     // something more complex that we do not support yet, so bail. We should
     // have not called this function in such a case.
-    llvm_unreachable("Should have been handled elsewhere");
+    toolchain_unreachable("Should have been handled elsewhere");
   case OwnershipKind::Any:
-    llvm_unreachable("Invalid for values");
+    toolchain_unreachable("Invalid for values");
   case OwnershipKind::Guaranteed:
     return handleGuaranteed();
   case OwnershipKind::Owned:
@@ -1684,7 +1685,7 @@ SILBasicBlock::iterator SingleUseReplacementUtility::perform() {
   case OwnershipKind::Unowned:
     return handleUnowned();
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1732,7 +1733,7 @@ SILBasicBlock::iterator OwnershipReplaceSingleUseHelper::perform() {
     return replaceSingleUse(use, newValue, ctx->callbacks);
 
   // Make sure to always clear our context after we transform.
-  SWIFT_DEFER { ctx->clear(); };
+  LANGUAGE_DEFER { ctx->clear(); };
   SingleUseReplacementUtility utility{use, newValue, *ctx};
   return utility.perform();
 }
@@ -1758,10 +1759,10 @@ SILBasicBlock::iterator OwnershipReplaceSingleUseHelper::perform() {
 class GuaranteedPhiBorrowFixup {
   // A phi in mustConvertPhis has already been determined to be part of this
   // new nested borrow scope.
-  llvm::SmallSetVector<SILPhiArgument *, 8> mustConvertPhis;
+  toolchain::SmallSetVector<SILPhiArgument *, 8> mustConvertPhis;
 
   // Phi operands that are already within the new nested borrow scope.
-  llvm::SmallDenseSet<PhiOperand, 8> nestedPhiOperands;
+  toolchain::SmallDenseSet<PhiOperand, 8> nestedPhiOperands;
 
 public:
   /// Return true if an extended nested borrow scope was created.
@@ -1814,7 +1815,7 @@ void GuaranteedPhiBorrowFixup::insertEndBorrowsAndFindPhis(
   // FIXME: consider integrating with ValueLifetimeBoundary instead.
   SmallPtrSet<Operand *, 16> useSet(usePoints.begin(), usePoints.end());
 
-  auto phiUsers = llvm::map_range(usePoints, ValueBase::UseToUser());
+  auto phiUsers = toolchain::map_range(usePoints, ValueBase::UseToUser());
   ValueLifetimeAnalysis lifetimeAnalysis(phi, phiUsers);
   ValueLifetimeBoundary boundary;
   lifetimeAnalysis.computeLifetimeBoundary(boundary);
@@ -1889,7 +1890,7 @@ createExtendedNestedBorrowScope(SILPhiArgument *newPhi) {
 // newly created phis do not yet have a borrow scope. The implementation
 // assumes that this API will eventually be called for all such new phis until
 // OSSA is fully valid.
-bool swift::createBorrowScopeForPhiOperands(SILPhiArgument *newPhi) {
+bool language::createBorrowScopeForPhiOperands(SILPhiArgument *newPhi) {
   if (newPhi->getOwnershipKind() != OwnershipKind::Guaranteed
       && newPhi->getOwnershipKind() != OwnershipKind::None) {
       return false;
@@ -1897,7 +1898,7 @@ bool swift::createBorrowScopeForPhiOperands(SILPhiArgument *newPhi) {
   return GuaranteedPhiBorrowFixup().createExtendedNestedBorrowScope(newPhi);
 }
 
-bool swift::extendStoreBorrow(StoreBorrowInst *sbi,
+bool language::extendStoreBorrow(StoreBorrowInst *sbi,
                               SmallVectorImpl<Operand *> &newUses,
                               DeadEndBlocks *deadEndBlocks,
                               InstModCallbacks callbacks) {
@@ -1965,7 +1966,7 @@ bool swift::extendStoreBorrow(StoreBorrowInst *sbi,
 }
 
 //===----------------------------------------------------------------------===//
-//                            Swift Bridging
+//                            Codira Bridging
 //===----------------------------------------------------------------------===//
 
 static BridgedUtilities::UpdateFunctionFn updateAllGuaranteedPhisFunction;
@@ -1980,34 +1981,34 @@ void BridgedUtilities::registerPhiUpdater(UpdateFunctionFn updateAllGuaranteedPh
   replacePhisWithIncomingValuesFunction = replacePhisWithIncomingValuesFn;
 }
 
-void swift::updateAllGuaranteedPhis(SILPassManager *pm, SILFunction *f) {
+void language::updateAllGuaranteedPhis(SILPassManager *pm, SILFunction *f) {
   if (updateAllGuaranteedPhisFunction)
-    updateAllGuaranteedPhisFunction({pm->getSwiftPassInvocation()}, {f});
+    updateAllGuaranteedPhisFunction({pm->getCodiraPassInvocation()}, {f});
 }
 
-void swift::updateGuaranteedPhis(SILPassManager *pm, ArrayRef<SILPhiArgument *> phis) {
+void language::updateGuaranteedPhis(SILPassManager *pm, ArrayRef<SILPhiArgument *> phis) {
   if (!updateGuaranteedPhisFunction)
     return;
 
-  llvm::SmallVector<BridgedValue, 8> bridgedPhis;
+  toolchain::SmallVector<BridgedValue, 8> bridgedPhis;
   for (SILPhiArgument *phi : phis) {
     bridgedPhis.push_back({phi});
   }
-  updateGuaranteedPhisFunction({pm->getSwiftPassInvocation()}, ArrayRef(bridgedPhis));
+  updateGuaranteedPhisFunction({pm->getCodiraPassInvocation()}, ArrayRef(bridgedPhis));
 }
 
-void swift::replacePhisWithIncomingValues(SILPassManager *pm, ArrayRef<SILPhiArgument *> phis) {
+void language::replacePhisWithIncomingValues(SILPassManager *pm, ArrayRef<SILPhiArgument *> phis) {
   if (!replacePhisWithIncomingValuesFunction)
     return;
 
-  llvm::SmallVector<BridgedValue, 8> bridgedPhis;
+  toolchain::SmallVector<BridgedValue, 8> bridgedPhis;
   for (SILPhiArgument *phi : phis) {
     bridgedPhis.push_back({phi});
   }
-  replacePhisWithIncomingValuesFunction({pm->getSwiftPassInvocation()}, ArrayRef(bridgedPhis));
+  replacePhisWithIncomingValuesFunction({pm->getCodiraPassInvocation()}, ArrayRef(bridgedPhis));
 }
 
-bool swift::hasOwnershipOperandsOrResults(SILInstruction *inst) {
+bool language::hasOwnershipOperandsOrResults(SILInstruction *inst) {
   if (!inst->getFunction()->hasOwnership())
     return false;
 

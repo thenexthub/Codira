@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the 'OwnedString' storage wrapper, which can hold its own
@@ -20,14 +21,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_OWNEDSTRING_H
-#define SWIFT_BASIC_OWNEDSTRING_H
+#ifndef LANGUAGE_BASIC_OWNEDSTRING_H
+#define LANGUAGE_BASIC_OWNEDSTRING_H
 
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/TrailingObjects.h"
 
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace language {
 
@@ -35,8 +36,8 @@ namespace language {
 /// and owned by this type.
 class OwnedString {
   /// An owner that keeps the buffer of a ref counted \c OwnedString alive.
-  class TextOwner final : public llvm::ThreadSafeRefCountedBase<TextOwner>,
-                          public llvm::TrailingObjects<TextOwner, char> {
+  class TextOwner final : public toolchain::ThreadSafeRefCountedBase<TextOwner>,
+                          public toolchain::TrailingObjects<TextOwner, char> {
     TextOwner(StringRef Text) {
       std::uninitialized_copy(Text.begin(), Text.end(),
                               getTrailingObjects<char>());
@@ -61,9 +62,9 @@ class OwnedString {
 
   /// In case of a ref counted string an owner that keeps the buffer \c Text
   /// references alive.
-  llvm::IntrusiveRefCntPtr<TextOwner> OwnedPtr;
+  toolchain::IntrusiveRefCntPtr<TextOwner> OwnedPtr;
 
-  OwnedString(StringRef Text, llvm::IntrusiveRefCntPtr<TextOwner> OwnedPtr)
+  OwnedString(StringRef Text, toolchain::IntrusiveRefCntPtr<TextOwner> OwnedPtr)
       : Text(Text), OwnedPtr(OwnedPtr) {}
 
 public:
@@ -93,7 +94,7 @@ public:
       // string that points to the empty string.
       return makeUnowned(Str);
     } else {
-      llvm::IntrusiveRefCntPtr<TextOwner> OwnedPtr(TextOwner::make(Str));
+      toolchain::IntrusiveRefCntPtr<TextOwner> OwnedPtr(TextOwner::make(Str));
       // Allocate the StringRef on the stack first.  This is to ensure that the
       // order of evaluation of the arguments is specified.  The specification
       // does not specify the order of evaluation for the arguments.  Itanium
@@ -124,4 +125,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_OWNEDSTRING_H
+#endif // LANGUAGE_BASIC_OWNEDSTRING_H

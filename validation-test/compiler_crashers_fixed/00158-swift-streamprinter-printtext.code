@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn k<q {
+    enum k {
+        fn j
+        var _ = j
+    }
+}
+class x  {
+    s m
+    fn j(m)
+}
+struct j<u> : r {
+    fn j(j: j.n) {
+    }
+}
+enum q<v> {   immutable k: v
+    immutable u: v.l
+}
+protocol y {
+    o= p>(r: m<v>)
+}
+struct D : y {
+    s p = Int
+    fn y<v k r {
+    s m
+}
+class y<D> {
+    w <r:
+fn j<v x: v) {
+    x.k()
+}
+fn x(j: Int = a) {
+}
+immutable k = x

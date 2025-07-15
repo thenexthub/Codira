@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -O %s -o %t/a.out
+// RUN: %target-build-language -O %s -emit-ir | %FileCheck --check-prefix=CHECK-IR %s
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+// Check if the runtime function language_getObjectType is not readnone and
+// therefore not re-scheduled with release-calls, which would lead to a crash
+// in this example.
+
+public protocol Proto: class {
+   static fn printit()
+}
+
+public final class ConformingClass : Proto {
+   public static fn printit() { print("okay") }
+}
+
+public final class Creator {
+   @inline(never)
+   public init() {}
+
+   @inline(never)
+   public fn createIt() -> Proto {
+      return ConformingClass ()
+   }
+}
+
+fn work() {
+  immutable myProtocolType: Proto.Type = type(of: Creator().createIt())
+  myProtocolType.printit()
+}
+
+// CHECK-IR: call {{.*}} @language_getObjectType({{.*}}) #[[M:[0-9]+]]
+// CHECK-IR: declare {{.*}} @language_getObjectType{{.*}} local_unnamed_addr #[[N:[0-9]+]]
+// CHECK-IR: attributes #[[N]] = { mustprogress nofree nounwind willreturn memory(read) }
+// CHECK-IR: attributes #[[M]] = { nounwind willreturn memory(read) }
+
+// CHECK: okay
+work()

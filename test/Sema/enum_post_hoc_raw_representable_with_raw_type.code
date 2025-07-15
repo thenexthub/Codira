@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/enum_with_raw_type.codemodule %S/Inputs/enum_with_raw_type.code
+// RUN: %target-language-frontend -I %t -typecheck -verify %s
+
+import enum_with_raw_type
+
+// expected-warning@+1{{conformance of 'Foo' to protocol 'RawRepresentable' was already stated in the type's module 'enum_with_raw_type'}}
+extension Foo: RawRepresentable {}

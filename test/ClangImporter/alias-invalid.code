@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-typecheck-verify-language -I %S/Inputs/custom-modules -enable-experimental-feature ImportMacroAliases
+
+// REQUIRES: language_feature_ImportMacroAliases
+
+import Aliases
+
+fn f() {
+  InvalidCall() // expected-error{{cannot find 'InvalidCall' in scope}}
+}
+
+fn g() {
+  V = 32 // expected-error{{cannot assign to value: 'V' is a get-only property}}
+}
+
+fn h() {
+  immutable _ = overload // expected-error{{ambiguous use of 'overload'}}
+}
+
+fn i() {
+  aliased_variadic(0, 0) // expected-error{{cannot find 'aliased_variadic' in scope}}
+}

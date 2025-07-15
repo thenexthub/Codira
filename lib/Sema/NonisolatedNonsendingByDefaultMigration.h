@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,8 +20,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_NONISOLATEDNONSENDINGBYDEFAULTMIGRATION_H
-#define SWIFT_SEMA_NONISOLATEDNONSENDINGBYDEFAULTMIGRATION_H
+#ifndef LANGUAGE_SEMA_NONISOLATEDNONSENDINGBYDEFAULTMIGRATION_H
+#define LANGUAGE_SEMA_NONISOLATEDNONSENDINGBYDEFAULTMIGRATION_H
 
 #include "language/AST/ActorIsolation.h"
 #include "language/AST/ExtInfo.h"
@@ -53,4 +54,4 @@ void warnAboutNewNonisolatedAsyncExecutionBehavior(ASTContext &ctx,
 
 } // end namespace language
 
-#endif /* SWIFT_SEMA_NONISOLATEDNONSENDINGBYDEFAULTMIGRATION_H */
+#endif /* LANGUAGE_SEMA_NONISOLATEDNONSENDINGBYDEFAULTMIGRATION_H */

@@ -1,4 +1,4 @@
-//===--- BridgeStorage.swift - Discriminated storage for bridged types ----===//
+//===--- BridgeStorage.code - Discriminated storage for bridged types ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Types that are bridged to Objective-C need to manage an object
@@ -21,7 +22,7 @@
 //  be a tagged pointer, and thus no extra bits may be available.
 //
 //===----------------------------------------------------------------------===//
-import SwiftShims
+import CodiraShims
 
 #if !$Embedded
 
@@ -45,7 +46,7 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
     // Note: Some platforms provide more than one spare bit, but the minimum is
     // a single bit.
 
-    _internalInvariant(_usesNativeSwiftReferenceCounting(NativeClass.self))
+    _internalInvariant(_usesNativeCodiraReferenceCounting(NativeClass.this))
 
     rawValue = _makeNativeBridgeObject(
       native,
@@ -55,14 +56,14 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
   @inlinable
   @inline(__always)
   internal init(objC: ObjC) {
-    _internalInvariant(_usesNativeSwiftReferenceCounting(NativeClass.self))
+    _internalInvariant(_usesNativeCodiraReferenceCounting(NativeClass.this))
     rawValue = _makeObjCBridgeObject(objC)
   }
 
   @inlinable
   @inline(__always)
   internal init(native: Native) {
-    _internalInvariant(_usesNativeSwiftReferenceCounting(NativeClass.self))
+    _internalInvariant(_usesNativeCodiraReferenceCounting(NativeClass.this))
     rawValue = Builtin.reinterpretCast(native)
   }
 
@@ -76,20 +77,20 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating func isUniquelyReferencedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedNative() -> Bool {
     return isNative && _isUnique(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func beginCOWMutationNative() -> Bool {
+  internal mutating fn beginCOWMutationNative() -> Bool {
     return Bool(Builtin.beginCOWMutation(&rawValue))
   }
 
   @inlinable
   internal var isNative: Bool {
     @inline(__always) get {
-      let result = Builtin.classifyBridgeObject(rawValue)
+      immutable result = Builtin.classifyBridgeObject(rawValue)
       return !Bool(Builtin.or_Int1(result.isObjCObject,
                                    result.isObjCTaggedPointer))
     }
@@ -137,21 +138,21 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating func isUniquelyReferencedUnflaggedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedUnflaggedNative() -> Bool {
     _internalInvariant(isNative)
     return _isUnique_native(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func beginCOWMutationUnflaggedNative() -> Bool {
+  internal mutating fn beginCOWMutationUnflaggedNative() -> Bool {
     _internalInvariant(isNative)
     return Bool(Builtin.beginCOWMutation_native(&rawValue))
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func endCOWMutation() {
+  internal mutating fn endCOWMutation() {
     _internalInvariant(isNative)
     Builtin.endCOWMutation(&rawValue)
   }
@@ -182,20 +183,20 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
   @inline(__always)
   internal init(native: Native) {
     #if !$Embedded
-    _internalInvariant(_usesNativeSwiftReferenceCounting(NativeClass.self))
+    _internalInvariant(_usesNativeCodiraReferenceCounting(NativeClass.this))
     #endif
     rawValue = native
   }
 
   @inlinable
   @inline(__always)
-  internal mutating func isUniquelyReferencedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedNative() -> Bool {
     return _isUnique(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func beginCOWMutationNative() -> Bool {
+  internal mutating fn beginCOWMutationNative() -> Bool {
     return Bool(Builtin.beginCOWMutation(&rawValue))
   }
 
@@ -222,19 +223,19 @@ internal struct _BridgeStorage<NativeClass: AnyObject> {
 
   @inlinable
   @inline(__always)
-  internal mutating func isUniquelyReferencedUnflaggedNative() -> Bool {
+  internal mutating fn isUniquelyReferencedUnflaggedNative() -> Bool {
     return _isUnique_native(&rawValue)
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func beginCOWMutationUnflaggedNative() -> Bool {
+  internal mutating fn beginCOWMutationUnflaggedNative() -> Bool {
     return Bool(Builtin.beginCOWMutation_native(&rawValue))
   }
 
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func endCOWMutation() {
+  internal mutating fn endCOWMutation() {
     Builtin.endCOWMutation(&rawValue)
   }
 }

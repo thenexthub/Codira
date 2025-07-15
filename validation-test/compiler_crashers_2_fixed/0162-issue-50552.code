@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/50552
+
+protocol P {}
+struct A<C> {}
+extension A: P where A: P {}

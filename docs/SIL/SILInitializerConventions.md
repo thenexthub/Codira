@@ -16,7 +16,7 @@ last argument to the initializer. Using `<...>` as a stand-in for other
 arguments that are part of the usual function calling convention, consider this
 example:
 
-```swift
+```language
 // the non-delegating init MyStruct.init(final:)
 sil hidden [ossa] @$s4test8MyStructV5finalACSi_tcfC : $@convention(method) (<...>, @thin MyStruct.Type) -> MyStruct {
 bb0(<...>, %meta : $@thin MyStruct.Type):
@@ -69,7 +69,7 @@ which does the initialization (i.e., the "initializing" entrypoint).
 Here's an example of `MyClass.init(final:)`, which is a designated initializer,
 with its two entry-points:
 
-```swift
+```language
 // MyClass.__allocating_init(final:)
 sil hidden [exact_self_class] [ossa] @$s4test7MyClassC5finalACSi_tcfC : $@convention(method) (<...>, @thick MyClass.Type) -> @owned MyClass {
 bb0(%0 : $Int, %1 : $@thick MyClass.Type):
@@ -98,7 +98,7 @@ that it's the allocating entrypoint, whereas the lowercase `c` is the
 initializing entrypoint. Only the allocating entrypoint is published in the
 type's vtable:
 
-```swift
+```language
 sil_vtable MyClass {
   // ...
   #MyClass.init!allocator: (MyClass.Type) -> (<...>) -> MyClass : @$s4test7MyClassC5finalACSi_tcfC	// MyClass.__allocating_init(final:)
@@ -109,7 +109,7 @@ The initializing entrypoint is only referenced by either it's corresponding
 allocating entrypoint, or by a sub-class that is delegating up in a `super.init`
 call. For example, if we had:
 
-```swift
+```language
 class MyClass {
   var x: Int
   init(final x: Int) {

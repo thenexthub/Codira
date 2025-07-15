@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/asdf.code
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/sdf.code -I %t
+// RUN: %target-language-frontend -typecheck %s -I %t -verify
+
+import asdf
+import sdf
+import struct sdf.S
+
+var uS: S = sdf.S(x: 123)

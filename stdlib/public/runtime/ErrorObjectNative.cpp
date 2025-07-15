@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements the object representation of the standard Error
@@ -22,7 +23,7 @@
 
 #include "language/Runtime/Config.h"
 
-#if !SWIFT_OBJC_INTEROP
+#if !LANGUAGE_OBJC_INTEROP
 
 #include <stdio.h>
 #include "language/Runtime/Debug.h"
@@ -35,22 +36,22 @@ using namespace language;
 /// type.
 static std::pair<size_t, size_t>
 _getErrorAllocatedSizeAndAlignmentMask(const Metadata *type) {
-  // The value is tail-allocated after the SwiftError record with the
+  // The value is tail-allocated after the CodiraError record with the
   // appropriate alignment.
   auto vw = type->getValueWitnesses();
-  size_t size = sizeof(SwiftError);
+  size_t size = sizeof(CodiraError);
   unsigned valueAlignMask = vw->getAlignmentMask();
   size = (size + valueAlignMask) & ~(size_t)valueAlignMask;
   size += vw->getSize();
   
-  size_t alignMask = (alignof(SwiftError) - 1) | valueAlignMask;
+  size_t alignMask = (alignof(CodiraError) - 1) | valueAlignMask;
   
   return {size, alignMask};
 }
 
 /// Destructor for an Error box.
-static SWIFT_CC(swift) void _destroyErrorObject(SWIFT_CONTEXT HeapObject *obj) {
-  auto error = static_cast<SwiftError *>(obj);
+static LANGUAGE_CC(language) void _destroyErrorObject(LANGUAGE_CONTEXT HeapObject *obj) {
+  auto error = static_cast<CodiraError *>(obj);
   
   // Destroy the value inside.
   auto type = error->type;
@@ -58,7 +59,7 @@ static SWIFT_CC(swift) void _destroyErrorObject(SWIFT_CONTEXT HeapObject *obj) {
   
   // Deallocate the buffer.
   auto sizeAndAlign = _getErrorAllocatedSizeAndAlignmentMask(type);
-  swift_deallocObject(obj, sizeAndAlign.first, sizeAndAlign.second);
+  language_deallocObject(obj, sizeAndAlign.first, sizeAndAlign.second);
 }
 
 /// Heap metadata for Error boxes.
@@ -68,16 +69,16 @@ static const FullMetadata<HeapMetadata> ErrorMetadata{
 };
 
 BoxPair
-swift::swift_allocError(const swift::Metadata *type,
-                        const swift::WitnessTable *errorConformance,
+language::language_allocError(const language::Metadata *type,
+                        const language::WitnessTable *errorConformance,
                         OpaqueValue *initialValue,
                         bool isTake) {
   auto sizeAndAlign = _getErrorAllocatedSizeAndAlignmentMask(type);
   
-  auto allocated = swift_allocObject(&ErrorMetadata,
+  auto allocated = language_allocObject(&ErrorMetadata,
                                      sizeAndAlign.first, sizeAndAlign.second);
   
-  auto error = reinterpret_cast<SwiftError*>(allocated);
+  auto error = reinterpret_cast<CodiraError*>(allocated);
   
   error->type = type;
   error->errorConformance = errorConformance;
@@ -95,13 +96,13 @@ swift::swift_allocError(const swift::Metadata *type,
 }
 
 void
-swift::swift_deallocError(SwiftError *error, const Metadata *type) {
+language::language_deallocError(CodiraError *error, const Metadata *type) {
   auto sizeAndAlign = _getErrorAllocatedSizeAndAlignmentMask(type);
-  swift_deallocUninitializedObject(error, sizeAndAlign.first, sizeAndAlign.second);
+  language_deallocUninitializedObject(error, sizeAndAlign.first, sizeAndAlign.second);
 }
 
 void
-swift::swift_getErrorValue(const SwiftError *errorObject,
+language::language_getErrorValue(const CodiraError *errorObject,
                            void **scratch,
                            ErrorValueResult *out) {
   out->value = errorObject->getValue();
@@ -109,12 +110,12 @@ swift::swift_getErrorValue(const SwiftError *errorObject,
   out->errorConformance = errorObject->errorConformance;
 }
 
-SwiftError *swift::swift_errorRetain(SwiftError *error) {
-  return static_cast<SwiftError*>(swift_retain(error));
+CodiraError *language::language_errorRetain(CodiraError *error) {
+  return static_cast<CodiraError*>(language_retain(error));
 }
 
-void swift::swift_errorRelease(SwiftError *error) {
-  swift_release(error);
+void language::language_errorRelease(CodiraError *error) {
+  language_release(error);
 }
 
 #endif

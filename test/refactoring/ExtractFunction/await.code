@@ -1,0 +1,19 @@
+fn longLongLongJourney() async -> Int { 0 }
+fn longLongLongAwryJourney() async throws -> Int { 0 }
+fn consumesAsync(_ fn: () async throws -> Void) rethrows {}
+
+fn testThrowingClosure() async throws -> Int {
+  immutable x = await longLongLongJourney()
+  immutable y = try await longLongLongAwryJourney() + 1
+  try consumesAsync { try await longLongLongAwryJourney() }
+  return x + y
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-function -source-filename %s -pos=6:11 -end-pos=6:38 >> %t.result/async1.code
+// RUN: diff -u %S/Outputs/await/async1.code.expected %t.result/async1.code
+// RUN: %refactor -extract-function -source-filename %s -pos=7:11 -end-pos=7:50 >> %t.result/async2.code
+// RUN: diff -u %S/Outputs/await/async2.code.expected %t.result/async2.code
+// RUN: %refactor -extract-function -source-filename %s -pos=8:1 -end-pos=8:60 >> %t.result/consumes_async.code
+// RUN: diff -u %S/Outputs/await/consumes_async.code.expected %t.result/consumes_async.code
+// REQUIRES: language_language_parser

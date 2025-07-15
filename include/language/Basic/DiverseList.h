@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a data structure for representing a list of
@@ -20,8 +21,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_DIVERSELIST_H
-#define SWIFT_BASIC_DIVERSELIST_H
+#ifndef LANGUAGE_BASIC_DIVERSELIST_H
+#define LANGUAGE_BASIC_DIVERSELIST_H
 
 #include "language/Basic/Malloc.h"
 #include <cassert>
@@ -287,4 +288,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_DIVERSELIST_H
+#endif // LANGUAGE_BASIC_DIVERSELIST_H

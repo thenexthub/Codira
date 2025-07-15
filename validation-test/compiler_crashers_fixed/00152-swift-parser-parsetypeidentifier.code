@@ -1,0 +1,110 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol kj : gf { fn gf
+class t<u : t> {
+}
+protocol qp {
+  r on
+  r t = on
+  r lk = on
+}
+class gf<kj : kj, t : kj ih kj.vu == t> : qp {
+}
+class gf<kj, t> {
+}
+protocol kj {
+    r vu
+}
+ed vu = sr
+ed ts: o -> o = {
+    fe $gf
+}
+l on: o = { (kj: o, lk: o -> o) -> o po
+    fe lk(kj)
+}(vu, ts)
+l qp: o = { kj, lk po
+    fe lk(kj)
+}(vu, ts)
+class qp<lk : gf, vu : gf ih lk.on == vu> {
+}
+protocol gf {
+    r on
+    r t
+}
+struct kj<kj : gf> : gf {
+    r on = kj
+    r t = qp<kj<kj>, on>
+}
+fn qp(kj: v, ji: v) -> (((v, v) -> v) -> v) {
+    fe {
+        (ut: (v, v) -> v) -> v po
+        fe ut(kj, ji)
+    }
+}
+fn gf(p: (((v, v) -> v) -> v)) -> v {
+    fe p({
+        (ut: v, fe:v) -> v po
+        fe ut
+    })
+}
+gf(qp(sr, qp(s, w)))
+protocol t {
+    r n
+    fn gf(n)
+}
+struct cb<hg> : t {
+   on k on.t = {
+}
+ {
+   vu) {
+        kj  }
+}
+protocol lk {
+   class fn t()
+}
+class on: lk{  class fn t {}
+protocol qp {
+    class fn kj()
+}
+class gf: qp {
+    class fn kj() { }
+}
+(gf() x qp).ji.gf vu.kj == lk.kj> {
+}
+protocol t {
+    r kj
+}
+fn lk() {
+    ({})
+}
+protocol t {
+    r n
+}
+class lk<dc> {
+    rq <t: t ih t.n == dc>(t: t.n) {
+    nm gf = gf
+}
+protocol t {
+    r k
+}
+struct n<u : t> {
+    l kj: u
+    l t: u.k
+}
+protocol lk {
+    r ml
+    fn >)
+}
+struct dc : lk {
+    r ml = o
+    fn vu< u.k == ml>(lk: n<u>)

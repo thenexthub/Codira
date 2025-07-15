@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines x-macros used for metaprogramming with the set of
@@ -20,7 +21,7 @@
 
 /// #define OVERRIDE(name, ret, attrs, namespace, typedArgs, namedArgs)
 ///   Provides information about an overridable function.
-///   - name is the name of the function, without any leading swift_ or
+///   - name is the name of the function, without any leading language_ or
 ///     namespace.
 ///   - ret is the return type of the function.
 ///   - attrs is the attributes, if any, applied to the function definition.
@@ -73,7 +74,7 @@
 #  endif
 #endif
 
-OVERRIDE_CASTING(dynamicCast, bool, , , swift::,
+OVERRIDE_CASTING(dynamicCast, bool, , , language::,
                  (OpaqueValue *dest, OpaqueValue *src,
                   const Metadata *srcType,
                   const Metadata *targetType,
@@ -81,13 +82,13 @@ OVERRIDE_CASTING(dynamicCast, bool, , , swift::,
                  (dest, src, srcType, targetType, flags))
 
 
-OVERRIDE_CASTING(dynamicCastClass, const void *, , , swift::,
+OVERRIDE_CASTING(dynamicCastClass, const void *, , , language::,
                  (const void *object,
                   const ClassMetadata *targetType),
                  (object, targetType))
 
 
-OVERRIDE_CASTING(dynamicCastClassUnconditional, const void *, , , swift::,
+OVERRIDE_CASTING(dynamicCastClassUnconditional, const void *, , , language::,
                  (const void *object,
                   const ClassMetadata *targetType,
                   const char *file, unsigned line, unsigned column),
@@ -95,61 +96,61 @@ OVERRIDE_CASTING(dynamicCastClassUnconditional, const void *, , , swift::,
 
 
 
-OVERRIDE_CASTING(dynamicCastUnknownClass, const void *, , , swift::,
+OVERRIDE_CASTING(dynamicCastUnknownClass, const void *, , , language::,
                  (const void *object, const Metadata *targetType),
                  (object, targetType))
 
 
-OVERRIDE_CASTING(dynamicCastUnknownClassUnconditional, const void *, , , swift::,
+OVERRIDE_CASTING(dynamicCastUnknownClassUnconditional, const void *, , , language::,
                  (const void *object, const Metadata *targetType,
                   const char *file, unsigned line, unsigned column),
                  (object, targetType, file, line, column))
 
 
-OVERRIDE_CASTING(dynamicCastMetatype, const Metadata *, , , swift::,
+OVERRIDE_CASTING(dynamicCastMetatype, const Metadata *, , , language::,
                  (const Metadata *sourceType,
                   const Metadata *targetType),
                  (sourceType, targetType))
 
 
-OVERRIDE_CASTING(dynamicCastMetatypeUnconditional, const Metadata *, , , swift::,
+OVERRIDE_CASTING(dynamicCastMetatypeUnconditional, const Metadata *, , , language::,
                  (const Metadata *sourceType,
                   const Metadata *targetType,
                   const char *file, unsigned line, unsigned column),
                  (sourceType, targetType, file, line, column))
 
 
-OVERRIDE_FOREIGN(dynamicCastForeignClassMetatype, const ClassMetadata *, , , swift::,
+OVERRIDE_FOREIGN(dynamicCastForeignClassMetatype, const ClassMetadata *, , , language::,
                  (const ClassMetadata *sourceType,
                   const ClassMetadata *targetType),
                  (sourceType, targetType))
 
 
 OVERRIDE_FOREIGN(dynamicCastForeignClassMetatypeUnconditional,
-                 const ClassMetadata *, , , swift::,
+                 const ClassMetadata *, , , language::,
                  (const ClassMetadata *sourceType,
                   const ClassMetadata *targetType,
                   const char *file, unsigned line, unsigned column),
                  (sourceType, targetType, file, line, column))
 
 
-OVERRIDE_PROTOCOLCONFORMANCE(conformsToProtocol, const WitnessTable *, , , swift::,
+OVERRIDE_PROTOCOLCONFORMANCE(conformsToProtocol, const WitnessTable *, , , language::,
                              (const Metadata * const type,
                               const ProtocolDescriptor *protocol),
                              (type, protocol))
 
-OVERRIDE_PROTOCOLCONFORMANCE(conformsToSwiftProtocol,
-                             const ProtocolConformanceDescriptor *, , , swift::,
+OVERRIDE_PROTOCOLCONFORMANCE(conformsToCodiraProtocol,
+                             const ProtocolConformanceDescriptor *, , , language::,
                              (const Metadata * const type,
                               const ProtocolDescriptor *protocol,
                               StringRef moduleName),
                              (type, protocol, moduleName))
 
-OVERRIDE_KEYPATH(getKeyPath, const HeapObject *, , , swift::,
+OVERRIDE_KEYPATH(getKeyPath, const HeapObject *, , , language::,
                  (const void *pattern, const void *arguments),
                  (pattern, arguments))
 
-OVERRIDE_METADATALOOKUP(getTypeByMangledNode, TypeInfo, , SWIFT_CC(swift), swift::,
+OVERRIDE_METADATALOOKUP(getTypeByMangledNode, TypeInfo, , LANGUAGE_CC(language), language::,
                         (MetadataRequest request,
                          Demangler &demangler,
                          Demangle::NodePointer node,
@@ -157,7 +158,7 @@ OVERRIDE_METADATALOOKUP(getTypeByMangledNode, TypeInfo, , SWIFT_CC(swift), swift
                          SubstGenericParameterFn substGenericParam,
                          SubstDependentWitnessTableFn substWitnessTable),
                         (request, demangler, node, arguments, substGenericParam, substWitnessTable))
-OVERRIDE_METADATALOOKUP(getTypeByMangledName, TypeInfo, , SWIFT_CC(swift), swift::,
+OVERRIDE_METADATALOOKUP(getTypeByMangledName, TypeInfo, , LANGUAGE_CC(language), language::,
                         (MetadataRequest request,
                          StringRef typeName,
                          const void * const *arguments,
@@ -166,7 +167,7 @@ OVERRIDE_METADATALOOKUP(getTypeByMangledName, TypeInfo, , SWIFT_CC(swift), swift
                         (request, typeName, arguments, substGenericParam, substWitnessTable))
 
 OVERRIDE_WITNESSTABLE(getAssociatedTypeWitnessSlow, MetadataResponse,
-                      SWIFT_RUNTIME_STDLIB_INTERNAL, SWIFT_CC(swift), swift::,
+                      LANGUAGE_RUNTIME_STDLIB_INTERNAL, LANGUAGE_CC(language), language::,
                       (MetadataRequest request, WitnessTable *wtable,
                        const Metadata *conformingType,
                        const ProtocolRequirement *reqBase,
@@ -174,46 +175,46 @@ OVERRIDE_WITNESSTABLE(getAssociatedTypeWitnessSlow, MetadataResponse,
                       (request, wtable, conformingType, reqBase, assocType))
 
 OVERRIDE_WITNESSTABLE(getAssociatedConformanceWitnessSlow, const WitnessTable *,
-                      SWIFT_RUNTIME_STDLIB_INTERNAL, SWIFT_CC(swift), swift::,
+                      LANGUAGE_RUNTIME_STDLIB_INTERNAL, LANGUAGE_CC(language), language::,
                       (WitnessTable *wtable, const Metadata *conformingType,
                        const Metadata *assocType,
                        const ProtocolRequirement *reqBase,
                        const ProtocolRequirement *assocConformance),
                       (wtable, conformingType, assocType, reqBase,
                                assocConformance))
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 
-OVERRIDE_OBJC(dynamicCastObjCClass, const void *, , , swift::,
+OVERRIDE_OBJC(dynamicCastObjCClass, const void *, , , language::,
               (const void *object,
                const ClassMetadata *targetType),
               (object, targetType))
 
 
-OVERRIDE_OBJC(dynamicCastObjCClassUnconditional, const void *, , , swift::,
+OVERRIDE_OBJC(dynamicCastObjCClassUnconditional, const void *, , , language::,
               (const void *object,
                const ClassMetadata *targetType,
                const char *file, unsigned line, unsigned column),
               (object, targetType, file, line, column))
 
-OVERRIDE_OBJC(dynamicCastObjCClassMetatype, const ClassMetadata *, , , swift::,
+OVERRIDE_OBJC(dynamicCastObjCClassMetatype, const ClassMetadata *, , , language::,
               (const ClassMetadata *sourceType,
                const ClassMetadata *targetType),
               (sourceType, targetType))
 
 
-OVERRIDE_OBJC(dynamicCastObjCClassMetatypeUnconditional, const ClassMetadata *, , , swift::,
+OVERRIDE_OBJC(dynamicCastObjCClassMetatypeUnconditional, const ClassMetadata *, , , language::,
               (const ClassMetadata *sourceType, const ClassMetadata *targetType,
                const char *file, unsigned line, unsigned column),
               (sourceType, targetType, file, line, column))
 
 
-OVERRIDE_FOREIGN(dynamicCastForeignClass, const void *, , , swift::,
+OVERRIDE_FOREIGN(dynamicCastForeignClass, const void *, , , language::,
                  (const void *object,
                   const ForeignClassMetadata *targetType),
                  (object, targetType))
 
 
-OVERRIDE_FOREIGN(dynamicCastForeignClassUnconditional, const void *, , , swift::,
+OVERRIDE_FOREIGN(dynamicCastForeignClassUnconditional, const void *, , , language::,
                  (const void *object, const ForeignClassMetadata *targetType,
                   const char *file, unsigned line, unsigned column),
                  (object, targetType, file, line, column))

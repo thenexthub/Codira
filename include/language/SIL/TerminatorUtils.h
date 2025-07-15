@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,13 +20,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_TERMINATORUTILS_H
-#define SWIFT_SIL_TERMINATORUTILS_H
+#ifndef LANGUAGE_SIL_TERMINATORUTILS_H
+#define LANGUAGE_SIL_TERMINATORUTILS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILInstruction.h"
 
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 namespace language {
 

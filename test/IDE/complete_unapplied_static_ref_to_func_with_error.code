@@ -1,0 +1,24 @@
+// RUN: %batch-code-completion
+// Check that we don't crash
+
+fn myGlobalFunction() -> Invalid {}
+
+struct Test {
+  fn myInstanceMethod() -> Invalid {}
+
+  fn testInstanceMethod() {
+    Test.myInstanceMethod#^INSTANCE_METHOD?check=NO_RESULTS^#
+  }
+
+  fn testGlobalFunctionMethod() {
+    myGlobalFunction#^GLOBAL_FUNCTION?check=NO_RESULTS^#
+    // Check that we don't crash
+  }
+
+  fn testLocalFunction() {
+    fn myLocalFunction() -> Invalid {}
+    myLocalFunction#^LOCAL_FUNCTION?check=NO_RESULTS^#
+  }
+}
+
+// NO_RESULTS-NOT: Begin completions

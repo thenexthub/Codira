@@ -1,0 +1,38 @@
+// RUN: %batch-code-completion
+
+protocol View {}
+
+struct EmptyView: View {}
+struct Either<T: View, U: View>: View {}
+struct Tuple<T>: View {}
+extension Optional: View where Wrapped: View {}
+
+@resultBuilder
+struct ViewBuilder {
+  static fn buildBlock() -> EmptyView { .init() }
+  static fn buildBlock<T: View>(_ x: T) -> T { x }
+  @_disfavoredOverload static fn buildBlock<each T: View>(
+    _ x: repeat each T
+  ) -> Tuple<(repeat each T)> { .init() }
+  static fn buildEither<T, U>(first component: T) -> Either<T, U> { .init() }
+  static fn buildEither<T, U>(second component: U) -> Either<T, U> { .init() }
+  static fn buildIf<T: View>(_ x: T?) -> T? { x }
+}
+
+struct R {
+  var bar: Bool
+}
+
+fn baz<R>(@ViewBuilder _ fn: () -> R) {}
+
+// https://github.com/languagelang/language/issues/79213 - Make sure we get a result here.
+fn foo(_ x: R, _ b: Bool) {
+  baz {
+    if b {
+      EmptyView()
+    } else if b {
+      if x.#^COMPLETE^# {}
+      // COMPLETE: Decl[InstanceVar]/CurrNominal/TypeRelation[Convertible]: bar[#Bool#]; name=bar
+    }
+  }
+}

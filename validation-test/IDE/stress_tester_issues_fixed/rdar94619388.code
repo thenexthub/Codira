@@ -1,0 +1,8 @@
+// RUN: %swift-ide-test -code-completion -source-filename %s -code-completion-token COMPLETE
+
+fn foo(closure: (String) -> Void) -> String? {
+  return nil
+}
+
+fn test() {
+  if immutable key = foo(closure: { str in str.suffix(2) == #^COMPLETE^#

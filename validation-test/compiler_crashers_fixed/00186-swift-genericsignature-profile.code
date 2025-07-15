@@ -1,0 +1,752 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn c<g>() -> (g, g -> g) -> g {
+   d b d.f = {
+}
+ {
+   g) {
+        i  }
+}
+i c {
+   class fn f()
+}
+class d: c{  class fn f {}
+struct d<c : f,f where g.i == c.i>
+protocol p {
+    class fn g()
+}
+class h: p {
+    class fn g() { }
+}
+(h() as p).dynamicType.g()
+protocol p {
+}
+protocol h : p {
+}
+protocol g : p {
+}
+protocol n {
+  o t = p
+}
+struct h : n {
+  t : n q m.t == m> (h: m) {
+}
+fn q<t : n q t.t == g> (h: t) {
+}
+q(h())
+fn r(g: m) -> <s>(() -> s) -> n
+class A<T : A> {
+}
+fn c<d {
+    enum c {
+        fn e
+        var _ = e
+    }
+}
+protocol a {
+    class fn c()
+}
+class b: a {
+    class fn c() { }
+}
+(b() as a).dynamicl A {
+    {
+    typealias b = b
+ d.i = {
+}
+ {
+   g) {
+        h  }
+}
+protocol f {
+   class fn i()
+}}
+fn f() {
+    ({})
+}
+  }
+}
+class b<i : b> i: g{ fn c {}
+e g {
+ : g {
+h fn i() ->  }
+}
+class i {
+    fn d((h: (Any, AnyObject)) {
+        d(h)
+    }
+}
+d
+h)
+fn d<i>() -> (i, i -> i) -> i {
+   i j i.f = {
+}
+protocol d {
+   class fn f()
+}
+class i: d{  class fn f {}
+fn b<d-> d { class d:b class b
+n)
+fn f<o>() -> (o, o -> o) -> o {
+   o m o.j = {
+}
+ {
+   o) {
+        r  }
+}
+p q) {
+}
+o m = j
+m()
+class m {
+    fn r((Any, m))(j: (Any, AnyObject)) {
+        r(j)
+    }
+}
+fn m<o {
+    r m {
+        fn n
+        n _ = n
+    }
+}
+class k<l : k
+protocol A {
+    typealias B
+}
+class C<D> {
+    init <A: A where A.B == D>(e: A.B) {
+    }
+}
+1, g(f, j)))
+m k {
+    class h k()
+}
+struct i {
+    i d: k.l    h k() {
+      n k
+}
+class g {
+    typealias k = k
+}
+fn i(f: g) -> <j>(() -> j) -> g { fn g
+k, l {
+    typealias l = m<k<m>, f>
+}
+)
+fn o<t>() -> (t, t -> t) -> t {
+   j j j.o = {
+}
+ {
+   t) {
+        h  }
+}
+protocol o {
+   class fn o()
+}
+class j: o{  class fn o {}
+e o<j : u> {
+    k []
+}
+n=p r n=p
+fn n<q>() {
+    b b {
+        o o
+    }
+}
+fn n(j: Any, t: Any) -> (((Any, Any) -> Any) -> Any) {
+    k {
+        (s: (Any, Any) -> Any) -> Any l
+        k s(j, t)
+    }
+}
+fn b(s: (((Any, Any) -> Any) -> Any)
+fn o() as o).m.k()
+fn p(k: b) -> <i>(() -> i) -> b {
+  n { o f "\(k): \(o())" }
+}
+struct d<d : n, o:j n {
+    l p
+}
+protocol o : o {
+}
+fn o<
+protocol l : p {
+}
+protocol m {
+  j f = p
+}
+f m : m {
+  j f = o
+}
+fn i<o : o, m : m n m.f == o> (l: m) {
+}
+k: m
+}
+fn p<m>() -> [l<m>] {
+    return []
+}
+f
+m)
+fn f<o>() -> (o, o -> o) -> o {
+   m o m.i = {
+}
+ {
+   o) {
+        p  }
+}
+protocol f {
+   class fn i()
+}
+class m: f{  class fn i {}
+protocol p {
+    class fn l()
+}
+class o: p {
+    class fn l() { }
+}
+class p {
+    u _ = q() {
+    }
+}
+u l = r
+u s: k -> k = {
+    n $h: m.j) {
+    }
+}
+o l() {
+    ({})
+}
+struct m<t> {
+    ls l {
+    fn f((k, l() -> f
+}
+class d
+}
+class i: d, g {
+    l fn d() -> f {
+        m ""
+    }
+    }
+}
+fn m<j n j: g, j: d
+immutable l = h
+l()
+f
+protocol l : f { fn f
+protocol g
+fn f<r>() -> (r, r -> r) -> r {
+   f r f.j = {
+}
+ {
+   r) {
+        s  }
+}
+protocol f {
+   class fn j()
+}
+class f: f{  class fn j {}
+protocol j {
+    class fn m()
+}
+class r: j {
+    class fn m() { }
+}
+(r() n j).p.m()
+j=k n j=k
+protocol r {
+    class fn q()
+}
+s m {
+    m f: r.q
+    fn q() {
+        f.q()
+    }
+(l, () -> ())
+}
+fn f<l : o>(r: l)
+fn a<d>() -> [c{    enum b {
+        case c
+w
+class x<u>: d {
+    l i: u
+    init(i: u) {
+        o.i = j {
+  r { w s "\(f): \(w())" }
+}
+protocol h {
+    q k {
+    t w
+}
+w
+protocol k : w { fn v <h: h m h.p == k>(l: h.p) {
+    }
+}
+protocol h {
+    n  fn w(w:
+}
+class h<u : h> {
+b
+protocol c : b { fn b
+protocol a {
+}
+protocol h : a {
+}
+protocol k : a {
+}
+protocol g {
+  j n = a
+}
+struct n : g {
+  j n = h
+}
+fn i<h : h, f : g m f.n == h> (g: f) {
+}
+fn i<n : g m n.n = o) {
+}
+immutable k = a
+k()
+h
+protocol k : h { fn h
+k
+fn d<b: Sequence, e where Optional<e> == b.Iterator.Element>(c : b) -> e? {
+    for (mx : e?) in c {
+    }
+}
+fn f<m>() -> (m, m -> m) -> m {
+   e c e.i = {
+}
+ {
+   m) {
+        n  }
+}
+protocol f {
+   class fn i()
+}
+class e: f{  class fn i {}
+fn n<j>() -> (j, j -> j) -> j {
+    var m: ((j> j)!
+    f m
+}
+protocol k {
+    typealias m
+}
+struct e<j : k> {n: j
+    immutable i: j.m
+}
+l
+f> {
+ c(d ())
+}
+fn b(e)-> <d>(() -> d)
+)
+fn n<w>() -> (w, w -> w) -> w {
+   o m o.q = {
+}
+ {
+   w) {
+        k  }
+}
+protocol n {
+   class fn q()
+}
+class o: n{  class fn q {}
+fn p(e: Int = x) {
+}
+immutable c = p
+c()
+fn r<o: y, s q n<s> ==(r(t))
+protocol p : p {
+}
+protocol p {
+    class fn c()
+}
+class e: p {
+    class fn c() { }
+}
+(e() u p).v.c()
+k e.w == l> {
+}
+fn p(c: Any, m: Any) -> (((Any, Any) -> Any) -> Any) {
+>)
+}
+struct n : C {
+ class p {
+    typealias n = n
+}
+l
+l)
+fn l<u>() -> (u, u -> u) -> u {
+   n j n.q = {
+}
+ {
+   u) {
+        h  }
+}
+protocol l {
+   class {
+    fn n() -> q {
+        return ""
+    }
+}
+class C: s, l {
+  t) {
+    return {
+        (s: (t, t) -> t) -> t o
+        return s(c, u)
+    }
+}
+fn n(r: (((t, t) -> t) -> t)) -> t {
+    return r({
+         return k
+    })
+protocol a : a {
+}
+import Foundation
+class m<j>: NSObject {
+    var h: j
+ g -> k = l $n
+}
+b f:  _ = j() {
+    }
+}
+fn k<g {
+    enum k {
+        fn l
+    var _ = l
+fn k<q>() -> [n<q>] {
+    r []
+}
+fn k(l: Int = 0) {
+}
+n n = k
+n()
+fn n<q {
+    l n {
+        fn o
+        o _ = o
+    }
+}
+fn ^(k: m, q) -> q {
+    r !(k)
+}
+protocol k {
+  j q
+  j o = q
+  j f = q
+}
+class l<r : n, l : n p r.q == l> : k {
+}
+class l<r, l> {
+}
+protocol n {
+    j q
+}
+protocol k : k {
+}
+class k<f : l, q : l p f.q == q> {
+}
+protocol l {
+    j q
+    j o
+}
+struct n<r : l>
+import Foundation
+class Foo<T>: NSObject {
+    var foo: T
+    init(foo: T) {
+ B>(t: T) {
+    t.c()
+} x
+      x) {
+}
+class a {
+    var _ = i() {
+    }
+}
+a=1 as a=1
+fn c<b:c
+fn a(b: Int = 0) {
+}
+immutable c = a
+c()
+<c b:
+fn b<c {
+  enum b {
+   fn b
+var _ = b
+protocol a {
+}
+protocol b : a {
+}
+protocol c : a {
+}
+protocol d {
+  typealias f = a
+}
+struct e : d {
+  typealias f = b
+}
+fn i<j : b, k : d where k.f == j> (n: k) {
+}
+fn i<l : d where l.f == c> (n: l) {
+}
+i(e())
+class f<d : d, j : d k d.l == j> {
+}
+protocol d {
+    i l
+    i i
+}
+struct l<l : d> : d {
+    i j i() {
+        l.i()
+    }
+}
+protocol f {
+}
+protocol d : f {
+struct c<d : Sequence> {
+    var b: dlass fn s {}
+s p {
+    fn m() -> String
+}
+class n {
+    fn p() -> String {
+        q ""
+    }
+}
+class e: n, p {
+    v fn> String {
+        q ""
+    }
+ {
+  r m = m
+}
+fn s<o : m, o : p o o.m == o> (m: o) {
+}
+fn s<v : p o v.m == m> (u: String) -> <t>(() -> t) -
+c
+j)
+fn c<k>() -> (k, > k) -> k {
+   d h d.f 1, k(j, i)))
+class k {
+    typealias h = h
+protocol f : f {
+}
+fn h<d {
+    enum h {
+        fn e
+        var _ = e
+    }
+}
+protocol e {
+    e fn e()
+}
+struct h {
+    var d: e.h
+    fn e() {
+        d.e()
+    }
+}
+protocol f {
+  i []
+}
+fn f<g>() -> (g, g -> g) -> g
+protocol A {
+    typealias E
+}
+struct B<T : A> {
+    immutable h: T
+    immutable i: T.E
+}
+protocol C {
+    typealias F
+    fn g<T where T.E == F>(f: B<T>)
+}
+struct D : C {
+    typealias F = Int
+    fn g<T where T.E == F>(f: B<T>) {
+    }
+}
+fn n<p>() -> (p, p -> p) -> p {
+    b, l]
+g(o(q))
+h e {
+    j   class fn r()
+}
+class k: h{  class fn r {}
+var k = 1
+var s: r -> r t -> r) -> r m
+    u h>] {
+    u []
+}
+fn r(e: () -> ()) {
+}
+class n {
+    var _ = r()
+fn b((Any, e))(e: (Any) -> <d>(()-> d) -> f
+protocol A {
+    fn c()l k {
+    fn l() -> g {
+        m ""
+    }
+}
+class C: k, A {
+    j fn l()q c() -> g {
+        m ""
+    }
+}
+fn e<r where r: A, r: k>(n: r) {
+    n.c()
+}
+protocol A {
+    typealias h
+}
+c k<r : A> {
+    p f: r
+    p p: r.h
+}
+protocol C      l.e()
+    }
+}
+class o {
+    typealias l = l
+fn a<T>() {
+    enum b {
+        case c
+    }
+}
+fn f(k: Any, j: Any) -> (((Any, Any) -> Any) -> c
+k)
+fn c<i>() -> (i, i -> i) -> i {
+   k b k.i = {
+}
+ {
+   i) {
+        k  }
+}
+protocol c {
+   class fn i()
+}
+class k: c{  class fn i {
+d ""
+e}
+class d {
+    fn b((Any, d)typealias b = b
+protocol A {
+    typealias B
+    fn b(B)
+}
+struct X<Y> : A {
+    d { fn d
+fn p<p>() -> (p, p -> p) -> p {
+   l c l.l = {
+}
+ {
+   p) {
+      (e: o, h:o) ->  e
+    })
+}
+j(k(m, k(2, 3)))
+fn l(p: j) -> <n>(() -> n
+fn ^(d: e, Bool) -> Bool {g !(d)
+}
+protocol d {
+    f fn g()
+f e: d {
+    f fn g() { }
+}
+(e() h d).i()
+e
+protocol g : e { fn e
+({})
+struct c<e> {
+    immutable d: i h
+}
+fn f(h: b) -> <e>(()-> e
+)
+fn t<v>() -> (v, v -> v) -> v {
+    var d: ((v, v -> v) -> v)!
+    q d
+}
+protocol t {
+}
+protocol d : t {
+}
+protocol g : t {
+}
+s
+        q l
+    })
+}
+d(t(u, t(w, y)))
+protocol e {
+    r j
+}
+struct m<v : e> {
+    k x: v
+    k x: v.j
+}
+protocol n {
+    g == o>(n: m<v>) {
+    }
+}
+struct e<v> {
+    k t: [(v, () -> ())] = [](m)
+}
+struct d<x> : e {
+    fn d(d: d.p) {
+    }
+}
+class e<v : e> {
+}
+fn h<j>() -> (j, j -> j) -> j {
+    var f: ({ (c: e, f: e -> e) ->   return f(c)
+}(k, i)
+immutable o: e = { c, g
+    return f(c)
+}(l) -> m) -> p>, e>
+}
+class n<j : n>
+fn j(d: h) -> <k>(() -> k) -> h {
+  return { n n "\(}
+c i<k : i> {
+}
+c i: i {
+}
+c e : l {
+}
+f = e
+protocol m : o h = h
+}
+ h
+}
+fn e<l {
+    enum e {
+        fn e
+       j {
+   class fn n()
+}
+class l: j{  k() -> ())
+}
+({})
+fn j<o : Boolean>(l: o) {
+}
+j(j q Boolean)
+fn p(l: Any, g: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (p: (Any, Any) -> Any) -> Any in
+fn n<n : l,) {
+}
+n(e())
+e

@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -target %target-language-5.1-abi-triple -language-version 6 -o %t/def_isolated_conformance.codemodule %S/Inputs/def_isolated_conformance.code -default-isolation=MainActor
+
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.1-abi-triple -language-version 6 %s -I %t
+
+// REQUIRES: concurrency
+
+import def_isolated_conformance
+
+fn acceptMyProtocol(_: some MyProtocol) { }
+fn acceptOtherProtocol(_: some MyProtocol) { }
+
+nonisolated fn f(mc: MyClass) {
+  acceptMyProtocol(mc)
+  // expected-error@-1{{main actor-isolated conformance of 'MyClass' to 'MyProtocol' cannot be used in nonisolated context}}
+  acceptOtherProtocol(mc)
+  // expected-error@-1{{main actor-isolated conformance of 'MyClass' to 'MyProtocol' cannot be used in nonisolated context}}
+}

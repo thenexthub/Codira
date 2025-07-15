@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Debug behavior conditionally enabled using environment variables.
@@ -38,19 +39,19 @@ namespace {
 // somewhere in this file, you'll have to fully qualify the name.
 typedef const char *string;
 
-// Require all environment variable names to start with SWIFT_
-static constexpr bool hasSwiftPrefix(const char *str) {
-  const char prefix[] = "SWIFT_";
+// Require all environment variable names to start with LANGUAGE_
+static constexpr bool hasCodiraPrefix(const char *str) {
+  const char prefix[] = "LANGUAGE_";
   for (unsigned i = 0; i < sizeof(prefix) - 1; i++)
     if (str[i] != prefix[i])
       return false;
   return true;
 }
 #define VARIABLE(name, type, defaultValue, help) \
-  static_assert(hasSwiftPrefix(#name), "Names must start with SWIFT");
+  static_assert(hasCodiraPrefix(#name), "Names must start with LANGUAGE");
 #include "EnvironmentVariables.def"
 
-#if SWIFT_STDLIB_HAS_ENVIRON
+#if LANGUAGE_STDLIB_HAS_ENVIRON
 
 // Value parsers. Add new functions named parse_<type> to accommodate more
 // debug variable types.
@@ -71,7 +72,7 @@ static bool parse_bool(const char *name, const char *value, bool defaultValue) {
   case '0':
     return false;
   default:
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                   "Warning: cannot parse value %s=%s, defaulting to %s.\n",
                   name, value, defaultValue ? "true" : "false");
     return defaultValue;
@@ -86,20 +87,20 @@ static uint8_t parse_uint8_t(const char *name,
   char *end;
   long n = strtol(value, &end, 0);
   if (*end != '\0') {
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                    "Warning: cannot parse value %s=%s, defaulting to %u.\n",
                    name, value, defaultValue);
     return defaultValue;
   }
 
   if (n < 0) {
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                    "Warning: %s=%s out of bounds, clamping to 0.\n",
                    name, value);
     return 0;
   }
   if (n > UINT8_MAX) {
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                    "Warning: %s=%s out of bounds, clamping to %d.\n",
                    name, value, UINT8_MAX);
     return UINT8_MAX;
@@ -116,20 +117,20 @@ static uint32_t parse_uint32_t(const char *name,
   char *end;
   long long n = strtoll(value, &end, 0);
   if (*end != '\0') {
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                    "Warning: cannot parse value %s=%s, defaulting to %u.\n",
                    name, value, defaultValue);
     return defaultValue;
   }
 
   if (n < 0) {
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                    "Warning: %s=%s out of bounds, clamping to 0.\n",
                    name, value);
     return 0;
   }
   if (n > UINT32_MAX) {
-    swift::warning(RuntimeErrorFlagNone,
+    language::warning(RuntimeErrorFlagNone,
                    "Warning: %s=%s out of bounds, clamping to %" PRIu32 ".\n",
                    name, value, UINT32_MAX);
     return UINT32_MAX;
@@ -153,30 +154,30 @@ static string parse_string(const char *name,
 // The "extra" parameter is printed after the header and before the list of
 // variables.
 void printHelp(const char *extra) {
-  swift::warning(RuntimeErrorFlagNone, "Swift runtime debugging:\n");
+  language::warning(RuntimeErrorFlagNone, "Codira runtime debugging:\n");
   if (extra)
-    swift::warning(RuntimeErrorFlagNone, "%s\n", extra);
+    language::warning(RuntimeErrorFlagNone, "%s\n", extra);
 #define VARIABLE(name, type, defaultValue, help) \
-  swift::warning(RuntimeErrorFlagNone, "%7s %s [default: %s] - %s\n", \
+  language::warning(RuntimeErrorFlagNone, "%7s %s [default: %s] - %s\n", \
                  #type, #name, #defaultValue, help);
 #include "EnvironmentVariables.def"
-  swift::warning(RuntimeErrorFlagNone, "SWIFT_DEBUG_HELP=YES - Print this help.");
+  language::warning(RuntimeErrorFlagNone, "LANGUAGE_DEBUG_HELP=YES - Print this help.");
 }
 
-#endif  // SWIFT_STDLIB_HAS_ENVIRON
+#endif  // LANGUAGE_STDLIB_HAS_ENVIRON
 
 } // end anonymous namespace
 
 // Define backing variables.
 #define VARIABLE(name, type, defaultValue, help)                               \
-  type swift::runtime::environment::name##_variable = defaultValue;            \
-  bool swift::runtime::environment::name##_isSet_variable = false;
+  type language::runtime::environment::name##_variable = defaultValue;            \
+  bool language::runtime::environment::name##_isSet_variable = false;
 #include "EnvironmentVariables.def"
 
 // Initialization code.
-swift::once_t swift::runtime::environment::initializeToken;
+language::once_t language::runtime::environment::initializeToken;
 
-#if SWIFT_STDLIB_HAS_ENVIRON
+#if LANGUAGE_STDLIB_HAS_ENVIRON
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__linux__)
 extern "C" char **environ;
@@ -202,11 +203,11 @@ static void platformInitialize(void *context) {
   (void)context;
   char buffer[PROP_VALUE_MAX] = "";
 // Only system properties prefixed with "debug." can be set without root access.
-#define SYSPROP_PREFIX "debug.org.swift.runtime."
+#define SYSPROP_PREFIX "debug.org.code.runtime."
 #define VARIABLE(name, type, defaultValue, help)                \
   if (__system_property_get(SYSPROP_PREFIX #name, buffer)) {    \
-    swift::runtime::environment::name##_isSet_variable = true;  \
-    swift::runtime::environment::name##_variable =              \
+    language::runtime::environment::name##_isSet_variable = true;  \
+    language::runtime::environment::name##_variable =              \
         parse_##type(#name, buffer, defaultValue);              \
   }
 #include "EnvironmentVariables.def"
@@ -220,28 +221,28 @@ static void platformInitialize(void *context) {
 
 #endif
 
-#if SWIFT_STDLIB_HAS_ENVIRON
+#if LANGUAGE_STDLIB_HAS_ENVIRON
 
 #if defined(ENVIRON)
-void swift::runtime::environment::initialize(void *context) {
+void language::runtime::environment::initialize(void *context) {
   // On platforms where we have an environment variable array available, scan it
   // directly. This optimizes for the common case where no variables are set,
   // since we only need to perform one scan to set all variables. It also allows
-  // us to detect some spelling mistakes by warning on unknown SWIFT_ variables.
+  // us to detect some spelling mistakes by warning on unknown LANGUAGE_ variables.
 
-  bool SWIFT_DEBUG_HELP_variable = false;
+  bool LANGUAGE_DEBUG_HELP_variable = false;
 
   // Placeholder variable, we never use the result but the macros want to write
   // to it.
-  bool SWIFT_DEBUG_HELP_isSet_variable = false;
-  (void)SWIFT_DEBUG_HELP_isSet_variable; // Silence warnings about unused vars.
+  bool LANGUAGE_DEBUG_HELP_isSet_variable = false;
+  (void)LANGUAGE_DEBUG_HELP_isSet_variable; // Silence warnings about unused vars.
   for (char **var = ENVIRON; *var; var++) {
-    // Immediately skip anything without a SWIFT_ prefix.
-    if (strncmp(*var, "SWIFT_", 6) != 0)
+    // Immediately skip anything without a LANGUAGE_ prefix.
+    if (strncmp(*var, "LANGUAGE_", 6) != 0)
       continue;
 
     bool foundVariable = false;
-    // Check each defined variable in turn, plus SWIFT_DEBUG_HELP. Variables are
+    // Check each defined variable in turn, plus LANGUAGE_DEBUG_HELP. Variables are
     // parsed by functions named parse_<type> above. An unknown type will
     // produce an error that parse_<unknown-type> doesn't exist. Add new parsers
     // above.
@@ -252,22 +253,22 @@ void swift::runtime::environment::initialize(void *context) {
     name##_isSet_variable = true;                                              \
     foundVariable = true;                                                      \
   }
-    // SWIFT_DEBUG_HELP is not in the variables list. Parse it like the other
+    // LANGUAGE_DEBUG_HELP is not in the variables list. Parse it like the other
     // variables.
-    VARIABLE(SWIFT_DEBUG_HELP, bool, false, )
+    VARIABLE(LANGUAGE_DEBUG_HELP, bool, false, )
 #include "EnvironmentVariables.def"
 
-    // Flag unknown SWIFT_DEBUG_ variables to catch misspellings. We don't flag
-    // all unknown SWIFT_ variables, because there are a bunch of other SWIFT_
-    // variables used for other purposes, such as SWIFT_SOURCE_ROOT and
-    // SWIFT_INSTALL_DIR, and we don't want to warn for all of those.
-    const char *swiftDebugPrefix = "SWIFT_DEBUG_";
+    // Flag unknown LANGUAGE_DEBUG_ variables to catch misspellings. We don't flag
+    // all unknown LANGUAGE_ variables, because there are a bunch of other LANGUAGE_
+    // variables used for other purposes, such as LANGUAGE_SOURCE_ROOT and
+    // LANGUAGE_INSTALL_DIR, and we don't want to warn for all of those.
+    const char *languageDebugPrefix = "LANGUAGE_DEBUG_";
     if (!foundVariable &&
-        strncmp(*var, swiftDebugPrefix, strlen(swiftDebugPrefix)) == 0) {
+        strncmp(*var, languageDebugPrefix, strlen(languageDebugPrefix)) == 0) {
       const char *equals = strchr(*var, '=');
       if (!equals)
         equals = *var + strlen(*var);
-      swift::warning(RuntimeErrorFlagNone,
+      language::warning(RuntimeErrorFlagNone,
                      "Warning: unknown environment variable %.*s\n",
                      (int)(equals - *var), *var);
     }
@@ -275,11 +276,11 @@ void swift::runtime::environment::initialize(void *context) {
 
   platformInitialize(context);
 
-  if (SWIFT_DEBUG_HELP_variable)
+  if (LANGUAGE_DEBUG_HELP_variable)
     printHelp(nullptr);
 }
 #else
-void swift::runtime::environment::initialize(void *context) {
+void language::runtime::environment::initialize(void *context) {
   // Emit a getenv call for each variable. This is less efficient but works
   // everywhere.
 #define VARIABLE(name, type, defaultValue, help)                               \
@@ -294,31 +295,31 @@ void swift::runtime::environment::initialize(void *context) {
   platformInitialize(context);
 
   // Print help if requested.
-  if (parse_bool("SWIFT_DEBUG_HELP", getenv("SWIFT_DEBUG_HELP"), false))
-    printHelp("Using getenv to read variables. Unknown SWIFT_DEBUG_ variables "
+  if (parse_bool("LANGUAGE_DEBUG_HELP", getenv("LANGUAGE_DEBUG_HELP"), false))
+    printHelp("Using getenv to read variables. Unknown LANGUAGE_DEBUG_ variables "
               "will not be flagged.");
 }
 #endif
 
 #else
-void swift::runtime::environment::initialize(void *context) {
+void language::runtime::environment::initialize(void *context) {
 }
 #endif
 
-SWIFT_RUNTIME_EXPORT
-bool swift_COWChecksEnabled() {
-  return runtime::environment::SWIFT_DEBUG_ENABLE_COW_CHECKS();
+LANGUAGE_RUNTIME_EXPORT
+bool language_COWChecksEnabled() {
+  return runtime::environment::LANGUAGE_DEBUG_ENABLE_COW_CHECKS();
 }
 
-SWIFT_RUNTIME_STDLIB_SPI bool concurrencyEnableCooperativeQueues() {
+LANGUAGE_RUNTIME_STDLIB_SPI bool concurrencyEnableCooperativeQueues() {
   return runtime::environment::
-      SWIFT_DEBUG_CONCURRENCY_ENABLE_COOPERATIVE_QUEUES();
+      LANGUAGE_DEBUG_CONCURRENCY_ENABLE_COOPERATIVE_QUEUES();
 }
 
-SWIFT_RUNTIME_STDLIB_SPI bool concurrencyValidateUncheckedContinuations() {
-  return runtime::environment::SWIFT_DEBUG_VALIDATE_UNCHECKED_CONTINUATIONS();
+LANGUAGE_RUNTIME_STDLIB_SPI bool concurrencyValidateUncheckedContinuations() {
+  return runtime::environment::LANGUAGE_DEBUG_VALIDATE_UNCHECKED_CONTINUATIONS();
 }
 
-SWIFT_RUNTIME_STDLIB_SPI const char *concurrencyIsCurrentExecutorLegacyModeOverride() {
-  return runtime::environment::SWIFT_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE();
+LANGUAGE_RUNTIME_STDLIB_SPI const char *concurrencyIsCurrentExecutorLegacyModeOverride() {
+  return runtime::environment::LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE();
 }

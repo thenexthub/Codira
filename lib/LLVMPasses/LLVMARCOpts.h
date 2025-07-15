@@ -11,32 +11,33 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-//===----------------------------------------------------------------------===//
-#ifndef SWIFT_LLVMPASSES_LLVMARCOPTS_H
-#define SWIFT_LLVMPASSES_LLVMARCOPTS_H
 
-#include "language/Basic/LLVM.h"
+//===----------------------------------------------------------------------===//
+#ifndef LANGUAGE_LLVMPASSES_LLVMARCOPTS_H
+#define LANGUAGE_LLVMPASSES_LLVMARCOPTS_H
+
+#include "language/Basic/Toolchain.h"
 #include "language/Runtime/Config.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Intrinsics.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/IR/Function.h"
+#include "toolchain/IR/Instructions.h"
+#include "toolchain/IR/Intrinsics.h"
 
 namespace language {
 
 enum RT_Kind {
 #define KIND(Name, MemBehavior) RT_ ## Name,
-#include "LLVMSwift.def"
+#include "LLVMCodira.def"
 };
 
 /// Take a look at the specified instruction and classify it into what kind of
 /// runtime entrypoint it is, if any.
-inline RT_Kind classifyInstruction(const llvm::Instruction &I) {
+inline RT_Kind classifyInstruction(const toolchain::Instruction &I) {
   if (!I.mayReadOrWriteMemory())
     return RT_NoMemoryAccessed;
 
   // Non-calls or calls to indirect functions are unknown.
-  auto *CI = dyn_cast<llvm::CallInst>(&I);
+  auto *CI = dyn_cast<toolchain::CallInst>(&I);
   if (CI == 0) return RT_Unknown;
 
   // First check if we have an objc intrinsic.
@@ -46,34 +47,34 @@ inline RT_Kind classifyInstruction(const llvm::Instruction &I) {
   // "special" runtime functions as well... so return RT_Unknown early.
   default:
     return RT_Unknown;
-  case llvm::Intrinsic::not_intrinsic:
+  case toolchain::Intrinsic::not_intrinsic:
     // If we do not have an intrinsic, break and move onto runtime functions
     // that we identify by name.
     break;
 #define OBJC_FUNC(Name, MemBehavior, TextualName)                              \
-  case llvm::Intrinsic::objc_##TextualName:                                    \
+  case toolchain::Intrinsic::objc_##TextualName:                                    \
     return RT_##Name;
-#include "LLVMSwift.def"
+#include "LLVMCodira.def"
   }
 
-  llvm::Function *F = CI->getCalledFunction();
+  toolchain::Function *F = CI->getCalledFunction();
   if (F == nullptr)
     return RT_Unknown;
 
-  return llvm::StringSwitch<RT_Kind>(F->getName())
-#define SWIFT_FUNC(Name, MemBehavior, TextualName) \
-    .Case("swift_" #TextualName, RT_ ## Name)
-#define SWIFT_INTERNAL_FUNC_NEVER_NONATOMIC(Name, MemBehavior, TextualName) \
-    .Case("__swift_" #TextualName, RT_ ## Name)
-#include "LLVMSwift.def"
+  return toolchain::StringSwitch<RT_Kind>(F->getName())
+#define LANGUAGE_FUNC(Name, MemBehavior, TextualName) \
+    .Case("language_" #TextualName, RT_ ## Name)
+#define LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC(Name, MemBehavior, TextualName) \
+    .Case("__language_" #TextualName, RT_ ## Name)
+#include "LLVMCodira.def"
 
     // Support non-atomic versions of reference counting entry points.
-#define SWIFT_FUNC(Name, MemBehavior, TextualName) \
-    .Case("swift_nonatomic_" #TextualName, RT_ ## Name)
+#define LANGUAGE_FUNC(Name, MemBehavior, TextualName) \
+    .Case("language_nonatomic_" #TextualName, RT_ ## Name)
 #define OBJC_FUNC(Name, MemBehavior, TextualName) \
     .Case("objc_nonatomic_" #TextualName, RT_ ## Name)
-#define SWIFT_INTERNAL_FUNC_NEVER_NONATOMIC(Name, MemBehavior, TextualName)
-#include "LLVMSwift.def"
+#define LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC(Name, MemBehavior, TextualName)
+#include "LLVMCodira.def"
 
     .Default(RT_Unknown);
 }

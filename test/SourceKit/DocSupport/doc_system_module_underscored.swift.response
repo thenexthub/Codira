@@ -1,0 +1,1632 @@
+struct A<T> {
+
+    fn fromA(takesT takesT: T)
+
+    fn fromAExtension(takesT takesT: T)
+
+    fn fromProtoExtension()
+}
+
+extension A {
+
+    fn fromDeprecatedProtoExtension()
+}
+
+extension A where T == String {
+
+    typealias Elem = Int
+
+    fn fromAConditionalExtension(takesTIfString takesTIfString: T)
+
+    fn fromProto2Extension(takesElem takesElem: Int)
+}
+
+extension A {
+
+    fn fromDeprecatedConditionalProto2Extension(takesElemInt takesElemInt: Int)
+}
+
+class B<T> {
+
+    fn fromB(takesT takesT: T)
+
+    typealias Elem = String
+
+    fn fromProtoExtension()
+
+    fn fromProto2Extension(takesElem takesElem: String)
+
+    fn fromConditionalProto2Extension(takesElemIfString takesElemIfString: String)
+}
+
+extension B {
+
+    fn fromDeprecatedProtoExtension()
+}
+
+class C<U, V> : B<String> where U : Equatable {
+
+    fn fromC(takesUIfEquatable takesUIfEquatable: U)
+
+    typealias Elem1 = V
+
+    typealias Elem2 = U
+
+    fn fromCConditionlExtension(takesU takesU: U)
+
+    fn fromProto4Extension(takesElem2IfEquatable takesElem2IfEquatable: U)
+
+    fn fromProto3Extension(takesElem1 takesElem1: V)
+
+    fn fromProto3Extension(takesElem2 takesElem2: U)
+}
+
+extension C where U : Hashable {
+
+    fn fromProto4Extension(takesElem2IfHashable takesElem2IfHashable: U)
+}
+
+struct D<T, U> {
+
+    fn fromD(takesT takesT: T, takesU takesU: U)
+}
+
+extension D where T : Equatable {
+
+    typealias Item = T
+}
+
+extension D where T : Other1, T : Equatable {
+
+    fn fromSomeProtoExtensionSplitConditions(takesItemIfOther1 takesItemIfOther1: T)
+}
+
+protocol Other1 {
+}
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 7,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 9,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 19,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 24,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 30,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 37,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1AV1Txmfp",
+    key.offset: 45,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 53,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 58,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 73,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 80,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1AV1Txmfp",
+    key.offset: 88,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 96,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 101,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 125,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "A",
+    key.usr: "s:16UnderscoredProto1AV",
+    key.offset: 135,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 144,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 149,
+    key.length: 28
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 183,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "A",
+    key.usr: "s:16UnderscoredProto1AV",
+    key.offset: 193,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 195,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1AV1Txmfp",
+    key.offset: 201,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.operator,
+    key.offset: 203,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "String",
+    key.usr: "s:SS",
+    key.offset: 206,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 220,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 230,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "Int",
+    key.usr: "s:Si",
+    key.offset: 237,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 246,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 251,
+    key.length: 25
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 277,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 292,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1AVAASSRszlE1Txmfp",
+    key.offset: 308,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 316,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 321,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 341,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 351,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "Int",
+    key.usr: "s:Si",
+    key.offset: 362,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 370,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "A",
+    key.usr: "s:16UnderscoredProto1AV",
+    key.offset: 380,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 389,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 394,
+    key.length: 40
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 435,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 448,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "Int",
+    key.usr: "s:Si",
+    key.offset: 462,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 470,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 476,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 478,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 488,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 493,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 499,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 506,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1BC1Txmfp",
+    key.offset: 514,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 522,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 532,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "String",
+    key.usr: "s:SS",
+    key.offset: 539,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 551,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 556,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 582,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 587,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 607,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 617,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "String",
+    key.usr: "s:SS",
+    key.offset: 628,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 641,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 646,
+    key.length: 30
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 677,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 695,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "String",
+    key.usr: "s:SS",
+    key.offset: 714,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 725,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "B",
+    key.usr: "s:16UnderscoredProto1BC",
+    key.offset: 735,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 744,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 749,
+    key.length: 28
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 783,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 789,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 791,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 794,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "B",
+    key.usr: "s:16UnderscoredProto1BC",
+    key.offset: 799,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "String",
+    key.usr: "s:SS",
+    key.offset: 801,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 809,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 815,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "Equatable",
+    key.usr: "s:SQ",
+    key.offset: 819,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 836,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 841,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 847,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 865,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 884,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 892,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 902,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "V",
+    key.usr: "s:16UnderscoredProto1CC1Vq_mfp",
+    key.offset: 910,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 917,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 927,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 935,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 942,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 947,
+    key.length: 24
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 972,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 979,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 987,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 995,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1000,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1020,
+    key.length: 21
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1042,
+    key.length: 21
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 1065,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1073,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1078,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1098,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1109,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "V",
+    key.usr: "s:16UnderscoredProto1CC1Vq_mfp",
+    key.offset: 1121,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1129,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1134,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1154,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1165,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 1177,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1183,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "C",
+    key.usr: "s:16UnderscoredProto1CC",
+    key.offset: 1193,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1195,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 1201,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "Hashable",
+    key.usr: "s:SH",
+    key.offset: 1205,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1221,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1226,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1246,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1267,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1CC1Uxmfp",
+    key.offset: 1289,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1295,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1302,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1304,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1307,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1317,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1322,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1328,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1335,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1DV1Txmfp",
+    key.offset: 1343,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1346,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1353,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "U",
+    key.usr: "s:16UnderscoredProto1DV1Uq_mfp",
+    key.offset: 1361,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1367,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "D",
+    key.usr: "s:16UnderscoredProto1DV",
+    key.offset: 1377,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1379,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1DV1Txmfp",
+    key.offset: 1385,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "Equatable",
+    key.usr: "s:SQ",
+    key.offset: 1389,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1406,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1416,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1DVAASQRzrlE1Txmfp",
+    key.offset: 1423,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1428,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.name: "D",
+    key.usr: "s:16UnderscoredProto1DV",
+    key.offset: 1438,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1440,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1DV1Txmfp",
+    key.offset: 1446,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "Other1",
+    key.usr: "s:16UnderscoredProto6Other1P",
+    key.offset: 1450,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1DV1Txmfp",
+    key.offset: 1458,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "Equatable",
+    key.usr: "s:SQ",
+    key.offset: 1462,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1479,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1484,
+    key.length: 37
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.argument,
+    key.offset: 1522,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.parameter,
+    key.offset: 1540,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:16UnderscoredProto1DV1Txmfp",
+    key.offset: 1559,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1565,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1574,
+    key.length: 6
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.name: "A",
+    key.usr: "s:16UnderscoredProto1AV",
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.offset: 0,
+    key.length: 123,
+    key.fully_annotated_decl: "<decl.struct><syntaxtype.keyword>struct</syntaxtype.keyword> <decl.name>A</decl.name>&lt;<decl.generic_type_param usr=\"s:16UnderscoredProto1AV1Txmfp\"><decl.generic_type_param.name>T</decl.generic_type_param.name></decl.generic_type_param>&gt;</decl.struct>",
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromA(takesT:)",
+        key.usr: "s:16UnderscoredProto1AV5fromA6takesTyx_tF",
+        key.offset: 19,
+        key.length: 28,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromA</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesT</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1AV1Txmfp\">T</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesT",
+            key.name: "takesT",
+            key.offset: 45,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromAExtension(takesT:)",
+        key.usr: "s:16UnderscoredProto1AV14fromAExtension6takesTyx_tF",
+        key.offset: 53,
+        key.length: 37,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromAExtension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesT</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1AV1Txmfp\">T</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesT",
+            key.name: "takesT",
+            key.offset: 88,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProtoExtension()",
+        key.usr: "s:16UnderscoredProto01_aB0PAAE04fromB9ExtensionyyF::SYNTHESIZED::s:16UnderscoredProto1AV",
+        key.original_usr: "s:16UnderscoredProto01_aB0PAAE04fromB9ExtensionyyF",
+        key.offset: 96,
+        key.length: 25,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProtoExtension</decl.name>()</decl.function.method.instance>"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.struct,
+    key.offset: 125,
+    key.length: 56,
+    key.fully_annotated_decl: "<syntaxtype.keyword>extension</syntaxtype.keyword> <ref.struct usr=\"s:16UnderscoredProto1AV\">A</ref.struct>",
+    key.extends: {
+      key.kind: source.lang.code.ref.struct,
+      key.name: "A",
+      key.usr: "s:16UnderscoredProto1AV"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromDeprecatedProtoExtension()",
+        key.usr: "s:16UnderscoredProto01_aB0PAAE014fromDeprecatedB9ExtensionyyF::SYNTHESIZED::s:16UnderscoredProto1AV",
+        key.original_usr: "s:16UnderscoredProto01_aB0PAAE014fromDeprecatedB9ExtensionyyF",
+        key.offset: 144,
+        key.length: 35,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromDeprecatedProtoExtension</decl.name>()</decl.function.method.instance>"
+      }
+    ],
+    key.attributes: [
+      {
+        key.kind: source.lang.code.attribute.availability,
+        key.is_deprecated: 1
+      }
+    ],
+    key.is_deprecated: 1
+  },
+  {
+    key.kind: source.lang.code.decl.extension.struct,
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T == String"
+      }
+    ],
+    key.offset: 183,
+    key.length: 185,
+    key.fully_annotated_decl: "<decl.extension.struct><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.struct usr=\"s:16UnderscoredProto1AV\">A</ref.struct></decl.name> : <ref.protocol usr=\"s:16UnderscoredProto01_A6Proto2P\">_UnderscoredProto2</ref.protocol> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:16UnderscoredProto1AV1Txmfp\">T</ref.generic_type_param> == <ref.struct usr=\"s:SS\">String</ref.struct></decl.generic_type_requirement></decl.extension.struct>",
+    key.conforms: [
+      {
+        key.kind: source.lang.code.ref.protocol,
+        key.name: "_UnderscoredProto2",
+        key.usr: "s:16UnderscoredProto01_A6Proto2P"
+      }
+    ],
+    key.extends: {
+      key.kind: source.lang.code.ref.struct,
+      key.name: "A",
+      key.usr: "s:16UnderscoredProto1AV"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.typealias,
+        key.name: "Elem",
+        key.usr: "s:16UnderscoredProto1AVAASSRszlE4Elema",
+        key.offset: 220,
+        key.length: 20,
+        key.fully_annotated_decl: "<decl.typealias><syntaxtype.keyword>typealias</syntaxtype.keyword> <decl.name>Elem</decl.name> = <ref.struct usr=\"s:Si\">Int</ref.struct></decl.typealias>",
+        key.conforms: [
+          {
+            key.kind: source.lang.code.ref.protocol,
+            key.name: "FixedWidthInteger",
+            key.usr: "s:s17FixedWidthIntegerP"
+          },
+          {
+            key.kind: source.lang.code.ref.protocol,
+            key.name: "SignedInteger",
+            key.usr: "s:SZ"
+          },
+          {
+            key.kind: source.lang.code.ref.protocol,
+            key.name: "_ExpressibleByBuiltinIntegerLiteral",
+            key.usr: "s:s35_ExpressibleByBuiltinIntegerLiteralP"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromAConditionalExtension(takesTIfString:)",
+        key.usr: "s:16UnderscoredProto1AVAASSRszlE25fromAConditionalExtension14takesTIfStringySS_tF",
+        key.offset: 246,
+        key.length: 64,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromAConditionalExtension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesTIfString</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1AVAASSRszlE1Txmfp\">T</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesTIfString",
+            key.name: "takesTIfString",
+            key.offset: 308,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProto2Extension(takesElem:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto2PAAE04fromC9Extension9takesElemy0G0Qz_tF::SYNTHESIZED::s:16UnderscoredProto1AV",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto2PAAE04fromC9Extension9takesElemy0G0Qz_tF",
+        key.offset: 316,
+        key.length: 50,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProto2Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElem</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.struct usr=\"s:Si\">Int</ref.struct></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElem",
+            key.name: "takesElem",
+            key.offset: 362,
+            key.length: 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.struct,
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T == String"
+      }
+    ],
+    key.offset: 370,
+    key.length: 98,
+    key.fully_annotated_decl: "<syntaxtype.keyword>extension</syntaxtype.keyword> <ref.struct usr=\"s:16UnderscoredProto1AV\">A</ref.struct>",
+    key.extends: {
+      key.kind: source.lang.code.ref.struct,
+      key.name: "A",
+      key.usr: "s:16UnderscoredProto1AV"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromDeprecatedConditionalProto2Extension(takesElemInt:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto2PAASi4ElemRtzrlE025fromDeprecatedConditionalC9Extension05takesD3IntySi_tF::SYNTHESIZED::s:16UnderscoredProto1AV",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto2PAASi4ElemRtzrlE025fromDeprecatedConditionalC9Extension05takesD3IntySi_tF",
+        key.offset: 389,
+        key.length: 77,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromDeprecatedConditionalProto2Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElemInt</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.struct usr=\"s:Si\">Int</ref.struct></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElemInt",
+            key.name: "takesElemInt",
+            key.offset: 462,
+            key.length: 3
+          }
+        ]
+      }
+    ],
+    key.attributes: [
+      {
+        key.kind: source.lang.code.attribute.availability,
+        key.is_deprecated: 1
+      }
+    ],
+    key.is_deprecated: 1
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.name: "B",
+    key.usr: "s:16UnderscoredProto1BC",
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.offset: 470,
+    key.length: 253,
+    key.fully_annotated_decl: "<decl.class><syntaxtype.keyword>class</syntaxtype.keyword> <decl.name>B</decl.name>&lt;<decl.generic_type_param usr=\"s:16UnderscoredProto1BC1Txmfp\"><decl.generic_type_param.name>T</decl.generic_type_param.name></decl.generic_type_param>&gt; : <ref.protocol usr=\"s:16UnderscoredProto01_aB0P\">_UnderscoredProto</ref.protocol></decl.class>",
+    key.conforms: [
+      {
+        key.kind: source.lang.code.ref.protocol,
+        key.name: "_UnderscoredProto",
+        key.usr: "s:16UnderscoredProto01_aB0P"
+      }
+    ],
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromB(takesT:)",
+        key.usr: "s:16UnderscoredProto1BC5fromB6takesTyx_tF",
+        key.offset: 488,
+        key.length: 28,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromB</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesT</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1BC1Txmfp\">T</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesT",
+            key.name: "takesT",
+            key.offset: 514,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.typealias,
+        key.name: "Elem",
+        key.usr: "s:16UnderscoredProto1BC4Elema",
+        key.offset: 522,
+        key.length: 23,
+        key.fully_annotated_decl: "<decl.typealias><syntaxtype.keyword>typealias</syntaxtype.keyword> <decl.name>Elem</decl.name> = <ref.struct usr=\"s:SS\">String</ref.struct></decl.typealias>"
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProtoExtension()",
+        key.usr: "s:16UnderscoredProto01_aB0PAAE04fromB9ExtensionyyF::SYNTHESIZED::s:16UnderscoredProto1BC",
+        key.original_usr: "s:16UnderscoredProto01_aB0PAAE04fromB9ExtensionyyF",
+        key.offset: 551,
+        key.length: 25,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProtoExtension</decl.name>()</decl.function.method.instance>"
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProto2Extension(takesElem:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto2PAAE04fromC9Extension9takesElemy0G0Qz_tF::SYNTHESIZED::s:16UnderscoredProto1BC",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto2PAAE04fromC9Extension9takesElemy0G0Qz_tF",
+        key.offset: 582,
+        key.length: 53,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProto2Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElem</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.struct usr=\"s:SS\">String</ref.struct></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElem",
+            key.name: "takesElem",
+            key.offset: 628,
+            key.length: 6
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromConditionalProto2Extension(takesElemIfString:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto2PAASS4ElemRtzrlE015fromConditionalC9Extension05takesD8IfStringySS_tF::SYNTHESIZED::s:16UnderscoredProto1BC",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto2PAASS4ElemRtzrlE015fromConditionalC9Extension05takesD8IfStringySS_tF",
+        key.offset: 641,
+        key.length: 80,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromConditionalProto2Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElemIfString</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.struct usr=\"s:SS\">String</ref.struct></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElemIfString",
+            key.name: "takesElemIfString",
+            key.offset: 714,
+            key.length: 6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.class,
+    key.offset: 725,
+    key.length: 56,
+    key.fully_annotated_decl: "<syntaxtype.keyword>extension</syntaxtype.keyword> <ref.class usr=\"s:16UnderscoredProto1BC\">B</ref.class>",
+    key.extends: {
+      key.kind: source.lang.code.ref.class,
+      key.name: "B",
+      key.usr: "s:16UnderscoredProto1BC"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromDeprecatedProtoExtension()",
+        key.usr: "s:16UnderscoredProto01_aB0PAAE014fromDeprecatedB9ExtensionyyF::SYNTHESIZED::s:16UnderscoredProto1BC",
+        key.original_usr: "s:16UnderscoredProto01_aB0PAAE014fromDeprecatedB9ExtensionyyF",
+        key.offset: 744,
+        key.length: 35,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromDeprecatedProtoExtension</decl.name>()</decl.function.method.instance>"
+      }
+    ],
+    key.attributes: [
+      {
+        key.kind: source.lang.code.attribute.availability,
+        key.is_deprecated: 1
+      }
+    ],
+    key.is_deprecated: 1
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.name: "C",
+    key.usr: "s:16UnderscoredProto1CC",
+    key.generic_params: [
+      {
+        key.name: "U"
+      },
+      {
+        key.name: "V"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "U : Equatable"
+      }
+    ],
+    key.offset: 783,
+    key.length: 398,
+    key.fully_annotated_decl: "<decl.class><syntaxtype.keyword>class</syntaxtype.keyword> <decl.name>C</decl.name>&lt;<decl.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\"><decl.generic_type_param.name>U</decl.generic_type_param.name></decl.generic_type_param>, <decl.generic_type_param usr=\"s:16UnderscoredProto1CC1Vq_mfp\"><decl.generic_type_param.name>V</decl.generic_type_param.name></decl.generic_type_param>&gt; : <ref.class usr=\"s:16UnderscoredProto1BC\">B</ref.class>&lt;<ref.struct usr=\"s:SS\">String</ref.struct>&gt; <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param> : <ref.protocol usr=\"s:SQ\">Equatable</ref.protocol></decl.generic_type_requirement></decl.class>",
+    key.inherits: [
+      {
+        key.kind: source.lang.code.ref.class,
+        key.name: "B",
+        key.usr: "s:16UnderscoredProto1BC"
+      }
+    ],
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromC(takesUIfEquatable:)",
+        key.usr: "s:16UnderscoredProto1CC5fromC17takesUIfEquatableyx_tF",
+        key.offset: 836,
+        key.length: 50,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromC</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesUIfEquatable</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesUIfEquatable",
+            key.name: "takesUIfEquatable",
+            key.offset: 884,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.typealias,
+        key.name: "Elem1",
+        key.usr: "s:16UnderscoredProto1CC5Elem1a",
+        key.offset: 892,
+        key.length: 19,
+        key.fully_annotated_decl: "<decl.typealias><syntaxtype.keyword>typealias</syntaxtype.keyword> <decl.name>Elem1</decl.name> = <ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Vq_mfp\">V</ref.generic_type_param></decl.typealias>",
+        key.conforms: [
+          {
+            key.kind: source.lang.code.ref.associatedtype,
+            key.name: "Elem1",
+            key.usr: "s:16UnderscoredProto01_A6Proto3P5Elem1Qa"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.typealias,
+        key.name: "Elem2",
+        key.usr: "s:16UnderscoredProto1CC5Elem2a",
+        key.offset: 917,
+        key.length: 19,
+        key.fully_annotated_decl: "<decl.typealias><syntaxtype.keyword>typealias</syntaxtype.keyword> <decl.name>Elem2</decl.name> = <ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param></decl.typealias>",
+        key.conforms: [
+          {
+            key.kind: source.lang.code.ref.associatedtype,
+            key.name: "Elem2",
+            key.usr: "s:16UnderscoredProto01_A6Proto3P5Elem2Qa"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromCConditionlExtension(takesU:)",
+        key.usr: "s:16UnderscoredProto1CC24fromCConditionlExtension6takesUyx_tF",
+        key.offset: 942,
+        key.length: 47,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromCConditionlExtension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesU</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesU",
+            key.name: "takesU",
+            key.offset: 987,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProto4Extension(takesElem2IfEquatable:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto4PAAE04fromC9Extension21takesElem2IfEquatabley0G0Qz_tF::SYNTHESIZED::s:16UnderscoredProto1CC",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto4PAAE04fromC9Extension21takesElem2IfEquatabley0G0Qz_tF",
+        key.offset: 995,
+        key.length: 72,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProto4Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElem2IfEquatable</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElem2IfEquatable",
+            key.name: "takesElem2IfEquatable",
+            key.offset: 1065,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProto3Extension(takesElem1:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto3PAAE04fromC9Extension10takesElem1y0G0Qz_tF::SYNTHESIZED::s:16UnderscoredProto1CC",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto3PAAE04fromC9Extension10takesElem1y0G0Qz_tF",
+        key.offset: 1073,
+        key.length: 50,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProto3Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElem1</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Vq_mfp\">V</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElem1",
+            key.name: "takesElem1",
+            key.offset: 1121,
+            key.length: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProto3Extension(takesElem2:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto3PAAE04fromC9Extension10takesElem2y0G0Qz_tF::SYNTHESIZED::s:16UnderscoredProto1CC",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto3PAAE04fromC9Extension10takesElem2y0G0Qz_tF",
+        key.offset: 1129,
+        key.length: 50,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProto3Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElem2</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElem2",
+            key.name: "takesElem2",
+            key.offset: 1177,
+            key.length: 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.class,
+    key.generic_requirements: [
+      {
+        key.description: "U : Hashable"
+      }
+    ],
+    key.offset: 1183,
+    key.length: 110,
+    key.fully_annotated_decl: "<syntaxtype.keyword>extension</syntaxtype.keyword> <ref.class usr=\"s:16UnderscoredProto1CC\">C</ref.class> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param> : <ref.protocol usr=\"s:SH\">Hashable</ref.protocol></decl.generic_type_requirement>",
+    key.extends: {
+      key.kind: source.lang.code.ref.class,
+      key.name: "C",
+      key.usr: "s:16UnderscoredProto1CC"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromProto4Extension(takesElem2IfHashable:)",
+        key.usr: "s:16UnderscoredProto01_A6Proto4PAASH5Elem2RpzrlE04fromC9Extension05takesD10IfHashableyAE_tF::SYNTHESIZED::s:16UnderscoredProto1CC",
+        key.original_usr: "s:16UnderscoredProto01_A6Proto4PAASH5Elem2RpzrlE04fromC9Extension05takesD10IfHashableyAE_tF",
+        key.offset: 1221,
+        key.length: 70,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromProto4Extension</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesElem2IfHashable</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1CC1Uxmfp\">U</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesElem2IfHashable",
+            key.name: "takesElem2IfHashable",
+            key.offset: 1289,
+            key.length: 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.name: "D",
+    key.usr: "s:16UnderscoredProto1DV",
+    key.generic_params: [
+      {
+        key.name: "T"
+      },
+      {
+        key.name: "U"
+      }
+    ],
+    key.offset: 1295,
+    key.length: 70,
+    key.fully_annotated_decl: "<decl.struct><syntaxtype.keyword>struct</syntaxtype.keyword> <decl.name>D</decl.name>&lt;<decl.generic_type_param usr=\"s:16UnderscoredProto1DV1Txmfp\"><decl.generic_type_param.name>T</decl.generic_type_param.name></decl.generic_type_param>, <decl.generic_type_param usr=\"s:16UnderscoredProto1DV1Uq_mfp\"><decl.generic_type_param.name>U</decl.generic_type_param.name></decl.generic_type_param>&gt;</decl.struct>",
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromD(takesT:takesU:)",
+        key.usr: "s:16UnderscoredProto1DV5fromD6takesT0D1Uyx_q_tF",
+        key.offset: 1317,
+        key.length: 46,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromD</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesT</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1DV1Txmfp\">T</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>, <decl.var.parameter><decl.var.parameter.argument_label>takesU</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1DV1Uq_mfp\">U</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesT",
+            key.name: "takesT",
+            key.offset: 1343,
+            key.length: 1
+          },
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesU",
+            key.name: "takesU",
+            key.offset: 1361,
+            key.length: 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.struct,
+    key.generic_params: [
+      {
+        key.name: "T"
+      },
+      {
+        key.name: "U"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T : Equatable"
+      }
+    ],
+    key.offset: 1367,
+    key.length: 59,
+    key.fully_annotated_decl: "<decl.extension.struct><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.struct usr=\"s:16UnderscoredProto1DV\">D</ref.struct></decl.name> : <ref.protocol usr=\"s:16UnderscoredProto05_SomeB0P\">_SomeProto</ref.protocol> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:16UnderscoredProto1DV1Txmfp\">T</ref.generic_type_param> : <ref.protocol usr=\"s:SQ\">Equatable</ref.protocol></decl.generic_type_requirement></decl.extension.struct>",
+    key.conforms: [
+      {
+        key.kind: source.lang.code.ref.protocol,
+        key.name: "_SomeProto",
+        key.usr: "s:16UnderscoredProto05_SomeB0P"
+      }
+    ],
+    key.extends: {
+      key.kind: source.lang.code.ref.struct,
+      key.name: "D",
+      key.usr: "s:16UnderscoredProto1DV"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.typealias,
+        key.name: "Item",
+        key.usr: "s:16UnderscoredProto1DVAASQRzrlE4Itema",
+        key.offset: 1406,
+        key.length: 18,
+        key.fully_annotated_decl: "<decl.typealias><syntaxtype.keyword>typealias</syntaxtype.keyword> <decl.name>Item</decl.name> = <ref.generic_type_param usr=\"s:16UnderscoredProto1DVAASQRzrlE1Txmfp\">T</ref.generic_type_param></decl.typealias>",
+        key.conforms: [
+          {
+            key.kind: source.lang.code.ref.associatedtype,
+            key.name: "Item",
+            key.usr: "s:16UnderscoredProto05_SomeB0P4ItemQa"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.struct,
+    key.generic_params: [
+      {
+        key.name: "T"
+      },
+      {
+        key.name: "U"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T : Other1"
+      },
+      {
+        key.description: "T : Equatable"
+      }
+    ],
+    key.offset: 1428,
+    key.length: 135,
+    key.fully_annotated_decl: "<syntaxtype.keyword>extension</syntaxtype.keyword> <ref.struct usr=\"s:16UnderscoredProto1DV\">D</ref.struct> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:16UnderscoredProto1DV1Txmfp\">T</ref.generic_type_param> : <ref.protocol usr=\"s:16UnderscoredProto6Other1P\">Other1</ref.protocol></decl.generic_type_requirement>, <decl.generic_type_requirement><ref.generic_type_param usr=\"s:16UnderscoredProto1DV1Txmfp\">T</ref.generic_type_param> : <ref.protocol usr=\"s:SQ\">Equatable</ref.protocol></decl.generic_type_requirement>",
+    key.extends: {
+      key.kind: source.lang.code.ref.struct,
+      key.name: "D",
+      key.usr: "s:16UnderscoredProto1DV"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "fromSomeProtoExtensionSplitConditions(takesItemIfOther1:)",
+        key.usr: "s:16UnderscoredProto05_SomeB0PA2A6Other14ItemRpzrlE04fromcB24ExtensionSplitConditions05takese2IfD0yAF_tF::SYNTHESIZED::s:16UnderscoredProto1DV",
+        key.original_usr: "s:16UnderscoredProto05_SomeB0PA2A6Other14ItemRpzrlE04fromcB24ExtensionSplitConditions05takese2IfD0yAF_tF",
+        key.offset: 1479,
+        key.length: 82,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromSomeProtoExtensionSplitConditions</decl.name>(<decl.var.parameter><decl.var.parameter.argument_label>takesItemIfOther1</decl.var.parameter.argument_label>: <decl.var.parameter.type><ref.generic_type_param usr=\"s:16UnderscoredProto1DV1Txmfp\">T</ref.generic_type_param></decl.var.parameter.type></decl.var.parameter>)</decl.function.method.instance>",
+        key.entities: [
+          {
+            key.kind: source.lang.code.decl.var.local,
+            key.keyword: "takesItemIfOther1",
+            key.name: "takesItemIfOther1",
+            key.offset: 1559,
+            key.length: 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.protocol,
+    key.name: "Other1",
+    key.usr: "s:16UnderscoredProto6Other1P",
+    key.offset: 1565,
+    key.length: 19,
+    key.fully_annotated_decl: "<decl.protocol><syntaxtype.keyword>protocol</syntaxtype.keyword> <decl.name>Other1</decl.name></decl.protocol>"
+  }
+]

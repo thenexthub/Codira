@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "RefactoringActions.h"
@@ -68,7 +69,7 @@ bool RefactoringActionCollapseNestedIfStmt::performChange() {
 
   // Emit conditions.
   bool first = true;
-  for (auto &C : llvm::concat<StmtConditionElement>(OuterIf->getCond(),
+  for (auto &C : toolchain::concat<StmtConditionElement>(OuterIf->getCond(),
                                                     InnerIf->getCond())) {
     if (first)
       first = false;

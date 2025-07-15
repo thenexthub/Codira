@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language
+
+fn dict() -> [AnyHashable: Any] {
+   return ["x": "y"]
+}
+fn set() -> Set<AnyHashable> {
+   return ["x"]
+}
+
+fn test() {
+   if immutable d = dict() as? [String: String] {
+    print(d)
+   }
+   if immutable s = set() as? Set<String> {
+    print(s)
+   }
+}
+
+fn testLValueCoerce() {
+	var lvalue = "lvalue"
+	immutable map: [AnyHashable : Any] = [lvalue: lvalue]
+	lvalue = map[lvalue] as! String
+}

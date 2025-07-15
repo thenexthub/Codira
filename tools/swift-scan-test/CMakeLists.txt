@@ -1,13 +1,13 @@
-add_swift_host_tool(swift-scan-test
-  swift-scan-test.cpp
-  LLVM_LINK_COMPONENTS support
-  SWIFT_COMPONENT tools
+add_language_host_tool(language-scan-test
+  language-scan-test.cpp
+  TOOLCHAIN_LINK_COMPONENTS support
+  LANGUAGE_COMPONENT tools
   THINLTO_LD64_ADD_FLTO_CODEGEN_ONLY
-  DOES_NOT_USE_SWIFT
+  DOES_NOT_USE_LANGUAGE
 )
 
-target_link_libraries(swift-scan-test
+target_link_libraries(language-scan-test
                       PRIVATE
-                      swiftBasic
-                      swiftDependencyScanImpl
-                      libSwiftScan)
+                      languageBasic
+                      languageDependencyScanImpl
+                      libCodiraScan)

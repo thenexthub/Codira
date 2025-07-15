@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines ScalarTypeInfo, which is a convenient abstract
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_SCALARTYPEINFO_H
-#define SWIFT_IRGEN_SCALARTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_SCALARTYPEINFO_H
+#define LANGUAGE_IRGEN_SCALARTYPEINFO_H
 
 #include "EnumPayload.h"
 #include "Explosion.h"
@@ -94,7 +95,7 @@ protected:
 public:
   /// Return the type of the scalar.  Override this if it's not
   /// just the storage type.
-  llvm::Type *getScalarType() const { return this->getStorageType(); }
+  toolchain::Type *getScalarType() const { return this->getStorageType(); }
 
   /// Project to the address of the scalar.  Override this if it's not
   /// just the storage type.
@@ -106,17 +107,17 @@ public:
   // static const bool IsScalarTriviallyDestroyable;
 
   // Make the scalar +1.
-  // void emitScalarRetain(IRGenFunction &IGF, llvm::Value *value) const;
+  // void emitScalarRetain(IRGenFunction &IGF, toolchain::Value *value) const;
 
   // Make the scalar -1.
-  // void emitScalarRelease(IRGenFunction &IGF, llvm::Value *value) const;
+  // void emitScalarRelease(IRGenFunction &IGF, toolchain::Value *value) const;
 
   unsigned getExplosionSize() const override {
     return 1;
   }
 
   void getSchema(ExplosionSchema &schema) const override {
-    llvm::Type *ty = asDerived().getScalarType();
+    toolchain::Type *ty = asDerived().getScalarType();
     schema.add(ExplosionSchema::Element::forScalar(ty));
   }
 
@@ -129,7 +130,7 @@ public:
       auto &Builder = IGF.Builder;
       auto nextByteSize = (storageTy->getIntegerBitWidth() + 7) & ~7UL;
       auto nextByteSizedIntTy =
-          llvm::IntegerType::get(IGM.getLLVMContext(), nextByteSize);
+          toolchain::IntegerType::get(IGM.getLLVMContext(), nextByteSize);
       auto newAddr =
           Address(Builder.CreatePointerCast(addr.getAddress(),
                                             nextByteSizedIntTy->getPointerTo()),
@@ -152,7 +153,7 @@ public:
   void loadAsCopy(IRGenFunction &IGF, Address addr,
                   Explosion &out) const override {
     addr = asDerived().projectScalar(IGF, addr);
-    llvm::Value *value = IGF.Builder.CreateLoad(addr);
+    toolchain::Value *value = IGF.Builder.CreateLoad(addr);
     asDerived().emitScalarRetain(IGF, value, IGF.getDefaultAtomicity());
     out.add(value);
   }
@@ -169,7 +170,7 @@ public:
     dest = asDerived().projectScalar(IGF, dest);
 
     // Grab the old value if we need to.
-    llvm::Value *oldValue = nullptr;
+    toolchain::Value *oldValue = nullptr;
     if (!Derived::IsScalarTriviallyDestroyable) {
       oldValue = IGF.Builder.CreateLoad(dest, "oldValue");
     }
@@ -185,19 +186,19 @@ public:
 
   void copy(IRGenFunction &IGF, Explosion &in, Explosion &out,
             Atomicity atomicity) const override {
-    llvm::Value *value = in.claimNext();
+    toolchain::Value *value = in.claimNext();
     asDerived().emitScalarRetain(IGF, value, atomicity);
     out.add(value);
   }
 
   void consume(IRGenFunction &IGF, Explosion &in,
                Atomicity atomicity, SILType T) const override {
-    llvm::Value *value = in.claimNext();
+    toolchain::Value *value = in.claimNext();
     asDerived().emitScalarRelease(IGF, value, atomicity);
   }
 
   void fixLifetime(IRGenFunction &IGF, Explosion &in) const override {
-    llvm::Value *value = in.claimNext();
+    toolchain::Value *value = in.claimNext();
     asDerived().emitScalarFixLifetime(IGF, value);
   }
 
@@ -205,7 +206,7 @@ public:
                bool isOutlined) const override {
     if (!Derived::IsScalarTriviallyDestroyable) {
       addr = asDerived().projectScalar(IGF, addr);
-      llvm::Value *value = IGF.Builder.CreateLoad(addr, "toDestroy");
+      toolchain::Value *value = IGF.Builder.CreateLoad(addr, "toDestroy");
       asDerived().emitScalarRelease(IGF, value, IGF.getDefaultAtomicity());
     }
   }
@@ -225,7 +226,7 @@ public:
     dest.add(payload.extractValue(IGF, asDerived().getScalarType(), offset));
   }
 
-  void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+  void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                         Size offset) const override {
     // Can't use getFixedSize because it returns the alloc size not the store
     // size.
@@ -294,13 +295,13 @@ private:
   friend class SingleScalarTypeInfo<Derived, Base>;
   static const bool IsScalarTriviallyDestroyable = true;
 
-  void emitScalarRetain(IRGenFunction &IGF, llvm::Value *value,
+  void emitScalarRetain(IRGenFunction &IGF, toolchain::Value *value,
                         Atomicity atomicity) const {}
 
-  void emitScalarRelease(IRGenFunction &IGF, llvm::Value *value,
+  void emitScalarRelease(IRGenFunction &IGF, toolchain::Value *value,
                          Atomicity atomicity) const {}
 
-  void emitScalarFixLifetime(IRGenFunction &IGF, llvm::Value *value) const {
+  void emitScalarFixLifetime(IRGenFunction &IGF, toolchain::Value *value) const {
   }
 
   TypeLayoutEntry *

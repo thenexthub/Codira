@@ -1,4 +1,4 @@
-//===--- Bitmask.h - Swift Bitmask type for Reflection ----*- C++ -*-===//
+//===--- Bitmask.h - Codira Bitmask type for Reflection ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Used by TypeLowering logic to compute masks for in-memory representations
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_BITMASK_H
-#define SWIFT_REFLECTION_BITMASK_H
+#ifndef LANGUAGE_REFLECTION_BITMASK_H
+#define LANGUAGE_REFLECTION_BITMASK_H
 
 #include "language/Remote/MemoryReader.h"
 #include <sstream>
@@ -108,7 +109,7 @@ public:
     // constructing an empty BitMask.
     bool overflowed = false;
     unsigned initialValueEnd =
-        llvm::SaturatingAdd(initialValueBytes, offset, &overflowed);
+        toolchain::SaturatingAdd(initialValueBytes, offset, &overflowed);
     if (overflowed) {
       assert(false && "initialValueBytes + offset overflowed");
       size = 0;

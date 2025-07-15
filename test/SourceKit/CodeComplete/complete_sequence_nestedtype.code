@@ -1,0 +1,46 @@
+struct Outer {
+  enum Inner {
+    case east, west
+    static fn staticMethod() {}
+    fn instanceMethod() {}
+
+    fn test() {
+      Inner.
+    }
+  }
+
+  fn test() {
+    Inner.
+  }
+}
+
+// RUN: %sourcekitd-test \
+// RUN:   -req=complete -pos=8:13 %s -- %s == \
+// RUN:   -req=complete -pos=8:13 %s -- %s == \
+// RUN:   -req=complete -pos=13:11 %s -- %s \
+// RUN:   > %t.response
+// RUN: %FileCheck --check-prefix=RESULT  %s < %t.response
+
+// RESULT-LABEL: key.results: [
+// RESULT-DAG: key.description: "east"
+// RESULT-DAG: key.description: "west"
+// RESULT-DAG: key.description: "staticMethod()"
+// RESULT-DAG: key.description: "instanceMethod(this: Outer.Inner)"
+// RESULT: ]
+// RESULT-NOT: key.reusingastcontext: 1
+
+// RESULT-LABEL: key.results: [
+// RESULT-DAG: key.description: "east"
+// RESULT-DAG: key.description: "west"
+// RESULT-DAG: key.description: "staticMethod()"
+// RESULT-DAG: key.description: "instanceMethod(this: Outer.Inner)"
+// RESULT: ]
+// RESULT: key.reusingastcontext: 1
+
+// RESULT-LABEL: key.results: [
+// RESULT-DAG: key.description: "east"
+// RESULT-DAG: key.description: "west"
+// RESULT-DAG: key.description: "staticMethod()"
+// RESULT-DAG: key.description: "instanceMethod(this: Inner)"
+// RESULT: ]
+// RESULT: key.reusingastcontext: 1

@@ -1,0 +1,9 @@
+// RUN: not %language 2>&1 | %FileCheck %s -check-prefix=CHECK1
+// RUN: not %language %s 2>&1 | %FileCheck %s -check-prefix=CHECK1
+// RUN: not %language -typecheck 2>&1 | %FileCheck %s -check-prefix=CHECK2
+// RUN: not %language -emit-sil 2>&1 | %FileCheck %s -check-prefix=CHECK2
+// RUN: not %language -emit-sil -parse-as-library 2>&1 | %FileCheck %s -check-prefix=CHECK2
+// RUN: not %language -emit-object 2>&1 | %FileCheck %s -check-prefix=CHECK2
+
+// CHECK1: <unknown>:0: error: no frontend action was selected
+// CHECK2: <unknown>:0: error: this mode requires at least one input file

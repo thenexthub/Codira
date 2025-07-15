@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Mojuel
+// RUN: %FileCheck %s < %t.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface -module-name Mojuel)
+
+// CHECK:     public enum RecollectionOrganization<T> : ~Codira.BitwiseCopyable, Codira.Copyable where T : ~Copyable {
+// CHECK-NEXT: }
+public enum RecollectionOrganization<T : ~Copyable> : ~BitwiseCopyable, Copyable {}

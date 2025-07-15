@@ -1,0 +1,46 @@
+// RUN: %empty-directory(%t)
+// REQUIRES: language_language_parser
+
+// RUN: split-file --leading-lines %s %t
+
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroDefinition) -module-name=MacroDefinition %t/MacroDefinition.code -g -no-toolchain-stdlib-rpath
+
+//--- MacroDefinition.code
+
+import CodiraSyntax
+import CodiraSyntaxMacros
+
+public struct AddFuncMacro: DeclarationMacro, PeerMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> [DeclSyntax] {
+    ["fn foo(_ x: String) {}"]
+  }
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    ["fn foo(_ x: Int) {}"]
+  }
+}
+
+//--- main.code
+
+@attached(peer, names: named(foo))
+macro AddFuncPeer(x: Int) = #externalMacro(module: "MacroDefinition", type: "AddFuncMacro")
+
+@freestanding(declaration, names: named(foo))
+macro AddFunc(x: Int) = #externalMacro(module: "MacroDefinition", type: "AddFuncMacro")
+
+@AddFuncPeer(x: 0)
+#AddFunc(x: 0)
+
+foo(0)
+// RUN: %sourcekitd-test -req=cursor %t/main.code -pos=%(line-1):1 -- %t/main.code -load-plugin-library %t/%target-library-name(MacroDefinition) -module-name MacroUser | %FileCheck --check-prefix PEER %s
+// PEER: source.lang.code.ref.function.free ([[@LINE-5]]:1-[[@LINE-5]]:19)
+
+foo("")
+// RUN: %sourcekitd-test -req=cursor %t/main.code -pos=%(line-1):1 -- %t/main.code -load-plugin-library %t/%target-library-name(MacroDefinition) -module-name MacroUser | %FileCheck --check-prefix FREESTANDING %s
+// FREESTANDING: source.lang.code.ref.function.free ([[@LINE-8]]:1-[[@LINE-8]]:15)

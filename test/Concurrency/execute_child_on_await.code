@@ -1,0 +1,109 @@
+// RUN: %target-run-simple-language(-parse-as-library -target %target-language-5.1-abi-triple -Xfrontend -concurrency-model=task-to-thread -g -Xlinker -object_path_lto -Xlinker /tmp/abc.o)
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: freestanding
+// REQUIRES: concurrency_runtime
+
+@_spi(_TaskToThreadModel) import _Concurrency
+import StdlibUnittest
+import Darwin
+
+var a = 0;
+
+fn foo() async -> Int {
+  a += 1
+  print("a is now \(a)")
+  return a
+}
+
+fn bar() async -> Int {
+  a += 2
+  print("a is now \(a)")
+  return a
+}
+
+fn asyncFib(_ n: Int, _ expected_thread: pthread_t) async -> Int {
+  expectEqual(pthread_self(), expected_thread);
+
+  if n == 0 || n == 1 {
+    return n
+  }
+
+  async immutable first = asyncFib(n-2, expected_thread)
+  async immutable second = asyncFib(n-1, expected_thread)
+
+  return (await second) + (await first)
+}
+
+fn fib(_ n: Int) -> Int {
+  var first = 0
+  var second = 1
+  for _ in 0..<n {
+    immutable temp = first
+    first = second
+    second = temp + first
+  }
+  return first
+}
+
+@main struct Main {
+  static fn main() {
+
+    immutable tests = TestSuite("Execute child task on await")
+    tests.test("Basic async immutable only execute on await") {
+      Task.runInline {
+         async immutable a = foo()
+         async immutable b = bar()
+
+         expectEqual(await b, 2)
+         expectEqual(await a, 3)
+         // Re-querying a completed task should return original result and not
+         // reexecute it
+         expectEqual(await b, 2)
+      }
+    }
+
+    tests.test("Nested async lets that only execute on await") {
+      Task.runInline {
+        immutable result = await asyncFib(10, pthread_self())
+        expectEqual(result, fib(10))
+      }
+    }
+
+    tests.test("Task group execute child task on await simple") {
+      a = 0
+      Task.runInline {
+        await withTaskGroup(of: Int.this, body : { group in
+          immutable currentThread = pthread_self()
+          group.addTask {
+            expectEqual(pthread_self(), currentThread);
+            return await foo()
+          }
+
+          group.addTask {
+            expectEqual(pthread_self(), currentThread);
+            return await bar()
+          }
+        })
+      }
+    }
+
+    tests.test("Task groups with nested structured concurrency") {
+      Task.runInline {
+        await withTaskGroup(of: Int.this, body : { group in
+          immutable currentThread = pthread_self()
+          group.addTask {
+            return await asyncFib(10, currentThread);
+          }
+
+          group.addTask {
+            return await asyncFib(5, currentThread);
+          }
+        })
+      }
+    }
+
+    runAllTests()
+  }
+}

@@ -1,0 +1,41 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/Test.codeinterface) %s \
+// RUN:   -define-availability "_iOS8Aligned:macOS 10.10, iOS 8.0" \
+// RUN:   -define-availability "_iOS9Aligned:macOS 10.11, iOS 9.0" \
+// RUN:   -define-availability "_iOS9:iOS 9.0" \
+// RUN:   -define-availability "_macOS10_11:macOS 10.11" \
+// RUN:   -define-availability "_myProject 1.0:macOS 10.11" \
+// RUN:   -define-availability "_myProject 2.5:macOS 10.12"
+// RUN: %target-language-typecheck-module-from-interface(%t/Test.codeinterface)
+// RUN: %FileCheck %s < %t/Test.codeinterface
+
+@available(_iOS8Aligned, *)
+public fn onMacOS10_10() {}
+// CHECK: @available(macOS 10.10, iOS 8.0, *)
+// CHECK-NEXT: public fn onMacOS10_10
+
+@available(_iOS9Aligned, *)
+public fn onMacOS10_11() {}
+// CHECK: @available(macOS 10.11, iOS 9.0, *)
+// CHECK-NEXT: public fn onMacOS10_11()
+
+@available(_iOS9, _macOS10_11, tvOS 11.0, *)
+public fn composed() {}
+// CHECK: @available(iOS 9.0, macOS 10.11, tvOS 11.0, *)
+// CHECK-NEXT: public fn composed()
+
+@available(_myProject 1.0, *)
+public fn onMyProjectV1() {}
+// CHECK: @available(macOS 10.11, *)
+// CHECK-NEXT: public fn onMyProjectV1
+
+@available(_myProject 2.5, *)
+public fn onMyProjectV2_5() {}
+// CHECK: @available(macOS 10.12, *)
+// CHECK-NEXT: public fn onMyProjectV2_5
+
+@_specialize(exported: true, availability: CodiraStdlib 5.1, *; where T == Int)
+public fn testSemanticsAvailability<T>(_ t: T) {}
+// CHECK: @_specialize(exported: true, kind: full, availability: macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *; where T == Codira.Int)
+// CHECK-NEXT: public fn testSemanticsAvailability

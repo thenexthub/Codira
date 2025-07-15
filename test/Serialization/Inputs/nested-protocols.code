@@ -1,0 +1,11 @@
+public struct Outer {
+  public protocol Inner {
+    fn foo()
+  }
+}
+
+extension Outer {
+  public protocol InnerInExtension {
+    fn bar()
+  }
+}

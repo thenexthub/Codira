@@ -1,0 +1,10 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -runtime-compatibility-version none -wmo) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx || OS=linux-gnu || OS=none-eabi || OS=none-elf || OS=wasi
+// REQUIRES: language_feature_Embedded
+
+print("Hello, Embedded Codira!")
+
+// CHECK: Hello, Embedded Codira!

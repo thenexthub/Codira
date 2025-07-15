@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the MetadataPath type, which efficiently records the
@@ -18,15 +19,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_METADATAPATH_H
-#define SWIFT_IRGEN_METADATAPATH_H
+#ifndef LANGUAGE_IRGEN_METADATAPATH_H
+#define LANGUAGE_IRGEN_METADATAPATH_H
 
 #include "language/Basic/EncodedSequence.h"
 #include "language/RemoteInspection/MetadataSource.h"
 #include "WitnessIndex.h"
 #include "IRGen.h"
 
-namespace llvm {
+namespace toolchain {
   class Value;
 }
 
@@ -42,7 +43,7 @@ namespace irgen {
   class LocalTypeDataKey;
   class MetadataResponse;
 
-/// A path from one source metadata --- either Swift type metadata or a Swift
+/// A path from one source metadata --- either Codira type metadata or a Codira
 /// protocol conformance --- to another.
 class MetadataPath {
   class Component {
@@ -142,9 +143,9 @@ class MetadataPath {
         return OperationCost::Arithmetic;
 
       case Kind::Impossible:
-        llvm_unreachable("cannot compute cost of an impossible path");
+        toolchain_unreachable("cannot compute cost of an impossible path");
       }
-      llvm_unreachable("bad path component");
+      toolchain_unreachable("bad path component");
     }
 
     static Component decode(const EncodedSequenceBase::Chunk *&ptr) {
@@ -283,8 +284,8 @@ public:
   }
 
   void dump() const;
-  void print(llvm::raw_ostream &out) const;
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+  void print(toolchain::raw_ostream &out) const;
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                        const MetadataPath &path) {
     path.print(out);
     return out;

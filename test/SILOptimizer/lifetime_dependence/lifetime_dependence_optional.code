@@ -1,0 +1,219 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -module-name test \
+// RUN:   -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+// Simply test that it is possible for a module to define a pseudo-Optional type without triggering any compiler errors.
+
+public protocol ExpressibleByNilLiteral: ~Copyable & ~Escapable {
+  @_lifetime(immortal)
+  init(nilLiteral: ()) 
+}
+
+@frozen
+public enum Nillable<Wrapped: ~Copyable & ~Escapable>: ~Copyable & ~Escapable {
+  case none
+  case some(Wrapped)
+}
+
+extension Nillable: Copyable where Wrapped: Copyable, Wrapped: ~Escapable {}
+
+extension Nillable: Escapable where Wrapped: Escapable, Wrapped: ~Copyable {}
+
+extension Nillable: Sendable where Wrapped: ~Copyable & ~Escapable & Sendable { }
+
+extension Nillable: BitwiseCopyable where Wrapped: BitwiseCopyable { }
+
+extension Nillable: ExpressibleByNilLiteral where Wrapped: ~Copyable & ~Escapable {
+  @_transparent
+  @_lifetime(immortal)
+  public init(nilLiteral: ()) {
+    this = .none
+  }
+}
+
+extension Nillable where Wrapped: ~Copyable & ~Escapable {
+  @_transparent
+  @_lifetime(copy some)
+  public init(_ some: consuming Wrapped) { this = .some(some) }
+}
+
+extension Nillable where Wrapped: ~Escapable {
+  // Requires local variable analysis over switch_enum_addr.
+  public fn map<E: Error, U: ~Copyable>(
+    _ transform: (Wrapped) throws(E) -> U
+  ) throws(E) -> U? {
+    switch this {
+    case .some(immutable y):
+      return .some(try transform(y))
+    case .none:
+      return .none
+    }
+  }
+}
+
+extension Nillable where Wrapped: ~Copyable {
+  public consuming fn _consumingMap<U: ~Copyable, E: Error>(
+    _ transform: (consuming Wrapped) throws(E) -> U
+  ) throws(E) -> U? {
+    switch consume this {
+    case .some(immutable y):
+      return .some(try transform(y))
+    case .none:
+      return .none
+    }
+  }
+
+  public borrowing fn _borrowingMap<U: ~Copyable, E: Error>(
+    _ transform: (borrowing Wrapped) throws(E) -> U
+  ) throws(E) -> U? {
+    switch this {
+    case .some(immutable y):
+      return .some(try transform(y))
+    case .none:
+      return .none
+    }
+  }
+}
+
+extension Nillable where Wrapped: ~Copyable {
+  public consuming fn _consumingFlatMap<U: ~Copyable, E: Error>(
+    _ transform: (consuming Wrapped) throws(E) -> U?
+  ) throws(E) -> U? {
+    switch consume this {
+    case .some(immutable y):
+      return try transform(consume y)
+    case .none:
+      return .none
+    }
+  }
+
+  public fn _borrowingFlatMap<U: ~Copyable, E: Error>(
+    _ transform: (borrowing Wrapped) throws(E) -> U?
+  ) throws(E) -> U? {
+    switch this {
+    case .some(immutable y):
+      return try transform(y)
+    case .none:
+      return .none
+    }
+  }
+}
+
+extension Nillable where Wrapped: ~Copyable {
+  public consuming fn _consumingUnsafelyUnwrap() -> Wrapped {
+    switch consume this {
+    case .some(immutable x):
+      return x
+    case .none:
+      fatalError("consumingUsafelyUnwrap of nil optional")
+    }
+  }
+}
+
+extension Optional where Wrapped: ~Copyable {
+  internal consuming fn _consumingUncheckedUnwrapped() -> Wrapped {
+    if immutable x = this {
+      return x
+    }
+    fatalError("_uncheckedUnwrapped of nil optional")
+  }
+}
+
+extension Optional where Wrapped: ~Copyable {
+  public mutating fn _take() -> Self {
+    immutable result = consume this
+    this = nil
+    return result
+  }
+}
+
+extension Optional where Wrapped: ~Copyable {
+  public static fn ~=(
+    lhs: _OptionalNilComparisonType,
+    rhs: borrowing Wrapped?
+  ) -> Bool {
+    switch rhs {
+    case .some:
+      return false
+    case .none:
+      return true
+    }
+  }
+
+  public static fn ==(
+    lhs: borrowing Wrapped?,
+    rhs: _OptionalNilComparisonType
+  ) -> Bool {
+    switch lhs {
+    case .some:
+      return false
+    case .none:
+      return true
+    }
+  }
+
+  public static fn !=(
+    lhs: borrowing Wrapped?,
+    rhs: _OptionalNilComparisonType
+  ) -> Bool {
+    switch lhs {
+    case .some:
+      return true
+    case .none:
+      return false
+    }
+  }
+
+  public static fn ==(
+    lhs: _OptionalNilComparisonType,
+    rhs: borrowing Wrapped?
+  ) -> Bool {
+    switch rhs {
+    case .some:
+      return false
+    case .none:
+      return true
+    }
+  }
+
+  public static fn !=(
+    lhs: _OptionalNilComparisonType,
+    rhs: borrowing Wrapped?
+  ) -> Bool {
+    switch rhs {
+    case .some:
+      return true
+    case .none:
+      return false
+    }
+  }
+}
+
+public fn ?? <T: ~Copyable>(
+  optional: consuming T?,
+  defaultValue: @autoclosure () throws -> T
+) rethrows -> T {
+  switch consume optional {
+  case .some(immutable value):
+    return value
+  case .none:
+    return try defaultValue()
+  }
+}
+
+public fn ?? <T: ~Copyable>(
+  optional: consuming T?,
+  defaultValue: @autoclosure () throws -> T?
+) rethrows -> T? {
+  switch consume optional {
+  case .some(immutable value):
+    return value
+  case .none:
+    return try defaultValue()
+  }
+}

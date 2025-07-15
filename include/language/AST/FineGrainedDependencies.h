@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FINE_GRAINED_DEPENDENCIES_H
-#define SWIFT_AST_FINE_GRAINED_DEPENDENCIES_H
+#ifndef LANGUAGE_AST_FINE_GRAINED_DEPENDENCIES_H
+#define LANGUAGE_AST_FINE_GRAINED_DEPENDENCIES_H
 
 #include "language/AST/EvaluatorDependencies.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/Fingerprint.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/NullablePtr.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/ReferenceDependencyKeys.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/MD5.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/MD5.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -304,10 +305,10 @@ private:
 ///
 /// \Note The returned graph should not be escaped from the callback.
 bool withReferenceDependencies(
-    llvm::PointerUnion<const ModuleDecl *, const SourceFile *> MSF,
-    const DependencyTracker &depTracker, llvm::vfs::OutputBackend &backend,
+    toolchain::PointerUnion<const ModuleDecl *, const SourceFile *> MSF,
+    const DependencyTracker &depTracker, toolchain::vfs::OutputBackend &backend,
     StringRef outputPath, bool alsoEmitDotFile,
-    llvm::function_ref<bool(SourceFileDepGraph &&)>);
+    toolchain::function_ref<bool(SourceFileDepGraph &&)>);
 
 //==============================================================================
 // MARK: Enums
@@ -368,7 +369,7 @@ public:
 /// use the entity. For example, argument names of functions are ignored.
 class DependencyKey {
   // For import/export
-  friend ::llvm::yaml::MappingTraits<DependencyKey>;
+  friend ::toolchain::yaml::MappingTraits<DependencyKey>;
 
 public:
   class Builder {
@@ -408,8 +409,8 @@ public:
                             holderAndMember) &&;
 
   public:
-    /// Copies the name data for the given swiftdeps file into this builder.
-    Builder withName(StringRef swiftDeps) &&;
+    /// Copies the name data for the given languagedeps file into this builder.
+    Builder withName(StringRef languageDeps) &&;
     /// Copies the name of the given declaration into this builder, if any.
     Builder withName(const Decl *decl) &&;
     /// Extracts the name from the given decl-member pair, if any.
@@ -448,7 +449,7 @@ public:
   StringRef getContext() const { return context; }
   StringRef getName() const { return name; }
 
-  StringRef getSwiftDepsFromASourceFileProvideNodeKey() const {
+  StringRef getCodiraDepsFromASourceFileProvideNodeKey() const {
     assert(getKind() == NodeKind::sourceFileProvide &&
            "Receiver must be sourceFileProvide.");
     return getName();
@@ -477,7 +478,7 @@ public:
   }
 
   size_t hash() const {
-    return llvm::hash_combine(kind, aspect, name, context);
+    return toolchain::hash_combine(kind, aspect, name, context);
   }
   bool isImplementation() const {
     return getAspect() == DeclAspect::implementation;
@@ -493,24 +494,24 @@ public:
   }
 
   static DependencyKey createKeyForWholeSourceFile(DeclAspect,
-                                                   StringRef swiftDeps);
+                                                   StringRef languageDeps);
 
   std::string humanReadableName() const;
 
   StringRef aspectName() const { return DeclAspectNames[size_t(aspect)]; }
 
-  void dump(llvm::raw_ostream &os) const { os << asString() << "\n"; }
-  SWIFT_DEBUG_DUMP { dump(llvm::errs()); }
+  void dump(toolchain::raw_ostream &os) const { os << asString() << "\n"; }
+  LANGUAGE_DEBUG_DUMP { dump(toolchain::errs()); }
 
   /// For debugging, needed for \ref TwoStageMap::verify
   std::string asString() const;
 
   bool verify() const;
 
-  /// Since I don't have Swift enums, ensure name correspondence here.
+  /// Since I don't have Codira enums, ensure name correspondence here.
   static void verifyNodeKindNames();
 
-  /// Since I don't have Swift enums, ensure name correspondence here.
+  /// Since I don't have Codira enums, ensure name correspondence here.
   static void verifyDeclAspectNames();
 
 private:
@@ -521,23 +522,23 @@ private:
 } // namespace language
 
 template <>
-struct std::hash<typename swift::fine_grained_dependencies::DependencyKey> {
+struct std::hash<typename language::fine_grained_dependencies::DependencyKey> {
   size_t
-  operator()(const swift::fine_grained_dependencies::DependencyKey &key) const {
+  operator()(const language::fine_grained_dependencies::DependencyKey &key) const {
     return key.hash();
   }
 };
 template <>
-struct std::hash<typename swift::fine_grained_dependencies::DeclAspect> {
+struct std::hash<typename language::fine_grained_dependencies::DeclAspect> {
   size_t
-  operator()(const swift::fine_grained_dependencies::DeclAspect aspect) const {
+  operator()(const language::fine_grained_dependencies::DeclAspect aspect) const {
     return size_t(aspect);
   }
 };
 template <>
-struct std::hash<typename swift::fine_grained_dependencies::NodeKind> {
+struct std::hash<typename language::fine_grained_dependencies::NodeKind> {
   size_t
-  operator()(const swift::fine_grained_dependencies::NodeKind kind) const {
+  operator()(const language::fine_grained_dependencies::NodeKind kind) const {
     return size_t(kind);
   }
 };
@@ -555,7 +556,7 @@ using ContextNameFingerprint =
 
 /// Part of an experimental, new, infrastructure that can handle fine-grained
 /// dependencies. The basic idea is a graph, where each node represents the
-/// definition of entity in the program (a Decl or a source file/swiftdeps
+/// definition of entity in the program (a Decl or a source file/languagedeps
 /// file). Each node will (eventually) have a fingerprint so that we can tell
 /// when an entity has changed. Arcs in the graph connect a definition that
 /// provides information to a definition that uses the information, so that when
@@ -593,7 +594,7 @@ class DepGraphNode {
   //  has the interfaceHash as its fingerprint).
   std::optional<Fingerprint> fingerprint;
 
-  friend ::llvm::yaml::MappingTraits<DepGraphNode>;
+  friend ::toolchain::yaml::MappingTraits<DepGraphNode>;
 
 public:
   /// See \ref SourceFileDepGraphNode::SourceFileDepGraphNode().
@@ -621,15 +622,15 @@ public:
   /// When driver reads a SourceFileDepGraphNode, it may be a node that was
   /// created to represent a name-lookup (a.k.a a "depend") in the frontend. In
   /// that case, the node represents an entity that resides in some other file
-  /// whose swiftdeps file has not been read by the driver. Later, when the
+  /// whose languagedeps file has not been read by the driver. Later, when the
   /// driver does read the node corresponding to the actual Decl, that node may
   /// (someday) have a fingerprint. In order to preserve the
   /// ModuleDepGraphNode's identity but bring its fingerprint up to date, it
   /// needs to set the fingerprint *after* the node has been created.
   void setFingerprint(std::optional<Fingerprint> fp) { fingerprint = fp; }
 
-  SWIFT_DEBUG_DUMP;
-  void dump(llvm::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
+  void dump(toolchain::raw_ostream &os) const;
 
   std::string humanReadableName(StringRef where) const;
 
@@ -657,14 +658,14 @@ class SourceFileDepGraphNode : public DepGraphNode {
   size_t sequenceNumber = ~0;
 
   /// Holds the sequence numbers of definitions I depend upon.
-  llvm::SetVector<size_t> defsIDependUpon;
+  toolchain::SetVector<size_t> defsIDependUpon;
 
   /// True iff a Decl exists for this node.
   /// If a provides and a depends in the existing system both have the same key,
   /// only one SourceFileDepGraphNode is emitted.
   bool isProvides = false;
 
-  friend ::llvm::yaml::MappingContextTraits<SourceFileDepGraphNode,
+  friend ::toolchain::yaml::MappingContextTraits<SourceFileDepGraphNode,
                                             SourceFileDepGraph>;
 
 public:
@@ -715,8 +716,8 @@ public:
                                                            : "somewhere else");
   }
 
-  SWIFT_DEBUG_DUMP;
-  void dump(llvm::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
+  void dump(toolchain::raw_ostream &os) const;
 
   bool verify() const {
     DepGraphNode::verify();
@@ -738,7 +739,7 @@ public:
              sourceFileProvidesImplementationSequenceNumber);
       return true;
     default:
-      llvm_unreachable("neither interface nor implementation");
+      toolchain_unreachable("neither interface nor implementation");
     }
   }
   static constexpr const size_t sourceFileProvidesInterfaceSequenceNumber = 0;
@@ -767,7 +768,7 @@ public:
   /// For templates such as DotFileEmitter.
   using NodeType = SourceFileDepGraphNode;
 
-  friend ::llvm::yaml::MappingTraits<SourceFileDepGraph>;
+  friend ::toolchain::yaml::MappingTraits<SourceFileDepGraph>;
 
   SourceFileDepGraph() = default;
   SourceFileDepGraph(const SourceFileDepGraph &g) = delete;
@@ -783,7 +784,7 @@ public:
   InterfaceAndImplementationPair<SourceFileDepGraphNode>
   getSourceFileNodePair() const;
 
-  StringRef getSwiftDepsOfJobThatProducedThisGraph() const;
+  StringRef getCodiraDepsOfJobThatProducedThisGraph() const;
 
   std::string getGraphID() const {
     return getSourceFileNodePair().getInterface()->getKey().humanReadableName();
@@ -826,17 +827,17 @@ public:
         ->addDefIDependUpon(def->getSequenceNumber());
   }
 
-  /// Read a swiftdeps file at \p path and return a SourceFileDepGraph if
-  /// successful. If \p allowSwiftModule is true, try to load the information
-  /// from a swiftmodule file if appropriate.
+  /// Read a languagedeps file at \p path and return a SourceFileDepGraph if
+  /// successful. If \p allowCodiraModule is true, try to load the information
+  /// from a languagemodule file if appropriate.
   std::optional<SourceFileDepGraph> static loadFromPath(
-      StringRef, bool allowSwiftModule = false);
+      StringRef, bool allowCodiraModule = false);
 
-  /// Read a swiftdeps file from \p buffer and return a SourceFileDepGraph if
+  /// Read a languagedeps file from \p buffer and return a SourceFileDepGraph if
   /// successful.
-  std::optional<SourceFileDepGraph> static loadFromBuffer(llvm::MemoryBuffer &);
-  std::optional<SourceFileDepGraph> static loadFromSwiftModuleBuffer(
-      llvm::MemoryBuffer &);
+  std::optional<SourceFileDepGraph> static loadFromBuffer(toolchain::MemoryBuffer &);
+  std::optional<SourceFileDepGraph> static loadFromCodiraModuleBuffer(
+      toolchain::MemoryBuffer &);
 
   void verifySame(const SourceFileDepGraph &other) const;
 
@@ -848,7 +849,7 @@ public:
 
   bool verifySequenceNumber() const;
 
-  void emitDotFile(llvm::vfs::OutputBackend &outputBackend,
+  void emitDotFile(toolchain::vfs::OutputBackend &outputBackend,
                    StringRef outputPath, DiagnosticEngine &diags);
 
   void addNode(SourceFileDepGraphNode *n) {
@@ -870,7 +871,7 @@ template <typename GraphT> class DotFileEmitter {
   using NodeT = typename GraphT::NodeType;
 
   /// Stream to write to.
-  llvm::raw_ostream &out;
+  toolchain::raw_ostream &out;
 
   /// Human-readable graph identifier.
   std::string graphID;
@@ -886,7 +887,7 @@ template <typename GraphT> class DotFileEmitter {
   std::unordered_set<std::string> nodeIDs;
 
 public:
-  DotFileEmitter(llvm::raw_ostream &out, GraphT &g, const bool includeExternals,
+  DotFileEmitter(toolchain::raw_ostream &out, GraphT &g, const bool includeExternals,
                  const bool includeAPINotes)
       : out(out), graphID(g.getGraphID()), includeExternals(includeExternals),
         includeAPINotes(includeAPINotes), g(g) {}
@@ -980,11 +981,11 @@ private:
     }
   }
   static std::string nodeLabel(const NodeT *n) {
-    return llvm::yaml::escape(n->humanReadableName());
+    return toolchain::yaml::escape(n->humanReadableName());
   }
 };
 
 } // end namespace fine_grained_dependencies
 } // end namespace language
 
-#endif // SWIFT_AST_FINE_GRAINED_DEPENDENCIES_H
+#endif // LANGUAGE_AST_FINE_GRAINED_DEPENDENCIES_H

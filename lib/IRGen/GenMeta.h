@@ -1,4 +1,4 @@
-//===--- GenMeta.h - Swift IR generation for metadata -----------*- C++ -*-===//
+//===--- GenMeta.h - Codira IR generation for metadata -----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the metadata emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENMETA_H
-#define SWIFT_IRGEN_GENMETA_H
+#ifndef LANGUAGE_IRGEN_GENMETA_H
+#define LANGUAGE_IRGEN_GENMETA_H
 
 #include "language/ABI/MetadataValues.h"
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
   template <class T> class ArrayRef;
   class Constant;
   class Function;
@@ -62,14 +63,14 @@ namespace irgen {
                          const ClassLayout &fragileLayout,
                          const ClassLayout &resilientLayout);
 
-  /// Emit "embedded Swift" class metadata (a simple vtable) for the given class
+  /// Emit "embedded Codira" class metadata (a simple vtable) for the given class
   /// declaration.
   void emitEmbeddedClassMetadata(IRGenModule &IGM, ClassDecl *theClass,
                                  const ClassLayout &fragileLayout);
 
   /// Emit the constant initializer of the type metadata candidate for
   /// the given foreign class declaration.
-  llvm::Constant *emitForeignTypeMetadataInitializer(IRGenModule &IGM,
+  toolchain::Constant *emitForeignTypeMetadataInitializer(IRGenModule &IGM,
                                                      CanType type,
                                                      Size &addressPointOffset);
 
@@ -127,67 +128,67 @@ namespace irgen {
   /// Given a reference to nominal type metadata of the given type,
   /// derive a reference to the type metadata stored in the nth
   /// requirement slot.  The type must have generic arguments.
-  llvm::Value *emitArgumentMetadataRef(IRGenFunction &IGF,
+  toolchain::Value *emitArgumentMetadataRef(IRGenFunction &IGF,
                                        NominalTypeDecl *theDecl,
                                        const GenericTypeRequirements &reqts,
                                        unsigned reqtIndex,
-                                       llvm::Value *metadata);
+                                       toolchain::Value *metadata);
 
   /// Given a reference to nominal type metadata of the given type,
   /// derive a reference to the type metadata pack stored in the nth
   /// requirement slot.  The type must have generic arguments.
-  llvm::Value *emitArgumentMetadataPackRef(IRGenFunction &IGF,
+  toolchain::Value *emitArgumentMetadataPackRef(IRGenFunction &IGF,
                                            NominalTypeDecl *theDecl,
                                            const GenericTypeRequirements &reqts,
                                            unsigned reqtIndex,
-                                           llvm::Value *metadata);
+                                           toolchain::Value *metadata);
 
   /// Given a reference to nominal type metadata of the given type,
   /// derive a reference to a protocol witness table stored in the nth
   /// requirement slot.  The type must have generic arguments.
-  llvm::Value *emitArgumentWitnessTableRef(IRGenFunction &IGF,
+  toolchain::Value *emitArgumentWitnessTableRef(IRGenFunction &IGF,
                                            NominalTypeDecl *theDecl,
                                            const GenericTypeRequirements &reqts,
                                            unsigned reqtIndex,
-                                           llvm::Value *metadata);
+                                           toolchain::Value *metadata);
 
   /// Given a reference to nominal type metadata of the given type,
   /// derive a reference to a protocol witness table pack stored in the nth
   /// requirement slot.  The type must have generic arguments.
-  llvm::Value *emitArgumentWitnessTablePackRef(IRGenFunction &IGF,
+  toolchain::Value *emitArgumentWitnessTablePackRef(IRGenFunction &IGF,
                                                NominalTypeDecl *theDecl,
                                            const GenericTypeRequirements &reqts,
                                                unsigned reqtIndex,
-                                               llvm::Value *metadata);
+                                               toolchain::Value *metadata);
 
   /// Given a reference to nominal type metadata of the given type,
   /// derive a reference to a the pack shape stored in the nth
   /// requirement slot.  The type must have generic arguments.
-  llvm::Value *emitArgumentPackShapeRef(IRGenFunction &IGF,
+  toolchain::Value *emitArgumentPackShapeRef(IRGenFunction &IGF,
                                         NominalTypeDecl *theDecl,
                                         const GenericTypeRequirements &reqts,
                                         unsigned reqtIndex,
-                                        llvm::Value *metadata);
+                                        toolchain::Value *metadata);
 
   /// Given a reference to nominal type metadata of the given type,
   /// derive a reference to the value for the nth argument metadata.
   /// The type must have generic arguments.
-  llvm::Value *emitValueGenericRef(IRGenFunction &IGF,
+  toolchain::Value *emitValueGenericRef(IRGenFunction &IGF,
                                    NominalTypeDecl *theDecl,
                                    const GenericTypeRequirements &reqts,
                                    unsigned reqtIndex,
-                                   llvm::Value *metadata);
+                                   toolchain::Value *metadata);
 
   /// Given a metatype value, read its instance type.
-  llvm::Value *emitMetatypeInstanceType(IRGenFunction &IGF,
-                                        llvm::Value *metatypeMetadata);
+  toolchain::Value *emitMetatypeInstanceType(IRGenFunction &IGF,
+                                        toolchain::Value *metatypeMetadata);
   
   /// Emit the field type accessor for a nominal type's metadata. This function
   /// lazily generates the metadata for the types of all of the nominal type's
   /// fields for reflection purposes.
   void emitFieldTypeAccessor(IRGenModule &IGM,
                              NominalTypeDecl *type,
-                             llvm::Function *fn,
+                             toolchain::Function *fn,
                              ArrayRef<FieldTypeInfo> fieldTypes);
 
   /// Adjustment indices for the address points of various metadata.
@@ -215,7 +216,7 @@ namespace irgen {
   SpecialProtocol getSpecialProtocolID(ProtocolDecl *P);
 
   /// Use the argument as the 'self' type metadata.
-  void getArgAsLocalSelfTypeMetadata(IRGenFunction &IGF, llvm::Value *arg,
+  void getArgAsLocalSelfTypeMetadata(IRGenFunction &IGF, toolchain::Value *arg,
                                      CanType abstractType);
 
   struct GenericPackArgument {
@@ -296,13 +297,13 @@ namespace irgen {
                                   ConstantStructBuilder &B,
                                   ArrayRef<GenericValueArgument> values);
 
-  llvm::GlobalValue *emitAsyncFunctionPointer(IRGenModule &IGM,
-                                              llvm::Function *function,
+  toolchain::GlobalValue *emitAsyncFunctionPointer(IRGenModule &IGM,
+                                              toolchain::Function *function,
                                               LinkEntity entity,
                                               Size size);
 
-  llvm::GlobalValue *emitCoroFunctionPointer(IRGenModule &IGM,
-                                             llvm::Function *function,
+  toolchain::GlobalValue *emitCoroFunctionPointer(IRGenModule &IGM,
+                                             toolchain::Function *function,
                                              LinkEntity entity,
                                              Size size = Size(0));
 

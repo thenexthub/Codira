@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/UIdent.h"
 #include "sourcekitd/Internal.h"
 
-#include "llvm/Support/Mutex.h"
+#include "toolchain/Support/Mutex.h"
 
 #include <Block.h>
 
 using namespace SourceKit;
 
-static llvm::sys::Mutex GlobalHandlersMtx;
+static toolchain::sys::Mutex GlobalHandlersMtx;
 static sourcekitd_uid_handler_t UidMappingHandler;
 static sourcekitd_str_from_uid_handler_t StrFromUidMappingHandler;
 
 void sourcekitd_set_uid_handler(sourcekitd_uid_handler_t handler) {
-  llvm::sys::ScopedLock L(GlobalHandlersMtx);
+  toolchain::sys::ScopedLock L(GlobalHandlersMtx);
   sourcekitd_uid_handler_t newHandler = Block_copy(handler);
   Block_release(UidMappingHandler);
   UidMappingHandler = newHandler;
@@ -36,7 +37,7 @@ void sourcekitd_set_uid_handler(sourcekitd_uid_handler_t handler) {
 void sourcekitd_set_uid_handlers(
     sourcekitd_uid_from_str_handler_t uid_from_str,
     sourcekitd_str_from_uid_handler_t str_from_uid) {
-  llvm::sys::ScopedLock L(GlobalHandlersMtx);
+  toolchain::sys::ScopedLock L(GlobalHandlersMtx);
 
   sourcekitd_uid_handler_t newUIDFromStrHandler = Block_copy(uid_from_str);
   Block_release(UidMappingHandler);

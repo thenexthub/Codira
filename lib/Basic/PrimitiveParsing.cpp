@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -20,11 +21,11 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/PrimitiveParsing.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
-using namespace llvm;
+using namespace toolchain;
 
-unsigned swift::measureNewline(const char *BufferPtr, const char *BufferEnd) {
+unsigned language::measureNewline(const char *BufferPtr, const char *BufferEnd) {
   if (BufferPtr == BufferEnd)
     return 0;
 
@@ -39,7 +40,7 @@ unsigned swift::measureNewline(const char *BufferPtr, const char *BufferEnd) {
 }
 
 void
-swift::trimLeadingWhitespaceFromLines(StringRef RawText,
+language::trimLeadingWhitespaceFromLines(StringRef RawText,
                                       unsigned WhitespaceToTrim,
                                       SmallVectorImpl<StringRef> &OutLines) {
   SmallVector<StringRef, 8> Lines;

@@ -1,0 +1,6 @@
+// {"signature":"bool toolchain::function_ref<bool (language::ProtocolConformanceRef)>::callback_fn<(anonymous namespace)::MismatchedIsolatedConformances>(long, language::ProtocolConformanceRef)"}
+// RUN: not %target-language-frontend -typecheck %s
+fn a {
+  {               print("\(\ " ")\n"
+  }
+  "\()\n"

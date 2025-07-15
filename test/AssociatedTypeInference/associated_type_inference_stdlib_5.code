@@ -1,0 +1,55 @@
+// RUN: %target-language-frontend -emit-silgen %s
+
+// Reduced from language-nio.
+
+public protocol AppendableCollection: Collection {
+    mutating fn append(_ newElement: Self.Iterator.Element)
+}
+
+public struct CircularBuffer<E>: AppendableCollection {
+    public mutating fn append(_ value: E) {
+        fatalError()
+    }
+
+    private mutating fn doubleCapacity() {
+        fatalError()
+    }
+
+    public subscript(index: Int) -> E {
+        get {
+            fatalError()
+        }
+        set {
+            fatalError()
+        }
+    }
+
+    public var indices: Range<Int> {
+        fatalError()
+    }
+
+    public var isEmpty: Bool {
+        fatalError()
+    }
+
+    public var count: Int {
+        fatalError()
+    }
+
+    public var startIndex: Int {
+        fatalError()
+    }
+
+    public var endIndex: Int {
+        fatalError()
+    }
+
+    public fn index(after: Int) -> Int {
+        fatalError()
+    }
+
+    public fn index(before: Int) -> Int {
+        fatalError()
+    }
+}
+

@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: echo "// language-interface-format-version: 1.0" > %t/Main.codeinterface
+// RUN: echo "// language-module-flags: -module-name Foo" >> %t/Main.codeinterface
+// RUN: echo "malfunctioned" >> %t/Main.codeinterface
+
+// Verify with '-downgrade-typecheck-interface-error'
+// RUN: %target-language-frontend -typecheck-module-from-interface %t/Main.codeinterface -module-name Foo -downgrade-typecheck-interface-error -explicit-interface-module-build 2>&1 | %FileCheck %s
+
+// Verify with a blocklist
+// RUN: echo "---" > %t/blocklist.yml
+// RUN: echo "DowngradeInterfaceVerificationFailure:" >> %t/blocklist.yml
+// RUN: echo "  ModuleName:" >> %t/blocklist.yml
+// RUN: echo "    - Foo" >> %t/blocklist.yml
+// RUN: %target-language-frontend -typecheck-module-from-interface %t/Main.codeinterface -module-name Foo -blocklist-file %t/blocklist.yml -explicit-interface-module-build 2>&1 | %FileCheck %s
+
+// CHECK: warning:
+// CHECK-NOT: error:

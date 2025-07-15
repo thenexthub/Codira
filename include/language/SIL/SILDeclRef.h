@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILDeclRef struct, which is used to identify a SIL
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILDECLREF_H
-#define SWIFT_SIL_SILDECLREF_H
+#ifndef LANGUAGE_SIL_SILDECLREF_H
+#define LANGUAGE_SIL_SILDECLREF_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/AutoDiff.h"
@@ -28,12 +29,12 @@
 #include "language/AST/ClangNode.h"
 #include "language/AST/GenericSignature.h"
 #include "language/AST/TypeAlignments.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -80,7 +81,7 @@ enum ForDefinition_t : bool {
   ForDefinition = true
 };
 
-/// A key for referencing a Swift declaration in SIL.
+/// A key for referencing a Codira declaration in SIL.
 ///
 /// This can currently be either a reference to a ValueDecl for functions,
 /// methods, constructors, and other named entities, or a reference to a
@@ -96,10 +97,10 @@ struct SILDeclRef {
     Closure,
     File
   };
-  using Loc = llvm::PointerUnion<ValueDecl *, AbstractClosureExpr *,
+  using Loc = toolchain::PointerUnion<ValueDecl *, AbstractClosureExpr *,
                                  FileUnit *>;
 
-  /// Represents the "kind" of the SILDeclRef. For some Swift decls there
+  /// Represents the "kind" of the SILDeclRef. For some Codira decls there
   /// are multiple SIL entry points, and the kind is used to distinguish them.
   enum class Kind : unsigned {
     /// This constant references the FuncDecl or AbstractClosureExpr
@@ -219,7 +220,7 @@ struct SILDeclRef {
       return LocKind::Closure;
     if (loc.is<FileUnit *>())
       return LocKind::File;
-    llvm_unreachable("Unhandled location kind!");
+    toolchain_unreachable("Unhandled location kind!");
   }
 
   /// The derivative function identifier.
@@ -255,7 +256,7 @@ struct SILDeclRef {
 
   /// Produces a SILDeclRef for the given ValueDecl or
   /// AbstractClosureExpr:
-  /// - If 'loc' is a func or closure, this returns a Func SILDeclRef.
+  /// - If 'loc' is a fn or closure, this returns a Func SILDeclRef.
   /// - If 'loc' is a ConstructorDecl, this returns the Allocator SILDeclRef
   ///   for the constructor.
   /// - If 'loc' is an EnumElementDecl, this returns the EnumElement
@@ -422,7 +423,7 @@ struct SILDeclRef {
     return !(*this == rhs);
   }
   
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
   void dump() const;
 
   unsigned getParameterListCount() const;
@@ -502,10 +503,10 @@ struct SILDeclRef {
   }
 
   /// True if the decl ref references a thunk from a natively foreign
-  /// declaration to Swift calling convention.
+  /// declaration to Codira calling convention.
   bool isForeignToNativeThunk() const;
 
-  /// True if the decl ref references a thunk from a natively Swift declaration
+  /// True if the decl ref references a thunk from a natively Codira declaration
   /// to foreign C or ObjC calling convention.
   bool isNativeToForeignThunk() const;
 
@@ -552,7 +553,7 @@ struct SILDeclRef {
   /// Return the original protocol requirement that introduced the witness table
   /// entry overridden by this method.
   static AbstractFunctionDecl *getOverriddenWitnessTableEntry(
-                                                    AbstractFunctionDecl *func);
+                                                    AbstractFunctionDecl *fn);
 
   /// Returns the availability of the decl for computing linkage.
   std::optional<AvailabilityRange> getAvailabilityForLinkage() const;
@@ -560,7 +561,7 @@ struct SILDeclRef {
   /// True if the referenced entity is some kind of thunk.
   bool isThunk() const;
 
-  /// True if the referenced entity is emitted by Swift on behalf of the Clang
+  /// True if the referenced entity is emitted by Codira on behalf of the Clang
   /// importer.
   bool isClangImported() const;
 
@@ -611,25 +612,25 @@ struct SILDeclRef {
   bool isCalleeAllocatedCoroutine() const;
 
   /// Return the hash code for the SIL declaration.
-  friend llvm::hash_code hash_value(swift::SILDeclRef ref) {
-    return llvm::hash_combine(
-        llvm::hash_value(ref.loc.getOpaqueValue()),
-        llvm::hash_value(unsigned(ref.kind)),
-        llvm::hash_value(
-            (ref.kind == swift::SILDeclRef::Kind::DefaultArgGenerator)
+  friend toolchain::hash_code hash_value(language::SILDeclRef ref) {
+    return toolchain::hash_combine(
+        toolchain::hash_value(ref.loc.getOpaqueValue()),
+        toolchain::hash_value(unsigned(ref.kind)),
+        toolchain::hash_value(
+            (ref.kind == language::SILDeclRef::Kind::DefaultArgGenerator)
                 ? ref.defaultArgIndex
                 : 0),
-        llvm::hash_value(ref.isForeign),
-        llvm::hash_value(ref.pointer.getOpaqueValue()),
-        llvm::hash_value(ref.distributedThunk),
-        llvm::hash_value(unsigned(ref.backDeploymentKind)),
-        llvm::hash_value(ref.isKnownToBeLocal),
-        llvm::hash_value(ref.isRuntimeAccessible),
-        llvm::hash_value(ref.isAsyncLetClosure));
+        toolchain::hash_value(ref.isForeign),
+        toolchain::hash_value(ref.pointer.getOpaqueValue()),
+        toolchain::hash_value(ref.distributedThunk),
+        toolchain::hash_value(unsigned(ref.backDeploymentKind)),
+        toolchain::hash_value(ref.isKnownToBeLocal),
+        toolchain::hash_value(ref.isRuntimeAccessible),
+        toolchain::hash_value(ref.isAsyncLetClosure));
   }
 
 private:
-  friend struct llvm::DenseMapInfo<swift::SILDeclRef>;
+  friend struct toolchain::DenseMapInfo<language::SILDeclRef>;
   /// Produces a SILDeclRef from an opaque value.
   explicit SILDeclRef(void *opaqueLoc, Kind kind, bool isForeign,
                       bool isDistributedThunk, bool isKnownToBeLocal,
@@ -646,18 +647,18 @@ private:
         pointer(derivativeId) {}
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, SILDeclRef C) {
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS, SILDeclRef C) {
   C.print(OS);
   return OS;
 }
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 
 // DenseMap key support for SILDeclRef.
-template<> struct DenseMapInfo<swift::SILDeclRef> {
-  using SILDeclRef = swift::SILDeclRef;
+template<> struct DenseMapInfo<language::SILDeclRef> {
+  using SILDeclRef = language::SILDeclRef;
   using Kind = SILDeclRef::Kind;
   using BackDeploymentKind = SILDeclRef::BackDeploymentKind;
   using Loc = SILDeclRef::Loc;
@@ -674,15 +675,15 @@ template<> struct DenseMapInfo<swift::SILDeclRef> {
                       false, false, BackDeploymentKind::None, 0, false,
                       nullptr);
   }
-  static unsigned getHashValue(swift::SILDeclRef Val) {
+  static unsigned getHashValue(language::SILDeclRef Val) {
     return hash_value(Val);
   }
-  static bool isEqual(swift::SILDeclRef const &LHS,
-                      swift::SILDeclRef const &RHS) {
+  static bool isEqual(language::SILDeclRef const &LHS,
+                      language::SILDeclRef const &RHS) {
     return LHS == RHS;
   }
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 #endif

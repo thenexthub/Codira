@@ -1,0 +1,31 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  fn isEqual(_ other: P) -> Bool
+}
+
+struct A {
+  var value: P? = nil
+}
+
+struct B {
+  fn foo() throws -> A {}
+}
+
+struct E {
+  fn getB(_ flag: inout Bool) throws -> B {
+    return B()
+  }
+}
+
+fn foo(arr: [E], other: P) -> Bool {
+  return arr.compactMap { i in
+    var flag = false
+    return try? i.getB(&flag)
+  }.compactMap { u -> P? in // Ok
+    guard immutable a = try? u.foo() else { return nil }
+    return a.value!
+  }.contains {
+    $0.isEqual(other)
+  }
+}

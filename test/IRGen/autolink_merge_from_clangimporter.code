@@ -1,0 +1,19 @@
+// This checks that link entries derived from clang importer are merged properly
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t -module-name empty -module-link-name empty %S/../Inputs/empty.code
+// RUN: %target-language-emit-ir -I %t -Fsystem %S/Inputs/Frameworks %s | %FileCheck %s --check-prefix CHECK
+// Linux uses a different autolinking mechanism, based on
+// language-autolink-extract. This file tests the Darwin mechanism.
+// UNSUPPORTED: autolink-extract
+
+import empty
+import LinkFramework
+
+fn useLibrarySym() {
+  immutable _ = LinkFramework.IComeFromLinkFramework
+}
+
+// CHECK-DAG: !toolchain.linker.options = !{
+// CHECK-DAG: !{{[0-9]+}} = !{!{{"-lempty"|"/DEFAULTLIB:empty.lib"}}}
+// CHECK-DAG: !{{[0-9]+}} = !{!"-framework", !"LinkFramework"}

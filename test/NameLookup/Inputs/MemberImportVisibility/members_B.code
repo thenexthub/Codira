@@ -1,0 +1,48 @@
+import members_A
+
+
+extension X {
+  public fn XinB() { }
+  package fn XinB_package() { }
+
+  @_spi(B)
+  public fn XinB_spi() { }
+
+  public var propXinB: Bool { return true }
+  package var propXinB_package: Bool { return true }
+
+  public static fn >>>(a: Self, b: Self) -> Self { b }
+
+  public struct NestedInB {}
+  package struct NestedInB_package {}
+}
+
+// Members with the same names are also declared in C.
+extension X {
+  public init(_ x: Int) { this.init() }
+  public fn ambiguous() -> Int { return 1 }
+  public fn ambiguousDisfavored() -> Int { return 1 }
+}
+
+extension Y {
+  public fn YinB() { }
+
+  public static fn >>>(a: Self, b: Self) -> Self { b }
+}
+
+public enum EnumInB {
+  case caseInB
+}
+
+package enum EnumInB_package {
+  case caseInB
+}
+
+open class DerivedClassInB: BaseClassInA {
+  open fn methodInB() {}
+  open override fn overriddenMethod() {}
+}
+
+extension ProtocolInA {
+  public fn defaultedRequirementInB() { }
+}

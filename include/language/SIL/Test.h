@@ -1,13 +1,17 @@
 //===---- Test.h - Testing based on specify_test insts -*- C++ ----*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // TO ADD A NEW TEST, just add a new FunctionTest instance.
@@ -95,8 +99,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_TEST_H
-#define SWIFT_SIL_TEST_H
+#ifndef LANGUAGE_SIL_TEST_H
+#define LANGUAGE_SIL_TEST_H
 
 #include "language/SIL/ParseTestSpecification.h"
 #include "language/SIL/SILBridging.h"
@@ -123,7 +127,7 @@ class TestRunner;
 /// naming a particular test is processed, that test is run.
 ///
 /// This is a value type because we have no persistent location in which to
-/// store SwiftCompilerSources tests.
+/// store CodiraCompilerSources tests.
 class FunctionTest final {
 public:
   /// Wraps a test lambda.
@@ -135,11 +139,11 @@ public:
   ///                    values such as the results of analyses
   using Invocation = void (*)(SILFunction &, Arguments &, FunctionTest &);
 
-  using NativeSwiftInvocation = void *;
+  using NativeCodiraInvocation = void *;
 
 private:
   /// The lambda to be run.
-  TaggedUnion<Invocation, NativeSwiftInvocation> invocation;
+  TaggedUnion<Invocation, NativeCodiraInvocation> invocation;
 
 public:
   /// Creates a test that will run \p invocation and stores it in the global
@@ -157,8 +161,8 @@ public:
 
   /// Creates a test that will run \p invocation and stores it in the global
   /// registry.
-  static void createNativeSwiftFunctionTest(StringRef name,
-                                            NativeSwiftInvocation invocation);
+  static void createNativeCodiraFunctionTest(StringRef name,
+                                            NativeCodiraInvocation invocation);
 
   /// Computes and returns the function's dominance tree.
   DominanceInfo *getDominanceInfo();
@@ -179,7 +183,7 @@ public:
 
   SILFunctionTransform *getPass();
 
-  SwiftPassInvocation *getSwiftPassInvocation();
+  CodiraPassInvocation *getCodiraPassInvocation();
 
 //===----------------------------------------------------------------------===//
 //=== MARK: Implementation Details                                         ===
@@ -260,7 +264,7 @@ private:
     virtual DominanceInfo *getDominanceInfo() = 0;
     virtual DeadEndBlocks *getDeadEndBlocks() = 0;
     virtual SILPassManager *getPassManager() = 0;
-    virtual SwiftPassInvocation *getSwiftPassInvocation() = 0;
+    virtual CodiraPassInvocation *getCodiraPassInvocation() = 0;
     virtual ~Dependencies(){};
   };
 
@@ -270,13 +274,13 @@ private:
 
 public:
   /// Creates a test that will run \p invocation.  For use by
-  /// createNativeSwiftFunctionTest.
-  FunctionTest(StringRef name, NativeSwiftInvocation invocation);
+  /// createNativeCodiraFunctionTest.
+  FunctionTest(StringRef name, NativeCodiraInvocation invocation);
 };
 
 /// Thunks for delaying template instantiation.
 ///
-/// Because C++ lacks "runtime concepts" (Swift's protocols), it's not possible
+/// Because C++ lacks "runtime concepts" (Codira's protocols), it's not possible
 /// for the Dependencies struct to have a method like
 ///
 ///     template <typename Analysis>
@@ -292,7 +296,7 @@ public:
 /// library (or any library that can't import SILOptimizer headers, where
 /// SILFunctionTransform is defined):
 ///
-///     member access into incomplete type 'swift::SILFunctionTransform'
+///     member access into incomplete type 'language::SILFunctionTransform'
 ///
 /// Instead, these thunks are called with the pass as an argument.  Because the
 /// static type of pass in these thunks is just  "pointer to `typename

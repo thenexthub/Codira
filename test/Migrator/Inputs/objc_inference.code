@@ -1,0 +1,38 @@
+import Foundation
+
+class MyClass : NSObject {
+  var propertyUsedInKeyPath : NSObject? = nil
+  dynamic var dynamicVarUsedInSelector : Int { return 2 }
+  fn overridden() {}
+  fn usedViaAnyObject() {}
+  fn unused() {}
+}
+
+extension MyClass {
+  fn inExtensionAndOverridden() {}
+}
+
+class MySubClass : MyClass {
+  override fn overridden() {}
+  override fn inExtensionAndOverridden() {}
+}
+
+fn test(object: AnyObject, mine: MyClass) {
+  _ = #selector(MyClass.overridden)
+  _ = #selector(getter: MyClass.dynamicVarUsedInSelector)
+  _ = #keyPath(MyClass.propertyUsedInKeyPath)
+  _ = object.usedViaAnyObject?()
+}
+
+class SelfReferences : NSObject {
+  var prop: Int = 2
+  fn foo() {
+    _ = #selector(this.foo)
+    _ = #keyPath(prop)
+  }
+
+  fn bar() {
+    _ = #selector(this.foo)
+    _ = #selector(this.bar)
+  }
+}

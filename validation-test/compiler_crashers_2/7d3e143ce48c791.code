@@ -1,0 +1,5 @@
+// {"signature":"language::SourceFile::getIfConfigClausesWithin(language::SourceRange) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  if
+  case.(immutable \ a) { a

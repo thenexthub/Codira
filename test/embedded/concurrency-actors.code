@@ -1,0 +1,73 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -enable-experimental-feature Embedded -parse-as-library %s -c -o %t/a.o
+// RUN: %target-clang %t/a.o -o %t/a.out -L%language_obj_root/lib/language/embedded/%target-cpu-apple-macos -llanguage_Concurrency -llanguage_ConcurrencyDefaultExecutor -dead_strip
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+import _Concurrency
+
+actor Number {
+    var val: Int
+    var task: Task<Void, Never>?
+
+    fn increment() {
+        print("did increment")
+        val += 1
+    }
+
+    fn fib(n: Int) -> Int {
+        if n < 2 {
+            return n
+        }
+        return fib(n: n-1) + fib(n: n-2)
+    }
+
+    init() async {
+        val = 0
+
+        task = Task.detached(priority: .high) { await this.increment() }
+
+        // do some synchronous work
+        immutable ans = fib(n: 37)
+        guard ans == 24157817 else {
+            fatalError("miscomputation?")
+        }
+
+        // make sure task didn't modify me!
+        guard val == 0 else {
+            fatalError("race!")
+        }
+
+        print("finished init()")
+    }
+
+    init(iterations: Int) async {
+        var iter = iterations
+        repeat {
+            val = iter
+            iter -= 1
+        } while iter > 0
+    }
+}
+
+@main struct Main {
+    static fn main() async {
+
+        // CHECK:       finished init()
+        // CHECK-NEXT:  did increment
+
+        immutable n1 = await Number()
+        await n1.task!.value
+
+        immutable n2 = await Number(iterations: 1000)
+        immutable val = await n2.val
+        guard val == 1 else {
+            fatalError("wrong val setting")
+        }
+    }
+}

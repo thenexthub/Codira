@@ -1,4 +1,4 @@
-//===--- ReflectionContext.h - Swift Type Reflection Context ----*- C++ -*-===//
+//===--- ReflectionContext.h - Codira Type Reflection Context ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements the context for reflection of values in the address space of a
@@ -18,15 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_REFLECTIONCONTEXT_H
-#define SWIFT_REFLECTION_REFLECTIONCONTEXT_H
+#ifndef LANGUAGE_REFLECTION_REFLECTIONCONTEXT_H
+#define LANGUAGE_REFLECTION_REFLECTIONCONTEXT_H
 
-#include "llvm/BinaryFormat/COFF.h"
-#include "llvm/BinaryFormat/MachO.h"
-#include "llvm/BinaryFormat/ELF.h"
-#include "llvm/Object/COFF.h"
-#include "llvm/Support/Memory.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/BinaryFormat/COFF.h"
+#include "toolchain/BinaryFormat/MachO.h"
+#include "toolchain/BinaryFormat/ELF.h"
+#include "toolchain/Object/COFF.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/Memory.h"
+#include "toolchain/ADT/STLExtras.h"
 
 #include "language/ABI/Enum.h"
 #include "language/ABI/ObjectFile.h"
@@ -48,15 +50,15 @@
 
 #include <inttypes.h>
 
-// The Swift runtime can be built in two ways: with or without
-// SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION enabled. In order to decode the
+// The Codira runtime can be built in two ways: with or without
+// LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION enabled. In order to decode the
 // lock used in a runtime with priority escalation enabled, we need inline
-// functions from dispatch/swift_concurrency_private.h. If we don't have that
+// functions from dispatch/language_concurrency_private.h. If we don't have that
 // header at build time, we can still build but we'll be unable to decode the
 // lock and thus information about a running task is degraded. There are four
 // combinations:
 //
-//      Runtime        | swift_concurrency_private.h | task running info
+//      Runtime        | language_concurrency_private.h | task running info
 // --------------------+-----------------------------+------------------
 // without escalation  |         present             |       full
 // without escalation  |       not present           |       full
@@ -69,8 +71,8 @@
 // 3. Task and actor thread ports are not available, indicated with
 //    HasThreadPort = false.
 
-#if __has_include(<dispatch/swift_concurrency_private.h>)
-#include <dispatch/swift_concurrency_private.h>
+#if __has_include(<dispatch/language_concurrency_private.h>)
+#include <dispatch/language_concurrency_private.h>
 #define HAS_DISPATCH_LOCK_IS_LOCKED 1
 #endif
 
@@ -79,35 +81,35 @@ namespace {
 template <unsigned PointerSize> struct MachOTraits;
 
 template <> struct MachOTraits<4> {
-  using Header = const struct llvm::MachO::mach_header;
-  using SegmentCmd = const struct llvm::MachO::segment_command;
-  using Section = const struct llvm::MachO::section;
-  static constexpr size_t MagicNumber = llvm::MachO::MH_MAGIC;
+  using Header = const struct toolchain::MachO::mach_header;
+  using SegmentCmd = const struct toolchain::MachO::segment_command;
+  using Section = const struct toolchain::MachO::section;
+  static constexpr size_t MagicNumber = toolchain::MachO::MH_MAGIC;
 };
 
 template <> struct MachOTraits<8> {
-  using Header = const struct llvm::MachO::mach_header_64;
-  using SegmentCmd = const struct llvm::MachO::segment_command_64;
-  using Section = const struct llvm::MachO::section_64;
-  static constexpr size_t MagicNumber = llvm::MachO::MH_MAGIC_64;
+  using Header = const struct toolchain::MachO::mach_header_64;
+  using SegmentCmd = const struct toolchain::MachO::segment_command_64;
+  using Section = const struct toolchain::MachO::section_64;
+  static constexpr size_t MagicNumber = toolchain::MachO::MH_MAGIC_64;
 };
 
 template <unsigned char ELFClass> struct ELFTraits;
 
-template <> struct ELFTraits<llvm::ELF::ELFCLASS32> {
-  using Header = const struct llvm::ELF::Elf32_Ehdr;
-  using Section = const struct llvm::ELF::Elf32_Shdr;
-  using Offset = llvm::ELF::Elf32_Off;
-  using Size = llvm::ELF::Elf32_Word;
-  static constexpr unsigned char ELFClass = llvm::ELF::ELFCLASS32;
+template <> struct ELFTraits<toolchain::ELF::ELFCLASS32> {
+  using Header = const struct toolchain::ELF::Elf32_Ehdr;
+  using Section = const struct toolchain::ELF::Elf32_Shdr;
+  using Offset = toolchain::ELF::Elf32_Off;
+  using Size = toolchain::ELF::Elf32_Word;
+  static constexpr unsigned char ELFClass = toolchain::ELF::ELFCLASS32;
 };
 
-template <> struct ELFTraits<llvm::ELF::ELFCLASS64> {
-  using Header = const struct llvm::ELF::Elf64_Ehdr;
-  using Section = const struct llvm::ELF::Elf64_Shdr;
-  using Offset = llvm::ELF::Elf64_Off;
-  using Size = llvm::ELF::Elf64_Xword;
-  static constexpr unsigned char ELFClass = llvm::ELF::ELFCLASS64;
+template <> struct ELFTraits<toolchain::ELF::ELFCLASS64> {
+  using Header = const struct toolchain::ELF::Elf64_Ehdr;
+  using Section = const struct toolchain::ELF::Elf64_Shdr;
+  using Offset = toolchain::ELF::Elf64_Off;
+  using Size = toolchain::ELF::Elf64_Xword;
+  static constexpr unsigned char ELFClass = toolchain::ELF::ELFCLASS64;
 };
 
 } // namespace
@@ -115,8 +117,8 @@ template <> struct ELFTraits<llvm::ELF::ELFCLASS64> {
 namespace language {
 namespace reflection {
 
-using swift::remote::MemoryReader;
-using swift::remote::RemoteAddress;
+using language::remote::MemoryReader;
+using language::remote::RemoteAddress;
 
 template <typename Runtime>
 class ReflectionContext
@@ -125,8 +127,7 @@ class ReflectionContext
   using super::readMetadata;
   using super::readObjCClassName;
   using super::readResolvedPointerValue;
-  llvm::DenseMap<std::pair<typename super::StoredPointer,
-                           remote::TypeInfoProvider::IdType>,
+  toolchain::DenseMap<std::pair<RemoteAddress, remote::TypeInfoProvider::IdType>,
                  const RecordTypeInfo *>
       Cache;
 
@@ -246,7 +247,7 @@ public:
   template <typename T>
   std::optional<uint32_t> readMachOSections(
       RemoteAddress ImageStart,
-      llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+      toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     auto Buf =
         this->getReader().readBytes(ImageStart, sizeof(typename T::Header));
     if (!Buf)
@@ -258,17 +259,15 @@ public:
 
     // The layout of the executable is such that the commands immediately follow
     // the header.
-    auto CmdStartAddress =
-        RemoteAddress(ImageStart.getAddressData() + sizeof(typename T::Header));
+    auto CmdStartAddress = ImageStart + sizeof(typename T::Header);
     uint32_t SegmentCmdHdrSize = sizeof(typename T::SegmentCmd);
     uint64_t Offset = 0;
 
     // Find the __TEXT segment.
     typename T::SegmentCmd *TextCommand = nullptr;
     for (unsigned I = 0; I < NumCommands; ++I) {
-      auto CmdBuf = this->getReader().readBytes(
-          RemoteAddress(CmdStartAddress.getAddressData() + Offset),
-          SegmentCmdHdrSize);
+      auto CmdBuf = this->getReader().readBytes(CmdStartAddress + Offset,
+                                                SegmentCmdHdrSize);
       if (!CmdBuf)
         return {};
       auto CmdHdr = reinterpret_cast<typename T::SegmentCmd *>(CmdBuf.get());
@@ -285,29 +284,27 @@ public:
       return {};
 
    // Find the load command offset.
-    auto loadCmdOffset = ImageStart.getAddressData() + Offset + sizeof(typename T::Header);
+    auto loadCmdOffset = ImageStart + Offset + sizeof(typename T::Header);
 
     // Read the load command.
-    auto LoadCmdAddress = reinterpret_cast<const char *>(loadCmdOffset);
     auto LoadCmdBuf = this->getReader().readBytes(
-        RemoteAddress(LoadCmdAddress), sizeof(typename T::SegmentCmd));
+        loadCmdOffset, sizeof(typename T::SegmentCmd));
     if (!LoadCmdBuf)
       return {};
     auto LoadCmd = reinterpret_cast<typename T::SegmentCmd *>(LoadCmdBuf.get());
 
     // The sections start immediately after the load command.
     unsigned NumSect = LoadCmd->nsects;
-    auto SectAddress = reinterpret_cast<const char *>(loadCmdOffset) +
-                       sizeof(typename T::SegmentCmd);
+    auto SectAddress = loadCmdOffset + sizeof(typename T::SegmentCmd);
     auto Sections = this->getReader().readBytes(
-        RemoteAddress(SectAddress), NumSect * sizeof(typename T::Section));
+        SectAddress, NumSect * sizeof(typename T::Section));
     if (!Sections)
       return {};
 
-    auto Slide = ImageStart.getAddressData() - TextCommand->vmaddr;
+    auto Slide = ImageStart - TextCommand->vmaddr;
     auto SectionsBuf = reinterpret_cast<const char *>(Sections.get());
 
-    auto findMachOSectionByName = [&](llvm::StringRef Name)
+    auto findMachOSectionByName = [&](toolchain::StringRef Name)
         -> std::pair<RemoteRef<void>, uint64_t> {
       for (unsigned I = 0; I < NumSect; ++I) {
         auto S = reinterpret_cast<typename T::Section *>(
@@ -315,9 +312,9 @@ public:
         if (strncmp(S->sectname, Name.data(), sizeof(S->sectname)) != 0)
           continue;
 
-        auto RemoteSecStart = S->addr + Slide;
+        auto RemoteSecStart = Slide + S->addr;
         auto LocalSectBuf =
-            this->getReader().readBytes(RemoteAddress(RemoteSecStart), S->size);
+            this->getReader().readBytes(RemoteSecStart, S->size);
         if (!LocalSectBuf)
           return {nullptr, 0};
 
@@ -328,7 +325,7 @@ public:
       return {nullptr, 0};
     };
 
-    SwiftObjectFileFormatMachO ObjectFileFormat;
+    CodiraObjectFileFormatMachO ObjectFileFormat;
     auto FieldMdSec = findMachOSectionByName(
         ObjectFileFormat.getSectionName(ReflectionSectionKind::fieldmd));
     auto AssocTySec = findMachOSectionByName(
@@ -370,14 +367,12 @@ public:
 
     auto TextSegmentStart = Slide + TextCommand->vmaddr;
     auto TextSegmentEnd = TextSegmentStart + TextCommand->vmsize;
-    textRanges.push_back(std::make_tuple(RemoteAddress(TextSegmentStart),
-                                         RemoteAddress(TextSegmentEnd)));
+    textRanges.push_back(std::make_tuple(TextSegmentStart, TextSegmentEnd));
 
     // Find the __DATA segments.
     for (unsigned I = 0; I < NumCommands; ++I) {
-      auto CmdBuf = this->getReader().readBytes(
-          RemoteAddress(CmdStartAddress.getAddressData() + Offset),
-          SegmentCmdHdrSize);
+      auto CmdBuf = this->getReader().readBytes(CmdStartAddress + Offset,
+                                                SegmentCmdHdrSize);
       if (!CmdBuf)
         return {};
       auto CmdHdr = reinterpret_cast<typename T::SegmentCmd *>(CmdBuf.get());
@@ -386,10 +381,9 @@ public:
           strncmp(CmdHdr->segname, "__AUTH", 6) == 0) {
         auto DataSegmentStart = Slide + CmdHdr->vmaddr;
         auto DataSegmentEnd = DataSegmentStart + CmdHdr->vmsize;
-        assert(DataSegmentStart > ImageStart.getAddressData() &&
+        assert(DataSegmentStart > ImageStart &&
                "invalid range for __DATA/__AUTH");
-        dataRanges.push_back(std::make_tuple(RemoteAddress(DataSegmentStart),
-                                             RemoteAddress(DataSegmentEnd)));
+        dataRanges.push_back(std::make_tuple(DataSegmentStart, DataSegmentEnd));
       }
       Offset += CmdHdr->cmdsize;
     }
@@ -402,49 +396,47 @@ public:
   /// On success returns the ID of the newly registered Reflection Info.
   std::optional<uint32_t> readPECOFFSections(
       RemoteAddress ImageStart,
-      llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+      toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     auto DOSHdrBuf = this->getReader().readBytes(
-        ImageStart, sizeof(llvm::object::dos_header));
+        ImageStart, sizeof(toolchain::object::dos_header));
     if (!DOSHdrBuf)
       return {};
     auto DOSHdr =
-        reinterpret_cast<const llvm::object::dos_header *>(DOSHdrBuf.get());
-    auto COFFFileHdrAddr = ImageStart.getAddressData() +
-                           DOSHdr->AddressOfNewExeHeader +
-                           sizeof(llvm::COFF::PEMagic);
+        reinterpret_cast<const toolchain::object::dos_header *>(DOSHdrBuf.get());
+    auto COFFFileHdrAddr = ImageStart + DOSHdr->AddressOfNewExeHeader +
+                           sizeof(toolchain::COFF::PEMagic);
 
     auto COFFFileHdrBuf = this->getReader().readBytes(
-        RemoteAddress(COFFFileHdrAddr), sizeof(llvm::object::coff_file_header));
+        COFFFileHdrAddr, sizeof(toolchain::object::coff_file_header));
     if (!COFFFileHdrBuf)
       return {};
-    auto COFFFileHdr = reinterpret_cast<const llvm::object::coff_file_header *>(
+    auto COFFFileHdr = reinterpret_cast<const toolchain::object::coff_file_header *>(
         COFFFileHdrBuf.get());
 
     auto SectionTableAddr = COFFFileHdrAddr +
-                            sizeof(llvm::object::coff_file_header) +
+                            sizeof(toolchain::object::coff_file_header) +
                             COFFFileHdr->SizeOfOptionalHeader;
     auto SectionTableBuf = this->getReader().readBytes(
-        RemoteAddress(SectionTableAddr),
-        sizeof(llvm::object::coff_section) * COFFFileHdr->NumberOfSections);
+        SectionTableAddr,
+        sizeof(toolchain::object::coff_section) * COFFFileHdr->NumberOfSections);
     if (!SectionTableBuf)
       return {};
 
     auto findCOFFSectionByName =
-        [&](llvm::StringRef Name) -> std::pair<RemoteRef<void>, uint64_t> {
+        [&](toolchain::StringRef Name) -> std::pair<RemoteRef<void>, uint64_t> {
       for (size_t i = 0; i < COFFFileHdr->NumberOfSections; ++i) {
-        const llvm::object::coff_section *COFFSec =
-            reinterpret_cast<const llvm::object::coff_section *>(
+        const toolchain::object::coff_section *COFFSec =
+            reinterpret_cast<const toolchain::object::coff_section *>(
                 SectionTableBuf.get()) +
             i;
-        llvm::StringRef SectionName =
-            (COFFSec->Name[llvm::COFF::NameSize - 1] == 0)
+        toolchain::StringRef SectionName =
+            (COFFSec->Name[toolchain::COFF::NameSize - 1] == 0)
                 ? COFFSec->Name
-                : llvm::StringRef(COFFSec->Name, llvm::COFF::NameSize);
+                : toolchain::StringRef(COFFSec->Name, toolchain::COFF::NameSize);
         if (SectionName != Name)
           continue;
-        auto Addr = ImageStart.getAddressData() + COFFSec->VirtualAddress;
-        auto Buf = this->getReader().readBytes(RemoteAddress(Addr),
-                                               COFFSec->VirtualSize);
+        auto Addr = ImageStart + COFFSec->VirtualAddress;
+        auto Buf = this->getReader().readBytes(Addr, COFFSec->VirtualSize);
         if (!Buf)
           return {nullptr, 0};
         auto BufStart = Buf.get();
@@ -463,7 +455,7 @@ public:
       return {nullptr, 0};
     };
 
-    SwiftObjectFileFormatCOFF ObjectFileFormat;
+    CodiraObjectFileFormatCOFF ObjectFileFormat;
     auto FieldMdSec = findCOFFSectionByName(
         ObjectFileFormat.getSectionName(ReflectionSectionKind::fieldmd));
     auto AssocTySec = findCOFFSectionByName(
@@ -506,23 +498,22 @@ public:
   /// On success returns the ID of the newly registered Reflection Info.
   std::optional<uint32_t>
   readPECOFF(RemoteAddress ImageStart,
-             llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+             toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     auto Buf = this->getReader().readBytes(ImageStart,
-                                           sizeof(llvm::object::dos_header));
+                                           sizeof(toolchain::object::dos_header));
     if (!Buf)
       return {};
 
-    auto DOSHdr = reinterpret_cast<const llvm::object::dos_header *>(Buf.get());
+    auto DOSHdr = reinterpret_cast<const toolchain::object::dos_header *>(Buf.get());
 
-    auto PEHeaderAddress =
-        ImageStart.getAddressData() + DOSHdr->AddressOfNewExeHeader;
+    auto PEHeaderAddress = ImageStart + DOSHdr->AddressOfNewExeHeader;
 
-    Buf = this->getReader().readBytes(RemoteAddress(PEHeaderAddress),
-                                      sizeof(llvm::COFF::PEMagic));
+    Buf = this->getReader().readBytes(PEHeaderAddress,
+                                      sizeof(toolchain::COFF::PEMagic));
     if (!Buf)
       return {};
 
-    if (memcmp(Buf.get(), llvm::COFF::PEMagic, sizeof(llvm::COFF::PEMagic)))
+    if (memcmp(Buf.get(), toolchain::COFF::PEMagic, sizeof(toolchain::COFF::PEMagic)))
       return {};
 
     return readPECOFFSections(ImageStart, PotentialModuleNames);
@@ -532,8 +523,8 @@ public:
   template <typename T>
   std::optional<uint32_t> readELFSections(
       RemoteAddress ImageStart,
-      std::optional<llvm::sys::MemoryBlock> FileBuffer,
-      llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+      std::optional<toolchain::sys::MemoryBlock> FileBuffer,
+      toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     // When reading from the FileBuffer we can simply return a pointer to
     // the underlying data.
     // When reading from the process, we need to keep the memory around
@@ -592,7 +583,7 @@ public:
     // We also here handle the unlikely even where the section index overflows
     // and it's just a pointer to secondary storage (SHN_XINDEX).
     uint32_t SecIdx = Hdr->e_shstrndx;
-    if (SecIdx == llvm::ELF::SHN_XINDEX) {
+    if (SecIdx == toolchain::ELF::SHN_XINDEX) {
       assert(!SecHdrVec.empty() && "malformed ELF object");
       SecIdx = SecHdrVec[0]->sh_link;
     }
@@ -610,11 +601,11 @@ public:
     bool Error = false;
 
     // GNU ld and lld both merge sections regardless of the
-    // `SHF_GNU_RETAIN` flag.  gold, presently, does not.  The Swift
+    // `SHF_GNU_RETAIN` flag.  gold, presently, does not.  The Codira
     // compiler has a couple of switches that control whether or not
     // the reflection sections are stripped; when these are enabled,
     // it will _not_ set `SHF_GNU_RETAIN` on the reflection metadata
-    // sections.  However, `swiftrt.o` contains declarations of the
+    // sections.  However, `languagert.o` contains declarations of the
     // sections _with_ the `SHF_GNU_RETAIN` flag set, which makes
     // sense since at runtime we will only expect to be able to access
     // reflection metadata that we said we wanted to exist at runtime.
@@ -623,7 +614,7 @@ public:
     // two sets of reflection metadata sections.  In a normal build
     // where the compiler flags are the same for every linked object,
     // we'll have *either* all retained *or* all un-retained sections
-    // (the retained sections will still exist because of `swiftrt.o`,
+    // (the retained sections will still exist because of `languagert.o`,
     // but will be empty).  The only time we'd expect to have a mix is
     // where some code was compiled with a different setting of the
     // metadata stripping flags.  If that happens, the code below will
@@ -632,11 +623,14 @@ public:
     //
     // See also https://sourceware.org/bugzilla/show_bug.cgi?id=31415.
     auto findELFSectionByName =
-        [&](llvm::StringRef Name, bool Retained) -> std::pair<RemoteRef<void>, uint64_t> {
+        [&](toolchain::StringRef Name, bool Retained) -> std::pair<RemoteRef<void>, uint64_t> {
           if (Error)
             return {nullptr, 0};
           // Now for all the sections, find their name.
           for (const typename T::Section *Hdr : SecHdrVec) {
+            // Skip unused headers
+            if (Hdr->sh_type == toolchain::ELF::SHT_NULL)
+              continue;
             uint32_t Offset = Hdr->sh_name;
             const char *Start = (const char *)StrTab + Offset;
             uint64_t StringSize = strnlen(Start, StrTabSize - Offset);
@@ -647,10 +641,9 @@ public:
             std::string SecName(Start, StringSize);
             if (SecName != Name)
               continue;
-            if (Retained != bool(Hdr->sh_flags & llvm::ELF::SHF_GNU_RETAIN))
+            if (Retained != bool(Hdr->sh_flags & toolchain::ELF::SHF_GNU_RETAIN))
               continue;
-            RemoteAddress SecStart =
-                RemoteAddress(ImageStart.getAddressData() + Hdr->sh_addr);
+            RemoteAddress SecStart = ImageStart + Hdr->sh_addr;
             auto SecSize = Hdr->sh_size;
             MemoryReader::ReadBytesResult SecBuf;
             if (FileBuffer.has_value()) {
@@ -672,15 +665,14 @@ public:
             }
             if (!SecBuf)
               return {nullptr, 0};
-            auto SecContents =
-                RemoteRef<void>(SecStart.getAddressData(), SecBuf.get());
+            auto SecContents = RemoteRef<void>(SecStart, SecBuf.get());
             savedBuffers.push_back(std::move(SecBuf));
             return {SecContents, SecSize};
           }
           return {nullptr, 0};
         };
 
-    SwiftObjectFileFormatELF ObjectFileFormat;
+    CodiraObjectFileFormatELF ObjectFileFormat;
     auto FieldMdSec = findELFSectionByName(
         ObjectFileFormat.getSectionName(ReflectionSectionKind::fieldmd), true);
     auto AssocTySec = findELFSectionByName(
@@ -784,26 +776,26 @@ public:
   ///     \b std::nullopt otherwise.
   std::optional<uint32_t>
   readELF(RemoteAddress ImageStart,
-          std::optional<llvm::sys::MemoryBlock> FileBuffer,
-          llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+          std::optional<toolchain::sys::MemoryBlock> FileBuffer,
+          toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     auto Buf =
-        this->getReader().readBytes(ImageStart, sizeof(llvm::ELF::Elf64_Ehdr));
+        this->getReader().readBytes(ImageStart, sizeof(toolchain::ELF::Elf64_Ehdr));
     if (!Buf)
       return std::nullopt;
 
     // Read the header.
-    auto Hdr = reinterpret_cast<const llvm::ELF::Elf64_Ehdr *>(Buf.get());
+    auto Hdr = reinterpret_cast<const toolchain::ELF::Elf64_Ehdr *>(Buf.get());
 
     if (!Hdr->checkMagic())
       return std::nullopt;
 
     // Check if we have a ELFCLASS32 or ELFCLASS64
     unsigned char FileClass = Hdr->getFileClass();
-    if (FileClass == llvm::ELF::ELFCLASS64) {
-      return readELFSections<ELFTraits<llvm::ELF::ELFCLASS64>>(
+    if (FileClass == toolchain::ELF::ELFCLASS64) {
+      return readELFSections<ELFTraits<toolchain::ELF::ELFCLASS64>>(
           ImageStart, FileBuffer, PotentialModuleNames);
-    } else if (FileClass == llvm::ELF::ELFCLASS32) {
-      return readELFSections<ELFTraits<llvm::ELF::ELFCLASS32>>(
+    } else if (FileClass == toolchain::ELF::ELFCLASS32) {
+      return readELFSections<ELFTraits<toolchain::ELF::ELFCLASS32>>(
           ImageStart, FileBuffer, PotentialModuleNames);
     } else {
       return std::nullopt;
@@ -813,7 +805,7 @@ public:
   /// On success returns the ID of the newly registered Reflection Info.
   std::optional<uint32_t>
   addImage(RemoteAddress ImageStart,
-           llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+           toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     // Read the first few bytes to look for a magic header.
     auto Magic = this->getReader().readBytes(ImageStart, sizeof(uint32_t));
     if (!Magic)
@@ -823,11 +815,11 @@ public:
     memcpy(&MagicWord, Magic.get(), sizeof(MagicWord));
 
     // 32- and 64-bit Mach-O.
-    if (MagicWord == llvm::MachO::MH_MAGIC) {
+    if (MagicWord == toolchain::MachO::MH_MAGIC) {
       return readMachOSections<MachOTraits<4>>(ImageStart, PotentialModuleNames);
     }
 
-    if (MagicWord == llvm::MachO::MH_MAGIC_64) {
+    if (MagicWord == toolchain::MachO::MH_MAGIC_64) {
       return readMachOSections<MachOTraits<8>>(ImageStart, PotentialModuleNames);
     }
 
@@ -840,11 +832,11 @@ public:
 
 
     // ELF.
-    if (MagicBytes[0] == llvm::ELF::ElfMagic[0]
-        && MagicBytes[1] == llvm::ELF::ElfMagic[1]
-        && MagicBytes[2] == llvm::ELF::ElfMagic[2]
-        && MagicBytes[3] == llvm::ELF::ElfMagic[3]) {
-      return readELF(ImageStart, std::optional<llvm::sys::MemoryBlock>(),
+    if (MagicBytes[0] == toolchain::ELF::ElfMagic[0]
+        && MagicBytes[1] == toolchain::ELF::ElfMagic[1]
+        && MagicBytes[2] == toolchain::ELF::ElfMagic[2]
+        && MagicBytes[3] == toolchain::ELF::ElfMagic[3]) {
+      return readELF(ImageStart, std::optional<toolchain::sys::MemoryBlock>(),
                      PotentialModuleNames);
     }
 
@@ -852,7 +844,7 @@ public:
     return std::nullopt;
   }
 
-  /// Adds an image using the FindSection closure to find the swift metadata
+  /// Adds an image using the FindSection closure to find the language metadata
   /// sections. \param FindSection
   ///     Closure that finds sections by name. ReflectionContext is in charge
   ///     of freeing the memory buffer in the RemoteRef return value.
@@ -861,17 +853,17 @@ public:
   ///     \b  The newly added reflection info ID if successful,
   ///     \b std::nullopt otherwise.
   std::optional<uint32_t>
-  addImage(llvm::function_ref<
+  addImage(toolchain::function_ref<
                std::pair<RemoteRef<void>, uint64_t>(ReflectionSectionKind)>
                FindSection,
-           llvm::SmallVector<llvm::StringRef, 1> PotentialModuleNames = {}) {
+           toolchain::SmallVector<toolchain::StringRef, 1> PotentialModuleNames = {}) {
     auto Sections = {
         ReflectionSectionKind::fieldmd, ReflectionSectionKind::assocty,
         ReflectionSectionKind::builtin, ReflectionSectionKind::capture,
         ReflectionSectionKind::typeref, ReflectionSectionKind::reflstr,
         ReflectionSectionKind::conform, ReflectionSectionKind::mpenum};
 
-    llvm::SmallVector<std::pair<RemoteRef<void>, uint64_t>, 6> Pairs;
+    toolchain::SmallVector<std::pair<RemoteRef<void>, uint64_t>, 6> Pairs;
     for (auto Section : Sections) {
       Pairs.push_back(FindSection(Section));
       auto LatestRemoteRef = std::get<RemoteRef<void>>(Pairs.back());
@@ -885,7 +877,7 @@ public:
     }
 
     // If we didn't find any sections, return.
-    if (llvm::all_of(Pairs, [](const auto &Pair) { return !Pair.first; }))
+    if (toolchain::all_of(Pairs, [](const auto &Pair) { return !Pair.first; }))
       return {};
 
     ReflectionInfo Info = {{Pairs[0].first, Pairs[0].second},
@@ -906,10 +898,10 @@ public:
   }
 
   bool ownsObject(RemoteAddress ObjectAddress) {
-    auto MetadataAddress = readMetadataFromInstance(ObjectAddress.getAddressData());
+    auto MetadataAddress = readMetadataFromInstance(ObjectAddress);
     if (!MetadataAddress)
       return true;
-    return ownsAddress(RemoteAddress(*MetadataAddress));
+    return ownsAddress(*MetadataAddress);
   }
 
   /// Returns true if the address falls within the given address ranges.
@@ -919,8 +911,7 @@ public:
     for (auto Range : ranges) {
       auto Start = std::get<0>(Range);
       auto End = std::get<1>(Range);
-      if (Start.getAddressData() <= Address.getAddressData()
-          && Address.getAddressData() < End.getAddressData())
+      if (Address.inRange(Start, End))
         return true;
     }
 
@@ -942,10 +933,10 @@ public:
       // This is usually called on a Metadata address which might have been
       // on the heap. Try reading it and looking up its type context descriptor
       // instead.
-      if (auto Metadata = readMetadata(Address.getAddressData()))
+      if (auto Metadata = readMetadata(Address))
         if (auto DescriptorAddress =
             super::readAddressOfNominalTypeDescriptor(Metadata, true))
-          if (ownsAddress(RemoteAddress(DescriptorAddress), textRanges))
+          if (ownsAddress(DescriptorAddress, textRanges))
             return true;
     }
     return false;
@@ -953,17 +944,18 @@ public:
 
   /// Returns the address of the nominal type descriptor given a metadata
   /// address.
-  StoredPointer nominalTypeDescriptorFromMetadata(StoredPointer MetadataAddress) {
+  RemoteAddress
+  nominalTypeDescriptorFromMetadata(RemoteAddress MetadataAddress) {
     auto Metadata = readMetadata(MetadataAddress);
     if (!Metadata)
-      return 0;
+      return RemoteAddress();
     return super::readAddressOfNominalTypeDescriptor(Metadata, true);
   }
 
   /// Return a description of the layout of a class instance with the given
   /// metadata as its isa pointer.
   const RecordTypeInfo *
-  getMetadataTypeInfo(StoredPointer MetadataAddress,
+  getMetadataTypeInfo(RemoteAddress MetadataAddress,
                       remote::TypeInfoProvider *ExternalTypeInfo) {
     // See if we cached the layout already
     auto ExternalTypeInfoId = ExternalTypeInfo ? ExternalTypeInfo->getId() : 0;
@@ -1004,7 +996,7 @@ public:
   /// Return a description of the layout of a class instance with the given
   /// metadata as its isa pointer.
   const TypeInfo *
-  getInstanceTypeInfo(StoredPointer ObjectAddress,
+  getInstanceTypeInfo(RemoteAddress ObjectAddress,
                       remote::TypeInfoProvider *ExternalTypeInfo) {
     auto MetadataAddress = readMetadataFromInstance(ObjectAddress);
     if (!MetadataAddress)
@@ -1022,7 +1014,7 @@ public:
       auto CDAddr = this->readCaptureDescriptorFromMetadata(*MetadataAddress);
       if (!CDAddr)
         return nullptr;
-      if (!CDAddr->isResolved())
+      if (!CDAddr->getResolvedAddress())
         return nullptr;
 
       // FIXME: Non-generic SIL boxes also use the HeapLocalVariable metadata
@@ -1031,8 +1023,7 @@ public:
       //
       // Non-generic SIL boxes share metadata among types with compatible
       // layout, but we need some way to get an outgoing pointer map for them.
-      auto CD = getBuilder().getCaptureDescriptor(
-                                CDAddr->getResolvedAddress().getAddressData());
+      auto CD = getBuilder().getCaptureDescriptor(CDAddr->getResolvedAddress());
       if (CD == nullptr)
         return nullptr;
 
@@ -1047,8 +1038,9 @@ public:
       if (auto Meta = readMetadata(*MetadataAddress)) {
         if (auto *GenericHeapMeta = cast<TargetGenericBoxHeapMetadata<Runtime>>(
                 Meta.getLocalBuffer())) {
-          auto MetadataAddress = GenericHeapMeta->BoxedType;
-          auto TR = readTypeFromMetadata(MetadataAddress);
+          auto BoxedTypeAddress = RemoteAddress(
+              GenericHeapMeta->BoxedType, ObjectAddress.getAddressSpace());
+          auto TR = readTypeFromMetadata(BoxedTypeAddress);
           return getTypeInfo(TR, ExternalTypeInfo);
         }
       }
@@ -1066,8 +1058,7 @@ public:
 
   std::optional<std::pair<const TypeRef *, RemoteAddress>>
   getDynamicTypeAndAddressClassExistential(RemoteAddress ExistentialAddress) {
-    auto PointerValue =
-        readResolvedPointerValue(ExistentialAddress.getAddressData());
+    auto PointerValue = readResolvedPointerValue(ExistentialAddress);
     if (!PointerValue)
       return {};
     auto Result = readMetadataFromInstance(*PointerValue);
@@ -1076,7 +1067,7 @@ public:
     auto TypeResult = readTypeFromMetadata(Result.value());
     if (!TypeResult)
       return {};
-    return {{std::move(TypeResult), RemoteAddress(*PointerValue)}};
+    return {{std::move(TypeResult), *PointerValue}};
   }
 
   std::optional<std::pair<const TypeRef *, RemoteAddress>>
@@ -1086,8 +1077,7 @@ public:
     if (!Result)
       return {};
 
-    auto TypeResult =
-        readTypeFromMetadata(Result->MetadataAddress.getAddressData());
+    auto TypeResult = readTypeFromMetadata(Result->MetadataAddress);
     if (!TypeResult)
       return {};
 
@@ -1103,8 +1093,7 @@ public:
     if (!Result)
       return {};
 
-    auto TypeResult =
-        readTypeFromMetadata(Result->MetadataAddress.getAddressData());
+    auto TypeResult = readTypeFromMetadata(Result->MetadataAddress);
     if (!TypeResult)
       return {};
     return {{std::move(TypeResult), Result->PayloadAddress}};
@@ -1141,8 +1130,7 @@ public:
       if (!OptMetaAndValue)
         return false;
 
-      auto InstanceTR = readTypeFromMetadata(
-          OptMetaAndValue->MetadataAddress.getAddressData());
+      auto InstanceTR = readTypeFromMetadata(OptMetaAndValue->MetadataAddress);
       if (!InstanceTR)
         return false;
 
@@ -1158,8 +1146,7 @@ public:
 
       // FIXME: Check third value, 'IsBridgedError'
 
-      auto InstanceTR = readTypeFromMetadata(
-          OptMetaAndValue->MetadataAddress.getAddressData());
+      auto InstanceTR = readTypeFromMetadata(OptMetaAndValue->MetadataAddress);
       if (!InstanceTR)
         return false;
 
@@ -1185,19 +1172,19 @@ public:
       // of the reference.
       bool IsClass = TypeResult->getKind() == TypeRefKind::ForeignClass ||
                      TypeResult->getKind() == TypeRefKind::ObjCClass;
-      if (auto *nominal = llvm::dyn_cast<NominalTypeRef>(TypeResult))
+      if (auto *nominal = toolchain::dyn_cast<NominalTypeRef>(TypeResult))
         IsClass = nominal->isClass();
       else if (auto *boundGeneric =
-                   llvm::dyn_cast<BoundGenericTypeRef>(TypeResult))
+                   toolchain::dyn_cast<BoundGenericTypeRef>(TypeResult))
         IsClass = boundGeneric->isClass();
       return IsClass;
     };
 
     auto DereferenceAndSet = [&](RemoteAddress &Address) {
-      auto PointerValue = readResolvedPointerValue(Address.getAddressData());
+      auto PointerValue = readResolvedPointerValue(Address);
       if (!PointerValue)
         return false;
-      Address = RemoteAddress(*PointerValue);
+      Address = *PointerValue;
       return true;
     };
 
@@ -1245,7 +1232,7 @@ public:
   ///
   /// Takes the address and typeref for an enum and determines the
   /// index of the currently-selected case within the enum.
-  /// You can use this index with `swift_reflection_childOfTypeRef`
+  /// You can use this index with `language_reflection_childOfTypeRef`
   /// to get detailed information about the specific case.
   ///
   /// Returns true if the enum case could be successfully determined.  In
@@ -1279,6 +1266,15 @@ public:
     }
   }
 
+  toolchain::Expected<const TypeInfo &>
+  getTypeInfo(const TypeRef &TR, remote::TypeInfoProvider *ExternalTypeInfo) {
+    auto &TC = getBuilder().getTypeConverter();
+    const TypeInfo *TI = TC.getTypeInfo(&TR, ExternalTypeInfo);
+    if (!TI)
+      return toolchain::createStringError(TC.takeLastError());
+    return *TI;
+  }
+  
   /// Given a typeref, attempt to calculate the unaligned start of this
   /// instance's fields. For example, for a type without a superclass, the start
   /// of the instance fields would after the word for the isa pointer and the
@@ -1298,7 +1294,7 @@ public:
       return isaAndRetainCountSize;
 
     // `ObjCClassTypeRef` instances represent classes in the ObjC module ("__C").
-    // These will never have Swift type metadata.
+    // These will never have Codira type metadata.
     if (auto *objcSuper = dyn_cast<ObjCClassTypeRef>(superclass))
       if (auto *superTI = ExternalTypeInfo->getTypeInfo(objcSuper->getName()))
         return superTI->getSize();
@@ -1325,7 +1321,7 @@ public:
     return dyn_cast_or_null<const RecordTypeInfo>(TypeInfo);
   }
 
-  bool metadataIsActor(StoredPointer MetadataAddress) {
+  bool metadataIsActor(RemoteAddress MetadataAddress) {
     auto Metadata = readMetadata(MetadataAddress);
     if (!Metadata)
       return false;
@@ -1338,12 +1334,11 @@ public:
         super::readAddressOfNominalTypeDescriptor(Metadata);
     if (!DescriptorAddress)
       return false;
-    if (!ownsAddress(RemoteAddress(DescriptorAddress), textRanges))
+    if (!ownsAddress(DescriptorAddress, textRanges))
       return false;
 
-    auto DescriptorBytes =
-        getReader().readBytes(RemoteAddress(DescriptorAddress),
-                              sizeof(TargetTypeContextDescriptor<Runtime>));
+    auto DescriptorBytes = getReader().readBytes(
+        DescriptorAddress, sizeof(TargetTypeContextDescriptor<Runtime>));
     if (!DescriptorBytes)
       return false;
     auto Descriptor =
@@ -1354,12 +1349,13 @@ public:
 
   /// Iterate the protocol conformance cache tree rooted at NodePtr, calling
   /// Call with the type and protocol in each node.
-  void iterateConformanceTree(StoredPointer NodePtr,
-    std::function<void(StoredPointer Type, StoredPointer Proto)> Call) {
+  void iterateConformanceTree(
+      RemoteAddress NodePtr,
+      std::function<void(RemoteAddress Type, RemoteAddress Proto)> Call) {
     if (!NodePtr)
       return;
-    auto NodeBytes = getReader().readBytes(RemoteAddress(NodePtr),
-                                           sizeof(ConformanceNode<Runtime>));
+    auto NodeBytes =
+        getReader().readBytes(NodePtr, sizeof(ConformanceNode<Runtime>));
     if (!NodeBytes)
       return;
     auto NodeData =
@@ -1371,8 +1367,8 @@ public:
 
   void IterateConformanceTable(
       RemoteAddress ConformancesPtr,
-      std::function<void(StoredPointer Type, StoredPointer Proto)> Call) {
-    auto MapBytes = getReader().readBytes(RemoteAddress(ConformancesPtr),
+      std::function<void(RemoteAddress Type, RemoteAddress Proto)> Call) {
+    auto MapBytes = getReader().readBytes(ConformancesPtr,
                                           sizeof(ConcurrentHashMap<Runtime>));
     if (!MapBytes)
       return;
@@ -1382,8 +1378,9 @@ public:
     auto Count = MapData->ElementCount;
     auto Size = Count * sizeof(ConformanceCacheEntry<Runtime>) + sizeof(StoredPointer);
 
-    auto ElementsBytes =
-        getReader().readBytes(RemoteAddress(MapData->Elements), Size);
+    auto ElementsBytes = getReader().readBytes(
+        RemoteAddress(MapData->Elements, ConformancesPtr.getAddressSpace()),
+        Size);
     if (!ElementsBytes)
       return;
     auto ElementsData =
@@ -1392,7 +1389,8 @@ public:
 
     for (StoredSize i = 0; i < Count; i++) {
       auto &Element = ElementsData[i];
-      Call(Element.Type, Element.Proto);
+      Call(RemoteAddress(Element.Type, ConformancesPtr.getAddressSpace()),
+           stripSignedPointer(Element.Proto));
     }
   }
 
@@ -1400,9 +1398,9 @@ public:
   /// with the type and protocol of each conformance. Returns None on success,
   /// and a string describing the error on failure.
   std::optional<std::string> iterateConformances(
-      std::function<void(StoredPointer Type, StoredPointer Proto)> Call) {
+      std::function<void(RemoteAddress Type, RemoteAddress Proto)> Call) {
     std::string ConformancesPointerName =
-        "_swift_debug_protocolConformanceStatePointer";
+        "_language_debug_protocolConformanceStatePointer";
     auto ConformancesAddrAddr =
       getReader().getSymbolAddress(ConformancesPointerName);
     if (!ConformancesAddrAddr)
@@ -1422,15 +1420,15 @@ public:
   StoredPointer allocationMetadataPointer(
     MetadataAllocation<Runtime> Allocation) {
     if (Allocation.Tag == GenericMetadataCacheTag) {
-        auto AllocationBytes =
-          getReader().readBytes(RemoteAddress(Allocation.Ptr),
-                                              Allocation.Size);
-        if (!AllocationBytes)
-          return 0;
-        auto Entry =
+      auto AllocationBytes = getReader().readBytes(
+          RemoteAddress(Allocation.Ptr, RemoteAddress::DefaultAddressSpace),
+          Allocation.Size);
+      if (!AllocationBytes)
+        return 0;
+      auto Entry =
           reinterpret_cast<const GenericMetadataCacheEntry<StoredPointer> *>(
-            AllocationBytes.get());
-        return Entry->Value;
+              AllocationBytes.get());
+      return Entry->Value;
     }
     return 0;
   }
@@ -1467,7 +1465,8 @@ public:
     case ForeignMetadataCacheTag:
     case GenericWitnessTableCacheTag: {
       auto NodeBytes = getReader().readBytes(
-          RemoteAddress(Allocation.Ptr), sizeof(MetadataCacheNode<Runtime>));
+          RemoteAddress(Allocation.Ptr, RemoteAddress::DefaultAddressSpace),
+          sizeof(MetadataCacheNode<Runtime>));
       if (!NodeBytes)
         return std::nullopt;
       auto Node =
@@ -1485,9 +1484,9 @@ public:
   std::optional<std::string> iterateMetadataAllocations(
       std::function<void(MetadataAllocation<Runtime>)> Call) {
     std::string IterationEnabledName =
-        "_swift_debug_metadataAllocationIterationEnabled";
+        "_language_debug_metadataAllocationIterationEnabled";
     std::string AllocationPoolPointerName =
-        "_swift_debug_allocationPoolPointer";
+        "_language_debug_allocationPoolPointer";
 
     auto IterationEnabledAddr =
       getReader().getSymbolAddress(IterationEnabledName);
@@ -1510,14 +1509,14 @@ public:
       return "failed to read value of " + AllocationPoolPointerName;
 
     struct PoolRange {
-      StoredPointer Begin;
+      RemoteAddress Begin;
       StoredSize Remaining;
     };
     struct PoolTrailer {
-      StoredPointer PrevTrailer;
+      RemoteAddress PrevTrailer;
       StoredSize PoolSize;
     };
-    struct alignas(StoredPointer) AllocationHeader {
+    struct alignas(RemoteAddress) AllocationHeader {
       uint16_t Size;
       uint16_t Tag;
     };
@@ -1537,14 +1536,13 @@ public:
 
     auto TrailerPtr = Pool->Begin + Pool->Remaining;
     while (TrailerPtr && LoopCount++ < LoopLimit) {
-      auto TrailerBytes = getReader()
-        .readBytes(RemoteAddress(TrailerPtr), sizeof(PoolTrailer));
+      auto TrailerBytes =
+          getReader().readBytes(TrailerPtr, sizeof(PoolTrailer));
       if (!TrailerBytes)
         break;
       auto Trailer = reinterpret_cast<const PoolTrailer *>(TrailerBytes.get());
       auto PoolStart = TrailerPtr - Trailer->PoolSize;
-      auto PoolBytes = getReader()
-        .readBytes(RemoteAddress(PoolStart), Trailer->PoolSize);
+      auto PoolBytes = getReader().readBytes(PoolStart, Trailer->PoolSize);
       if (!PoolBytes)
         break;
       auto PoolPtr = (const char *)PoolBytes.get();
@@ -1558,7 +1556,10 @@ public:
         auto RemoteAddr = PoolStart + Offset + sizeof(AllocationHeader);
         MetadataAllocation<Runtime> Allocation;
         Allocation.Tag = Header->Tag;
-        Allocation.Ptr = RemoteAddr;
+
+        if (RemoteAddr.getAddressSpace() != RemoteAddress::DefaultAddressSpace)
+          return "storing remote address from non-default address space.";
+        Allocation.Ptr = RemoteAddr.getRawAddress();
         Allocation.Size = Header->Size;
         Call(Allocation);
 
@@ -1574,7 +1575,7 @@ public:
       std::function<void(StoredPointer, uint32_t, const StoredPointer *)>
           Call) {
     std::string BacktraceListName =
-        "_swift_debug_metadataAllocationBacktraceList";
+        "_language_debug_metadataAllocationBacktraceList";
 
     auto BacktraceListAddr = getReader().getSymbolAddress(BacktraceListName);
     if (!BacktraceListAddr)
@@ -1594,15 +1595,15 @@ public:
     auto BacktraceListNext = BacktraceListNextPtr->getResolvedAddress();
     while (BacktraceListNext && LoopCount++ < LoopLimit) {
       auto HeaderBytes = getReader().readBytes(
-          RemoteAddress(BacktraceListNext),
+          BacktraceListNext,
           sizeof(MetadataAllocationBacktraceHeader<Runtime>));
       if (!HeaderBytes) {
         // FIXME: std::stringstream would be better, but LLVM's standard library
         // introduces a vtable and we don't want that.
         char result[128];
         std::snprintf(result, sizeof(result),
-            "unable to read Next pointer %#" PRIx64,
-            BacktraceListNext.getAddressData());
+                      "unable to read Next pointer %#" PRIx64,
+                      BacktraceListNext.getRawAddress());
         return std::string(result);
       }
       auto HeaderPtr =
@@ -1611,15 +1612,15 @@ public:
       auto BacktraceAddrPtr =
           BacktraceListNext +
           sizeof(MetadataAllocationBacktraceHeader<Runtime>);
-      auto BacktraceBytes =
-          getReader().readBytes(RemoteAddress(BacktraceAddrPtr),
-                                HeaderPtr->Count * sizeof(StoredPointer));
+      auto BacktraceBytes = getReader().readBytes(
+          BacktraceAddrPtr, HeaderPtr->Count * sizeof(StoredPointer));
       auto BacktracePtr =
           reinterpret_cast<const StoredPointer *>(BacktraceBytes.get());
 
       Call(HeaderPtr->Allocation, HeaderPtr->Count, BacktracePtr);
 
-      BacktraceListNext = RemoteAddress(HeaderPtr->Next);
+      BacktraceListNext =
+          RemoteAddress(HeaderPtr->Next, RemoteAddress::DefaultAddressSpace);
     }
     return std::nullopt;
   }
@@ -1628,7 +1629,8 @@ public:
   asyncTaskSlabAllocations(StoredPointer SlabPtr) {
     using StackAllocator = StackAllocator<Runtime>;
     auto SlabBytes = getReader().readBytes(
-        RemoteAddress(SlabPtr), sizeof(typename StackAllocator::Slab));
+        RemoteAddress(SlabPtr, RemoteAddress::DefaultAddressSpace),
+        sizeof(typename StackAllocator::Slab));
     auto Slab = reinterpret_cast<const typename StackAllocator::Slab *>(
         SlabBytes.get());
     if (!Slab)
@@ -1637,7 +1639,7 @@ public:
     // For now, we won't try to walk the allocations in the slab, we'll just
     // provide the whole thing as one big chunk.
     size_t HeaderSize =
-        llvm::alignTo(sizeof(*Slab), llvm::Align(MaximumAlignment));
+        toolchain::alignTo(sizeof(*Slab), toolchain::Align(MaximumAlignment));
 
     AsyncTaskAllocationChunk AllocatedSpaceChunk;
     AllocatedSpaceChunk.Start = SlabPtr + HeaderSize;
@@ -1653,14 +1655,14 @@ public:
     NextPtrChunk.Kind = AsyncTaskAllocationChunk::ChunkKind::RawPointer;
 
     // Total slab size is the slab's capacity plus the header.
-    StoredPointer SlabSize = Slab->Capacity + HeaderSize;
+    auto SlabSize = Slab->Capacity + HeaderSize;
 
     return {std::nullopt,
             {Slab->Next, SlabSize, {NextPtrChunk, AllocatedSpaceChunk}}};
   }
 
   std::pair<std::optional<std::string>, AsyncTaskInfo>
-  asyncTaskInfo(StoredPointer AsyncTaskPtr, unsigned ChildTaskLimit,
+  asyncTaskInfo(RemoteAddress AsyncTaskPtr, unsigned ChildTaskLimit,
                 unsigned AsyncBacktraceLimit) {
     loadTargetPointers();
 
@@ -1675,7 +1677,7 @@ public:
   }
 
   std::pair<std::optional<std::string>, ActorInfo>
-  actorInfo(StoredPointer ActorPtr) {
+  actorInfo(RemoteAddress ActorPtr) {
     if (supportsPriorityEscalation)
       return actorInfo<
           DefaultActorImpl<Runtime, ActiveActorStatusWithEscalation<Runtime>>>(
@@ -1685,10 +1687,10 @@ public:
           Runtime, ActiveActorStatusWithoutEscalation<Runtime>>>(ActorPtr);
   }
 
-  StoredPointer nextJob(StoredPointer JobPtr) {
+  StoredPointer nextJob(RemoteAddress JobPtr) {
     using Job = Job<Runtime>;
 
-    auto JobBytes = getReader().readBytes(RemoteAddress(JobPtr), sizeof(Job));
+    auto JobBytes = getReader().readBytes(JobPtr, sizeof(Job));
     auto *JobObj = reinterpret_cast<const Job *>(JobBytes.get());
     if (!JobObj)
       return 0;
@@ -1707,7 +1709,7 @@ private:
         dispatch_lock_is_locked(Task->PrivateStorage.Status.ExecutionLock[0]);
 #else
     // The target runtime was built with priority escalation but we don't have
-    // the swift_concurrency_private.h header needed to decode the running
+    // the language_concurrency_private.h header needed to decode the running
     // status in the task. Set HasIsRunning to false to indicate that we can't
     // tell whether or not the task is running.
     Info.HasIsRunning = false;
@@ -1730,7 +1732,7 @@ private:
             dispatch_lock_owner(Task->PrivateStorage.Status.ExecutionLock[0])};
 #else
     // The target runtime was built with priority escalation but we don't have
-    // the swift_concurrency_private.h header needed to decode the lock.
+    // the language_concurrency_private.h header needed to decode the lock.
     return {false, 0};
 #endif
   }
@@ -1749,7 +1751,7 @@ private:
     return {true, dispatch_lock_owner(Actor->Status.DrainLock[0])};
 #else
     // The target runtime was built with priority escalation but we don't have
-    // the swift_concurrency_private.h header needed to decode the lock.
+    // the language_concurrency_private.h header needed to decode the lock.
     return {false, 0};
 #endif
   }
@@ -1763,7 +1765,7 @@ private:
 
   template <typename AsyncTaskType>
   std::pair<std::optional<std::string>, AsyncTaskInfo>
-  asyncTaskInfo(StoredPointer AsyncTaskPtr, unsigned ChildTaskLimit,
+  asyncTaskInfo(RemoteAddress AsyncTaskPtr, unsigned ChildTaskLimit,
                 unsigned AsyncBacktraceLimit) {
     auto AsyncTaskObj = readObj<AsyncTaskType>(AsyncTaskPtr);
     if (!AsyncTaskObj)
@@ -1771,7 +1773,7 @@ private:
 
     AsyncTaskInfo Info{};
 
-    swift::JobFlags JobFlags(AsyncTaskObj->Flags);
+    language::JobFlags JobFlags(AsyncTaskObj->Flags);
     Info.Kind = static_cast<unsigned>(JobFlags.getKind());
     Info.EnqueuePriority = static_cast<unsigned>(JobFlags.getPriority());
     Info.IsChildTask = JobFlags.task_isChildTask();
@@ -1798,7 +1800,8 @@ private:
 
     // Find all child tasks.
     unsigned ChildTaskLoopCount = 0;
-    auto RecordPtr = AsyncTaskObj->PrivateStorage.Status.Record;
+    auto RecordPtr = RemoteAddress(AsyncTaskObj->PrivateStorage.Status.Record,
+                                   RemoteAddress::DefaultAddressSpace);
     while (RecordPtr && ChildTaskLoopCount++ < ChildTaskLimit) {
       auto RecordObj = readObj<TaskStatusRecord<Runtime>>(RecordPtr);
       if (!RecordObj)
@@ -1822,21 +1825,23 @@ private:
       }
 
       while (ChildTask && ChildTaskLoopCount++ < ChildTaskLimit) {
+        RemoteAddress ChildTaskAddress =
+            RemoteAddress(ChildTask, RemoteAddress::DefaultAddressSpace);
         // Read the child task.
-        auto ChildTaskObj = readObj<AsyncTaskType>(ChildTask);
+        auto ChildTaskObj = readObj<AsyncTaskType>(ChildTaskAddress);
         if (!ChildTaskObj)
           return {std::string("found unreadable child task pointer"), Info};
 
         Info.ChildTasks.push_back(ChildTask);
 
-        swift::JobFlags ChildJobFlags(AsyncTaskObj->Flags);
+        language::JobFlags ChildJobFlags(AsyncTaskObj->Flags);
         if (ChildJobFlags.task_isChildTask()) {
           if (asyncTaskSize == 0)
             return {std::string("target async task size unknown, unable to "
                                 "iterate child tasks"),
                     Info};
 
-          StoredPointer ChildFragmentAddr = ChildTask + asyncTaskSize;
+          RemoteAddress ChildFragmentAddr = ChildTaskAddress + asyncTaskSize;
           auto ChildFragmentObj =
               readObj<ChildFragment<Runtime>>(ChildFragmentAddr);
           if (ChildFragmentObj)
@@ -1849,7 +1854,8 @@ private:
         }
       }
 
-      RecordPtr = RecordObj->Parent;
+      RecordPtr =
+          RemoteAddress(RecordObj->Parent, RemoteAddress::DefaultAddressSpace);
     }
 
     const auto TaskResumeContext = AsyncTaskObj->ResumeContextAndReserved[0];
@@ -1860,12 +1866,14 @@ private:
       auto ResumeContext = TaskResumeContext;
       unsigned AsyncBacktraceLoopCount = 0;
       while (ResumeContext && AsyncBacktraceLoopCount++ < AsyncBacktraceLimit) {
-        auto ResumeContextObj = readObj<AsyncContext<Runtime>>(ResumeContext);
+        auto ResumeContextObj = readObj<AsyncContext<Runtime>>(
+            RemoteAddress(ResumeContext, RemoteAddress::DefaultAddressSpace));
         if (!ResumeContextObj)
           break;
         Info.AsyncBacktraceFrames.push_back(
-            stripSignedPointer(ResumeContextObj->ResumeParent));
-        ResumeContext = stripSignedPointer(ResumeContextObj->Parent);
+            stripSignedPointer(ResumeContextObj->ResumeParent).getRawAddress());
+        ResumeContext =
+            stripSignedPointer(ResumeContextObj->Parent).getRawAddress();
       }
     }
 
@@ -1874,7 +1882,7 @@ private:
 
   template <typename ActorType>
   std::pair<std::optional<std::string>, ActorInfo>
-  actorInfo(StoredPointer ActorPtr) {
+  actorInfo(RemoteAddress ActorPtr) {
     auto ActorObj = readObj<ActorType>(ActorPtr);
     if (!ActorObj)
       return {std::string("failure reading actor"), {}};
@@ -1893,7 +1901,7 @@ private:
     // Don't read FirstJob when idle.
     if (Info.State != concurrency::ActorFlagConstants::Idle) {
       // This is a JobRef which stores flags in the low bits.
-      Info.FirstJob = ActorObj->Status.FirstJob & ~StoredPointer(0x3);
+      Info.FirstJob = ActorObj->Status.FirstJob & ~0x3;
     }
 
     std::tie(Info.HasThreadPort, Info.ThreadPort) =
@@ -1906,38 +1914,46 @@ private:
   // like AsyncTask::getResumeFunctionForLogging does.
   template <typename AsyncTaskType>
   StoredPointer getRunJob(const AsyncTaskType *AsyncTaskObj) {
-    auto Fptr = stripSignedPointer(AsyncTaskObj->RunJob);
+    auto Fptr = stripSignedPointer(AsyncTaskObj->RunJob).getRawAddress();
 
     loadTargetPointers();
     auto ResumeContextPtr = AsyncTaskObj->ResumeContextAndReserved[0];
     if (target_non_future_adapter && Fptr == target_non_future_adapter) {
       using Prefix = AsyncContextPrefix<Runtime>;
       auto PrefixAddr = ResumeContextPtr - sizeof(Prefix);
-      auto PrefixBytes =
-          getReader().readBytes(RemoteAddress(PrefixAddr), sizeof(Prefix));
+      auto PrefixBytes = getReader().readBytes(
+          RemoteAddress(PrefixAddr, RemoteAddress::DefaultAddressSpace),
+          sizeof(Prefix));
       if (PrefixBytes) {
         auto PrefixPtr = reinterpret_cast<const Prefix *>(PrefixBytes.get());
-        return stripSignedPointer(PrefixPtr->AsyncEntryPoint);
+        return stripSignedPointer(PrefixPtr->AsyncEntryPoint).getRawAddress();
       }
     } else if (target_future_adapter && Fptr == target_future_adapter) {
       using Prefix = FutureAsyncContextPrefix<Runtime>;
       auto PrefixAddr = ResumeContextPtr - sizeof(Prefix);
-      auto PrefixBytes =
-          getReader().readBytes(RemoteAddress(PrefixAddr), sizeof(Prefix));
+      auto PrefixBytes = getReader().readBytes(
+          RemoteAddress(PrefixAddr, RemoteAddress::DefaultAddressSpace),
+          sizeof(Prefix));
       if (PrefixBytes) {
         auto PrefixPtr = reinterpret_cast<const Prefix *>(PrefixBytes.get());
-        return stripSignedPointer(PrefixPtr->AsyncEntryPoint);
+        return stripSignedPointer(PrefixPtr->AsyncEntryPoint).getRawAddress();
       }
     } else if ((target_task_wait_throwing_resume_adapter &&
                 Fptr == target_task_wait_throwing_resume_adapter) ||
                (target_task_future_wait_resume_adapter &&
                 Fptr == target_task_future_wait_resume_adapter)) {
-      auto ContextBytes = getReader().readBytes(RemoteAddress(ResumeContextPtr),
-                                                sizeof(AsyncContext<Runtime>));
-      if (ContextBytes) {
-        auto ContextPtr =
-            reinterpret_cast<const AsyncContext<Runtime> *>(ContextBytes.get());
-        return stripSignedPointer(ContextPtr->ResumeParent);
+      // It's only safe to look through these adapters when there's a dependency
+      // record. If there isn't a dependency record, then the task was resumed
+      // and the pointers are potentially stale.
+      if (AsyncTaskObj->PrivateStorage.DependencyRecord) {
+        auto ContextBytes = getReader().readBytes(
+            RemoteAddress(ResumeContextPtr, RemoteAddress::DefaultAddressSpace),
+            sizeof(AsyncContext<Runtime>));
+        if (ContextBytes) {
+          auto ContextPtr = reinterpret_cast<const AsyncContext<Runtime> *>(
+              ContextBytes.get());
+          return stripSignedPointer(ContextPtr->ResumeParent).getRawAddress();
+        }
       }
     }
 
@@ -1955,26 +1971,26 @@ private:
       auto Pointer = getReader().readPointer(Symbol, sizeof(StoredPointer));
       if (!Pointer)
         return 0;
-      return Pointer->getResolvedAddress().getAddressData();
+      return Pointer->getResolvedAddress().getRawAddress();
     };
     target_asyncTaskMetadata =
-        getPointer("_swift_concurrency_debug_asyncTaskMetadata");
+        getPointer("_language_concurrency_debug_asyncTaskMetadata");
     target_non_future_adapter =
-        getPointer("_swift_concurrency_debug_non_future_adapter");
+        getPointer("_language_concurrency_debug_non_future_adapter");
     target_future_adapter =
-        getPointer("_swift_concurrency_debug_future_adapter");
+        getPointer("_language_concurrency_debug_future_adapter");
     target_task_wait_throwing_resume_adapter = getPointer(
-        "_swift_concurrency_debug_task_wait_throwing_resume_adapter");
+        "_language_concurrency_debug_task_wait_throwing_resume_adapter");
     target_task_future_wait_resume_adapter =
-        getPointer("_swift_concurrency_debug_task_future_wait_resume_adapter");
+        getPointer("_language_concurrency_debug_task_future_wait_resume_adapter");
     auto supportsPriorityEscalationAddr = getReader().getSymbolAddress(
-        "_swift_concurrency_debug_supportsPriorityEscalation");
+        "_language_concurrency_debug_supportsPriorityEscalation");
     if (supportsPriorityEscalationAddr) {
       getReader().readInteger(supportsPriorityEscalationAddr,
                               &supportsPriorityEscalation);
     }
     auto asyncTaskSizeAddr =
-        getReader().getSymbolAddress("_swift_concurrency_debug_asyncTaskSize");
+        getReader().getSymbolAddress("_language_concurrency_debug_asyncTaskSize");
     if (asyncTaskSizeAddr) {
       getReader().readInteger(asyncTaskSizeAddr, &asyncTaskSize);
     }
@@ -1983,7 +1999,7 @@ private:
   }
 
   const TypeInfo *
-  getClosureContextInfo(StoredPointer Context, const ClosureContextInfo &Info,
+  getClosureContextInfo(RemoteAddress Context, const ClosureContextInfo &Info,
                         remote::TypeInfoProvider *ExternalTypeInfo) {
     RecordTypeInfoBuilder Builder(getBuilder().getTypeConverter(),
                                   RecordKind::ClosureContext);
@@ -2017,7 +2033,7 @@ private:
     std::set<std::pair<const TypeRef *, const MetadataSource *>> Done;
     GenericArgumentMap Subs;
 
-    llvm::ArrayRef<const TypeRef *> CaptureTypes = Info.CaptureTypes;
+    toolchain::ArrayRef<const TypeRef *> CaptureTypes = Info.CaptureTypes;
 
     // Closure context element layout depends on the layout of the
     // captured types, but captured types might depend on element
@@ -2121,7 +2137,7 @@ private:
       return true;
     }
 
-    swift_unreachable("Unhandled MetadataSourceKind in switch.");
+    language_unreachable("Unhandled MetadataSourceKind in switch.");
   }
 
   /// Read metadata for a captured generic type from a closure context.
@@ -2132,8 +2148,8 @@ private:
   /// above.
   ///
   /// \param Builder Used to obtain offsets of elements known so far.
-  std::optional<StoredPointer>
-  readMetadataSource(StoredPointer Context, const MetadataSource *MS,
+  std::optional<RemoteAddress>
+  readMetadataSource(RemoteAddress Context, const MetadataSource *MS,
                      const RecordTypeInfoBuilder &Builder) {
     switch (MS->getKind()) {
     case MetadataSourceKind::ClosureBinding: {
@@ -2149,9 +2165,9 @@ private:
       unsigned Offset = getSizeOfHeapObject() +
                         sizeof(StoredPointer) * Index;
 
-      StoredPointer MetadataAddress;
-      if (!getReader().readInteger(RemoteAddress(Context + Offset),
-                                   &MetadataAddress))
+      RemoteAddress MetadataAddress;
+      if (!getReader().template readRemoteAddress<StoredPointer>(
+              Context + Offset, MetadataAddress))
         break;
 
       return MetadataAddress;
@@ -2163,9 +2179,9 @@ private:
       // of this capture in the context.
       unsigned CaptureOffset = Builder.getFieldOffset(Index);
 
-      StoredPointer CaptureAddress;
-      if (!getReader().readInteger(RemoteAddress(Context + CaptureOffset),
-                                   &CaptureAddress))
+      RemoteAddress CaptureAddress;
+      if (!getReader().template readRemoteAddress<StoredPointer>(
+              Context + CaptureOffset, CaptureAddress))
         break;
 
       // Read the requested capture's isa pointer.
@@ -2178,9 +2194,9 @@ private:
       // of this capture in the context.
       unsigned CaptureOffset = Builder.getFieldOffset(Index);
 
-      StoredPointer CaptureAddress;
-      if (!getReader().readInteger(RemoteAddress(Context + CaptureOffset),
-                                   &CaptureAddress))
+      RemoteAddress CaptureAddress;
+      if (!getReader().template readRemoteAddress<StoredPointer>(
+              Context + CaptureOffset, CaptureAddress))
         break;
 
       return CaptureAddress;
@@ -2207,12 +2223,12 @@ private:
   }
 
   template <typename T>
-  MemoryReader::ReadObjResult<T> readObj(StoredPointer Ptr) {
-    return getReader().template readObj<T>(RemoteAddress(Ptr));
+  MemoryReader::ReadObjResult<T> readObj(RemoteAddress Ptr) {
+    return getReader().template readObj<T>(Ptr);
   }
 };
 
 } // end namespace reflection
 } // end namespace language
 
-#endif // SWIFT_REFLECTION_REFLECTIONCONTEXT_H
+#endif // LANGUAGE_REFLECTION_REFLECTIONCONTEXT_H

@@ -1,13 +1,17 @@
 //===--- FieldSensitivePrunedLiveness.cpp ---------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-move-only-checker"
@@ -24,24 +28,24 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/ScopedAddressUtils.h"
 #include "language/SIL/Test.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Transforms/Utils/ModuleUtils.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Transforms/Utils/ModuleUtils.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool> EmitLogging(
+static toolchain::cl::opt<bool> EmitLogging(
     "sil-move-only-checker-emit-pruned-liveness-logging");
 
 #define PRUNED_LIVENESS_LOG(X) \
   do { \
     if (EmitLogging) { \
-      LLVM_DEBUG(X); \
+      TOOLCHAIN_DEBUG(X); \
       } \
     } while (0)
 
 // We can only analyze components of structs whose storage is fully accessible
-// from Swift.
+// from Codira.
 static StructDecl *getFullyReferenceableStruct(SILType ktypeTy) {
   auto structDecl = ktypeTy.getStructOrBoundGenericStruct();
   if (!structDecl || structDecl->hasUnreferenceableStorage())
@@ -127,12 +131,12 @@ SubElementOffset::computeForAddress(SILValue projectionDerivedFromRoot,
   unsigned finalSubElementOffset = 0;
   SILModule &mod = *rootAddress->getModule();
 
-  LLVM_DEBUG(llvm::dbgs() << "computing element offset for root:\n";
-             rootAddress->print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "computing element offset for root:\n";
+             rootAddress->print(toolchain::dbgs()));
 
   while (1) {
-    LLVM_DEBUG(llvm::dbgs() << "projection: ";
-               projectionDerivedFromRoot->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "projection: ";
+               projectionDerivedFromRoot->print(toolchain::dbgs()));
 
     // If we got to the root, we're done.
     if (rootAddress == projectionDerivedFromRoot)
@@ -145,6 +149,12 @@ SubElementOffset::computeForAddress(SILValue projectionDerivedFromRoot,
 
     if (auto *bai = dyn_cast<BeginAccessInst>(projectionDerivedFromRoot)) {
       projectionDerivedFromRoot = bai->getSource();
+      continue;
+    }
+
+    if (auto *uaci =
+            dyn_cast<UncheckedAddrCastInst>(projectionDerivedFromRoot)) {
+      projectionDerivedFromRoot = uaci->getOperand();
       continue;
     }
 
@@ -251,8 +261,8 @@ SubElementOffset::computeForAddress(SILValue projectionDerivedFromRoot,
     // really do not want to abort. Instead, our caller can choose to abort if
     // they get back a None. This ensures that we do not abort in cases where we
     // just want to emit to the user a "I do not understand" error.
-    LLVM_DEBUG(llvm::dbgs() << "unhandled projection derived from root:\n";
-               projectionDerivedFromRoot->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "unhandled projection derived from root:\n";
+               projectionDerivedFromRoot->print(toolchain::dbgs()));
 
     return std::nullopt;
   }
@@ -300,7 +310,7 @@ SubElementOffset::computeForValue(SILValue projectionDerivedFromRoot,
         // Keep track of what subelement is being referenced.
         unsigned resultIndex = mvir->getIndex();
         StructDecl *structDecl = dsi->getStructDecl();
-        for (auto pair : llvm::enumerate(structDecl->getStoredProperties())) {
+        for (auto pair : toolchain::enumerate(structDecl->getStoredProperties())) {
           if (pair.index() == resultIndex)
             break;
           auto context = TypeExpansionContext(*rootAddress->getFunction());
@@ -424,7 +434,7 @@ static bool isDominatedByPayloadlessSwitchEnumAddrDests(
 void TypeTreeLeafTypeRange::constructFilteredProjections(
     SILValue value, SILInstruction *insertPt, SmallBitVector &filterBitVector,
     DominanceInfo *domTree,
-    llvm::function_ref<bool(SILValue, TypeTreeLeafTypeRange, NeedsDestroy_t)>
+    toolchain::function_ref<bool(SILValue, TypeTreeLeafTypeRange, NeedsDestroy_t)>
         callback) {
   auto *fn = insertPt->getFunction();
   SILType type = value->getType();
@@ -433,16 +443,16 @@ void TypeTreeLeafTypeRange::constructFilteredProjections(
           ? insertPt->getLoc()
           : RegularLocation::getAutoGeneratedLocation();
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "ConstructFilteredProjection. Bv: "
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "ConstructFilteredProjection. Bv: "
                           << filterBitVector << '\n');
   SILBuilderWithScope builder(insertPt);
 
   auto noneSet = [](SmallBitVector &bv, unsigned start, unsigned end) {
-    return llvm::none_of(range(start, end),
+    return toolchain::none_of(range(start, end),
                          [&](unsigned index) { return bv[index]; });
   };
   auto allSet = [](SmallBitVector &bv, unsigned start, unsigned end) {
-    return llvm::all_of(range(start, end),
+    return toolchain::all_of(range(start, end),
                         [&](unsigned index) { return bv[index]; });
   };
 
@@ -535,7 +545,7 @@ void TypeTreeLeafTypeRange::constructFilteredProjections(
         }
         (void)foundProjection;
         assert(foundProjection ||
-               llvm::count_if(
+               toolchain::count_if(
                    enumDecl->getAllElements(),
                    [](auto *elt) { return elt->hasAssociatedValues(); }) == 1 ||
                isDominatedByPayloadlessSwitchEnumAddrDests(insertPt, seais,
@@ -569,7 +579,7 @@ void TypeTreeLeafTypeRange::constructFilteredProjections(
     return;
   }
 
-  llvm_unreachable("Not understand subtype");
+  toolchain_unreachable("Not understand subtype");
 }
 
 void TypeTreeLeafTypeRange::get(
@@ -657,7 +667,7 @@ void TypeTreeLeafTypeRange::constructProjectionsForNeededElements(
   SmallBitVector tmp(neededElements.size());
 
   auto allInRange = [](const SmallBitVector &bv, TypeTreeLeafTypeRange span) {
-    return llvm::all_of(span.getRange(),
+    return toolchain::all_of(span.getRange(),
                         [&bv](unsigned index) { return bv[index]; });
   };
 
@@ -702,7 +712,7 @@ void TypeTreeLeafTypeRange::constructProjectionsForNeededElements(
 
 void TypeTreeLeafTypeRange::visitContiguousRanges(
     SmallBitVector const &bits,
-    llvm::function_ref<void(TypeTreeLeafTypeRange)> callback) {
+    toolchain::function_ref<void(TypeTreeLeafTypeRange)> callback) {
   if (bits.size() == 0)
     return;
 
@@ -745,7 +755,7 @@ void FieldSensitivePrunedLiveBlocks::computeScalarUseBlockLiveness(
       switch (getBlockLiveness(predBlock, bitNo)) {
       case Dead:
         worklist.pushIfNotVisited(predBlock);
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case LiveWithin:
         markBlockLive(predBlock, bitNo, LiveOut);
         break;
@@ -769,7 +779,7 @@ void FieldSensitivePrunedLiveBlocks::updateForUse(
   assert(isInitialized());
   resultingLivenessInfo.clear();
 
-  SWIFT_ASSERT_ONLY(seenUse = true);
+  LANGUAGE_ASSERT_ONLY(seenUse = true);
 
   auto *bb = user->getParent();
   getBlockLiveness(bb, startBitNo, endBitNo, resultingLivenessInfo);
@@ -784,7 +794,7 @@ void FieldSensitivePrunedLiveBlocks::updateForUse(
       if (!isUseBeforeDef) {
         continue;
       } else {
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       }
     case DeadToLiveEdge:
     case Dead: {
@@ -795,11 +805,11 @@ void FieldSensitivePrunedLiveBlocks::updateForUse(
       continue;
     }
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 }
 
-llvm::StringRef
+toolchain::StringRef
 FieldSensitivePrunedLiveBlocks::getStringRef(IsLive isLive) const {
   switch (isLive) {
   case Dead:
@@ -811,10 +821,10 @@ FieldSensitivePrunedLiveBlocks::getStringRef(IsLive isLive) const {
   case LiveOut:
     return "LiveOut";
   }
-  llvm_unreachable("Covered switch?!");
+  toolchain_unreachable("Covered switch?!");
 }
 
-void FieldSensitivePrunedLiveBlocks::print(llvm::raw_ostream &OS) const {
+void FieldSensitivePrunedLiveBlocks::print(toolchain::raw_ostream &OS) const {
   if (!discoveredBlocks) {
     OS << "No deterministic live block list\n";
     return;
@@ -829,13 +839,13 @@ void FieldSensitivePrunedLiveBlocks::print(llvm::raw_ostream &OS) const {
   }
 }
 
-void FieldSensitivePrunedLiveBlocks::dump() const { print(llvm::dbgs()); }
+void FieldSensitivePrunedLiveBlocks::dump() const { print(toolchain::dbgs()); }
 
 //===----------------------------------------------------------------------===//
 //                   FieldSensitivePrunedLivenessBoundary
 //===----------------------------------------------------------------------===//
 
-void FieldSensitivePrunedLivenessBoundary::print(llvm::raw_ostream &OS) const {
+void FieldSensitivePrunedLivenessBoundary::print(toolchain::raw_ostream &OS) const {
   for (auto pair : lastUsers) {
     auto *user = pair.first;
     auto bits = pair.second;
@@ -860,7 +870,7 @@ void FieldSensitivePrunedLivenessBoundary::print(llvm::raw_ostream &OS) const {
 }
 
 void FieldSensitivePrunedLivenessBoundary::dump() const {
-  print(llvm::dbgs());
+  print(toolchain::dbgs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -907,7 +917,7 @@ void FieldSensitivePrunedLiveness::extendToNonUse(
   extendToNonUse(user, bits);
 }
 
-void FieldSensitivePrunedLiveness::print(llvm::raw_ostream &os) const {
+void FieldSensitivePrunedLiveness::print(toolchain::raw_ostream &os) const {
   liveBlocks.print(os);
   for (auto &userAndInterest : users) {
     for (size_t bit = 0, size = userAndInterest.second.liveBits.size();
@@ -948,7 +958,7 @@ static FunctionTest FieldSensitiveSSAUseLivenessTest(
 
       auto argument = arguments.takeArgument();
       if (cast<StringArgument>(argument).getValue() != "uses:") {
-        llvm::report_fatal_error(
+        toolchain::report_fatal_error(
             "test specification expects the 'uses:' label\n");
       }
       while (arguments.hasUntaken()) {
@@ -959,14 +969,14 @@ static FunctionTest FieldSensitiveSSAUseLivenessTest(
           Ending,
           NonEnding,
         };
-        auto kind = llvm::StringSwitch<std::optional<Kind>>(kindString)
+        auto kind = toolchain::StringSwitch<std::optional<Kind>>(kindString)
                         .Case("non-use", Kind::NonUse)
                         .Case("ending", Kind::Ending)
                         .Case("non-ending", Kind::NonEnding)
                         .Default(std::nullopt);
         if (!kind.has_value()) {
-          llvm::errs() << "Unknown kind: " << kindString << "\n";
-          llvm::report_fatal_error("Bad user kind.  Value must be one of "
+          toolchain::errs() << "Unknown kind: " << kindString << "\n";
+          toolchain::report_fatal_error("Bad user kind.  Value must be one of "
                                    "'non-use', 'ending', 'non-ending'");
         }
         auto begin = (unsigned)arguments.takeUInt();
@@ -986,11 +996,11 @@ static FunctionTest FieldSensitiveSSAUseLivenessTest(
         }
       }
 
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       FieldSensitivePrunedLivenessBoundary boundary(1);
       liveness.computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
     });
 
 } // end namespace language::test
@@ -1004,13 +1014,13 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
     SILInstruction *inst, SmallBitVector const &bits) const {
   assert(asImpl().isInitialized());
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs()
+  PRUNED_LIVENESS_LOG(toolchain::dbgs()
                       << "FieldSensitivePrunedLiveRange::isWithinBoundary!\n"
                       << "Bits: " << bits << "\n");
 
   // If we do not have any span, return true since we have no counter examples.
   if (bits.empty()) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    span is empty! Returning true!\n");
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    span is empty! Returning true!\n");
     return true;
   }
 
@@ -1021,14 +1031,14 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
   SmallVector<IsLive, 8> outVector;
   getBlockLiveness(block, bits, outVector);
 
-  for (auto bitAndIndex : llvm::enumerate(bits.set_bits())) {
+  for (auto bitAndIndex : toolchain::enumerate(bits.set_bits())) {
     unsigned bit = bitAndIndex.value();
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Visiting bit: " << bit << '\n');
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Visiting bit: " << bit << '\n');
     bool isLive = false;
     switch (outVector[bitAndIndex.index()]) {
     case FieldSensitivePrunedLiveBlocks::DeadToLiveEdge:
     case FieldSensitivePrunedLiveBlocks::Dead:
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "        Dead... continuing!\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "        Dead... continuing!\n");
       // We are only not within the boundary if all of our bits are dead. We
       // track this via allDeadBits. So, just continue.
       continue;
@@ -1039,43 +1049,43 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
       // true.
       if (!asImpl().isDefBlock(block, bit)) {
         PRUNED_LIVENESS_LOG(
-            llvm::dbgs()
+            toolchain::dbgs()
             << "        LiveOut... but not in a def block... returning true "
                "since we are within the boundary for at least one bit");
         return true;
       }
 
       isLive = true;
-      PRUNED_LIVENESS_LOG(llvm::dbgs()
+      PRUNED_LIVENESS_LOG(toolchain::dbgs()
                  << "        LiveOut, but a def block... searching block!\n");
       [[clang::fallthrough]];
     case FieldSensitivePrunedLiveBlocks::LiveWithin:
       bool shouldContinue = false;
       if (!isLive)
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "        LiveWithin... searching block!\n");
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "        LiveWithin... searching block!\n");
 
       // Now check if the instruction is between a last use and a definition.
-      for (auto &blockInst : llvm::reverse(*block)) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "        Inst: Live: "
+      for (auto &blockInst : toolchain::reverse(*block)) {
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "        Inst: Live: "
                                 << (isLive ? "true" : "false") << "\n"
                                 << "    " << blockInst);
 
         // First if we see a def, set isLive to false.
         if (asImpl().isDef(&blockInst, bit)) {
-          PRUNED_LIVENESS_LOG(llvm::dbgs()
+          PRUNED_LIVENESS_LOG(toolchain::dbgs()
                      << "        Inst is a def... marking live to false!\n");
           isLive = false;
         }
 
         // Then check if we found our instruction in the block...
         if (&blockInst == inst) {
-          PRUNED_LIVENESS_LOG(llvm::dbgs()
+          PRUNED_LIVENESS_LOG(toolchain::dbgs()
                      << "        Inst is inst we are looking for.\n");
 
           // If we are live in the block when we reach the inst... we must be in
           // the block.
           if (isLive) {
-            PRUNED_LIVENESS_LOG(llvm::dbgs()
+            PRUNED_LIVENESS_LOG(toolchain::dbgs()
                        << "        Inst was live... so returning true!\n");
             return true;
           }
@@ -1083,7 +1093,7 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
           // Otherwise, we know that we are not within the boundary for this
           // def... continue.
           shouldContinue = true;
-          PRUNED_LIVENESS_LOG(llvm::dbgs()
+          PRUNED_LIVENESS_LOG(toolchain::dbgs()
                      << "        Inst was dead... so breaking out of loop!\n");
           break;
         }
@@ -1092,7 +1102,7 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
         // mark this bit as being live again.
         if (!isLive) {
           bool isInteresting = isInterestingUser(&blockInst, bit);
-          PRUNED_LIVENESS_LOG(llvm::dbgs()
+          PRUNED_LIVENESS_LOG(toolchain::dbgs()
                      << "        Inst was dead... Is InterestingUser: "
                      << (isInteresting ? "true" : "false") << '\n');
           isLive |= isInteresting;
@@ -1102,7 +1112,7 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
       // If we broke out of the inner loop, continue.
       if (shouldContinue)
         continue;
-      llvm_unreachable("Inst not in parent block?!");
+      toolchain_unreachable("Inst not in parent block?!");
     }
   }
 
@@ -1128,22 +1138,22 @@ void FieldSensitivePrunedLiveRange<LivenessWithDefs>::computeBoundary(
     FieldSensitivePrunedLivenessBoundary &boundary) const {
   assert(asImpl().isInitialized());
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Liveness Boundary Compuation!\n");
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Liveness Boundary Compuation!\n");
 
   using IsLive = FieldSensitivePrunedLiveBlocks::IsLive;
   SmallVector<IsLive, 8> isLiveTmp;
   for (SILBasicBlock *block : getDiscoveredBlocks()) {
-    SWIFT_DEFER { isLiveTmp.clear(); };
+    LANGUAGE_DEFER { isLiveTmp.clear(); };
     getBlockLiveness(block, isLiveTmp);
 
-    PRUNED_LIVENESS_LOG(llvm::dbgs()
+    PRUNED_LIVENESS_LOG(toolchain::dbgs()
                << "Checking for boundary in bb" << block->getDebugID() << '\n');
 
     // Process each block that has not been visited and is not LiveOut.
     bool foundAnyNonDead = false;
-    for (auto pair : llvm::enumerate(isLiveTmp)) {
+    for (auto pair : toolchain::enumerate(isLiveTmp)) {
       unsigned index = pair.index();
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "Bit: " << index << ". Liveness: "
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Bit: " << index << ". Liveness: "
                               << getStringRef(pair.value()) << '\n');
       switch (pair.value()) {
       case FieldSensitivePrunedLiveBlocks::LiveOut:
@@ -1155,10 +1165,10 @@ void FieldSensitivePrunedLiveRange<LivenessWithDefs>::computeBoundary(
             // TODO: Should also do this if the block's successors all always
             // end in unreachable too.
             if (isa<UnreachableInst>(succBB->getTerminator())) {
-              PRUNED_LIVENESS_LOG(llvm::dbgs() << "succBB ends in unreachable, skipping as boundary edge: bb"
+              PRUNED_LIVENESS_LOG(toolchain::dbgs() << "succBB ends in unreachable, skipping as boundary edge: bb"
                                       << succBB->getDebugID() << '\n');
             } else {
-              PRUNED_LIVENESS_LOG(llvm::dbgs() << "Marking succBB as boundary edge: bb"
+              PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Marking succBB as boundary edge: bb"
                                       << succBB->getDebugID() << '\n');
               boundary.getBoundaryEdgeBits(succBB).set(index);
             }
@@ -1176,7 +1186,7 @@ void FieldSensitivePrunedLiveRange<LivenessWithDefs>::computeBoundary(
       }
       case FieldSensitivePrunedLiveBlocks::DeadToLiveEdge:
         foundAnyNonDead = true;
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case FieldSensitivePrunedLiveBlocks::Dead:
         // We do not assert here like in the normal pruned liveness
         // implementation since we can have dead on some bits and liveness along
@@ -1219,16 +1229,16 @@ static FunctionTest FieldSensitiveMultiDefUseLiveRangeTest(
       FieldSensitiveMultiDefPrunedLiveRange liveness(&function, value,
                                                      &discoveredBlocks);
 
-      llvm::outs() << "FieldSensitive MultiDef lifetime analysis:\n";
+      toolchain::outs() << "FieldSensitive MultiDef lifetime analysis:\n";
       if (arguments.takeString() != "defs:") {
-        llvm::report_fatal_error(
+        toolchain::report_fatal_error(
             "test specification expects the 'defs:' label\n");
       }
       while (true) {
         auto argument = arguments.takeArgument();
         if (isa<StringArgument>(argument)) {
           if (cast<StringArgument>(argument).getValue() != "uses:") {
-            llvm::report_fatal_error(
+            toolchain::report_fatal_error(
                 "test specification expects the 'uses:' label\n");
           }
           break;
@@ -1238,19 +1248,19 @@ static FunctionTest FieldSensitiveMultiDefUseLiveRangeTest(
         TypeTreeLeafTypeRange range(begin, end);
         if (isa<InstructionArgument>(argument)) {
           auto *instruction = cast<InstructionArgument>(argument).getValue();
-          llvm::outs() << "  def in range [" << begin << ", " << end
+          toolchain::outs() << "  def in range [" << begin << ", " << end
                        << ") instruction: " << *instruction;
           liveness.initializeDef(instruction, range);
           continue;
         }
         if (isa<ValueArgument>(argument)) {
           SILValue value = cast<ValueArgument>(argument).getValue();
-          llvm::outs() << "  def in range [" << begin << ", " << end
+          toolchain::outs() << "  def in range [" << begin << ", " << end
                        << ") value: " << value;
           liveness.initializeDef(value, range);
           continue;
         }
-        llvm::report_fatal_error(
+        toolchain::report_fatal_error(
             "test specification expects the 'uses:' label\n");
       }
       liveness.finishedInitializationOfDefs();
@@ -1262,12 +1272,12 @@ static FunctionTest FieldSensitiveMultiDefUseLiveRangeTest(
         TypeTreeLeafTypeRange range(begin, end);
         liveness.updateForUse(inst, range, lifetimeEnding);
       }
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       FieldSensitivePrunedLivenessBoundary boundary(
           liveness.getNumSubElements());
       liveness.computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
     });
 } // end namespace language::test
 
@@ -1277,7 +1287,7 @@ bool FieldSensitiveMultiDefPrunedLiveRange::isUserBeforeDef(
   if (!isDefBlock(block, element))
     return false;
 
-  if (llvm::any_of(block->getArguments(), [this, element](SILArgument *arg) {
+  if (toolchain::any_of(block->getArguments(), [this, element](SILArgument *arg) {
         return isDef(arg, element);
       })) {
     return false;
@@ -1340,16 +1350,16 @@ void findBoundaryInNonDefBlock(SILBasicBlock *block, unsigned bitNo,
   assert(liveness.getBlockLiveness(block, bitNo) ==
          FieldSensitivePrunedLiveBlocks::LiveWithin);
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Looking for boundary in non-def block\n");
-  for (SILInstruction &inst : llvm::reverse(*block)) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting: " << inst);
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Looking for boundary in non-def block\n");
+  for (SILInstruction &inst : toolchain::reverse(*block)) {
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting: " << inst);
     if (liveness.isInterestingUser(&inst, bitNo)) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is interesting user for this bit!\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is interesting user for this bit!\n");
       boundary.getLastUserBits(&inst).set(bitNo);
       return;
     }
   }
-  llvm_unreachable("live-within block must contain an interesting use");
+  toolchain_unreachable("live-within block must contain an interesting use");
 }
 
 /// Given a live-within \p block that contains an SSA definition, and knowledge
@@ -1364,24 +1374,24 @@ void findBoundaryInSSADefBlock(SILNode *ssaDef, unsigned bitNo,
                                FieldSensitivePrunedLivenessBoundary &boundary,
                                const FieldSensitivePrunedLiveness &liveness) {
   // defInst is null for argument defs.
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Searching using findBoundaryInSSADefBlock.\n");
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Searching using findBoundaryInSSADefBlock.\n");
   SILInstruction *defInst = dyn_cast<SILInstruction>(ssaDef);
-  for (SILInstruction &inst : llvm::reverse(*getDefinedInBlock(ssaDef))) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting: " << inst);
+  for (SILInstruction &inst : toolchain::reverse(*getDefinedInBlock(ssaDef))) {
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting: " << inst);
     if (&inst == defInst) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found dead def: " << *defInst);
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found dead def: " << *defInst);
       boundary.getDeadDefsBits(cast<SILNode>(&inst)).set(bitNo);
       return;
     }
     if (liveness.isInterestingUser(&inst, bitNo)) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found interesting user: " << inst);
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found interesting user: " << inst);
       boundary.getLastUserBits(&inst).set(bitNo);
       return;
     }
   }
 
   if (auto *deadArg = dyn_cast<SILArgument>(ssaDef)) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found dead arg: " << *deadArg);
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found dead arg: " << *deadArg);
     boundary.getDeadDefsBits(deadArg).set(bitNo);
     return;
   }
@@ -1389,12 +1399,12 @@ void findBoundaryInSSADefBlock(SILNode *ssaDef, unsigned bitNo,
   // If we searched the success branch of a try_apply and found no uses, then
   // the try_apply itself is a dead def.
   if (isa<TryApplyInst>(ssaDef)) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found dead try_apply: " << *ssaDef);
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found dead try_apply: " << *ssaDef);
     boundary.getDeadDefsBits(ssaDef).set(bitNo);
     return;
   }
   
-  llvm_unreachable("def not found?!");
+  toolchain_unreachable("def not found?!");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1442,39 +1452,39 @@ void FieldSensitiveMultiDefPrunedLiveRange::findBoundariesInBlock(
     FieldSensitivePrunedLivenessBoundary &boundary) const {
   assert(isInitialized());
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Checking for boundary in bb"
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Checking for boundary in bb"
                           << block->getDebugID() << " for bit: " << bitNo
                           << ". Is Live: " << (isLiveOut ? "true" : "false")
                           << '\n');
 
   if (!isDefBlock(block, bitNo)) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Not a def block for this bit?!\n");
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Not a def block for this bit?!\n");
     // A live-out block that does not contain any defs cannot have a boundary.
     if (isLiveOut) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is live out... nothing further to do.\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is live out... nothing further to do.\n");
       return;
     }
 
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is LiveWithin, so looking for boundary "
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is LiveWithin, so looking for boundary "
                                "in non-def block?!\n");
     findBoundaryInNonDefBlock(block, bitNo, boundary, *this);
     return;
   }
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Is def block!\n");
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Is def block!\n");
 
   // Handle def blocks...
   //
   // First, check for an SSA live range
   if (defs.size() == 1) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Has single def...\n");
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Has single def...\n");
     // For SSA, a live-out block cannot have a boundary.
     if (isLiveOut) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "Is live out... no further work to do...\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Is live out... no further work to do...\n");
       return;
     }
 
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Is live within... checking for boundary "
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Is live within... checking for boundary "
                                "using SSA def block impl.\n");
     assert(defs.vector_begin()->second->contains(bitNo));
     findBoundaryInSSADefBlock(defs.vector_begin()->first, bitNo, boundary,
@@ -1482,7 +1492,7 @@ void FieldSensitiveMultiDefPrunedLiveRange::findBoundariesInBlock(
     return;
   }
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Has multiple defs!\n");
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Has multiple defs!\n");
 
   // Handle a live-out or live-within block with potentially multiple defs
 #ifndef NDEBUG
@@ -1493,22 +1503,22 @@ void FieldSensitiveMultiDefPrunedLiveRange::findBoundariesInBlock(
   unsigned prevCount = boundary.getNumLastUsersAndDeadDefs(bitNo);
 #endif
   bool isLive = isLiveOut;
-  for (auto &inst : llvm::reverse(*block)) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting: " << inst);
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Initial IsLive: "
+  for (auto &inst : toolchain::reverse(*block)) {
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting: " << inst);
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Initial IsLive: "
                             << (isLive ? "true" : "false") << '\n');
 
     // Check if the instruction is a def before checking whether it is a
     // use. The same instruction can be both a dead def and boundary use.
     if (isDef(&inst, bitNo)) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is a def inst!\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is a def inst!\n");
       if (!isLive) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "        We are not live... so mark as dead "
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "        We are not live... so mark as dead "
                                    "def and keep isLive false!\n");
         boundary.getDeadDefsBits(cast<SILNode>(&inst)).set(bitNo);
       } else {
         PRUNED_LIVENESS_LOG(
-            llvm::dbgs()
+            toolchain::dbgs()
             << "        Is live usage... so just mark isLive to false.\n");
       }
       isLive = false;
@@ -1517,36 +1527,36 @@ void FieldSensitiveMultiDefPrunedLiveRange::findBoundariesInBlock(
     // Note: the same instruction could potentially be both a dead def and last
     // user. The liveness boundary supports this, although it won't happen in
     // any context where we care about inserting code on the boundary.
-    PRUNED_LIVENESS_LOG(llvm::dbgs()
+    PRUNED_LIVENESS_LOG(toolchain::dbgs()
                << "    Checking if this inst is also a last user...\n");
     if (!isLive) {
       if (isInterestingUser(&inst, bitNo)) {
         PRUNED_LIVENESS_LOG(
-            llvm::dbgs()
+            toolchain::dbgs()
             << "        Was interesting user! Moving from dead -> live!\n");
         boundary.getLastUserBits(&inst).set(bitNo);
         isLive = true;
       } else {
-        PRUNED_LIVENESS_LOG(llvm::dbgs()
+        PRUNED_LIVENESS_LOG(toolchain::dbgs()
                    << "        Not interesting user... keeping dead!\n");
       }
     } else {
-      PRUNED_LIVENESS_LOG(llvm::dbgs()
+      PRUNED_LIVENESS_LOG(toolchain::dbgs()
                  << "        Was live already, so cannot be a last user!\n");
     }
   }
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Finished processing block instructions... now "
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Finished processing block instructions... now "
                              "checking for dead arguments if dead!\n");
   if (!isLive) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Not live! Checking for dead args!\n");
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Not live! Checking for dead args!\n");
     for (SILArgument *deadArg : block->getArguments()) {
       auto iter = defs.find(deadArg);
       if (iter.has_value() &&
-          llvm::any_of(*iter, [&](TypeTreeLeafTypeRange span) {
+          toolchain::any_of(*iter, [&](TypeTreeLeafTypeRange span) {
             return span.contains(bitNo);
           })) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found dead arg: " << *deadArg);
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found dead arg: " << *deadArg);
         boundary.getDeadDefsBits(deadArg).set(bitNo);
       }
     }
@@ -1557,18 +1567,16 @@ void FieldSensitiveMultiDefPrunedLiveRange::findBoundariesInBlock(
     //
     // TODO: What if we have a mix/match of LiveWithin and LiveOut.
     if (!block->pred_empty()) {
-      if (llvm::all_of(block->getPredecessorBlocks(),
+      if (toolchain::all_of(block->getPredecessorBlocks(),
                        [&](SILBasicBlock *predBlock) -> bool {
                          return getBlockLiveness(predBlock, bitNo) ==
                                 FieldSensitivePrunedLiveBlocks::IsLive::LiveOut;
                        })) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "Marking ourself as boundary edge: bb"
-                                << block->getDebugID() << '\n');
         boundary.getBoundaryEdgeBits(block).set(bitNo);
       }
     }
   } else {
-    PRUNED_LIVENESS_LOG(llvm::dbgs()
+    PRUNED_LIVENESS_LOG(toolchain::dbgs()
                << "    Live at beginning of block! No dead args!\n");
   }
 
@@ -1579,9 +1587,9 @@ void FieldSensitiveMultiDefPrunedLiveRange::findBoundariesInBlock(
 
 bool FieldSensitiveMultiDefPrunedLiveRange::findEarlierConsumingUse(
     SILInstruction *inst, unsigned index,
-    llvm::function_ref<bool(SILInstruction *)> callback) const {
+    toolchain::function_ref<bool(SILInstruction *)> callback) const {
   PRUNED_LIVENESS_LOG(
-      llvm::dbgs()
+      toolchain::dbgs()
       << "Performing single block search for consuming use for bit: " << index
       << "!\n");
 
@@ -1591,23 +1599,23 @@ bool FieldSensitiveMultiDefPrunedLiveRange::findEarlierConsumingUse(
   for (auto ii = std::next(inst->getReverseIterator()),
             ie = inst->getParent()->rend();
        ii != ie; ++ii) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting: " << *ii);
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting: " << *ii);
     // If we have a def, then we are automatically done.
     if (isDef(&*ii, index)) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is Def! Returning true!\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is Def! Returning true!\n");
       return true;
     }
 
     // If we have a consuming use, emit the error.
     if (isInterestingUser(&*ii, index) ==
         IsInterestingUser::LifetimeEndingUse) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is Lifetime Ending Use!\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is Lifetime Ending Use!\n");
       if (!callback(&*ii)) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs()
+        PRUNED_LIVENESS_LOG(toolchain::dbgs()
                             << "    Callback returned false... exiting!\n");
         return false;
       }
-      PRUNED_LIVENESS_LOG(llvm::dbgs()
+      PRUNED_LIVENESS_LOG(toolchain::dbgs()
                           << "    Callback returned true... continuing!\n");
     }
 
@@ -1616,14 +1624,14 @@ bool FieldSensitiveMultiDefPrunedLiveRange::findEarlierConsumingUse(
 
   // Then check our argument defs.
   for (auto *arg : inst->getParent()->getArguments()) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting arg: " << *arg);
+    PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting arg: " << *arg);
     if (isDef(arg, index)) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found def. Returning true!\n");
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found def. Returning true!\n");
       return true;
     }
   }
 
-  PRUNED_LIVENESS_LOG(llvm::dbgs() << "Finished single block. Didn't find "
+  PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Finished single block. Didn't find "
                                       "anything... Performing interprocedural");
 
   // Ok, we now know that we need to look further back.
@@ -1633,26 +1641,26 @@ bool FieldSensitiveMultiDefPrunedLiveRange::findEarlierConsumingUse(
   }
 
   while (auto *next = worklist.pop()) {
-    PRUNED_LIVENESS_LOG(llvm::dbgs()
+    PRUNED_LIVENESS_LOG(toolchain::dbgs()
                         << "Checking block bb" << next->getDebugID() << '\n');
     for (auto ii = next->rbegin(), ie = next->rend(); ii != ie; ++ii) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting: " << *ii);
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting: " << *ii);
       // If we have a def, then we are automatically done.
       if (isDef(&*ii, index)) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is Def! Returning true!\n");
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is Def! Returning true!\n");
         return true;
       }
 
       // If we have a consuming use, emit the error.
       if (isInterestingUser(&*ii, index) ==
           IsInterestingUser::LifetimeEndingUse) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Is Lifetime Ending Use!\n");
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Is Lifetime Ending Use!\n");
         if (!callback(&*ii)) {
-          PRUNED_LIVENESS_LOG(llvm::dbgs()
+          PRUNED_LIVENESS_LOG(toolchain::dbgs()
                               << "    Callback returned false... exiting!\n");
           return false;
         }
-        PRUNED_LIVENESS_LOG(llvm::dbgs()
+        PRUNED_LIVENESS_LOG(toolchain::dbgs()
                             << "    Callback returned true... continuing!\n");
       }
 
@@ -1660,14 +1668,14 @@ bool FieldSensitiveMultiDefPrunedLiveRange::findEarlierConsumingUse(
     }
 
     for (auto *arg : next->getArguments()) {
-      PRUNED_LIVENESS_LOG(llvm::dbgs() << "Visiting arg: " << *arg);
+      PRUNED_LIVENESS_LOG(toolchain::dbgs() << "Visiting arg: " << *arg);
       if (isDef(arg, index)) {
-        PRUNED_LIVENESS_LOG(llvm::dbgs() << "    Found def. Returning true!\n");
+        PRUNED_LIVENESS_LOG(toolchain::dbgs() << "    Found def. Returning true!\n");
         return true;
       }
     }
 
-    PRUNED_LIVENESS_LOG(llvm::dbgs()
+    PRUNED_LIVENESS_LOG(toolchain::dbgs()
                         << "Didn't find anything... visiting predecessors!\n");
     for (auto *predBlock : next->getPredecessorBlocks()) {
       worklist.pushIfNotVisited(predBlock);

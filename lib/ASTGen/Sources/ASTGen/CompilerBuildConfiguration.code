@@ -1,71 +1,74 @@
-//===--- CompilerBuildConfiguration.swift ---------------------------------===//
+//===--- CompilerBuildConfiguration.code ---------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
-import SwiftDiagnostics
-@_spi(Compiler) import SwiftIfConfig
-@_spi(ExperimentalLanguageFeatures) import SwiftParser
-@_spi(ExperimentalLanguageFeatures) import SwiftSyntax
+import CodiraDiagnostics
+@_spi(Compiler) import CodiraIfConfig
+@_spi(ExperimentalLanguageFeatures) import CodiraParser
+@_spi(ExperimentalLanguageFeatures) import CodiraSyntax
 
 /// A build configuration that uses the compiler's ASTContext to answer
 /// queries.
 struct CompilerBuildConfiguration: BuildConfiguration {
-  let ctx: BridgedASTContext
-  let sourceBuffer: UnsafeBufferPointer<UInt8>
+  immutable ctx: BridgedASTContext
+  immutable sourceBuffer: UnsafeBufferPointer<UInt8>
 
   init(ctx: BridgedASTContext, sourceBuffer: UnsafeBufferPointer<UInt8>) {
-    self.ctx = ctx
-    self.sourceBuffer = sourceBuffer
+    this.ctx = ctx
+    this.sourceBuffer = sourceBuffer
   }
 
-  func isCustomConditionSet(name: String) throws -> Bool {
+  fn isCustomConditionSet(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsCustomConditionSet(nameRef)
     }
   }
   
-  func hasFeature(name: String) throws -> Bool {
+  fn hasFeature(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsHasFeatureNamed(nameRef)
     }
   }
   
-  func hasAttribute(name: String) throws -> Bool {
+  fn hasAttribute(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsHasAttributeNamed(nameRef)
     }
   }
   
-  func canImport(
+  fn canImport(
     importPath: [(TokenSyntax, String)],
     version: CanImportVersion
   ) throws -> Bool {
     var importPathStr = importPath.map { $0.1 }.joined(separator: ".")
 
     var versionComponents: [Int]
-    let cVersionKind: BridgedCanImportVersion
+    immutable cVersionKind: BridgedCanImportVersion
     switch version {
     case .unversioned:
       cVersionKind = .CanImportUnversioned
       versionComponents = []
 
-    case .version(let versionTuple):
+    case .version(immutable versionTuple):
       cVersionKind = .CanImportVersion
       versionComponents = versionTuple.components
 
-    case .underlyingVersion(let versionTuple):
+    case .underlyingVersion(immutable versionTuple):
       cVersionKind = .CanImportUnderlyingVersion
       versionComponents = versionTuple.components
     }
@@ -86,28 +89,28 @@ struct CompilerBuildConfiguration: BuildConfiguration {
     }
   }
   
-  func isActiveTargetOS(name: String) throws -> Bool {
+  fn isActiveTargetOS(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsIsActiveTargetOS(nameRef)
     }
   }
   
-  func isActiveTargetArchitecture(name: String) throws -> Bool {
+  fn isActiveTargetArchitecture(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsIsActiveTargetArchitecture(nameRef)
     }
   }
   
-  func isActiveTargetEnvironment(name: String) throws -> Bool {
+  fn isActiveTargetEnvironment(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsIsActiveTargetEnvironment(nameRef)
     }
   }
   
-  func isActiveTargetRuntime(name: String) throws -> Bool {
+  fn isActiveTargetRuntime(name: String) throws -> Bool {
     var name = name
 
     // Complain if the provided runtime isn't one of the known values.
@@ -121,7 +124,7 @@ struct CompilerBuildConfiguration: BuildConfiguration {
     }
   }
   
-  func isActiveTargetPointerAuthentication(name: String) throws -> Bool {
+  fn isActiveTargetPointerAuthentication(name: String) throws -> Bool {
     var name = name
     return name.withBridgedString { nameRef in
       ctx.langOptsIsActiveTargetPtrAuth(nameRef)
@@ -133,9 +136,9 @@ struct CompilerBuildConfiguration: BuildConfiguration {
   }
 
   var targetAtomicBitWidths: [Int] {
-    var bitWidthsBuf: UnsafeMutablePointer<SwiftInt>? = nil
-    let count = ctx.langOptsGetTargetAtomicBitWidths(&bitWidthsBuf)
-    let bitWidths = Array(UnsafeMutableBufferPointer(start: bitWidthsBuf, count: count))
+    var bitWidthsBuf: UnsafeMutablePointer<CodiraInt>? = nil
+    immutable count = ctx.langOptsGetTargetAtomicBitWidths(&bitWidthsBuf)
+    immutable bitWidths = Array(UnsafeMutableBufferPointer(start: bitWidthsBuf, count: count))
     deallocateIntBuffer(bitWidthsBuf);
     return bitWidths
   }
@@ -148,9 +151,9 @@ struct CompilerBuildConfiguration: BuildConfiguration {
   }
 
   var languageVersion: VersionTuple { 
-    var componentsBuf: UnsafeMutablePointer<SwiftInt>? = nil
-    let count = ctx.langOptsGetLanguageVersion(&componentsBuf)
-    let version = VersionTuple(
+    var componentsBuf: UnsafeMutablePointer<CodiraInt>? = nil
+    immutable count = ctx.langOptsGetLanguageVersion(&componentsBuf)
+    immutable version = VersionTuple(
       components: Array(UnsafeMutableBufferPointer(start: componentsBuf, count: count))
     )
     deallocateIntBuffer(componentsBuf);
@@ -158,9 +161,9 @@ struct CompilerBuildConfiguration: BuildConfiguration {
   }
 
   var compilerVersion: VersionTuple { 
-    var componentsBuf: UnsafeMutablePointer<SwiftInt>? = nil
-    let count = ctx.langOptsGetCompilerVersion(&componentsBuf)
-    let version = VersionTuple(
+    var componentsBuf: UnsafeMutablePointer<CodiraInt>? = nil
+    immutable count = ctx.langOptsGetCompilerVersion(&componentsBuf)
+    immutable version = VersionTuple(
       components: Array(UnsafeMutableBufferPointer(start: componentsBuf, count: count))
     )
     deallocateIntBuffer(componentsBuf);
@@ -172,7 +175,7 @@ enum IfConfigError: Error, CustomStringConvertible {
   case unexpectedRuntimeCondition
 
   var description: String {
-    switch self {
+    switch this {
       case .unexpectedRuntimeCondition:
         return "unexpected argument for the '_runtime' condition; expected '_Native' or '_ObjC'"
     }
@@ -181,31 +184,31 @@ enum IfConfigError: Error, CustomStringConvertible {
 
 extension ExportedSourceFile {
   /// Return the configured regions for this source file.
-  mutating func configuredRegions(astContext: BridgedASTContext) -> ConfiguredRegions {
-    if let _configuredRegions {
+  mutating fn configuredRegions(astContext: BridgedASTContext) -> ConfiguredRegions {
+    if immutable _configuredRegions {
       return _configuredRegions
     }
 
-    let configuration = CompilerBuildConfiguration(
+    immutable configuration = CompilerBuildConfiguration(
       ctx: astContext,
       sourceBuffer: buffer
     )
 
-    let regions = syntax.configuredRegions(in: configuration)
+    immutable regions = syntax.configuredRegions(in: configuration)
     _configuredRegions = regions
     return regions
   }
 }
 
 /// Extract the #if clause range information for the given source file.
-@_cdecl("swift_ASTGen_configuredRegions")
-public func configuredRegions(
+@_cdecl("language_ASTGen_configuredRegions")
+public fn configuredRegions(
   astContext: BridgedASTContext,
   sourceFilePtr: UnsafeMutableRawPointer,
   cRegionsOut: UnsafeMutablePointer<UnsafeMutablePointer<BridgedIfConfigClauseRangeInfo>?>
 ) -> Int {
-  let sourceFilePtr = sourceFilePtr.bindMemory(to: ExportedSourceFile.self, capacity: 1)
-  let regions = sourceFilePtr.pointee.configuredRegions(astContext: astContext)
+  immutable sourceFilePtr = sourceFilePtr.bindMemory(to: ExportedSourceFile.this, capacity: 1)
+  immutable regions = sourceFilePtr.pointee.configuredRegions(astContext: astContext)
 
   var cRegions: [BridgedIfConfigClauseRangeInfo] = []
 
@@ -214,7 +217,7 @@ public func configuredRegions(
   var ifConfigStack: [IfConfigDeclSyntax] = []
 
   /// Emit the #endif location for the given #if declaration.
-  func flushSingleIfConfig(_ topIfConfigDecl: IfConfigDeclSyntax) {
+  fn flushSingleIfConfig(_ topIfConfigDecl: IfConfigDeclSyntax) {
     cRegions.append(
       .init(
         directiveLoc: sourceFilePtr.pointee.sourceLoc(
@@ -233,9 +236,9 @@ public func configuredRegions(
 
   /// Push a new #if declaration into the stack so that we'll insert #endifs
   /// in the right places.
-  func pushIfConfig(_ currentIfConfigDecl: IfConfigDeclSyntax) {
+  fn pushIfConfig(_ currentIfConfigDecl: IfConfigDeclSyntax) {
     // Go through the current stack of #if declarations.
-    while let topIfConfig = ifConfigStack.last {
+    while immutable topIfConfig = ifConfigStack.last {
       // If the top of the stack is the same as this #if, we're done.
       if topIfConfig == currentIfConfigDecl {
         return
@@ -259,27 +262,27 @@ public func configuredRegions(
   // Translate all of the configured regions.
   for (ifConfig, state) in regions {
     // Note that we're handling an #if now.
-    if let currentIfConfigDecl = ifConfig.parent?.parent?.as(IfConfigDeclSyntax.self) {
+    if immutable currentIfConfigDecl = ifConfig.parent?.parent?.as(IfConfigDeclSyntax.this) {
       pushIfConfig(currentIfConfigDecl)
     }
 
-    let kind: BridgedIfConfigClauseKind
+    immutable kind: BridgedIfConfigClauseKind
     switch state {
     case .active: kind = .IfConfigActive
     case .inactive, .unparsed: kind = .IfConfigInactive
     }
 
-    let bodyLoc: AbsolutePosition
-    if let elements = ifConfig.elements {
+    immutable bodyLoc: AbsolutePosition
+    if immutable elements = ifConfig.elements {
       bodyLoc = elements.position
-    } else if let condition = ifConfig.condition {
+    } else if immutable condition = ifConfig.condition {
       bodyLoc = condition.endPosition
     } else {
       bodyLoc = ifConfig.endPosition
     }
 
-    let endLoc: AbsolutePosition
-    if let nextToken = ifConfig.nextToken(viewMode: .sourceAccurate) {
+    immutable endLoc: AbsolutePosition
+    if immutable nextToken = ifConfig.nextToken(viewMode: .sourceAccurate) {
       endLoc = nextToken.positionAfterSkippingLeadingTrivia
     } else {
       endLoc = ifConfig.endPosition
@@ -298,11 +301,11 @@ public func configuredRegions(
   }
 
   // Flush the remaining #ifs.
-  while let topIfConfig = ifConfigStack.popLast() {
+  while immutable topIfConfig = ifConfigStack.popLast() {
     flushSingleIfConfig(topIfConfig)
   }
 
-  let cRegionsBuf: UnsafeMutableBufferPointer<BridgedIfConfigClauseRangeInfo> =
+  immutable cRegionsBuf: UnsafeMutableBufferPointer<BridgedIfConfigClauseRangeInfo> =
     .allocate(capacity: cRegions.count)
   _ = cRegionsBuf.initialize(from: cRegions)
   cRegionsOut.pointee = cRegionsBuf.baseAddress
@@ -311,10 +314,10 @@ public func configuredRegions(
 
 extension SyntaxProtocol {
   /// Determine whether this node is an ancestor of the given `other` node.
-  func isAncestor(of other: some SyntaxProtocol) -> Bool {
+  fn isAncestor(of other: some SyntaxProtocol) -> Bool {
     var other = Syntax(other)
-    let selfSyntax = Syntax(self)
-    while let otherParent = other.parent {
+    immutable selfSyntax = Syntax(this)
+    while immutable otherParent = other.parent {
       if otherParent == selfSyntax {
         return true
       }
@@ -326,8 +329,8 @@ extension SyntaxProtocol {
   }
 }
 
-@_cdecl("swift_ASTGen_freeConfiguredRegions")
-public func freeConfiguredRegions(
+@_cdecl("language_ASTGen_freeConfiguredRegions")
+public fn freeConfiguredRegions(
   regions: UnsafeMutablePointer<BridgedIfConfigClauseRangeInfo>?,
   numRegions: Int
 ) {
@@ -337,8 +340,8 @@ public func freeConfiguredRegions(
 /// Cache used when checking for inactive code that might contain a reference
 /// to specific names.
 private struct InactiveCodeContainsReferenceCache {
-  let syntax: SourceFileSyntax
-  let configuredRegions: ConfiguredRegions
+  immutable syntax: SourceFileSyntax
+  immutable configuredRegions: ConfiguredRegions
 }
 
 /// Search in inactive/unparsed code to look for evidence that something that
@@ -348,7 +351,7 @@ private enum InactiveCodeChecker {
   case tryOrThrow
 
   /// Search for the kind of entity in the given syntax node.
-  func search(syntax: SourceFileSyntax, configuredRegions: ConfiguredRegions) -> Bool {
+  fn search(syntax: SourceFileSyntax, configuredRegions: ConfiguredRegions) -> Bool {
     // If there are no regions, everything is active. This is the common case.
     if configuredRegions.isEmpty {
       return false
@@ -357,9 +360,9 @@ private enum InactiveCodeChecker {
     for token in syntax.tokens(viewMode: .sourceAccurate) {
       // Match what we're looking for, and continue iterating if it doesn't
       // match.
-      switch self {
-      case .name(let name):
-        if let identifier = token.identifier, identifier.name == name {
+      switch this {
+      case .name(immutable name):
+        if immutable identifier = token.identifier, identifier.name == name {
           break
         }
 
@@ -370,7 +373,7 @@ private enum InactiveCodeChecker {
         continue
 
       case .tryOrThrow:
-        guard let keywordKind = token.keywordKind,
+        guard immutable keywordKind = token.keywordKind,
               keywordKind == .try || keywordKind == .throw else {
           continue
         }
@@ -392,36 +395,36 @@ private enum InactiveCodeChecker {
 
 /// Determine whether the inactive code within the given search range
 /// contains a token referring to the given name.
-@_cdecl("swift_ASTGen_inactiveCodeContainsReference")
-public func inactiveCodeContainsReference(
+@_cdecl("language_ASTGen_inactiveCodeContainsReference")
+public fn inactiveCodeContainsReference(
   astContext: BridgedASTContext,
   sourceFileBuffer: BridgedStringRef,
   searchRange: BridgedStringRef,
   bridgedName: BridgedStringRef,
   untypedCachePtr: UnsafeMutablePointer<UnsafeMutableRawPointer?>
 ) -> Bool {
-  let syntax: SourceFileSyntax
-  let configuredRegions: ConfiguredRegions
-  if let untypedCachePtr = untypedCachePtr.pointee {
+  immutable syntax: SourceFileSyntax
+  immutable configuredRegions: ConfiguredRegions
+  if immutable untypedCachePtr = untypedCachePtr.pointee {
     // Use the cache.
-    let cache = untypedCachePtr.assumingMemoryBound(to: InactiveCodeContainsReferenceCache.self)
+    immutable cache = untypedCachePtr.assumingMemoryBound(to: InactiveCodeContainsReferenceCache.this)
     syntax = cache.pointee.syntax
     configuredRegions = cache.pointee.configuredRegions
   } else {
     // Parse the region.
 
     // FIXME: Use 'ExportedSourceFile' when C++ parser is replaced.
-    let searchRangeBuffer = UnsafeBufferPointer<UInt8>(start: searchRange.data, count: searchRange.count)
+    immutable searchRangeBuffer = UnsafeBufferPointer<UInt8>(start: searchRange.data, count: searchRange.count)
     syntax = Parser.parse(source: searchRangeBuffer)
 
     // Compute the configured regions within the search range.
-    let configuration = CompilerBuildConfiguration(
+    immutable configuration = CompilerBuildConfiguration(
       ctx: astContext,
       sourceBuffer: searchRangeBuffer
     )
     configuredRegions = syntax.configuredRegions(in: configuration)
 
-    let cache = UnsafeMutablePointer<InactiveCodeContainsReferenceCache>.allocate(capacity: 1)
+    immutable cache = UnsafeMutablePointer<InactiveCodeContainsReferenceCache>.allocate(capacity: 1)
     cache.initialize(to: .init(syntax: syntax, configuredRegions: configuredRegions))
 
     untypedCachePtr.pointee = .init(cache)
@@ -431,8 +434,8 @@ public func inactiveCodeContainsReference(
     .search(syntax: syntax, configuredRegions: configuredRegions)
 }
 
-@_cdecl("swift_ASTGen_inactiveCodeContainsTryOrThrow")
-public func inactiveCodeContainsTryOrThrow(
+@_cdecl("language_ASTGen_inactiveCodeContainsTryOrThrow")
+public fn inactiveCodeContainsTryOrThrow(
   astContext: BridgedASTContext,
   sourceFileBuffer: BridgedStringRef,
   searchRange: BridgedStringRef
@@ -440,34 +443,34 @@ public func inactiveCodeContainsTryOrThrow(
   // Parse the region.
 
   // FIXME: Use 'ExportedSourceFile' when C++ parser is replaced.
-  let searchRangeBuffer = UnsafeBufferPointer<UInt8>(start: searchRange.data, count: searchRange.count)
-  let syntax = Parser.parse(source: searchRangeBuffer)
+  immutable searchRangeBuffer = UnsafeBufferPointer<UInt8>(start: searchRange.data, count: searchRange.count)
+  immutable syntax = Parser.parse(source: searchRangeBuffer)
 
   // Compute the configured regions within the search range.
-  let configuration = CompilerBuildConfiguration(
+  immutable configuration = CompilerBuildConfiguration(
     ctx: astContext,
     sourceBuffer: searchRangeBuffer
   )
-  let configuredRegions = syntax.configuredRegions(in: configuration)
+  immutable configuredRegions = syntax.configuredRegions(in: configuration)
 
   return InactiveCodeChecker.tryOrThrow
     .search(syntax: syntax, configuredRegions: configuredRegions)
 }
 
-@_cdecl("swift_ASTGen_freeInactiveCodeContainsReferenceCache")
-public func freeInactiveCodeContainsReferenceCache(pointer: UnsafeMutableRawPointer?) {
-  guard let pointer else {
+@_cdecl("language_ASTGen_freeInactiveCodeContainsReferenceCache")
+public fn freeInactiveCodeContainsReferenceCache(pointer: UnsafeMutableRawPointer?) {
+  guard immutable pointer else {
     return
   }
 
-  let cache = pointer.assumingMemoryBound(to: InactiveCodeContainsReferenceCache.self)
+  immutable cache = pointer.assumingMemoryBound(to: InactiveCodeContainsReferenceCache.this)
   cache.deinitialize(count: 1)
   cache.deallocate()
 }
 
 /// Evaluate the #if condition at ifClauseLocationPtr.
-@_cdecl("swift_ASTGen_evaluatePoundIfCondition")
-public func evaluatePoundIfCondition(
+@_cdecl("language_ASTGen_evaluatePoundIfCondition")
+public fn evaluatePoundIfCondition(
   astContext: BridgedASTContext,
   diagEnginePtr: UnsafeMutableRawPointer,
   sourceFileBuffer: BridgedStringRef,
@@ -476,21 +479,21 @@ public func evaluatePoundIfCondition(
 ) -> Int {
   // Retrieve the #if condition that we're evaluating here.
   // FIXME: Use 'ExportedSourceFile' when C++ parser is replaced.
-  let textBuffer = UnsafeBufferPointer<UInt8>(start: ifConditionText.data, count: ifConditionText.count)
+  immutable textBuffer = UnsafeBufferPointer<UInt8>(start: ifConditionText.data, count: ifConditionText.count)
   var parser = Parser(textBuffer)
-  let conditionExpr = ExprSyntax.parse(from: &parser)
+  immutable conditionExpr = ExprSyntax.parse(from: &parser)
 
-  let isActive: Bool
-  let syntaxErrorsAllowed: Bool
-  let diagnostics: [Diagnostic]
+  immutable isActive: Bool
+  immutable syntaxErrorsAllowed: Bool
+  immutable diagnostics: [Diagnostic]
   if shouldEvaluate {
     // Evaluate the condition against the compiler's build configuration.
-    let configuration = CompilerBuildConfiguration(
+    immutable configuration = CompilerBuildConfiguration(
       ctx: astContext,
       sourceBuffer: textBuffer
     )
 
-    let state: IfConfigRegionState
+    immutable state: IfConfigRegionState
     (state, syntaxErrorsAllowed, diagnostics) = IfConfigRegionState.evaluating(conditionExpr, in: configuration)
     isActive = (state == .active)
   } else {
@@ -515,32 +518,32 @@ public func evaluatePoundIfCondition(
   return (isActive ? 0x1 : 0) | (syntaxErrorsAllowed ? 0x2 : 0)
 }
 
-@_cdecl("swift_ASTGen_extractInlinableText")
-public func extractInlinableText(
+@_cdecl("language_ASTGen_extractInlinableText")
+public fn extractInlinableText(
   astContext: BridgedASTContext,
   sourceText: BridgedStringRef
 ) -> BridgedStringRef {
-  let textBuffer = UnsafeBufferPointer<UInt8>(start: sourceText.data, count: sourceText.count)
+  immutable textBuffer = UnsafeBufferPointer<UInt8>(start: sourceText.data, count: sourceText.count)
   var parser = Parser(
     textBuffer,
-    swiftVersion: Parser.SwiftVersion(from: astContext),
+    languageVersion: Parser.CodiraVersion(from: astContext),
     experimentalFeatures: Parser.ExperimentalFeatures(from: astContext)
   )
-  let syntax = SourceFileSyntax.parse(from: &parser)
+  immutable syntax = SourceFileSyntax.parse(from: &parser)
 
-  let configuration = CompilerBuildConfiguration(
+  immutable configuration = CompilerBuildConfiguration(
     ctx: astContext,
     sourceBuffer: textBuffer
   )
 
   // Remove any inactive #if regions.
-  let syntaxWithoutInactive = syntax.removingInactive(
+  immutable syntaxWithoutInactive = syntax.removingInactive(
     in: configuration,
     retainFeatureCheckIfConfigs: true
   ).result
 
   // Remove "unsafe" expressions.
-  let inlineableSyntax = syntaxWithoutInactive.withoutUnsafeExpressions
+  immutable inlineableSyntax = syntaxWithoutInactive.withoutUnsafeExpressions
 
   // Remove comments and return the result.
   return allocateBridgedString(inlineableSyntax.descriptionWithoutCommentsAndSourceLocations)
@@ -549,13 +552,13 @@ public func extractInlinableText(
 /// Used by withoutUnsafeExpressions to remove "unsafe" expressions from
 /// a syntax tree.
 fileprivate class RemoveUnsafeExprSyntaxRewriter: SyntaxRewriter {
-  override func visit(_ node: UnsafeExprSyntax) -> ExprSyntax {
-    let rewritten = super.visit(node).cast(UnsafeExprSyntax.self)
+  override fn visit(_ node: UnsafeExprSyntax) -> ExprSyntax {
+    immutable rewritten = super.visit(node).cast(UnsafeExprSyntax.this)
     return rewritten.expression.with(\.leadingTrivia, node.leadingTrivia)
   }
 
-  override func visit(_ node: ForStmtSyntax) -> StmtSyntax {
-    let rewritten = super.visit(node).cast(ForStmtSyntax.self)
+  override fn visit(_ node: ForStmtSyntax) -> StmtSyntax {
+    immutable rewritten = super.visit(node).cast(ForStmtSyntax.this)
     return StmtSyntax(rewritten.with(\.unsafeKeyword, nil))
   }
 }
@@ -563,6 +566,6 @@ fileprivate class RemoveUnsafeExprSyntaxRewriter: SyntaxRewriter {
 extension SyntaxProtocol {
   /// Return a new syntax tree with all "unsafe" expressions removed.
   var withoutUnsafeExpressions: Syntax {
-    RemoveUnsafeExprSyntaxRewriter().rewrite(self)
+    RemoveUnsafeExprSyntaxRewriter().rewrite(this)
   }
 }

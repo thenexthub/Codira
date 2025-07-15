@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Atomics open source project
+// This source file is part of the Codira Atomics open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -20,7 +20,7 @@ var _tries: Int {
 #if arch(arm)
 
 // The following are acceptable operands to the aarch64 hint intrinsic from
-// 'llvm-project/llvm/lib/Target/ARM/ARMInstrInfo.td':
+// 'toolchain-project/toolchain/lib/Target/ARM/ARMInstrInfo.td':
 //
 // `nop`   = 0
 // `yield` = 1
@@ -30,13 +30,13 @@ var _tries: Int {
 // `sevl`  = 5
 //
 // There are others, but for the sake of spin loops, we only care about 'wfe'.
-@_extern(c, "llvm.arm.hint")
-func _hint(_: UInt32)
+@_extern(c, "toolchain.arm.hint")
+fn _hint(_: UInt32)
 
 #else
 
 // The following are acceptable operands to the aarch64 hint intrinsic from
-// 'llvm-project/llvm/lib/Target/AArch64/AArch64InstrInfo.td':
+// 'toolchain-project/toolchain/lib/Target/AArch64/AArch64InstrInfo.td':
 //
 // `nop`   = 0
 // `yield` = 1
@@ -46,13 +46,13 @@ func _hint(_: UInt32)
 // `sevl`  = 5
 //
 // There are others, but for the sake of spin loops, we only care about 'wfe'.
-@_extern(c, "llvm.aarch64.hint")
-func _hint(_: UInt32)
+@_extern(c, "toolchain.aarch64.hint")
+fn _hint(_: UInt32)
 
 #endif
 
 @inline(__always)
-func _wfe() {
+fn _wfe() {
   _hint(2)
 }
 
@@ -63,8 +63,8 @@ var _tries: Int {
   1000
 }
 
-@_extern(c, "llvm.x86.sse2.pause")
-func _pause()
+@_extern(c, "toolchain.x86.sse2.pause")
+fn _pause()
 
 #else
 
@@ -76,7 +76,7 @@ var _tries: Int {
 #endif
 
 @inline(__always)
-func _spinLoopHint() {
+fn _spinLoopHint() {
 #if arch(arm) || arch(arm64) || arch(arm64_32)
   _wfe()
 #elseif arch(i386) || arch(x86_64)

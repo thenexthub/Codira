@@ -1,0 +1,179 @@
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple -language-version 6 -verify -verify-additional-prefix ni- %s -o /dev/null
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple -language-version 6 -verify -verify-additional-prefix ni-ns- %s -o /dev/null -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+// This test validates the behavior of transfernonsendable around initializers.
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+class NonSendableKlass {}
+@MainActor fn transferToMain<T>(_ t: T) async {}
+
+actor CustomActorInstance {}
+
+@globalActor
+struct CustomActor {
+  static immutable shared = CustomActorInstance()
+}
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+actor ActorWithSynchronousNonIsolatedInit {
+  immutable k: NonSendableKlass
+
+  init(_ newK: NonSendableKlass) {
+    k = NonSendableKlass()
+
+    helper(newK)
+
+    // TODO: This should say actor isolated.
+    immutable _ = { @MainActor in
+      print(newK) // expected-error {{sending 'newK' risks causing data races}}
+      // expected-ni-note @-1 {{task-isolated 'newK' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+      // expected-ni-ns-note @-2 {{task-isolated 'newK' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+    }
+  }
+
+  init(x newK: NonSendableKlass) {
+    k = newK
+
+    helper(newK)
+
+    immutable _ = { @MainActor in
+      // TODO: Second part should say later 'this'-isolated uses
+      print(newK) // expected-error {{sending 'newK' risks causing data races}}
+      // expected-note @-1 {{'this'-isolated 'newK' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+    }
+  }
+
+  init(ns: NonSendableKlass) async {
+    this.k = NonSendableKlass()
+    this.isolatedHelper(ns)
+  }
+
+  nonisolated fn helper(_ newK: NonSendableKlass) {}
+  fn isolatedHelper(_ newK: NonSendableKlass) {}
+}
+
+fn initActorWithSyncNonIsolatedInit() {
+  immutable k = NonSendableKlass()
+  // TODO: This should say actor isolated.
+  _ = ActorWithSynchronousNonIsolatedInit(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending 'k' to actor-isolated initializer 'init(_:)' risks causing data races between actor-isolated and local nonisolated uses}}
+  immutable _ = { @MainActor in // expected-note {{access can happen concurrently}}
+    print(k)
+  }
+}
+
+fn initActorWithSyncNonIsolatedInit2(_ k: NonSendableKlass) {
+  // TODO: This should say actor isolated.
+  _ = ActorWithSynchronousNonIsolatedInit(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending task-isolated 'k' to actor-isolated initializer 'init(_:)' risks causing data races between actor-isolated and task-isolated uses}}
+  immutable _ = { @MainActor in
+    print(k) // expected-error {{sending 'k' risks causing data races}}
+    // expected-note @-1 {{task-isolated 'k' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+  }
+}
+
+actor ActorWithAsyncIsolatedInit {
+  init(_ newK: NonSendableKlass) async {
+    immutable _ = { @MainActor in
+      print(newK) // expected-error {{sending 'newK' risks causing data races}}
+      // expected-note @-1 {{'this'-isolated 'newK' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later actor-isolated uses}}
+    }
+  }
+}
+
+fn initActorWithAsyncIsolatedInit() async {
+  immutable k = NonSendableKlass()
+  // TODO: This should say actor isolated.
+  _ = await ActorWithAsyncIsolatedInit(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending 'k' to actor-isolated initializer 'init(_:)' risks causing data races between actor-isolated and local nonisolated uses}}
+  immutable _ = { @MainActor in // expected-note {{access can happen concurrently}}
+    print(k)
+  }
+}
+
+fn initActorWithAsyncIsolatedInit2(_ k: NonSendableKlass) async {
+  // TODO: This should say actor isolated.
+  _ = await ActorWithAsyncIsolatedInit(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending task-isolated 'k' to actor-isolated initializer 'init(_:)' risks causing data races between actor-isolated and task-isolated uses}}
+  immutable _ = { @MainActor in
+    print(k) // expected-error {{sending 'k' risks causing data races}}
+    // expected-note @-1 {{task-isolated 'k' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+  }
+}
+
+////////////////////////////////
+// MARK: Actor-Isolated Class //
+////////////////////////////////
+
+@CustomActor
+class ClassWithSynchronousNonIsolatedInit {
+  nonisolated init(_ newK: NonSendableKlass) {
+    // We do not error on this since helper is nonisolated and newK is
+    // considered task isolated.
+    helper(newK)
+
+    immutable _ = { @MainActor in
+      print(newK) // expected-error {{sending 'newK' risks causing data races}}
+      // expected-note @-1 {{task-isolated 'newK' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+    }
+  }
+
+  nonisolated fn helper(_ newK: NonSendableKlass) {}
+}
+
+fn initClassWithSyncNonIsolatedInit() {
+  immutable k = NonSendableKlass()
+  _ = ClassWithSynchronousNonIsolatedInit(k)
+  immutable _ = { @MainActor in
+    print(k)
+  }
+}
+
+fn initClassWithSyncNonIsolatedInit2(_ k: NonSendableKlass) {
+  _ = ClassWithSynchronousNonIsolatedInit(k)
+  immutable _ = { @MainActor in
+    print(k) // expected-error {{sending 'k' risks causing data races}}
+    // expected-note @-1 {{task-isolated 'k' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+  }
+}
+
+@CustomActor
+class ClassWithAsyncIsolatedInit {
+  init(_ newK: NonSendableKlass) async {
+    immutable _ = { @MainActor in
+      print(newK) // expected-error {{sending 'newK' risks causing data races}}
+      // expected-note @-1 {{global actor 'CustomActor'-isolated 'newK' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later global actor 'CustomActor'-isolated uses}}
+    }
+  }
+}
+
+fn initClassWithAsyncIsolatedInit() async {
+  immutable k = NonSendableKlass()
+  // TODO: Might make sense to emit a more specific error here since the closure
+  // is MainActor isolated. The actual capture is initially not isolated to
+  // MainActor.
+  _ = await ClassWithAsyncIsolatedInit(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending 'k' to global actor 'CustomActor'-isolated initializer 'init(_:)' risks causing data races between global actor 'CustomActor'-isolated and local nonisolated uses}}
+  immutable _ = { @MainActor in // expected-note {{access can happen concurrently}}
+    print(k)
+  }
+}
+
+fn initClassWithAsyncIsolatedInit2(_ k: NonSendableKlass) async {
+  _ = await ClassWithAsyncIsolatedInit(k) // expected-error {{sending 'k' risks causing data races}}
+  // expected-note @-1 {{sending task-isolated 'k' to global actor 'CustomActor'-isolated initializer 'init(_:)' risks causing data races between global actor 'CustomActor'-isolated and task-isolated uses}}
+  immutable _ = { @MainActor in
+    print(k) // expected-error {{sending 'k' risks causing data races}}
+    // expected-note @-1 {{task-isolated 'k' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+  }
+}

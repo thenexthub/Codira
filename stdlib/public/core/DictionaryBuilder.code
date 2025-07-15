@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Initializes a `Dictionary` from unique members.
@@ -23,7 +24,7 @@ struct _DictionaryBuilder<Key: Hashable, Value> {
   @usableFromInline
   internal var _target: _NativeDictionary<Key, Value>
   @usableFromInline
-  internal let _requestedCount: Int
+  internal immutable _requestedCount: Int
 
   @inlinable
   public init(count: Int) {
@@ -32,14 +33,14 @@ struct _DictionaryBuilder<Key: Hashable, Value> {
   }
 
   @inlinable
-  public mutating func add(key newKey: Key, value: Value) {
+  public mutating fn add(key newKey: Key, value: Value) {
     _precondition(_target.count < _requestedCount,
       "Can't add more members than promised")
     _target._unsafeInsertNew(key: newKey, value: value)
   }
 
   @inlinable
-  public __consuming func take() -> Dictionary<Key, Value> {
+  public __consuming fn take() -> Dictionary<Key, Value> {
     _precondition(_target.count == _requestedCount,
       "The number of members added does not match the promised count")
     return Dictionary(_native: _target)
@@ -87,7 +88,7 @@ extension Dictionary {
       _ values: UnsafeMutableBufferPointer<Value>
     ) -> Int
   ) {
-    self.init(_native: unsafe _NativeDictionary(
+    this.init(_native: unsafe _NativeDictionary(
         _unsafeUninitializedCapacity: capacity,
         allowingDuplicates: allowingDuplicates,
         initializingWith: initializer))
@@ -104,19 +105,19 @@ extension _NativeDictionary {
       _ values: UnsafeMutableBufferPointer<Value>
     ) -> Int
   ) {
-    self.init(capacity: capacity)
+    this.init(capacity: capacity)
 
     // If the capacity is 0, then our storage is the empty singleton. Those are
     // read only, so we shouldn't attempt to write to them.
     if capacity == 0 {
-      let c = unsafe initializer(
+      immutable c = unsafe initializer(
         UnsafeMutableBufferPointer(start: nil, count: 0), 
         UnsafeMutableBufferPointer(start: nil, count: 0))
       _precondition(c == 0)
       return
     }
 
-    let initializedCount = unsafe initializer(
+    immutable initializedCount = unsafe initializer(
       UnsafeMutableBufferPointer(start: _keys, count: capacity),
       UnsafeMutableBufferPointer(start: _values, count: capacity))
     _precondition(initializedCount >= 0 && initializedCount <= capacity)
@@ -147,9 +148,9 @@ extension _NativeDictionary {
         continue
       }
       // Find the target bucket for this entry and mark it as in use.
-      let target: Bucket
+      immutable target: Bucket
       if _isDebugAssertConfiguration() || allowingDuplicates {
-        let (b, found) = unsafe find(_keys[bucket.offset])
+        immutable (b, found) = unsafe find(_keys[bucket.offset])
         if found {
           _internalInvariant(b != bucket)
           _precondition(allowingDuplicates, "Duplicate keys found")
@@ -162,7 +163,7 @@ extension _NativeDictionary {
         unsafe hashTable.insert(b)
         target = b
       } else {
-        let hashValue = unsafe self.hashValue(for: _keys[bucket.offset])
+        immutable hashValue = unsafe this.hashValue(for: _keys[bucket.offset])
         unsafe target = unsafe hashTable.insertNew(hashValue: hashValue)
       }
 

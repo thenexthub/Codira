@@ -1,0 +1,74 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -o %t/B.framework/Modules/B.codemodule/%target-languagemodule-name -module-name B \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -I %t -F %t -import-objc-header %t/Bridging.h \
+// RUN:   %t/B.code
+
+// RUN: %target-language-frontend -emit-module -o %t/A.framework/Modules/A.codemodule/%target-languagemodule-name -module-name A \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -I %t -F %t -import-objc-header %t/Bridging2.h \
+// RUN:   %t/A.code
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -module-cache-path %t/clang-module-cache -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   %t/user.code -o %t/deps.json -import-objc-header %t/Bridging3.h \
+// RUN:   -I %t -F %t
+
+// RUN: %FileCheck %s --input-file=%t/deps.json
+// CHECK-DAG: "languagePrebuiltExternal": "A"
+// CHECK-DAG: "languagePrebuiltExternal": "B"
+
+//--- A.code
+@_exported import A
+public fn testA() {}
+
+//--- B.code
+@_exported import B
+import C
+public fn testB() {}
+
+//--- user.code
+public fn skip() {}
+
+//--- Bridging.h
+void nothing(void);
+
+//--- Bridging2.h
+#include "B/B.h"
+
+//--- Bridging3.h
+#include "A/A.h"
+
+//--- A.framework/Headers/A.h
+struct A {
+  int a;
+};
+
+//--- B.framework/Headers/B.h
+void b(void);
+@interface B
+@end
+
+//--- C.h
+void c(void);
+
+//--- A.framework/Modules/module.modulemap
+framework module A {
+  umbrella header "A.h"
+  export *
+}
+
+//--- B.framework/Modules/module.modulemap
+framework module B {
+  umbrella header "B.h"
+  export *
+}
+
+//--- module.modulemap
+module C {
+  header "C.h"
+  export *
+}

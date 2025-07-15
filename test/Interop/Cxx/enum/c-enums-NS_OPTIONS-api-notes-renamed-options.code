@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-language-frontend %s -I %S/Inputs -typecheck -module-cache-path %t/cache -enable-experimental-cxx-interop 2>&1 | %FileCheck --allow-empty %s
+
+// REQUIRES: objc_interop
+
+import CenumsNSOptions
+
+// CHECK-NOT: warning: imported declaration 'API_NOTES_NAMED_OptionOne' could not be mapped to 'CodiraOptionOneApiNotes'
+// CHECK-NOT: warning: imported declaration 'API_NOTES_NAMED_OptionTwo' could not be mapped to 'CodiraOptionTwoApiNotes'
+// CHECK-NOT: warning: imported declaration 'API_NOTES_NAMED_OptionThree' could not be mapped to 'CodiraOptionThreeApiNotes'
+// CHECK-NOT: warning: imported declaration 'API_NOTES_NAMED_OptionFour' could not be mapped to 'CodiraOptionFourApiNotes'

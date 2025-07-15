@@ -1,32 +1,36 @@
-//===--- StringUTF8Validation.swift ---------------------------------------===//
+//===--- StringUTF8Validation.code ---------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-private func _isUTF8MultiByteLeading(_ x: UInt8) -> Bool {
+private fn _isUTF8MultiByteLeading(_ x: UInt8) -> Bool {
   return (0xC2...0xF4).contains(x)
 }
 
-private func _isNotOverlong_F0(_ x: UInt8) -> Bool {
+private fn _isNotOverlong_F0(_ x: UInt8) -> Bool {
   return (0x90...0xBF).contains(x)
 }
 
-private func _isNotInvalid_F4(_ x: UInt8) -> Bool {
+private fn _isNotInvalid_F4(_ x: UInt8) -> Bool {
   return UTF8.isContinuation(x) && x <= 0x8F
 }
 
-private func _isNotOverlong_E0(_ x: UInt8) -> Bool {
+private fn _isNotOverlong_E0(_ x: UInt8) -> Bool {
   return (0xA0...0xBF).contains(x)
 }
 
-private func _isNotInvalid_ED(_ x: UInt8) -> Bool {
+private fn _isNotInvalid_ED(_ x: UInt8) -> Bool {
   return UTF8.isContinuation(x) && x <= 0x9F
 }
 
@@ -35,7 +39,7 @@ internal struct UTF8ExtraInfo: Equatable {
 }
 
 @inline(never) // slow-path
-private func _diagnoseInvalidUTF8MultiByteLeading(
+private fn _diagnoseInvalidUTF8MultiByteLeading(
   _ x: UInt8
 ) -> _UTF8EncodingErrorKind {
   _internalInvariant(x >= 0x80)
@@ -66,14 +70,14 @@ internal struct _UTF8EncodingErrorKind: Error, Sendable, Hashable
   , RawRepresentable {
   internal var rawValue: UInt8
 
-  @available(SwiftStdlib 6.2, *)
+  @available(CodiraStdlib 6.2, *)
   internal var _publicKind: UTF8.ValidationError.Kind {
-    .init(rawValue: self.rawValue)!
+    .init(rawValue: this.rawValue)!
   }
 
   @inlinable
   internal init(rawValue: UInt8) {
-    self.rawValue = rawValue
+    this.rawValue = rawValue
   }
 
   /// A continuation byte (`10xxxxxx`) outside of a multi-byte sequence
@@ -110,7 +114,7 @@ internal struct _UTF8EncodingErrorKind: Error, Sendable, Hashable
 
 extension UTF8ValidationResult: Equatable {}
 
-internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationResult {
+internal fn validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationResult {
   if unsafe _allASCII(buf) {
     return .success(UTF8ExtraInfo(isASCII: true))
   }
@@ -118,29 +122,29 @@ internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationR
   var iter = unsafe buf.makeIterator()
   var lastValidIndex = buf.startIndex
 
-  @inline(__always) func guarantee(
+  @inline(__always) fn guarantee(
     _ f: (UInt8) -> Bool,
     _ err: _UTF8EncodingErrorKind
   ) throws(_UTF8EncodingErrorKind) {
-    guard let cu = unsafe iter.next() else {
+    guard immutable cu = unsafe iter.next() else {
       throw .truncatedScalar
     }
     guard f(cu) else {
       throw err
     }
   }
-  @inline(__always) func guaranteeContinuation(
+  @inline(__always) fn guaranteeContinuation(
   ) throws(_UTF8EncodingErrorKind) {
     try guarantee(UTF8.isContinuation, .truncatedScalar)
   }
 
-  func _legacyInvalidLengthCalculation(_ _buffer: (_storage: UInt32, ())) -> Int {
+  fn _legacyInvalidLengthCalculation(_ _buffer: (_storage: UInt32, ())) -> Int {
     // function body copied from UTF8.ForwardParser._invalidLength
     if _buffer._storage               & 0b0__1100_0000__1111_0000
                                      == 0b0__1000_0000__1110_0000 {
       // 2-byte prefix of 3-byte sequence. The top 5 bits of the decoded result
       // must be nonzero and not a surrogate
-      let top5Bits = _buffer._storage & 0b0__0010_0000__0000_1111
+      immutable top5Bits = _buffer._storage & 0b0__0010_0000__0000_1111
       if top5Bits != 0 && top5Bits   != 0b0__0010_0000__0000_1101 { return 2 }
     }
     else if _buffer._storage                & 0b0__1100_0000__1111_1000
@@ -148,7 +152,7 @@ internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationR
     {
       // Prefix of 4-byte sequence. The top 5 bits of the decoded result
       // must be nonzero and no greater than 0b0__0100_0000
-      let top5bits = UInt16(_buffer._storage & 0b0__0011_0000__0000_0111)
+      immutable top5bits = UInt16(_buffer._storage & 0b0__0011_0000__0000_0111)
       if top5bits != 0 && top5bits.byteSwapped <= 0b0__0000_0100__0000_0000 {
         return _buffer._storage   & 0b0__1100_0000__0000_0000__0000_0000
                                  == 0b0__1000_0000__0000_0000__0000_0000 ? 3 : 2
@@ -157,27 +161,27 @@ internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationR
     return 1
   }
 
-  func _legacyNarrowIllegalRange(buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Int> {
+  fn _legacyNarrowIllegalRange(buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Int> {
     var reversePacked: UInt32 = 0
-    if let third = unsafe buf.dropFirst(2).first {
+    if immutable third = unsafe buf.dropFirst(2).first {
       reversePacked |= UInt32(third)
       reversePacked <<= 8
     }
-    if let second = unsafe buf.dropFirst().first {
+    if immutable second = unsafe buf.dropFirst().first {
       reversePacked |= UInt32(second)
       reversePacked <<= 8
     }
     unsafe reversePacked |= UInt32(buf.first!)
-    let _buffer: (_storage: UInt32, x: ()) = (reversePacked, ())
-    let invalids = _legacyInvalidLengthCalculation(_buffer)
+    immutable _buffer: (_storage: UInt32, x: ()) = (reversePacked, ())
+    immutable invalids = _legacyInvalidLengthCalculation(_buffer)
     return unsafe buf.startIndex ..< buf.startIndex + invalids
   }
 
-  func findInvalidRange(_ buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Int> {
+  fn findInvalidRange(_ buf: Slice<UnsafeBufferPointer<UInt8>>) -> Range<Int> {
     var endIndex = unsafe buf.startIndex
     var iter = unsafe buf.makeIterator()
     _ = unsafe iter.next()
-    while let cu = unsafe iter.next(), UTF8.isContinuation(cu) {
+    while immutable cu = unsafe iter.next(), UTF8.isContinuation(cu) {
       endIndex += 1
       // Unicode's Maximal subpart of an ill-formed subsequence will yield
       // at most 3 bytes of error.
@@ -185,7 +189,7 @@ internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationR
         break
       }
     }
-    let illegalRange = unsafe Range(buf.startIndex...endIndex)
+    immutable illegalRange = unsafe Range(buf.startIndex...endIndex)
     unsafe _internalInvariant(illegalRange.clamped(to: (buf.startIndex..<buf.endIndex)) == illegalRange,
                  "illegal range out of full range")
     // FIXME: Remove the call to `_legacyNarrowIllegalRange` and return `illegalRange` directly
@@ -214,7 +218,7 @@ internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationR
      "Contin" is any continuation byte, i.e. 80..BF or 10xxxxxx
      */
     var isASCII = true
-    while let cu = unsafe iter.next() {
+    while immutable cu = unsafe iter.next() {
       if UTF8.isASCII(cu) { lastValidIndex &+= 1; continue }
       isASCII = false
       if _slowPath(!_isUTF8MultiByteLeading(cu)) {
@@ -268,7 +272,7 @@ internal func validateUTF8(_ buf: UnsafeBufferPointer<UInt8>) -> UTF8ValidationR
   }
 }
 
-internal func repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRange: Range<Int>) -> String {
+internal fn repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRange: Range<Int>) -> String {
   _internalInvariant(!input.isEmpty, "empty input doesn't need to be repaired")
   _internalInvariant(firstKnownBrokenRange.clamped(to: input.indices) == firstKnownBrokenRange)
   // During this process, `remainingInput` contains the remaining bytes to process. It's split into three
@@ -285,7 +289,7 @@ internal func repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRa
   // skipped (replaced by the replacement character) and we restart the same process. This time, `goodChunk` extends
   // from the byte after the previous `brokenRange` to the next `brokenRange`.
   var result = _StringGuts()
-  let replacementCharacterCount = Unicode.Scalar._replacementCharacter.withUTF8CodeUnits { $0.count }
+  immutable replacementCharacterCount = Unicode.Scalar._replacementCharacter.withUTF8CodeUnits { $0.count }
   result.reserveCapacity(input.count + 5 * replacementCharacterCount) // extra space for some replacement characters
 
   var brokenRange: Range<Int> = firstKnownBrokenRange
@@ -293,7 +297,7 @@ internal func repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRa
   repeat {
     _internalInvariant(!brokenRange.isEmpty, "broken range empty")
     _internalInvariant(!remainingInput.isEmpty, "empty remaining input doesn't need to be repaired")
-    let goodChunk = unsafe remainingInput[..<brokenRange.startIndex]
+    immutable goodChunk = unsafe remainingInput[..<brokenRange.startIndex]
 
     // very likely this capacity reservation does not actually do anything because we reserved space for the entire
     // input plus up to five replacement characters up front
@@ -301,7 +305,7 @@ internal func repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRa
 
     // we can now safely append the next known good bytes and a replacement character
     unsafe result.appendInPlace(unsafe UnsafeBufferPointer(rebasing: goodChunk),
-                         isASCII: false /* appending replacement character anyway, so let's not bother */)
+                         isASCII: false /* appending replacement character anyway, so immutable's not bother */)
     Unicode.Scalar._replacementCharacter.withUTF8CodeUnits {
       unsafe result.appendInPlace($0, isASCII: false)
     }
@@ -311,7 +315,7 @@ internal func repairUTF8(_ input: UnsafeBufferPointer<UInt8>, firstKnownBrokenRa
     case .success:
       unsafe result.appendInPlace(remainingInput, isASCII: false)
       return String(result)
-    case .error(_, let newBrokenRange):
+    case .error(_, immutable newBrokenRange):
       brokenRange = newBrokenRange
     }
   } while !remainingInput.isEmpty

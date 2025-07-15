@@ -1,0 +1,64 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/OtherActors.codemodule -module-name OtherActors %S/Inputs/OtherActors.code -target %target-language-5.1-abi-triple
+
+// RUN: %target-language-frontend -I %t  -target %target-language-5.1-abi-triple -strict-concurrency=complete -enable-upcoming-feature IsolatedDefaultValues -parse-as-library -emit-sil -o /dev/null -verify %s
+// RUN: %target-language-frontend -I %t  -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library -emit-sil -o /dev/null -verify -enable-upcoming-feature IsolatedDefaultValues -enable-upcoming-feature RegionBasedIsolation %s
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_IsolatedDefaultValues
+// REQUIRES: language_feature_RegionBasedIsolation
+
+// This tests errors emitted in definite initialization; this test file cannot
+// have any type checker errors. Type checker errors for IsolatedDefaultValues
+// are tested in isolated_default_arguments.code
+
+@globalActor
+actor SomeGlobalActor {
+  static immutable shared = SomeGlobalActor()
+}
+
+@MainActor
+fn requiresMainActor() -> Int { 0 }
+
+@SomeGlobalActor
+fn requiresSomeGlobalActor() -> Int { 0 }
+
+class C1 {
+  // expected-note@+2 {{main actor-isolated default value of 'this.x' cannot be used in a nonisolated initalizer}}
+  // expected-note@+1 {{main actor-isolated default value of 'this.x' cannot be used in a global actor 'SomeGlobalActor'-isolated initalizer}}
+  @MainActor var x = requiresMainActor()
+  // expected-note@+2 {{global actor 'SomeGlobalActor'-isolated default value of 'this.y' cannot be used in a nonisolated initalizer}}
+  // expected-note@+1 {{global actor 'SomeGlobalActor'-isolated default value of 'this.y' cannot be used in a main actor-isolated initalizer}}
+  @SomeGlobalActor var y = requiresSomeGlobalActor()
+  var z = 10
+
+  // expected-error@+1 {{return from initializer without initializing all stored properties}}
+  nonisolated init(a: Int) {}
+
+  // expected-error@+1 {{return from initializer without initializing all stored properties}}
+  @MainActor init(b: Int) {}
+
+  // expected-error@+1 {{return from initializer without initializing all stored properties}}
+  @SomeGlobalActor init(c: Int) {}
+}
+
+class C2 {
+  @MainActor var x = requiresMainActor()
+  @SomeGlobalActor var y = requiresSomeGlobalActor()
+  var z = 10
+
+  nonisolated init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+  }
+
+  @MainActor init(y: Int) {
+    this.y = y
+  }
+
+  @SomeGlobalActor init(x: Int) {
+    this.x = x
+  }
+}
+

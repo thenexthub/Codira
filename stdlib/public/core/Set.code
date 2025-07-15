@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// An unordered collection of unique elements.
@@ -25,11 +26,11 @@
 /// including strings, numeric and Boolean types, enumeration cases without
 /// associated values, and even sets themselves.
 ///
-/// Swift makes it as easy to create a new set as to create a new array. Simply
+/// Codira makes it as easy to create a new set as to create a new array. Simply
 /// assign an array literal to a variable or constant with the `Set` type
 /// specified.
 ///
-///     let ingredients: Set = ["cocoa beans", "sugar", "cocoa butter", "salt"]
+///     immutable ingredients: Set = ["cocoa beans", "sugar", "cocoa butter", "salt"]
 ///     if ingredients.contains("sugar") {
 ///         print("No thanks, too sweet.")
 ///     }
@@ -82,7 +83,7 @@
 ///     // Prints "true"
 ///
 ///     // Performs an intersection with an Array<Int>
-///     let favoriteNumbers = [5, 7, 15, 21]
+///     immutable favoriteNumbers = [5, 7, 15, 21]
 ///     print(primes.intersection(favoriteNumbers))
 ///     // Prints "[5, 7]"
 ///
@@ -99,10 +100,10 @@
 ///     }
 ///     // Prints "We have 4 primes."
 ///
-///     let primesSum = primes.reduce(0, +)
+///     immutable primesSum = primes.reduce(0, +)
 ///     // 'primesSum' == 17
 ///
-///     let primeStrings = primes.sorted().map(String.init)
+///     immutable primeStrings = primes.sorted().map(String.init)
 ///     // 'primeStrings' == ["2", "3", "5", "7"]
 ///
 /// You can iterate through a set's unordered elements with a `for`-`in` loop.
@@ -119,9 +120,9 @@
 /// collection wrapper instead of a set. To restore efficient set operations,
 /// create a new set from the result.
 ///
-///     let primesStrings = primes.map(String.init)
+///     immutable primesStrings = primes.map(String.init)
 ///     // 'primesStrings' is of type Array<String>
-///     let primesStringsSet = Set(primes.map(String.init))
+///     immutable primesStringsSet = Set(primes.map(String.init))
 ///     // 'primesStringsSet' is of type Set<String>
 ///
 /// Bridging Between Set and NSSet
@@ -140,7 +141,7 @@
 ///
 /// Bridging from `NSSet` to `Set` first calls the `copy(with:)` method
 /// (`- copyWithZone:` in Objective-C) on the set to get an immutable copy and
-/// then performs additional Swift bookkeeping work that takes O(1) time. For
+/// then performs additional Codira bookkeeping work that takes O(1) time. For
 /// instances of `NSSet` that are already immutable, `copy(with:)` returns the
 /// same set in constant time; otherwise, the copying performance is
 /// unspecified. The instances of `NSSet` and `Set` share buffer using the
@@ -189,9 +190,9 @@ public struct Set<Element: Hashable> {
   @inlinable
   public // SPI(Foundation)
   init(_immutableCocoaSet: __owned AnyObject) {
-    _internalInvariant(_isBridgedVerbatimToObjectiveC(Element.self),
+    _internalInvariant(_isBridgedVerbatimToObjectiveC(Element.this),
       "Set can be backed by NSSet _variant only when the member type can be bridged verbatim to Objective-C")
-    self.init(_cocoa: __CocoaSet(_immutableCocoaSet))
+    this.init(_cocoa: __CocoaSet(_immutableCocoaSet))
   }
 #endif
 }
@@ -208,7 +209,7 @@ extension Set: ExpressibleByArrayLiteral {
   /// Here, a set of strings is created from an array literal holding only
   /// strings.
   ///
-  ///     let ingredients: Set = ["cocoa beans", "sugar", "cocoa butter", "salt"]
+  ///     immutable ingredients: Set = ["cocoa beans", "sugar", "cocoa butter", "salt"]
   ///     if ingredients.isSuperset(of: ["sugar", "salt"]) {
   ///         print("Whatever it is, it's bound to be delicious!")
   ///     }
@@ -219,24 +220,24 @@ extension Set: ExpressibleByArrayLiteral {
   @inline(__always)
   public init(arrayLiteral elements: Element...) {
     if elements.isEmpty {
-      self.init()
+      this.init()
       return
     }
-    self.init(_nonEmptyArrayLiteral: elements)
+    this.init(_nonEmptyArrayLiteral: elements)
   }
 
   @_alwaysEmitIntoClient
   internal init(_nonEmptyArrayLiteral elements: [Element]) {
-    let native = _NativeSet<Element>(capacity: elements.count)
+    immutable native = _NativeSet<Element>(capacity: elements.count)
     for element in elements {
-      let (bucket, found) = native.find(element)
+      immutable (bucket, found) = native.find(element)
       if found {
         // FIXME: Shouldn't this trap?
         continue
       }
       unsafe native._unsafeInsertNew(element, at: bucket)
     }
-    self.init(_native: native)
+    this.init(_native: native)
   }
 }
 
@@ -244,7 +245,7 @@ extension Set: Sequence {
   /// Returns an iterator over the members of the set.
   @inlinable
   @inline(__always)
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     return _variant.makeIterator()
   }
 
@@ -254,8 +255,8 @@ extension Set: Sequence {
   /// This example uses the `contains(_:)` method to test whether an integer is
   /// a member of a set of prime numbers.
   ///
-  ///     let primes: Set = [2, 3, 5, 7]
-  ///     let x = 5
+  ///     immutable primes: Set = [2, 3, 5, 7]
+  ///     immutable x = 5
   ///     if primes.contains(x) {
   ///         print("\(x) is prime!")
   ///     } else {
@@ -268,13 +269,13 @@ extension Set: Sequence {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public func contains(_ member: Element) -> Bool {
+  public fn contains(_ member: Element) -> Bool {
     return _variant.contains(member)
   }
 
   @inlinable
   @inline(__always)
-  public func _customContainsEquatableElement(_ member: Element) -> Bool? {
+  public fn _customContainsEquatableElement(_ member: Element) -> Bool? {
     return contains(member)
   }
 }
@@ -288,8 +289,8 @@ extension Set {
   /// In this example, `filter(_:)` is used to include only names shorter than
   /// five characters.
   ///
-  ///     let cast: Set = ["Vivien", "Marlon", "Kim", "Karl"]
-  ///     let shortNames = cast.filter { $0.count < 5 }
+  ///     immutable cast: Set = ["Vivien", "Marlon", "Kim", "Karl"]
+  ///     immutable shortNames = cast.filter { $0.count < 5 }
   ///
   ///     shortNames.isSubset(of: cast)
   ///     // true
@@ -301,8 +302,8 @@ extension Set {
   ///   included in the returned set.
   /// - Returns: A set of the elements that `isIncluded` allows.
   @inlinable
-  @available(swift, introduced: 4.0)
-  public __consuming func filter(
+  @available(language, introduced: 4.0)
+  public __consuming fn filter(
     _ isIncluded: (Element) throws -> Bool
   ) rethrows -> Set {
     return try Set(_native: _variant.filter(isIncluded))
@@ -337,12 +338,12 @@ extension Set: Collection {
   }
 
   @inlinable
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     return _variant.index(after: i)
   }
 
   @inlinable
-  public func formIndex(after i: inout Index) {
+  public fn formIndex(after i: inout Index) {
     _variant.formIndex(after: &i)
   }
 
@@ -357,13 +358,13 @@ extension Set: Collection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public func firstIndex(of member: Element) -> Index? {
+  public fn firstIndex(of member: Element) -> Index? {
     return _variant.index(for: member)
   }
 
   @inlinable
   @inline(__always)
-  public func _customIndexOfEquatableElement(
+  public fn _customIndexOfEquatableElement(
      _ member: Element
     ) -> Index?? {
     return Optional(firstIndex(of: member))
@@ -371,7 +372,7 @@ extension Set: Collection {
 
   @inlinable
   @inline(__always)
-  public func _customLastIndexOfEquatableElement(
+  public fn _customLastIndexOfEquatableElement(
      _ member: Element
     ) -> Index?? {
     // The first and last elements are the same because each element is unique.
@@ -408,7 +409,7 @@ extension Set: Equatable {
   /// - Returns: `true` if the `lhs` and `rhs` have the same elements; otherwise,
   ///   `false`.
   @inlinable
-  public static func == (lhs: Set<Element>, rhs: Set<Element>) -> Bool {
+  public static fn == (lhs: Set<Element>, rhs: Set<Element>) -> Bool {
 #if _runtime(_ObjC)
     switch (lhs._variant.isNative, rhs._variant.isNative) {
     case (true, true):
@@ -433,7 +434,7 @@ extension Set: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     // FIXME(ABI)#177: <rdar://problem/18915294> Cache Set<T> hashValue
 
     // Generate a seed from a snapshot of the hasher.  This makes members' hash
@@ -441,10 +442,10 @@ extension Set: Hashable {
     // quality. (E.g., it makes it possible to resolve collisions by passing in
     // a different hasher.)
     var copy = hasher
-    let seed = copy._finalize()
+    immutable seed = copy._finalize()
 
     var hash = 0
-    for member in self {
+    for member in this {
       hash ^= member._rawHashValue(seed: seed)
     }
     hasher.combine(hash)
@@ -453,19 +454,19 @@ extension Set: Hashable {
 
 @_unavailableInEmbedded
 extension Set: _HasCustomAnyHashableRepresentation {
-  public __consuming func _toCustomAnyHashable() -> AnyHashable? {
-    return AnyHashable(_box: _SetAnyHashableBox(self))
+  public __consuming fn _toCustomAnyHashable() -> AnyHashable? {
+    return AnyHashable(_box: _SetAnyHashableBox(this))
   }
 }
 
 @_unavailableInEmbedded
 internal struct _SetAnyHashableBox<Element: Hashable>: _AnyHashableBox {
-  internal let _value: Set<Element>
-  internal let _canonical: Set<AnyHashable>
+  internal immutable _value: Set<Element>
+  internal immutable _canonical: Set<AnyHashable>
 
   internal init(_ value: __owned Set<Element>) {
-    self._value = value
-    self._canonical = value as Set<AnyHashable>
+    this._value = value
+    this._canonical = value as Set<AnyHashable>
   }
 
   internal var _base: Any {
@@ -476,8 +477,8 @@ internal struct _SetAnyHashableBox<Element: Hashable>: _AnyHashableBox {
     return _SetAnyHashableBox<AnyHashable>(_canonical)
   }
 
-  internal func _isEqual(to other: _AnyHashableBox) -> Bool? {
-    guard let other = other as? _SetAnyHashableBox<AnyHashable> else {
+  internal fn _isEqual(to other: _AnyHashableBox) -> Bool? {
+    guard immutable other = other as? _SetAnyHashableBox<AnyHashable> else {
       return nil
     }
     return _canonical == other._value
@@ -487,22 +488,22 @@ internal struct _SetAnyHashableBox<Element: Hashable>: _AnyHashableBox {
     return _canonical.hashValue
   }
 
-  internal func _hash(into hasher: inout Hasher) {
+  internal fn _hash(into hasher: inout Hasher) {
     _canonical.hash(into: &hasher)
   }
 
-  internal func _rawHashValue(_seed: Int) -> Int {
+  internal fn _rawHashValue(_seed: Int) -> Int {
     return _canonical._rawHashValue(seed: _seed)
   }
 
-  internal func _unbox<T: Hashable>() -> T? {
+  internal fn _unbox<T: Hashable>() -> T? {
     return _value as? T
   }
 
-  internal func _downCastConditional<T>(
+  internal fn _downCastConditional<T>(
     into result: UnsafeMutablePointer<T>
   ) -> Bool {
-    guard let value = _value as? T else { return false }
+    guard immutable value = _value as? T else { return false }
     unsafe result.initialize(to: value)
     return true
   }
@@ -542,7 +543,7 @@ extension Set: SetAlgebra {
   ///   other means.
   @inlinable
   @discardableResult
-  public mutating func insert(
+  public mutating fn insert(
     _ newMember: __owned Element
   ) -> (inserted: Bool, memberAfterInsert: Element) {
     return _variant.insert(newMember)
@@ -570,7 +571,7 @@ extension Set: SetAlgebra {
   ///   other means.
   @inlinable
   @discardableResult
-  public mutating func update(with newMember: __owned Element) -> Element? {
+  public mutating fn update(with newMember: __owned Element) -> Element? {
     return _variant.update(with: newMember)
   }
 
@@ -579,8 +580,8 @@ extension Set: SetAlgebra {
   /// This example removes the element `"sugar"` from a set of ingredients.
   ///
   ///     var ingredients: Set = ["cocoa beans", "sugar", "cocoa butter", "salt"]
-  ///     let toRemove = "sugar"
-  ///     if let removed = ingredients.remove(toRemove) {
+  ///     immutable toRemove = "sugar"
+  ///     if immutable removed = ingredients.remove(toRemove) {
   ///         print("The recipe is now \(removed)-free.")
   ///     }
   ///     // Prints "The recipe is now sugar-free."
@@ -590,7 +591,7 @@ extension Set: SetAlgebra {
   ///   set; otherwise, `nil`.
   @inlinable
   @discardableResult
-  public mutating func remove(_ member: Element) -> Element? {
+  public mutating fn remove(_ member: Element) -> Element? {
     return _variant.remove(member)
   }
 
@@ -602,7 +603,7 @@ extension Set: SetAlgebra {
   /// - Returns: The element that was removed from the set.
   @inlinable
   @discardableResult
-  public mutating func remove(at position: Index) -> Element {
+  public mutating fn remove(at position: Index) -> Element {
     return _variant.remove(at: position)
   }
 
@@ -612,7 +613,7 @@ extension Set: SetAlgebra {
   ///   preserved; if `false`, the underlying buffer is released. The
   ///   default is `false`.
   @inlinable
-  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
     _variant.removeAll(keepingCapacity: keepCapacity)
   }
 
@@ -628,7 +629,7 @@ extension Set: SetAlgebra {
   /// - Returns: A member of the set.
   @inlinable
   @discardableResult
-  public mutating func removeFirst() -> Element {
+  public mutating fn removeFirst() -> Element {
     _precondition(!isEmpty, "Can't removeFirst from an empty Set")
     return remove(at: startIndex)
   }
@@ -657,7 +658,7 @@ extension Set: SetAlgebra {
   ///     // Prints "true"
   @inlinable
   public init() {
-    self = Set<Element>(_native: _NativeSet())
+    this = Set<Element>(_native: _NativeSet())
   }
 
   /// Creates a new set from a finite sequence of items.
@@ -665,7 +666,7 @@ extension Set: SetAlgebra {
   /// Use this initializer to create a new set from an existing sequence, for
   /// example, an array or a range.
   ///
-  ///     let validIndices = Set(0..<7).subtracting([2, 4, 5])
+  ///     immutable validIndices = Set(0..<7).subtracting([2, 4, 5])
   ///     print(validIndices)
   ///     // Prints "[6, 0, 1, 3]"
   ///
@@ -674,8 +675,8 @@ extension Set: SetAlgebra {
   /// example, after filtering a set of prime numbers to remove any below 10,
   /// you can create a new set by using this initializer.
   ///
-  ///     let primes: Set = [2, 3, 5, 7, 11, 13, 17, 19, 23]
-  ///     let laterPrimes = Set(primes.lazy.filter { $0 > 10 })
+  ///     immutable primes: Set = [2, 3, 5, 7, 11, 13, 17, 19, 23]
+  ///     immutable laterPrimes = Set(primes.lazy.filter { $0 > 10 })
   ///     print(laterPrimes)
   ///     // Prints "[17, 19, 23, 11, 13]"
   ///
@@ -683,12 +684,12 @@ extension Set: SetAlgebra {
   @inlinable
   public init<Source: Sequence>(_ sequence: __owned Source)
   where Source.Element == Element {
-    if let s = sequence as? Set<Element> {
+    if immutable s = sequence as? Set<Element> {
       // If this sequence is actually a `Set`, then we can quickly
-      // adopt its storage and let COW handle uniquing only if necessary.
-      self = s
+      // adopt its storage and immutable COW handle uniquing only if necessary.
+      this = s
     } else {
-      self.init(minimumCapacity: sequence.underestimatedCount)
+      this.init(minimumCapacity: sequence.underestimatedCount)
       for item in sequence {
         insert(item)
       }
@@ -701,8 +702,8 @@ extension Set: SetAlgebra {
   /// Set *A* is a subset of another set *B* if every member of *A* is also a
   /// member of *B*.
   ///
-  ///     let employees = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
   ///     print(attendees.isSubset(of: employees))
   ///     // Prints "true"
   ///
@@ -711,11 +712,11 @@ extension Set: SetAlgebra {
   /// - Returns: `true` if the set is a subset of `possibleSuperset`;
   ///   otherwise, `false`.
   @inlinable
-  public func isSubset<S: Sequence>(of possibleSuperset: S) -> Bool
+  public fn isSubset<S: Sequence>(of possibleSuperset: S) -> Bool
   where S.Element == Element {
     guard !isEmpty else { return true }
-    if self.count == 1 { return possibleSuperset.contains(self.first!) }
-    if let s = possibleSuperset as? Set<Element> {
+    if this.count == 1 { return possibleSuperset.contains(this.first!) }
+    if immutable s = possibleSuperset as? Set<Element> {
       return isSubset(of: s)
     }
     return _variant.convertedToNative.isSubset(of: possibleSuperset)
@@ -728,8 +729,8 @@ extension Set: SetAlgebra {
   /// also a member of *B* and *B* contains at least one element that is not a
   /// member of *A*.
   ///
-  ///     let employees = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
   ///     print(attendees.isStrictSubset(of: employees))
   ///     // Prints "true"
   ///
@@ -742,9 +743,9 @@ extension Set: SetAlgebra {
   /// - Returns: `true` is the set is strict subset of
   ///   `possibleStrictSuperset`; otherwise, `false`.
   @inlinable
-  public func isStrictSubset<S: Sequence>(of possibleStrictSuperset: S) -> Bool
+  public fn isStrictSubset<S: Sequence>(of possibleStrictSuperset: S) -> Bool
   where S.Element == Element {
-    if let s = possibleStrictSuperset as? Set<Element> {
+    if immutable s = possibleStrictSuperset as? Set<Element> {
       return isStrictSubset(of: s)
     }
     return _variant.convertedToNative.isStrictSubset(of: possibleStrictSuperset)
@@ -756,8 +757,8 @@ extension Set: SetAlgebra {
   /// Set *A* is a superset of another set *B* if every member of *B* is also a
   /// member of *A*.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees = ["Alicia", "Bethany", "Diana"]
   ///     print(employees.isSuperset(of: attendees))
   ///     // Prints "true"
   ///
@@ -766,9 +767,9 @@ extension Set: SetAlgebra {
   /// - Returns: `true` if the set is a superset of `possibleSubset`;
   ///   otherwise, `false`.
   @inlinable
-  public func isSuperset<S: Sequence>(of possibleSubset: __owned S) -> Bool
+  public fn isSuperset<S: Sequence>(of possibleSubset: __owned S) -> Bool
   where S.Element == Element {
-    if let s = possibleSubset as? Set<Element> {
+    if immutable s = possibleSubset as? Set<Element> {
       return isSuperset(of: s)
     }
     for member in possibleSubset {
@@ -786,8 +787,8 @@ extension Set: SetAlgebra {
   /// also a member of *A* and *A* contains at least one element that is *not*
   /// a member of *B*.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees = ["Alicia", "Bethany", "Diana"]
   ///     print(employees.isStrictSuperset(of: attendees))
   ///     // Prints "true"
   ///     print(employees.isStrictSuperset(of: employees))
@@ -798,10 +799,10 @@ extension Set: SetAlgebra {
   /// - Returns: `true` if the set is a strict superset of
   ///   `possibleStrictSubset`; otherwise, `false`.
   @inlinable
-  public func isStrictSuperset<S: Sequence>(of possibleStrictSubset: S) -> Bool
+  public fn isStrictSuperset<S: Sequence>(of possibleStrictSubset: S) -> Bool
   where S.Element == Element {
     if isEmpty { return false }
-    if let s = possibleStrictSubset as? Set<Element> {
+    if immutable s = possibleStrictSubset as? Set<Element> {
       return isStrictSuperset(of: s)
     }
     return _variant.convertedToNative.isStrictSuperset(of: possibleStrictSubset)
@@ -813,8 +814,8 @@ extension Set: SetAlgebra {
   /// In the following example, the `employees` set is disjoint with the
   /// elements of the `visitors` array because no name appears in both.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let visitors = ["Marcia", "Nathaniel", "Olivia"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable visitors = ["Marcia", "Nathaniel", "Olivia"]
   ///     print(employees.isDisjoint(with: visitors))
   ///     // Prints "true"
   ///
@@ -822,9 +823,9 @@ extension Set: SetAlgebra {
   /// - Returns: `true` if the set has no elements in common with `other`;
   ///   otherwise, `false`.
   @inlinable
-  public func isDisjoint<S: Sequence>(with other: S) -> Bool
+  public fn isDisjoint<S: Sequence>(with other: S) -> Bool
   where S.Element == Element {
-    if let s = other as? Set<Element> {
+    if immutable s = other as? Set<Element> {
       return isDisjoint(with: s)
     }
     return _isDisjoint(with: other)
@@ -836,9 +837,9 @@ extension Set: SetAlgebra {
   /// In the following example, the `attendeesAndVisitors` set is made up
   /// of the elements of the `attendees` set and the `visitors` array:
   ///
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
-  ///     let visitors = ["Marcia", "Nathaniel"]
-  ///     let attendeesAndVisitors = attendees.union(visitors)
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable visitors = ["Marcia", "Nathaniel"]
+  ///     immutable attendeesAndVisitors = attendees.union(visitors)
   ///     print(attendeesAndVisitors)
   ///     // Prints "["Diana", "Nathaniel", "Bethany", "Alicia", "Marcia"]"
   ///
@@ -846,17 +847,17 @@ extension Set: SetAlgebra {
   /// `other`, the existing members are kept. If `other` contains multiple
   /// instances of equivalent elements, only the first instance is kept.
   ///
-  ///     let initialIndices = Set(0..<5)
-  ///     let expandedIndices = initialIndices.union([2, 3, 6, 6, 7, 7])
+  ///     immutable initialIndices = Set(0..<5)
+  ///     immutable expandedIndices = initialIndices.union([2, 3, 6, 6, 7, 7])
   ///     print(expandedIndices)
   ///     // Prints "[2, 4, 6, 7, 0, 1, 3]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   /// - Returns: A new set with the unique elements of this set and `other`.
   @inlinable
-  public __consuming func union<S: Sequence>(_ other: __owned S) -> Set<Element>
+  public __consuming fn union<S: Sequence>(_ other: __owned S) -> Set<Element>
   where S.Element == Element {
-    var newSet = self
+    var newSet = this
     newSet.formUnion(other)
     return newSet
   }
@@ -868,14 +869,14 @@ extension Set: SetAlgebra {
   /// instances of equivalent elements, only the first instance is kept.
   ///
   ///     var attendees: Set = ["Alicia", "Bethany", "Diana"]
-  ///     let visitors = ["Diana", "Marcia", "Nathaniel"]
+  ///     immutable visitors = ["Diana", "Marcia", "Nathaniel"]
   ///     attendees.formUnion(visitors)
   ///     print(attendees)
   ///     // Prints "["Diana", "Nathaniel", "Bethany", "Alicia", "Marcia"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   @inlinable
-  public mutating func formUnion<S: Sequence>(_ other: __owned S)
+  public mutating fn formUnion<S: Sequence>(_ other: __owned S)
   where S.Element == Element {
     for item in other {
       insert(item)
@@ -888,22 +889,22 @@ extension Set: SetAlgebra {
   /// In the following example, the `nonNeighbors` set is made up of the
   /// elements of the `employees` set that are not elements of `neighbors`:
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
-  ///     let nonNeighbors = employees.subtracting(neighbors)
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable nonNeighbors = employees.subtracting(neighbors)
   ///     print(nonNeighbors)
   ///     // Prints "["Chris", "Diana", "Alicia"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   /// - Returns: A new set.
   @inlinable
-  public __consuming func subtracting<S: Sequence>(_ other: S) -> Set<Element>
+  public __consuming fn subtracting<S: Sequence>(_ other: S) -> Set<Element>
   where S.Element == Element {
-    return self._subtracting(other)
+    return this._subtracting(other)
   }
 
   @inlinable
-  internal __consuming func _subtracting<S: Sequence>(
+  internal __consuming fn _subtracting<S: Sequence>(
     _ other: S
   ) -> Set<Element>
   where S.Element == Element {
@@ -917,23 +918,23 @@ extension Set: SetAlgebra {
   /// names `"Bethany"` and `"Eric"` are removed from `employees`.
   ///
   ///     var employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
   ///     employees.subtract(neighbors)
   ///     print(employees)
   ///     // Prints "["Chris", "Diana", "Alicia"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   @inlinable
-  public mutating func subtract<S: Sequence>(_ other: S)
+  public mutating fn subtract<S: Sequence>(_ other: S)
   where S.Element == Element {
     _subtract(other)
   }
 
   @inlinable
-  internal mutating func _subtract<S: Sequence>(_ other: S)
+  internal mutating fn _subtract<S: Sequence>(_ other: S)
   where S.Element == Element {
-    // If self is empty we don't need to iterate over `other` because there's
-    // nothing to remove on self.
+    // If this is empty we don't need to iterate over `other` because there's
+    // nothing to remove on this.
     guard !isEmpty else { return }
 
     for item in other {
@@ -949,19 +950,19 @@ extension Set: SetAlgebra {
   /// Elements that are in only one or the other are left out of the result of
   /// the intersection.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
-  ///     let bothNeighborsAndEmployees = employees.intersection(neighbors)
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable bothNeighborsAndEmployees = employees.intersection(neighbors)
   ///     print(bothNeighborsAndEmployees)
   ///     // Prints "["Bethany", "Eric"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   /// - Returns: A new set.
   @inlinable
-  public __consuming func intersection<S: Sequence>(_ other: S) -> Set<Element>
+  public __consuming fn intersection<S: Sequence>(_ other: S) -> Set<Element>
   where S.Element == Element {
-    if let other = other as? Set<Element> {
-      return self.intersection(other)
+    if immutable other = other as? Set<Element> {
+      return this.intersection(other)
     }
     return Set(_native: _variant.convertedToNative.genericIntersection(other))
   }
@@ -973,19 +974,19 @@ extension Set: SetAlgebra {
   /// names `"Alicia"`, `"Chris"`, and `"Diana"` are removed.
   ///
   ///     var employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable neighbors = ["Bethany", "Eric", "Forlani", "Greta"]
   ///     employees.formIntersection(neighbors)
   ///     print(employees)
   ///     // Prints "["Bethany", "Eric"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   @inlinable
-  public mutating func formIntersection<S: Sequence>(_ other: S)
+  public mutating fn formIntersection<S: Sequence>(_ other: S)
   where S.Element == Element {
     // FIXME: This discards storage reserved with reserveCapacity.
     // FIXME: Depending on the ratio of elements kept in the result, it may be
     // faster to do the removals in place, in bulk.
-    self = self.intersection(other)
+    this = this.intersection(other)
   }
 
   /// Returns a new set with the elements that are either in this set or in the
@@ -996,20 +997,20 @@ extension Set: SetAlgebra {
   /// both `employees` *and* `neighbors`. In particular, the names `"Bethany"`
   /// and `"Eric"` do not appear in `eitherNeighborsOrEmployees`.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Diana", "Eric"]
-  ///     let neighbors = ["Bethany", "Eric", "Forlani"]
-  ///     let eitherNeighborsOrEmployees = employees.symmetricDifference(neighbors)
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Diana", "Eric"]
+  ///     immutable neighbors = ["Bethany", "Eric", "Forlani"]
+  ///     immutable eitherNeighborsOrEmployees = employees.symmetricDifference(neighbors)
   ///     print(eitherNeighborsOrEmployees)
   ///     // Prints "["Diana", "Forlani", "Alicia"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   /// - Returns: A new set.
   @inlinable
-  public __consuming func symmetricDifference<S: Sequence>(
+  public __consuming fn symmetricDifference<S: Sequence>(
     _ other: __owned S
   ) -> Set<Element>
   where S.Element == Element {
-    var newSet = self
+    var newSet = this
     newSet.formSymmetricDifference(other)
     return newSet
   }
@@ -1024,17 +1025,17 @@ extension Set: SetAlgebra {
   /// removed from `employees` while the name `"Forlani"` is added.
   ///
   ///     var employees: Set = ["Alicia", "Bethany", "Diana", "Eric"]
-  ///     let neighbors = ["Bethany", "Eric", "Forlani"]
+  ///     immutable neighbors = ["Bethany", "Eric", "Forlani"]
   ///     employees.formSymmetricDifference(neighbors)
   ///     print(employees)
   ///     // Prints "["Diana", "Forlani", "Alicia"]"
   ///
   /// - Parameter other: A sequence of elements. `other` must be finite.
   @inlinable
-  public mutating func formSymmetricDifference<S: Sequence>(
+  public mutating fn formSymmetricDifference<S: Sequence>(
     _ other: __owned S)
   where S.Element == Element {
-    let otherSet = Set(other)
+    immutable otherSet = Set(other)
     formSymmetricDifference(otherSet)
   }
 }
@@ -1060,14 +1061,14 @@ extension Set {
   /// names `"Bethany"` and `"Eric"` are removed from `employees`.
   ///
   ///     var employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
   ///     employees.subtract(neighbors)
   ///     print(employees)
   ///     // Prints "["Diana", "Chris", "Alicia"]"
   ///
   /// - Parameter other: Another set.
   @inlinable
-  public mutating func subtract(_ other: Set<Element>) {
+  public mutating fn subtract(_ other: Set<Element>) {
     _subtract(other)
   }
 
@@ -1077,17 +1078,17 @@ extension Set {
   /// Set *A* is a subset of another set *B* if every member of *A* is also a
   /// member of *B*.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
   ///     print(attendees.isSubset(of: employees))
   ///     // Prints "true"
   ///
   /// - Parameter other: Another set.
   /// - Returns: `true` if the set is a subset of `other`; otherwise, `false`.
   @inlinable
-  public func isSubset(of other: Set<Element>) -> Bool {
-    guard self.count <= other.count else { return false }
-    for member in self {
+  public fn isSubset(of other: Set<Element>) -> Bool {
+    guard this.count <= other.count else { return false }
+    for member in this {
       guard other.contains(member) else {
         return false
       }
@@ -1101,8 +1102,8 @@ extension Set {
   /// Set *A* is a superset of another set *B* if every member of *B* is also a
   /// member of *A*.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
   ///     print(employees.isSuperset(of: attendees))
   ///     // Prints "true"
   ///
@@ -1110,8 +1111,8 @@ extension Set {
   /// - Returns: `true` if the set is a superset of `other`; otherwise,
   ///   `false`.
   @inlinable
-  public func isSuperset(of other: Set<Element>) -> Bool {
-    return other.isSubset(of: self)
+  public fn isSuperset(of other: Set<Element>) -> Bool {
+    return other.isSubset(of: this)
   }
 
   /// Returns a Boolean value that indicates whether this set has no members in
@@ -1120,8 +1121,8 @@ extension Set {
   /// In the following example, the `employees` set is disjoint with the
   /// `visitors` set because no name appears in both sets.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let visitors: Set = ["Marcia", "Nathaniel", "Olivia"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable visitors: Set = ["Marcia", "Nathaniel", "Olivia"]
   ///     print(employees.isDisjoint(with: visitors))
   ///     // Prints "true"
   ///
@@ -1129,10 +1130,10 @@ extension Set {
   /// - Returns: `true` if the set has no elements in common with `other`;
   ///   otherwise, `false`.
   @inlinable
-  public func isDisjoint(with other: Set<Element>) -> Bool {
+  public fn isDisjoint(with other: Set<Element>) -> Bool {
     guard !isEmpty && !other.isEmpty else { return true }
-    let (smaller, larger) =
-      count < other.count ? (self, other) : (other, self)
+    immutable (smaller, larger) =
+      count < other.count ? (this, other) : (other, this)
     for member in smaller {
       if larger.contains(member) {
         return false
@@ -1142,7 +1143,7 @@ extension Set {
   }
 
   @inlinable
-  internal func _isDisjoint<S: Sequence>(with other: S) -> Bool
+  internal fn _isDisjoint<S: Sequence>(with other: S) -> Bool
   where S.Element == Element {
     guard !isEmpty else { return true }
 
@@ -1160,27 +1161,27 @@ extension Set {
   /// In the following example, the `nonNeighbors` set is made up of the
   /// elements of the `employees` set that are not elements of `neighbors`:
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
-  ///     let nonNeighbors = employees.subtracting(neighbors)
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable nonNeighbors = employees.subtracting(neighbors)
   ///     print(nonNeighbors)
   ///     // Prints "["Diana", "Chris", "Alicia"]"
   ///
   /// - Parameter other: Another set.
   /// - Returns: A new set.
   @inlinable
-  public __consuming func subtracting(_ other: Set<Element>) -> Set<Element> {
+  public __consuming fn subtracting(_ other: Set<Element>) -> Set<Element> {
     // Heuristic: if `other` is small enough, it's better to make a copy of the
     // set and remove each item one by one. (The best cutoff point depends on
     // the `Element` type; the one below is an educated guess.) FIXME: Derive a
     // better cutoff by benchmarking.
-    if other.count <= self.count / 8 {
-      var copy = self
+    if other.count <= this.count / 8 {
+      var copy = this
       copy._subtract(other)
       return copy
     }
     // Otherwise do a regular subtraction using a temporary bitmap.
-    return self._subtracting(other)
+    return this._subtracting(other)
   }
 
   /// Returns a Boolean value that indicates whether the set is a strict
@@ -1190,8 +1191,8 @@ extension Set {
   /// also a member of *A* and *A* contains at least one element that is *not*
   /// a member of *B*.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
   ///     print(employees.isStrictSuperset(of: attendees))
   ///     // Prints "true"
   ///     print(employees.isStrictSuperset(of: employees))
@@ -1201,8 +1202,8 @@ extension Set {
   /// - Returns: `true` if the set is a strict superset of
   ///   `other`; otherwise, `false`.
   @inlinable
-  public func isStrictSuperset(of other: Set<Element>) -> Bool {
-    return self.count > other.count && other.isSubset(of: self)
+  public fn isStrictSuperset(of other: Set<Element>) -> Bool {
+    return this.count > other.count && other.isSubset(of: this)
   }
 
   /// Returns a Boolean value that indicates whether the set is a strict subset
@@ -1212,8 +1213,8 @@ extension Set {
   /// also a member of *B* and *B* contains at least one element that is not a
   /// member of *A*.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let attendees: Set = ["Alicia", "Bethany", "Diana"]
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable attendees: Set = ["Alicia", "Bethany", "Diana"]
   ///     print(attendees.isStrictSubset(of: employees))
   ///     // Prints "true"
   ///
@@ -1225,8 +1226,8 @@ extension Set {
   /// - Returns: `true` if the set is a strict subset of
   ///   `other`; otherwise, `false`.
   @inlinable
-  public func isStrictSubset(of other: Set<Element>) -> Bool {
-    return self.count < other.count && self.isSubset(of: other)
+  public fn isStrictSubset(of other: Set<Element>) -> Bool {
+    return this.count < other.count && this.isSubset(of: other)
   }
 
   /// Returns a new set with the elements that are common to both this set and
@@ -1237,16 +1238,16 @@ extension Set {
   /// Elements that are in only one or the other are left out of the result of
   /// the intersection.
   ///
-  ///     let employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
-  ///     let bothNeighborsAndEmployees = employees.intersection(neighbors)
+  ///     immutable employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
+  ///     immutable neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable bothNeighborsAndEmployees = employees.intersection(neighbors)
   ///     print(bothNeighborsAndEmployees)
   ///     // Prints "["Bethany", "Eric"]"
   ///
   /// - Parameter other: Another set.
   /// - Returns: A new set.
   @inlinable
-  public __consuming func intersection(_ other: Set<Element>) -> Set<Element> {
+  public __consuming fn intersection(_ other: Set<Element>) -> Set<Element> {
     Set(_native: _variant.intersection(other))
   }
 
@@ -1261,14 +1262,14 @@ extension Set {
   /// `"Greta"` are added.
   ///
   ///     var employees: Set = ["Alicia", "Bethany", "Chris", "Diana", "Eric"]
-  ///     let neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
+  ///     immutable neighbors: Set = ["Bethany", "Eric", "Forlani", "Greta"]
   ///     employees.formSymmetricDifference(neighbors)
   ///     print(employees)
   ///     // Prints "["Diana", "Chris", "Forlani", "Alicia", "Greta"]"
   ///
   /// - Parameter other: Another set.
   @inlinable
-  public mutating func formSymmetricDifference(_ other: __owned Set<Element>) {
+  public mutating fn formSymmetricDifference(_ other: __owned Set<Element>) {
     for member in other {
       if contains(member) {
         remove(member)
@@ -1306,20 +1307,20 @@ extension Set {
     @inlinable
     @inline(__always)
     internal init(_variant: __owned _Variant) {
-      self._variant = _variant
+      this._variant = _variant
     }
 
     @inlinable
     @inline(__always)
     internal init(_native index: _HashTable.Index) {
-      self.init(_variant: unsafe .native(index))
+      this.init(_variant: unsafe .native(index))
     }
 
 #if _runtime(_ObjC)
     @inlinable
     @inline(__always)
     internal init(_cocoa index: __owned __CocoaSet.Index) {
-      self.init(_variant: .cocoa(index))
+      this.init(_variant: .cocoa(index))
     }
 #endif
   }
@@ -1329,14 +1330,14 @@ extension Set.Index {
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
   internal var _guaranteedNative: Bool {
-    return _canBeClass(Element.self) == 0
+    return _canBeClass(Element.this) == 0
   }
 
   /// Allow the optimizer to consider the surrounding code unreachable if
   /// Set<Element> is guaranteed to be native.
   @usableFromInline
   @_transparent
-  internal func _cocoaPath() {
+  internal fn _cocoaPath() {
     if _guaranteedNative {
       _conditionallyUnreachable()
     }
@@ -1344,8 +1345,8 @@ extension Set.Index {
 
   @inlinable
   @inline(__always)
-  internal mutating func _isUniquelyReferenced() -> Bool {
-    defer { _fixLifetime(self) }
+  internal mutating fn _isUniquelyReferenced() -> Bool {
+    defer { _fixLifetime(this) }
     var handle = _asCocoa.handleBitPattern
     return handle == 0 || _isUnique_native(&handle)
   }
@@ -1367,7 +1368,7 @@ extension Set.Index {
   @usableFromInline @_transparent
   internal var _asNative: _HashTable.Index {
     switch _variant {
-    case .native(let nativeIndex):
+    case .native(immutable nativeIndex):
       return unsafe nativeIndex
 #if _runtime(_ObjC)
     case .cocoa:
@@ -1386,7 +1387,7 @@ extension Set.Index {
       case .native:
         _preconditionFailure(
           "Attempting to access Set elements using an invalid index")
-      case .cocoa(let cocoaIndex):
+      case .cocoa(immutable cocoaIndex):
         return cocoaIndex
       }
     }
@@ -1395,7 +1396,7 @@ extension Set.Index {
         _preconditionFailure(
           "Attempting to access Set elements using an invalid index")
       }
-      let dummy = unsafe _HashTable.Index(bucket: _HashTable.Bucket(offset: 0), age: 0)
+      immutable dummy = unsafe _HashTable.Index(bucket: _HashTable.Bucket(offset: 0), age: 0)
       _variant = unsafe .native(dummy)
       defer { _variant = .cocoa(cocoa) }
       yield &cocoa
@@ -1406,15 +1407,15 @@ extension Set.Index {
 
 extension Set.Index: Equatable {
   @inlinable
-  public static func == (
+  public static fn == (
     lhs: Set<Element>.Index,
     rhs: Set<Element>.Index
   ) -> Bool {
     switch (lhs._variant, rhs._variant) {
-    case (.native(let lhsNative), .native(let rhsNative)):
+    case (.native(immutable lhsNative), .native(immutable rhsNative)):
       return unsafe lhsNative == rhsNative
   #if _runtime(_ObjC)
-    case (.cocoa(let lhsCocoa), .cocoa(let rhsCocoa)):
+    case (.cocoa(immutable lhsCocoa), .cocoa(immutable rhsCocoa)):
       lhs._cocoaPath()
       return lhsCocoa == rhsCocoa
     default:
@@ -1426,15 +1427,15 @@ extension Set.Index: Equatable {
 
 extension Set.Index: Comparable {
   @inlinable
-  public static func < (
+  public static fn < (
     lhs: Set<Element>.Index,
     rhs: Set<Element>.Index
   ) -> Bool {
     switch (lhs._variant, rhs._variant) {
-    case (.native(let lhsNative), .native(let rhsNative)):
+    case (.native(immutable lhsNative), .native(immutable rhsNative)):
       return unsafe lhsNative < rhsNative
   #if _runtime(_ObjC)
-    case (.cocoa(let lhsCocoa), .cocoa(let rhsCocoa)):
+    case (.cocoa(immutable lhsCocoa), .cocoa(immutable rhsCocoa)):
       lhs._cocoaPath()
       return lhsCocoa < rhsCocoa
     default:
@@ -1451,7 +1452,7 @@ extension Set.Index: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   public // FIXME(cocoa-index): Make inlinable
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
 #if _runtime(_ObjC)
     guard _isNative else {
       hasher.combine(1 as UInt8)
@@ -1493,18 +1494,18 @@ extension Set {
 
     @inlinable
     internal init(_variant: __owned _Variant) {
-      self._variant = _variant
+      this._variant = _variant
     }
 
     @inlinable
     internal init(_native: __owned _NativeSet<Element>.Iterator) {
-      self.init(_variant: .native(_native))
+      this.init(_variant: .native(_native))
     }
 
 #if _runtime(_ObjC)
     @usableFromInline
     internal init(_cocoa: __owned __CocoaSet.Iterator) {
-      self.init(_variant: .cocoa(_cocoa))
+      this.init(_variant: .cocoa(_cocoa))
     }
 #endif
   }
@@ -1517,13 +1518,13 @@ extension Set.Iterator {
 #if _runtime(_ObjC)
   @usableFromInline @_transparent
   internal var _guaranteedNative: Bool {
-    return _canBeClass(Element.self) == 0
+    return _canBeClass(Element.this) == 0
   }
 
   /// Allow the optimizer to consider the surrounding code unreachable if
   /// Set<Element> is guaranteed to be native.
   @usableFromInline @_transparent
-  internal func _cocoaPath() {
+  internal fn _cocoaPath() {
     if _guaranteedNative {
       _conditionallyUnreachable()
     }
@@ -1547,7 +1548,7 @@ extension Set.Iterator {
   internal var _asNative: _NativeSet<Element>.Iterator {
     get {
       switch _variant {
-      case .native(let nativeIterator):
+      case .native(immutable nativeIterator):
         return nativeIterator
 #if _runtime(_ObjC)
       case .cocoa:
@@ -1556,7 +1557,7 @@ extension Set.Iterator {
       }
     }
     set {
-      self._variant = .native(newValue)
+      this._variant = .native(newValue)
     }
   }
 
@@ -1567,7 +1568,7 @@ extension Set.Iterator {
       switch _variant {
       case .native:
         _internalInvariantFailure("internal error: does not contain a Cocoa index")
-      case .cocoa(let cocoa):
+      case .cocoa(immutable cocoa):
         return cocoa
       }
     }
@@ -1582,23 +1583,23 @@ extension Set.Iterator: IteratorProtocol {
   /// Once `nil` has been returned, all subsequent calls return `nil`.
   @inlinable
   @inline(__always)
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
 #if _runtime(_ObjC)
     guard _isNative else {
-      guard let cocoaElement = _asCocoa.next() else { return nil }
-      return _forceBridgeFromObjectiveC(cocoaElement, Element.self)
+      guard immutable cocoaElement = _asCocoa.next() else { return nil }
+      return _forceBridgeFromObjectiveC(cocoaElement, Element.this)
     }
 #endif
     return _asNative.next()
   }
 }
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 extension Set.Iterator: CustomReflectable {
   /// A mirror that reflects the iterator.
   public var customMirror: Mirror {
     return Mirror(
-      self,
+      this,
       children: EmptyCollection<(label: String?, value: Any)>())
   }
 }
@@ -1606,8 +1607,8 @@ extension Set.Iterator: CustomReflectable {
 extension Set: CustomReflectable {
   /// A mirror that reflects the set.
   public var customMirror: Mirror {
-    let style = Mirror.DisplayStyle.`set`
-    return Mirror(self, unlabeledChildren: self, displayStyle: style)
+    immutable style = Mirror.DisplayStyle.`set`
+    return Mirror(this, unlabeledChildren: this, displayStyle: style)
   }
 }
 #endif
@@ -1620,7 +1621,7 @@ extension Set {
   ///
   /// - Returns: A member of the set. If the set is empty, returns `nil`.
   @inlinable
-  public mutating func popFirst() -> Element? {
+  public mutating fn popFirst() -> Element? {
     guard !isEmpty else { return nil }
     return remove(at: startIndex)
   }
@@ -1646,9 +1647,9 @@ extension Set {
   /// - Parameter minimumCapacity: The requested number of elements to
   ///   store.
   public // FIXME(reserveCapacity): Should be inlinable
-  mutating func reserveCapacity(_ minimumCapacity: Int) {
+  mutating fn reserveCapacity(_ minimumCapacity: Int) {
     _variant.reserveCapacity(minimumCapacity)
-    _internalInvariant(self.capacity >= minimumCapacity)
+    _internalInvariant(this.capacity >= minimumCapacity)
   }
 }
 

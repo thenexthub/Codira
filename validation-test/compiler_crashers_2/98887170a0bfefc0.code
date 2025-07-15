@@ -1,0 +1,4 @@
+// {"signature":"$s11languageASTGen24evaluatePoundIfCondition10astContext13diagEnginePtr16sourceFileBuffer02ifF4Text14shouldEvaluateSiSo17BridgedASTContextV_SvSo0S9StringRefVAKSbtF"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: language_language_parser
+#if canImport(#available

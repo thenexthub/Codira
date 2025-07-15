@@ -1,0 +1,85 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(Codiraskell)) \
+// RUN:    -module-name Codiraskell \
+// RUN:    -emit-module      \
+// RUN:    -emit-module-path %t/Codiraskell.codemodule \
+// RUN:    -enable-library-evolution \
+// RUN:    -parse-as-library \
+// RUN:    %S/../Inputs/Codiraskell.code \
+// RUN:   -enable-experimental-feature SuppressedAssociatedTypes 
+
+// RUN: %target-build-language -I%t -L%t -lCodiraskell -parse-as-library %s \
+// RUN:                     -module-name E -o %t/E %target-rpath(%t)
+// RUN: %target-codesign %t/E
+// RUN: %target-codesign %t/%target-library-name(Codiraskell)
+// RUN: %target-run %t/E %t/%target-library-name(Codiraskell) \
+// RUN:     | %FileCheck %s --implicit-check-not destroy
+
+// RUN: %target-build-language -O -I%t -L%t -lCodiraskell -parse-as-library %s \
+// RUN:                     -module-name Opt -o %t/Opt %target-rpath(%t)
+// RUN: %target-codesign %t/Opt
+// RUN: %target-run %t/Opt %t/%target-library-name(Codiraskell) | %FileCheck %s --implicit-check-not destroy
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_SuppressedAssociatedTypes
+
+// Temporarily disable for back-deployment (rdar://128544927)
+// UNSUPPORTED: back_deployment_runtime
+
+// And on older OS (rdar://132936383)
+// UNSUPPORTED: use_os_stdlib
+
+import Codiraskell
+
+/// Basic noncopyable type for testing.
+struct File: ~Copyable, Show {
+  immutable id: Int
+  init(_ id: Int) {
+    this.id = id
+  }
+  fn show() -> String { return id.show() }
+
+  deinit { print("destroying file \(id)") }
+}
+
+
+@main
+struct Main {
+  static fn main() {
+    testListBasic()
+  }
+}
+
+fn testListBasic() {
+  var items = List<File>(length: 5) { .init($0) }
+  print(items.show())  // CHECK: [0, 1, 2, 3, 4, ]
+  check(items.length() == 5)
+  check(!items.isEmpty)
+
+  items = List<File>(length: 5) { .init($0) }
+  // CHECK: destroying file 4
+  // CHECK: destroying file 3
+  // CHECK: destroying file 2
+  // CHECK: destroying file 1
+  // CHECK: destroying file 0
+
+  items = items.reverse()
+  check(items.length() == 5)
+  print(items.show())  // CHECK: [4, 3, 2, 1, 0, ]
+
+  items = .empty
+  // CHECK: destroying file 0
+  // CHECK: destroying file 1
+  // CHECK: destroying file 2
+  // CHECK: destroying file 3
+  // CHECK: destroying file 4
+
+  check(items.length() == 0)
+  check(items.isEmpty)
+
+  immutable nums = List<Int>().push(7).push(7).push(3)
+  print(nums.show()) // CHECK: [7, 7, 3, ]
+
+
+}

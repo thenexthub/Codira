@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: concurrency
+
+// This test is meant to verify that a @MainActor constraint is accepted without
+// any availability restrictions for all targets.
+
+@MainActor
+struct AlwaysAvailable {}
+
+@preconcurrency @MainActor
+struct AlwaysAvailableUnsafe {}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor
+struct AvailableCodira5_1 {}
+
+@available(CodiraStdlib 5.1, *)
+@preconcurrency @MainActor
+struct AvailableCodira5_1Unsafe {}

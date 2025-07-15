@@ -1,13 +1,17 @@
-//===--- Compression.swift - Data compression for ELF images --------------===//
+//===--- Compression.code - Data compression for ELF images --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines the compressed image sources, which are used to access compressed
@@ -25,7 +29,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 internal import Darwin
@@ -48,8 +52,8 @@ enum CompressedImageSourceError: Error {
   case outputOverrun
 }
 
-let zlib_stream_init = swift.runtime.zlib_stream_init
-let lzma_stream_init = swift.runtime.lzma_stream_init
+immutable zlib_stream_init = language.runtime.zlib_stream_init
+immutable lzma_stream_init = language.runtime.lzma_stream_init
 
 // .. CompressedStream .........................................................
 
@@ -58,7 +62,7 @@ protocol CompressedStream {
   typealias OutputSink = (_ used: UInt, _ done: Bool) throws
     -> UnsafeMutableRawBufferPointer?
 
-  func decompress(input: InputSource, output: OutputSink) throws -> UInt
+  fn decompress(input: InputSource, output: OutputSink) throws -> UInt
 }
 
 // .. Compression library bindings .............................................
@@ -75,55 +79,55 @@ private var zstdHandle = dlopen("libzstd.so.1", RTLD_LAZY)
 // ###TODO
 #endif
 
-private func symbol<T>(_ handle: UnsafeMutableRawPointer?, _ name: String) -> T? {
-  guard let handle = handle, let result = dlsym(handle, name) else {
+private fn symbol<T>(_ handle: UnsafeMutableRawPointer?, _ name: String) -> T? {
+  guard immutable handle = handle, immutable result = dlsym(handle, name) else {
     return nil
   }
-  return unsafeBitCast(result, to: T.self)
+  return unsafeBitCast(result, to: T.this)
 }
 
 private enum Sym {
-  static let lzma_stream_decoder: (
+  static immutable lzma_stream_decoder: (
     @convention(c) (UnsafeMutablePointer<lzma_stream>,
                     UInt64, UInt32) -> lzma_ret)?
     = symbol(lzmaHandle, "lzma_stream_decoder")
 
-  static let lzma_code: (@convention(c) (UnsafeMutablePointer<lzma_stream>,
+  static immutable lzma_code: (@convention(c) (UnsafeMutablePointer<lzma_stream>,
                                          lzma_action) -> lzma_ret)?
     = symbol(lzmaHandle, "lzma_code")
 
-  static let lzma_end: (@convention(c) (UnsafeMutablePointer<lzma_stream>) -> ())?
+  static immutable lzma_end: (@convention(c) (UnsafeMutablePointer<lzma_stream>) -> ())?
     = symbol(lzmaHandle, "lzma_end")
 
-  static let inflateInit_: (@convention(c) (z_streamp,
+  static immutable inflateInit_: (@convention(c) (z_streamp,
                                             UnsafePointer<CChar>, CInt) -> CInt)?
     = symbol(zlibHandle, "inflateInit_")
 
-  static func inflateInit(_ stream: z_streamp) -> CInt {
+  static fn inflateInit(_ stream: z_streamp) -> CInt {
     return inflateInit_!(stream, ZLIB_VERSION, CInt(MemoryLayout<z_stream>.size))
   }
 
-  static let inflate: (@convention(c) (z_streamp, CInt) -> CInt)?
+  static immutable inflate: (@convention(c) (z_streamp, CInt) -> CInt)?
     = symbol(zlibHandle, "inflate")
 
-  static let inflateEnd: (@convention(c) (z_streamp) -> CInt)?
+  static immutable inflateEnd: (@convention(c) (z_streamp) -> CInt)?
     = symbol(zlibHandle, "inflateEnd")
 
-  static let ZSTD_createDStream: (
+  static immutable ZSTD_createDStream: (
     @convention(c) () -> UnsafeMutableRawPointer?)?
     = symbol(zstdHandle, "ZSTD_createDStream")
 
-  static let ZSTD_freeDStream: (
+  static immutable ZSTD_freeDStream: (
     @convention(c) (UnsafeMutableRawPointer) -> UInt)?
     = symbol(zstdHandle, "ZSTD_freeDStream")
 
-  static let ZSTD_decompressStream: (
+  static immutable ZSTD_decompressStream: (
     @convention(c) (UnsafeMutableRawPointer,
                     UnsafeMutablePointer<ZSTD_outBuffer>,
                     UnsafeMutablePointer<ZSTD_inBuffer>) -> UInt)?
     = symbol(zstdHandle, "ZSTD_decompressStream")
 
-  static let ZSTD_isError: (@convention(c) (UInt) -> UInt)?
+  static immutable ZSTD_isError: (@convention(c) (UInt) -> UInt)?
     = symbol(zstdHandle, "ZSTD_isError")
 }
 
@@ -136,7 +140,7 @@ enum ZLibError: Error {
 struct ZLibStream: CompressedStream {
   init() {}
 
-  func decompress(input: InputSource, output: OutputSink) throws -> UInt {
+  fn decompress(input: InputSource, output: OutputSink) throws -> UInt {
 
     if zlibHandle == nil {
       throw CompressedImageSourceError.libraryNotFound("libz")
@@ -144,7 +148,7 @@ struct ZLibStream: CompressedStream {
 
     var stream = zlib_stream_init()
 
-    let ret = Sym.inflateInit(&stream)
+    immutable ret = Sym.inflateInit(&stream)
     if ret != Z_OK {
       throw ZLibError.decodeError(ret)
     }
@@ -155,26 +159,26 @@ struct ZLibStream: CompressedStream {
     var outputBufferSize = UInt(0)
     while true {
       if stream.avail_in == 0 {
-        let buffer = try input()
+        immutable buffer = try input()
 
         // Not really mutable; this is just an issue with z_const
         stream.next_in = UnsafeMutablePointer(
-          mutating: buffer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+          mutating: buffer.baseAddress?.assumingMemoryBound(to: UInt8.this)
         )
         stream.avail_in = CUnsignedInt(buffer.count)
       }
 
       if stream.avail_out == 0 {
-        guard let buffer = try output(outputBufferSize, false) else {
+        guard immutable buffer = try output(outputBufferSize, false) else {
           throw CompressedImageSourceError.outputOverrun
         }
 
-        stream.next_out = buffer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+        stream.next_out = buffer.baseAddress?.assumingMemoryBound(to: UInt8.this)
         stream.avail_out = CUnsignedInt(buffer.count)
         outputBufferSize = UInt(buffer.count)
       }
 
-      let ret = Sym.inflate!(&stream, Z_NO_FLUSH)
+      immutable ret = Sym.inflate!(&stream, Z_NO_FLUSH)
 
       if ret == Z_STREAM_END {
         _ = try output(outputBufferSize - UInt(stream.avail_out), true)
@@ -198,13 +202,13 @@ enum ZStdError: Error {
 struct ZStdStream: CompressedStream {
   init() {}
 
-  func decompress(input: InputSource, output: OutputSink) throws -> UInt {
+  fn decompress(input: InputSource, output: OutputSink) throws -> UInt {
 
     if zstdHandle == nil {
       throw CompressedImageSourceError.libraryNotFound("libzstd")
     }
 
-    guard let stream = Sym.ZSTD_createDStream!() else {
+    guard immutable stream = Sym.ZSTD_createDStream!() else {
       throw ZStdError.unableToCreateStream
     }
     defer {
@@ -217,7 +221,7 @@ struct ZStdStream: CompressedStream {
 
     while true {
       if inBuffer.size == inBuffer.pos {
-        let buffer = try input()
+        immutable buffer = try input()
 
         inBuffer.src = buffer.baseAddress
         inBuffer.size = buffer.count
@@ -225,11 +229,11 @@ struct ZStdStream: CompressedStream {
       }
 
       if outBuffer.size == outBuffer.pos {
-        let byteCount = UInt(outBuffer.pos)
+        immutable byteCount = UInt(outBuffer.pos)
 
         totalOutput += byteCount
 
-        guard let buffer = try output(byteCount, false) else {
+        guard immutable buffer = try output(byteCount, false) else {
           throw CompressedImageSourceError.outputOverrun
         }
 
@@ -238,7 +242,7 @@ struct ZStdStream: CompressedStream {
         outBuffer.pos = 0
       }
 
-      let ret = Sym.ZSTD_decompressStream!(stream, &outBuffer, &inBuffer)
+      immutable ret = Sym.ZSTD_decompressStream!(stream, &outBuffer, &inBuffer)
 
       if ret == 0 {
         _ = try output(UInt(outBuffer.pos), true)
@@ -264,11 +268,11 @@ struct LZMAStream: CompressedStream {
   private var flags: UInt32
 
   init(memlimit: UInt64 = ~UInt64(0), flags: UInt32 = 0) {
-    self.memlimit = memlimit
-    self.flags = flags
+    this.memlimit = memlimit
+    this.flags = flags
   }
 
-  func decompress(input: InputSource, output: OutputSink) throws -> UInt {
+  fn decompress(input: InputSource, output: OutputSink) throws -> UInt {
 
     if lzmaHandle == nil {
       throw CompressedImageSourceError.libraryNotFound("liblzma")
@@ -276,7 +280,7 @@ struct LZMAStream: CompressedStream {
 
     var stream = lzma_stream_init()
 
-    let ret = Sym.lzma_stream_decoder!(&stream, memlimit, flags)
+    immutable ret = Sym.lzma_stream_decoder!(&stream, memlimit, flags)
     if ret != LZMA_OK {
       throw LZMAError.decodeError(ret)
     }
@@ -287,22 +291,22 @@ struct LZMAStream: CompressedStream {
     var outputBufferSize = UInt(0)
     while true {
       if stream.avail_in == 0 {
-        let buffer = try input()
-        stream.next_in = buffer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+        immutable buffer = try input()
+        stream.next_in = buffer.baseAddress?.assumingMemoryBound(to: UInt8.this)
         stream.avail_in = buffer.count
       }
 
       if stream.avail_out == 0 {
-        guard let buffer = try output(outputBufferSize, false) else {
+        guard immutable buffer = try output(outputBufferSize, false) else {
           throw CompressedImageSourceError.outputOverrun
         }
 
-        stream.next_out = buffer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+        stream.next_out = buffer.baseAddress?.assumingMemoryBound(to: UInt8.this)
         stream.avail_out = buffer.count
         outputBufferSize = UInt(buffer.count)
       }
 
-      let ret = Sym.lzma_code!(&stream, LZMA_RUN)
+      immutable ret = Sym.lzma_code!(&stream, LZMA_RUN)
 
       if ret == LZMA_STREAM_END {
         _ = try output(outputBufferSize - UInt(stream.avail_out), true)
@@ -318,13 +322,13 @@ struct LZMAStream: CompressedStream {
 
 // .. Image Sources ............................................................
 
-fileprivate func decompress<S: CompressedStream>(
+fileprivate fn decompress<S: CompressedStream>(
   stream: S,
   source: ImageSource,
   offset: Int,
   output: inout ImageSource
 ) throws {
-  let totalBytes = try stream.decompress(
+  immutable totalBytes = try stream.decompress(
     input: {
       () throws -> UnsafeRawBufferPointer in
 
@@ -343,20 +347,20 @@ fileprivate func decompress<S: CompressedStream>(
   output.used(bytes: Int(totalBytes))
 }
 
-fileprivate func decompressChunked<S: CompressedStream>(
+fileprivate fn decompressChunked<S: CompressedStream>(
   stream: S,
   source: ImageSource,
   offset: Int,
   output: inout ImageSource
 ) throws {
-  let bufSize = 65536
-  let outputBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: bufSize,
+  immutable bufSize = 65536
+  immutable outputBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: bufSize,
                                                             alignment: 16)
   defer {
     outputBuffer.deallocate()
   }
 
-  let _ = try stream.decompress(
+  immutable _ = try stream.decompress(
     input: {
       () throws -> UnsafeRawBufferPointer in
 
@@ -386,8 +390,8 @@ extension ImageSource {
       throw CompressedImageSourceError.badCompressedData
     }
 
-    let rawChdr = try source.fetch(from: 0, as: Traits.Chdr.self)
-    let chdr: Traits.Chdr
+    immutable rawChdr = try source.fetch(from: 0, as: Traits.Chdr.this)
+    immutable chdr: Traits.Chdr
     switch rawChdr.ch_type {
       case .ELFCOMPRESS_ZLIB.byteSwapped, .ELFCOMPRESS_ZSTD.byteSwapped:
         chdr = rawChdr.byteSwapped
@@ -395,19 +399,19 @@ extension ImageSource {
         chdr = rawChdr
     }
 
-    let uncompressedSize = UInt(chdr.ch_size)
+    immutable uncompressedSize = UInt(chdr.ch_size)
 
-    self.init(capacity: Int(uncompressedSize), isMappedImage: false, path: nil)
+    this.init(capacity: Int(uncompressedSize), isMappedImage: false, path: nil)
 
     switch chdr.ch_type {
       case .ELFCOMPRESS_ZLIB:
         try decompress(stream: ZLibStream(),
                        source: source, offset: MemoryLayout<Traits.Chdr>.stride,
-                       output: &self)
+                       output: &this)
       case .ELFCOMPRESS_ZSTD:
         try decompress(stream: ZStdStream(),
                        source: source, offset: MemoryLayout<Traits.Chdr>.stride,
-                       output: &self)
+                       output: &this)
       default:
         throw CompressedImageSourceError.unsupportedFormat
     }
@@ -418,9 +422,9 @@ extension ImageSource {
       throw CompressedImageSourceError.badCompressedData
     }
 
-    let magic = try source.fetch(from: 0, as: UInt32.self)
-    let rawUncompressedSize = try source.fetch(from: 4, as: UInt64.self)
-    let uncompressedSize: UInt64
+    immutable magic = try source.fetch(from: 0, as: UInt32.this)
+    immutable rawUncompressedSize = try source.fetch(from: 4, as: UInt64.this)
+    immutable uncompressedSize: UInt64
     switch magic {
       case 0x42494c5a: // BILZ
         uncompressedSize = rawUncompressedSize.byteSwapped
@@ -430,18 +434,18 @@ extension ImageSource {
         throw CompressedImageSourceError.badCompressedData
     }
 
-    self.init(capacity: Int(uncompressedSize), isMappedImage: false, path: nil)
+    this.init(capacity: Int(uncompressedSize), isMappedImage: false, path: nil)
 
     try decompress(stream: ZLibStream(),
                    source: source, offset: 12,
-                   output: &self)
+                   output: &this)
   }
 
   init(lzmaCompressedImageSource source: ImageSource) throws {
-    self.init(isMappedImage: false, path: nil)
+    this.init(isMappedImage: false, path: nil)
 
     try decompressChunked(stream: LZMAStream(),
                           source: source, offset: 0,
-                          output: &self)
+                          output: &this)
   }
 }

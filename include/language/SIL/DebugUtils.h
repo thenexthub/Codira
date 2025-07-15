@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains utilities to work with debug-info related instructions:
@@ -36,8 +37,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_DEBUGUTILS_H
-#define SWIFT_SIL_DEBUGUTILS_H
+#ifndef LANGUAGE_SIL_DEBUGUTILS_H
+#define LANGUAGE_SIL_DEBUGUTILS_H
 
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILBuilder.h"
@@ -219,7 +220,7 @@ inline Operand *getAnyDebugUse(SILValue value) {
 ///
 /// Returns an iterator to the next non-deleted instruction after \p I.
 inline SILBasicBlock::iterator eraseFromParentWithDebugInsts(
-    SILInstruction *I, llvm::function_ref<void(SILInstruction *)> callBack =
+    SILInstruction *I, toolchain::function_ref<void(SILInstruction *)> callBack =
                            [](SILInstruction *) {}) {
 
   auto nextII = std::next(I->getIterator());
@@ -337,7 +338,7 @@ public:
   VarDecl *getDecl() const {
     switch (kind) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::DebugValue:
       return cast<DebugValueInst>(inst)->getDecl();
     case Kind::AllocStack:
@@ -349,7 +350,7 @@ public:
     case Kind::RefElementAddr:
       return cast<RefElementAddrInst>(inst)->getField();
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// If \p value is an alloc_stack, alloc_box use that. Otherwise, see if \p
@@ -451,7 +452,7 @@ struct DebugVarCarryingInst : VarDeclCarryingInst {
   std::optional<SILDebugVariable> getVarInfo(bool complete = true) const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::DebugValue:
       return cast<DebugValueInst>(**this)->getVarInfo(complete);
     case Kind::AllocStack:
@@ -459,13 +460,13 @@ struct DebugVarCarryingInst : VarDeclCarryingInst {
     case Kind::AllocBox:
       return cast<AllocBoxInst>(**this)->getVarInfo(complete);
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   void setDebugVarScope(const SILDebugScope *NewDS) {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::DebugValue:
       cast<DebugValueInst>(**this)->setDebugVarScope(NewDS);
       break;
@@ -473,14 +474,14 @@ struct DebugVarCarryingInst : VarDeclCarryingInst {
       cast<AllocStackInst>(**this)->setDebugVarScope(NewDS);
       break;
     case Kind::AllocBox:
-      llvm_unreachable("Not implemented");
+      toolchain_unreachable("Not implemented");
     }
   }
 
   void markAsMoved() {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::DebugValue:
       cast<DebugValueInst>(**this)->setUsesMoveableValueDebugInfo();
       break;
@@ -497,7 +498,7 @@ struct DebugVarCarryingInst : VarDeclCarryingInst {
   bool getWasMoved() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::DebugValue:
       return cast<DebugValueInst>(**this)->usesMoveableValueDebugInfo();
     case Kind::AllocStack:
@@ -516,7 +517,7 @@ struct DebugVarCarryingInst : VarDeclCarryingInst {
   SILValue getOperandForDebugValueClone() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("Invalid?!");
+      toolchain_unreachable("Invalid?!");
     case Kind::DebugValue:
       return cast<DebugValueInst>(**this)->getOperand();
     case Kind::AllocStack:
@@ -590,4 +591,4 @@ inline StringRef getDiagnosticName(SILValue value) {
 
 } // end namespace language
 
-#endif // SWIFT_SIL_DEBUGUTILS_H
+#endif // LANGUAGE_SIL_DEBUGUTILS_H

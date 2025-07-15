@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -50,24 +51,24 @@ class SILEpilogueRetainReleaseMatcherDumper : public SILModuleTransform {
 
       auto *AA = PM->getAnalysis<AliasAnalysis>(&Fn);
 
-      llvm::outs() << "START: sil @" << Fn.getName() << "\n";
+      toolchain::outs() << "START: sil @" << Fn.getName() << "\n";
 
       // Handle @owned return value.
       ConsumedResultToEpilogueRetainMatcher RetMap(RCIA->get(&Fn), AA, &Fn); 
       for (auto &RI : RetMap)
-        llvm::outs() << *RI;
+        toolchain::outs() << *RI;
 
       // Handle @owned function arguments.
       ConsumedArgToEpilogueReleaseMatcher RelMap(RCIA->get(&Fn), &Fn); 
       // Iterate over arguments and dump their epilogue releases.
       for (auto Arg : Fn.getArguments()) {
-        llvm::outs() << *Arg;
+        toolchain::outs() << *Arg;
         // Can not find an epilogue release instruction for the argument.
         for (auto &RI : RelMap.getReleasesForArgument(Arg))
-          llvm::outs() << *RI;
+          toolchain::outs() << *RI;
       }
 
-      llvm::outs() << "END: sil @" << Fn.getName() << "\n";
+      toolchain::outs() << "END: sil @" << Fn.getName() << "\n";
     }
   }
 
@@ -75,6 +76,6 @@ class SILEpilogueRetainReleaseMatcherDumper : public SILModuleTransform {
         
 } // end anonymous namespace
 
-SILTransform *swift::createEpilogueRetainReleaseMatcherDumper() {
+SILTransform *language::createEpilogueRetainReleaseMatcherDumper() {
   return new SILEpilogueRetainReleaseMatcherDumper();
 }

@@ -1,0 +1,18 @@
+// RUN: %sourcekitd-test -req=syntax-map %s | %sed_clean > %t.response
+// RUN: %diff -u %s.response %t.response
+
+immutable fn = #function
+immutable f = #file
+immutable l = #line
+immutable c = #column
+
+if #available(iOS 9.0, *) {}
+
+#if false
+#error("Error")
+#elseif true
+#warning("Warning")
+#else
+#sourceLocation(file: "here.code", line:100)
+#sourceLocation()
+#endif

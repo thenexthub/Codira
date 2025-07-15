@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include <cstdint>
@@ -30,7 +31,7 @@
 
 #include "Concurrency/TaskPrivate.h"
 
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 /* #include "TaskPrivate.h" */
 #include <set>
 
@@ -66,9 +67,9 @@ template <class T> struct Pointer {
 
 /// THIS IS RUNTIME INTERNAL AND NOT ABI.
 class FallbackTaskLocalStorage {
-  static SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(
+  static LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(
       Pointer<TaskLocal::Storage>, Value,
-      SWIFT_CONCURRENCY_FALLBACK_TASK_LOCAL_STORAGE_KEY);
+      LANGUAGE_CONCURRENCY_FALLBACK_TASK_LOCAL_STORAGE_KEY);
 
 public:
   static void set(TaskLocal::Storage *task) { Value.set(task); }
@@ -76,9 +77,9 @@ public:
 };
 
 /// Define the thread-locals.
-SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(
+LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(
     Pointer<TaskLocal::Storage>, FallbackTaskLocalStorage::Value,
-    SWIFT_CONCURRENCY_FALLBACK_TASK_LOCAL_STORAGE_KEY);
+    LANGUAGE_CONCURRENCY_FALLBACK_TASK_LOCAL_STORAGE_KEY);
 
 // =============================================================================
 // ==== Initialization ---------------------------------------------------------
@@ -93,7 +94,7 @@ void TaskLocal::Storage::initializeLinkParent(AsyncTask* task,
 TaskLocal::Item*
 TaskLocal::Item::createParentLink(AsyncTask *task, AsyncTask *parent) {
   size_t amountToAllocate = Item::itemSize(/*valueType*/nullptr);
-  void *allocation = _swift_task_alloc_specific(task, amountToAllocate);
+  void *allocation = _language_task_alloc_specific(task, amountToAllocate);
   Item *item = new(allocation) Item();
 
   auto parentHead = parent->_private().Local.head;
@@ -134,7 +135,7 @@ TaskLocal::Item::createLink(AsyncTask *task,
                             const HeapObject *key,
                             const Metadata *valueType) {
   size_t amountToAllocate = Item::itemSize(valueType);
-  void *allocation = task ? _swift_task_alloc_specific(task, amountToAllocate)
+  void *allocation = task ? _language_task_alloc_specific(task, amountToAllocate)
                           : malloc(amountToAllocate);
   Item *item = new (allocation) Item(key, valueType);
 
@@ -176,7 +177,7 @@ void TaskLocal::Item::destroy(AsyncTask *task) {
 
   // if task is available, we must have used the task allocator to allocate this item,
   // so we must deallocate it using the same. Otherwise, we must have used malloc.
-  if (task) _swift_task_dealloc_specific(task, this);
+  if (task) _language_task_dealloc_specific(task, this);
   else free(this);
 }
 

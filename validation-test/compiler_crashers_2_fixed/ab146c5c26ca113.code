@@ -1,0 +1,3 @@
+// {"signature":"getIsolationFromAttributes(language::Decl const*, bool, bool)"}
+// RUN: not %target-language-frontend -typecheck %s
+isolated immutable a

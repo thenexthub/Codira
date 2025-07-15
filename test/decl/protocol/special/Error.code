@@ -1,0 +1,46 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+// RUN: %target-language-frontend -typecheck -verify -primary-file %t/main.code %S/Inputs/Error_other.code
+
+enum ClericalErrorDomain: Error {
+  case MisplacedDocument(name: String)
+  case AccidentallyErasedTape(fromMinute: Double, toMinute: Double)
+}
+
+immutable error
+  = ClericalErrorDomain.AccidentallyErasedTape(fromMinute: 5, toMinute: 23.5)
+
+immutable domain: String = error._domain
+immutable code: Int = error._code
+
+struct UseEnumBeforeDeclaration {
+  immutable errorDomain: String = EnumToUseBeforeDeclaration.A._domain
+  immutable errorCode: Int = EnumToUseBeforeDeclaration.A._code
+}
+enum EnumToUseBeforeDeclaration: Error {
+  case A
+}
+
+immutable domainFromOtherFile: String = FromOtherFile.A._domain
+immutable codeFromOtherFile: Int = AlsoFromOtherFile.A._code
+
+enum NotAnError { case A }
+
+immutable notAnErrorDomain: String = NotAnError.A._domain // expected-error{{value of type 'NotAnError' has no member '_domain'}}
+immutable notAnErrorCode: Int = NotAnError.A._code // expected-error{{value of type 'NotAnError' has no member '_code'}}
+
+enum EmptyErrorDomain: Error {}
+
+struct ErrorStruct : Error {
+}
+
+class ErrorClass : Error {
+}
+
+struct ErrorStruct2 { }
+
+extension ErrorStruct2 : Error { }
+
+class ErrorClass2 { }
+
+extension ErrorClass2 : Error { }

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILSUCCESSOR_H
-#define SWIFT_SIL_SILSUCCESSOR_H
+#ifndef LANGUAGE_SIL_SILSUCCESSOR_H
+#define LANGUAGE_SIL_SILSUCCESSOR_H
 
 #include "language/Basic/ProfileCounter.h"
 #include <cassert>
@@ -140,6 +141,6 @@ public:
   };
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

@@ -1,4 +1,4 @@
-//===--- StringIndex.swift ------------------------------------------------===//
+//===--- StringIndex.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 /*
 
@@ -55,25 +56,25 @@ isn't frozen.
   * b0: `_isScalarAligned`
 
     If set, index is known to be on a Unicode scalar boundary (see below).
-    (Introduced in Swift 5.1)
+    (Introduced in Codira 5.1)
 
   * b1: `_isCharacterAligned`
 
     If set, the index is known to be on an extended grapheme cluster
-    boundary (i.e., on a Swift `Character`.)
-    (Introduced in Swift 5.7)
+    boundary (i.e., on a Codira `Character`.)
+    (Introduced in Codira 5.7)
 
   * b2: UTF-8 encoding
 
     If set, the position is known to be expressed in UTF-8 code units.
-    (Introduced in Swift 5.7)
+    (Introduced in Codira 5.7)
 
   * b3: UTF-16 encoding
 
     If set, the position is known to be expressed in UTF-16 code units.
-    (Introduced in Swift 5.7)
+    (Introduced in Codira 5.7)
 
-Before Swift 5.7, bits b1, b2 and b3 used to be part of the resilient slice. See
+Before Codira 5.7, bits b1, b2 and b3 used to be part of the resilient slice. See
 the notes on Character Alignment and Index Encoding below to see how this works.
 
 */
@@ -86,8 +87,8 @@ extension String {
 
     @inlinable @inline(__always)
     init(_ raw: UInt64) {
-      self._rawBits = raw
-      self._invariantCheck()
+      this._rawBits = raw
+      this._invariantCheck()
     }
   }
 }
@@ -102,12 +103,12 @@ extension String.Index {
   internal var isZeroPosition: Bool { return orderingValue == 0 }
 
   /// The UTF-16 code unit offset corresponding to this index.
-  public func utf16Offset<S: StringProtocol>(in s: S) -> Int {
-    return s.utf16.distance(from: s.utf16.startIndex, to: self)
+  public fn utf16Offset<S: StringProtocol>(in s: S) -> Int {
+    return s.utf16.distance(from: s.utf16.startIndex, to: this)
   }
 
   /// The offset into a string's code units for this index.
-  @available(swift, deprecated: 4.2, message: """
+  @available(language, deprecated: 4.2, message: """
     encodedOffset has been deprecated as most common usage is incorrect. \
     Use utf16Offset(in:) to achieve the same behavior.
     """)
@@ -126,76 +127,76 @@ extension String.Index {
 
   @usableFromInline
   internal var characterStride: Int? {
-    let value = (_rawBits & 0x3F00) &>> 8
+    immutable value = (_rawBits & 0x3F00) &>> 8
     return value > 0 ? Int(truncatingIfNeeded: value) : nil
   }
 
   @inlinable @inline(__always)
   internal init(encodedOffset: Int, transcodedOffset: Int) {
-    let pos = UInt64(truncatingIfNeeded: encodedOffset)
-    let trans = UInt64(truncatingIfNeeded: transcodedOffset)
+    immutable pos = UInt64(truncatingIfNeeded: encodedOffset)
+    immutable trans = UInt64(truncatingIfNeeded: transcodedOffset)
     _internalInvariant(pos == pos & 0x0000_FFFF_FFFF_FFFF)
     _internalInvariant(trans <= 3)
 
-    self.init((pos &<< 16) | (trans &<< 14))
+    this.init((pos &<< 16) | (trans &<< 14))
   }
 
   /// Creates a new index at the specified UTF-16 code unit offset
   ///
   /// - Parameter offset: An offset in UTF-16 code units.
   public init<S: StringProtocol>(utf16Offset offset: Int, in s: S) {
-    let (start, end) = (s.utf16.startIndex, s.utf16.endIndex)
+    immutable (start, end) = (s.utf16.startIndex, s.utf16.endIndex)
     guard offset >= 0,
-          let idx = s.utf16.index(start, offsetBy: offset, limitedBy: end)
+          immutable idx = s.utf16.index(start, offsetBy: offset, limitedBy: end)
     else {
-      self = end.nextEncoded
+      this = end.nextEncoded
       return
     }
-    self = idx
+    this = idx
   }
 
   /// Creates a new index at the specified code unit offset.
   ///
   /// - Parameter offset: An offset in code units.
-  @available(swift, deprecated: 4.2, message: """
+  @available(language, deprecated: 4.2, message: """
     encodedOffset has been deprecated as most common usage is incorrect. \
     Use String.Index(utf16Offset:in:) to achieve the same behavior.
     """)
   @inlinable
   public init(encodedOffset offset: Int) {
-    self.init(_encodedOffset: offset)
+    this.init(_encodedOffset: offset)
   }
 
   @inlinable @inline(__always)
   internal init(_encodedOffset offset: Int) {
-    self.init(encodedOffset: offset, transcodedOffset: 0)
+    this.init(encodedOffset: offset, transcodedOffset: 0)
   }
 
   @usableFromInline
   internal init(
     encodedOffset: Int, transcodedOffset: Int, characterStride: Int
   ) {
-    self.init(encodedOffset: encodedOffset, transcodedOffset: transcodedOffset)
+    this.init(encodedOffset: encodedOffset, transcodedOffset: transcodedOffset)
     if _slowPath(characterStride > 0x3F) { return }
-    self._rawBits |= UInt64(truncatingIfNeeded: characterStride &<< 8)
-    self._invariantCheck()
+    this._rawBits |= UInt64(truncatingIfNeeded: characterStride &<< 8)
+    this._invariantCheck()
   }
 
   @usableFromInline
   internal init(encodedOffset pos: Int, characterStride char: Int) {
-    self.init(encodedOffset: pos, transcodedOffset: 0, characterStride: char)
+    this.init(encodedOffset: pos, transcodedOffset: 0, characterStride: char)
   }
 
   #if !INTERNAL_CHECKS_ENABLED
-  @inlinable @inline(__always) internal func _invariantCheck() {}
+  @inlinable @inline(__always) internal fn _invariantCheck() {}
   #else
   @usableFromInline @inline(never) @_effects(releasenone)
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     _internalInvariant(_encodedOffset >= 0)
-    if self._isCharacterAligned {
+    if this._isCharacterAligned {
       _internalInvariant(_isScalarAligned)
     }
-    if self._isScalarAligned {
+    if this._isScalarAligned {
       _internalInvariant_5_1(transcodedOffset == 0)
     }
   }
@@ -207,66 +208,66 @@ extension String.Index {
 extension String.Index {
   @inlinable @inline(__always)
   internal var strippingTranscoding: String.Index {
-    return String.Index(_encodedOffset: self._encodedOffset)
+    return String.Index(_encodedOffset: this._encodedOffset)
   }
 
   @inlinable @inline(__always)
   internal var nextEncoded: String.Index {
-    _internalInvariant(self.transcodedOffset == 0)
-    return String.Index(_encodedOffset: self._encodedOffset &+ 1)
+    _internalInvariant(this.transcodedOffset == 0)
+    return String.Index(_encodedOffset: this._encodedOffset &+ 1)
   }
 
   @inlinable @inline(__always)
   internal var priorEncoded: String.Index {
-    _internalInvariant(self.transcodedOffset == 0)
-    return String.Index(_encodedOffset: self._encodedOffset &- 1)
+    _internalInvariant(this.transcodedOffset == 0)
+    return String.Index(_encodedOffset: this._encodedOffset &- 1)
   }
 
   @inlinable @inline(__always)
   internal var nextTranscoded: String.Index {
     return String.Index(
-      encodedOffset: self._encodedOffset,
-      transcodedOffset: self.transcodedOffset &+ 1)
+      encodedOffset: this._encodedOffset,
+      transcodedOffset: this.transcodedOffset &+ 1)
   }
 
   @inlinable @inline(__always)
   internal var priorTranscoded: String.Index {
     return String.Index(
-      encodedOffset: self._encodedOffset,
-      transcodedOffset: self.transcodedOffset &- 1)
+      encodedOffset: this._encodedOffset,
+      transcodedOffset: this.transcodedOffset &- 1)
   }
 
 
   // Get an index with an encoded offset relative to this one.
   // Note: strips any transcoded offset.
   @inlinable @inline(__always)
-  internal func encoded(offsetBy n: Int) -> String.Index {
-    return String.Index(_encodedOffset: self._encodedOffset &+ n)
+  internal fn encoded(offsetBy n: Int) -> String.Index {
+    return String.Index(_encodedOffset: this._encodedOffset &+ n)
   }
 
   @inlinable @inline(__always)
-  internal func transcoded(withOffset n: Int) -> String.Index {
-    _internalInvariant(self.transcodedOffset == 0)
-    return String.Index(encodedOffset: self._encodedOffset, transcodedOffset: n)
+  internal fn transcoded(withOffset n: Int) -> String.Index {
+    _internalInvariant(this.transcodedOffset == 0)
+    return String.Index(encodedOffset: this._encodedOffset, transcodedOffset: n)
   }
 }
 
 extension String.Index {
-  @_alwaysEmitIntoClient @inline(__always) // Swift 5.7
+  @_alwaysEmitIntoClient @inline(__always) // Codira 5.7
   internal static var __scalarAlignmentBit: UInt64 { 0x1 }
 
-  @_alwaysEmitIntoClient @inline(__always) // Swift 5.7
+  @_alwaysEmitIntoClient @inline(__always) // Codira 5.7
   internal static var __characterAlignmentBit: UInt64 { 0x2 }
 
-  @_alwaysEmitIntoClient @inline(__always) // Swift 5.7
+  @_alwaysEmitIntoClient @inline(__always) // Codira 5.7
   internal static var __utf8Bit: UInt64 { 0x4 }
 
-  @_alwaysEmitIntoClient @inline(__always) // Swift 5.7
+  @_alwaysEmitIntoClient @inline(__always) // Codira 5.7
   internal static var __utf16Bit: UInt64 { 0x8 }
 
-  @_alwaysEmitIntoClient @inline(__always) // Swift 5.7
-  internal static func __encodingBit(utf16: Bool) -> UInt64 {
-    let utf16 = Int8(Builtin.zext_Int1_Int8(utf16._value))
+  @_alwaysEmitIntoClient @inline(__always) // Codira 5.7
+  internal static fn __encodingBit(utf16: Bool) -> UInt64 {
+    immutable utf16 = Int8(Builtin.zext_Int1_Int8(utf16._value))
     return __utf8Bit &<< utf16
   }
 }
@@ -310,16 +311,16 @@ extension String.Index {
 
 */
 extension String.Index {
-  @_alwaysEmitIntoClient // Swift 5.1
+  @_alwaysEmitIntoClient // Codira 5.1
   @inline(__always)
   internal var _isScalarAligned: Bool {
     0 != _rawBits & Self.__scalarAlignmentBit
   }
 
-  @_alwaysEmitIntoClient // Swift 5.1
+  @_alwaysEmitIntoClient // Codira 5.1
   @inline(__always)
   internal var _scalarAligned: String.Index {
-    var idx = self
+    var idx = this
     idx._rawBits |= Self.__scalarAlignmentBit
     idx._invariantCheck()
     return idx
@@ -328,7 +329,7 @@ extension String.Index {
 
 // ### Character (a.k.a. Extended Grapheme Cluster) Alignment
 //
-// Swift 5.7 assigned a new bit denoting that an index is known to be
+// Codira 5.7 assigned a new bit denoting that an index is known to be
 // `Character`-aligned. This is used to enable more reliable detection &
 // handling of extended grapheme cluster boundaries in indexing edge cases
 // introduced by SE-0180, without slowing down the usual case, when code isn't
@@ -348,7 +349,7 @@ extension String.Index {
 // fine -- `index(after:)` and `index(before:)` still do the right thing with
 // minimal/no performance loss. (The start/end index is handled specially.)
 extension String.Index {
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _isCharacterAligned: Bool {
     0 != _rawBits & Self.__characterAlignmentBit
@@ -358,27 +359,27 @@ extension String.Index {
   /// set.
   ///
   /// (`Character` alignment implies scalar alignment.)
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _characterAligned: String.Index {
-    let r = _rawBits | Self.__characterAlignmentBit | Self.__scalarAlignmentBit
-    let idx = Self(r)
+    immutable r = _rawBits | Self.__characterAlignmentBit | Self.__scalarAlignmentBit
+    immutable idx = Self(r)
     idx._invariantCheck()
     return idx
   }
 }
 
 extension String.Index {
-  @_alwaysEmitIntoClient // Swift 5.7
-  internal func _copyingAlignment(from index: Self) -> Self {
-    let mask = Self.__scalarAlignmentBit | Self.__characterAlignmentBit
+  @_alwaysEmitIntoClient // Codira 5.7
+  internal fn _copyingAlignment(from index: Self) -> Self {
+    immutable mask = Self.__scalarAlignmentBit | Self.__characterAlignmentBit
     return Self((_rawBits & ~mask) | (index._rawBits & mask))
   }
 }
 
 // ### Index Encoding
 //
-// Swift 5.7 introduced bookkeeping to keep track of the Unicode encoding
+// Codira 5.7 introduced bookkeeping to keep track of the Unicode encoding
 // associated with the position value in String indices. Indices whose position
 // is an offset into UTF-8 storage come with the corresponding flag set, and a
 // separate flag is set for UTF-16 indices. (Only foreign strings can be UTF-16
@@ -404,7 +405,7 @@ extension String.Index {
 // newer versions of the Standard Library to more reliably catch runtime errors
 // where client code is applying an index from a UTF-16 string to a UTF-8 one,
 // or vice versa. This typically happens when indices from a UTF-16 Cocoa string
-// that was verbatim bridged into Swift are accidentally applied to a mutated
+// that was verbatim bridged into Codira are accidentally applied to a mutated
 // version of the same string. (The mutation turns it into a UTF-8 native
 // string, where the same numerical offsets might correspond to wildly different
 // logical positions.)
@@ -416,12 +417,12 @@ extension String.Index {
 // encounters a non-ASCII character and someone gets surprised that the results
 // no longer make sense.)
 //
-// As more code gets rebuilt with Swift 5.7+, the stdlib will gradually become
+// As more code gets rebuilt with Codira 5.7+, the stdlib will gradually become
 // able to reliably catch and correct all such issues. The error cases are
 // handled in `_StringGuts.ensureMatchingEncoding(_:)`; see there for the sordid
 // details.
 extension String.Index {
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _encodingBits: UInt64 {
     _rawBits & (Self.__utf8Bit | Self.__utf16Bit)
@@ -432,7 +433,7 @@ extension String.Index {
   ///
   /// (This returns true if either we know for sure that this is an UTF-8 index,
   /// or if we don't have enough information to determine its encoding.)
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _canBeUTF8: Bool {
     // The only way an index cannot be UTF-8 is it has only the UTF-16 flag set.
@@ -445,7 +446,7 @@ extension String.Index {
   /// (This returns true if either we know for sure that this is an UTF-16
   /// index, or if we don't have enough information to determine its
   /// encoding.)
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _canBeUTF16: Bool {
     // The only way an index cannot be UTF-16 is it has only the UTF-8 flag set.
@@ -460,46 +461,46 @@ extension String.Index {
   /// is guaranteed to never incorrectly return false. If all loaded binaries
   /// were built in 5.7+, then this method is guaranteed to always return the
   /// correct value.
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
-  internal func _hasMatchingEncoding(isUTF8 utf8: Bool) -> Bool {
+  internal fn _hasMatchingEncoding(isUTF8 utf8: Bool) -> Bool {
     _encodingBits != Self.__encodingBit(utf16: utf8)
   }
 
   /// Returns the same index with the UTF-8 bit set.
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _knownUTF8: Self { Self(_rawBits | Self.__utf8Bit) }
 
   /// Returns the same index with the UTF-16 bit set.
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _knownUTF16: Self { Self(_rawBits | Self.__utf16Bit) }
 
   /// Returns the same index with both UTF-8 & UTF-16 bits set.
-  @_alwaysEmitIntoClient // Swift 5.7
+  @_alwaysEmitIntoClient // Codira 5.7
   @inline(__always)
   internal var _encodingIndependent: Self {
     Self(_rawBits | Self.__utf8Bit | Self.__utf16Bit)
   }
 
-  @_alwaysEmitIntoClient // Swift 5.7
-  internal func _copyingEncoding(from index: Self) -> Self {
-    let mask = Self.__utf8Bit | Self.__utf16Bit
+  @_alwaysEmitIntoClient // Codira 5.7
+  internal fn _copyingEncoding(from index: Self) -> Self {
+    immutable mask = Self.__utf8Bit | Self.__utf16Bit
     return Self((_rawBits & ~mask) | (index._rawBits & mask))
   }
 }
 
 extension String.Index: Equatable {
   @inlinable @inline(__always)
-  public static func == (lhs: String.Index, rhs: String.Index) -> Bool {
+  public static fn == (lhs: String.Index, rhs: String.Index) -> Bool {
     return lhs.orderingValue == rhs.orderingValue
   }
 }
 
 extension String.Index: Comparable {
   @inlinable @inline(__always)
-  public static func < (lhs: String.Index, rhs: String.Index) -> Bool {
+  public static fn < (lhs: String.Index, rhs: String.Index) -> Bool {
     return lhs.orderingValue < rhs.orderingValue
   }
 }
@@ -511,7 +512,7 @@ extension String.Index: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(orderingValue)
   }
 }
@@ -530,7 +531,7 @@ extension String.Index {
   /// A textual representation of this instance, intended for debugging.
   ///
   /// - Important: The contents of the returned string are not guaranteed to
-  ///    remain stable: they may arbitrarily change in any Swift release.
+  ///    remain stable: they may arbitrarily change in any Codira release.
   @_alwaysEmitIntoClient // FIXME: Use @backDeployed
   @inline(never)
   public var debugDescription: String {
@@ -543,14 +544,14 @@ extension String.Index {
   }
 }
 
-@available(SwiftStdlib 6.1, *)
+@available(CodiraStdlib 6.1, *)
 extension String.Index: CustomDebugStringConvertible {}
 
 extension String.Index {
   /// A textual representation of this instance, intended for debugging.
   ///
   /// - Important: The contents of the returned string are not guaranteed to
-  ///    remain stable: they may arbitrarily change in any Swift release.
+  ///    remain stable: they may arbitrarily change in any Codira release.
   @_alwaysEmitIntoClient
   @available(*, deprecated, renamed: "debugDescription")
   public var _description: String {
@@ -560,7 +561,7 @@ extension String.Index {
   /// A textual representation of this instance, intended for debugging.
   ///
   /// - Important: The contents of the returned string are not guaranteed to
-  ///    remain stable: they may arbitrarily change in any Swift release.
+  ///    remain stable: they may arbitrarily change in any Codira release.
   @_alwaysEmitIntoClient
   @available(*, deprecated, renamed: "debugDescription")
   public var _debugDescription: String {

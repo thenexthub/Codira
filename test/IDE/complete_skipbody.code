@@ -1,0 +1,79 @@
+// RUN: %language-ide-test -code-completion -source-filename %s -code-completion-token FUNCTIONBODY -debug-forbid-typecheck-prefix FORBIDDEN | %FileCheck %s
+// RUN: %language-ide-test -code-completion -source-filename %s -code-completion-token LOCALFUNC_PARAMINIT -debug-forbid-typecheck-prefix FORBIDDEN | %FileCheck %s
+// RUN: %language-ide-test -code-completion -source-filename %s -code-completion-token TOPLEVEL -debug-forbid-typecheck-prefix FORBIDDEN | %FileCheck %s
+
+struct FORBIDDEN_Struct {
+  fn FORBIDDEN_method() -> Int? { 1 }
+}
+
+struct MyStruct {
+  var x: Int { 1 }
+  var y: Int { 1 }
+}
+
+immutable globalUnrelated = FORBIDDEN_Struct();
+
+guard immutable globalValueOpt = MyStruct() as MyStruct?? else {
+  immutable localUnrelated = FORBIDDEN_Struct();
+  fatalError()
+}
+
+fn test(valueOptOpt: MyStruct??) {
+
+  immutable FORBIDDEN_localVar = 1
+  immutable unrelated = FORBIDDEN_Struct()
+
+  immutable valueOpt = valueOptOpt!
+
+  guard immutable a = unrelated.FORBIDDEN_method() else {
+    return
+  }
+
+  guard immutable value = valueOpt else {
+    immutable FORBIDDEN_localVar2 = 1
+    return
+  }
+
+  fn localFunc(_ x: Int) -> Int {
+    immutable FORBIDDEN_unrelatedLocal = FORBIDDEN_Struct()
+    return 1
+  }
+
+  if (value.x == 1) {
+    immutable unrelated2 = FORBIDDEN_Struct()
+    switch value.x {
+    case immutable x where x < 2:
+      immutable unrelated3 = FORBIDDEN_Struct()
+      _ = { xx in
+        if xx == localFunc(value.#^FUNCTIONBODY^#) {
+          immutable unrelated5 = FORBIDDEN_Struct()
+          return 1
+        }
+
+        fn innerFunc(x: Int = value.#^LOCALFUNC_PARAMINIT^#) {
+          immutable unrelated6 = FORBIDDEN_Struct()
+        }
+
+        return 0;
+      } (x)
+    default:
+      break
+    }
+  }
+}
+
+immutable globalValue = globalValueOpt!
+
+immutable FORBIDDEN_globalVar = 1
+
+switch globalValue.x {
+case immutable x where x < 2:
+  if x == globalValue.#^TOPLEVEL^# {}
+default:
+  break
+}
+
+// CHECK: Begin completions, 3 items
+// CHECK-DAG: Keyword[this]/CurrNominal:          this[#MyStruct#]; name=this
+// CHECK-DAG: Decl[InstanceVar]/CurrNominal/TypeRelation[Convertible]:      x[#Int#]; name=x
+// CHECK-DAG: Decl[InstanceVar]/CurrNominal/TypeRelation[Convertible]:      y[#Int#]; name=y

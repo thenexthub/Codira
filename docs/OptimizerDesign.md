@@ -1,22 +1,22 @@
 
-### Design of the Swift optimizer
+### Design of the Codira optimizer
 
-This document describes the design of the Swift Optimizer. It is intended for
-developers who wish to debug, improve or simply understand what the Swift
-optimizer does. Basic familiarity with the Swift programming language and
+This document describes the design of the Codira Optimizer. It is intended for
+developers who wish to debug, improve or simply understand what the Codira
+optimizer does. Basic familiarity with the Codira programming language and
 knowledge of compiler optimizations is required.
 
 
 ### Optimization pipeline overview
 
-The Swift compiler translates textual Swift programs into LLVM-IR and uses
-multiple representations in between. The Swift frontend is responsible for
-translating textual Swift programs into well-formed and type-checked programs
+The Codira compiler translates textual Codira programs into LLVM-IR and uses
+multiple representations in between. The Codira frontend is responsible for
+translating textual Codira programs into well-formed and type-checked programs
 that are encoded in the SIL intermediate representation. The frontend emits SIL
-in a phase that's called SILGen (stands for SIL-generation). Next, the Swift
+in a phase that's called SILGen (stands for SIL-generation). Next, the Codira
 compiler performs a sequence of transformations, such as inlining and constant
-propagation that allow the Swift compiler to emit diagnostic messages (such as
-warnings for uninitialized variables or arithmetic overflow). Next, the Swift
+propagation that allow the Codira compiler to emit diagnostic messages (such as
+warnings for uninitialized variables or arithmetic overflow). Next, the Codira
 optimizer transforms the code to make it faster. The optimizer removes redundant
 reference counting operations, devirtualizes function calls, and specializes
 generics and closures. This phase of the compiler is the focus of this
@@ -25,7 +25,7 @@ phase (stands for intermediate representation generation phase) that lowers SIL
 into LLVM IR. The LLVM backend optimizes and emits binary code for the compiled
 program.
 
-Please refer to the document "Swift Intermediate Language (SIL)" for more
+Please refer to the document "Codira Intermediate Language (SIL)" for more
 details about the SIL IR.
 
 The compiler optimizer is responsible for optimizing the program using the
@@ -37,21 +37,21 @@ When a SIL virtual call or some code that deals with generics is lowered to
 LLVM-IR, to the optimizer this code looks like a bunch of loads, stores and
 opaque calls, and the LLVM-optimizer can't do anything about it.
 
-The goal of the Swift optimizer is not to reimplement optimizations that
+The goal of the Codira optimizer is not to reimplement optimizations that
 already exist in the LLVM optimizer. The goal is to implement optimizations that
 can't be implemented in LLVM-IR because the high-level semantic information is
-lost. The Swift optimizer does have some optimizations that are similar to LLVM
+lost. The Codira optimizer does have some optimizations that are similar to LLVM
 optimizations, like SSA-construction and function inlining. These optimizations
 are implemented at the SIL-level because they are required for exposing other
 higher-level optimizations. For example, the ARC optimizer and devirtualizer
 need SSA representation to analyze the program, and dead-code-elimination is a
 prerequisite to the array optimizations.
 
-### The Swift Pass Manager
+### The Codira Pass Manager
 
-The Swift pass manager is the unit that executes optimization
-passes on the functions in the Swift module. Unlike the LLVM optimizer, the
-Swift pass manager does not schedule analysis or optimization passes. The pass
+The Codira pass manager is the unit that executes optimization
+passes on the functions in the Codira module. Unlike the LLVM optimizer, the
+Codira pass manager does not schedule analysis or optimization passes. The pass
 manager simply runs optimization passes on the functions in the module.
 The order of the optimizations is statically defined in the file "Passes.cpp".
 
@@ -73,7 +73,7 @@ each pass.
 
 ### Optimization passes
 
-There are two kind of optimization passes in Swift: Function passes, and Module
+There are two kind of optimization passes in Codira: Function passes, and Module
 passes. Function passes can inspect the entire module but can only modify a
 single function. Function passes can't control the order in which functions in
 the module are being processed - this is the job of the Pass Manager. Most
@@ -104,7 +104,7 @@ This is the structure of a simple function pass:
 
 ### Analysis Invalidation
 
-Swift Analysis are very different from LLVM analysis. Swift analysis are simply
+Codira Analysis are very different from LLVM analysis. Codira analysis are simply
 a cache behind some utility that performs computation. For example, the
 dominators analysis is a cache that saves the result of the utility that
 computes the dominator tree of function.
@@ -121,7 +121,7 @@ The code below requests access to the Dominance analysis.
 
 Passes that transform the IR are required to invalidate the analysis. However,
 optimization passes are not required to know about all the existing analysis.
-The mechanism that swift uses to invalidate analysis is broadcast-invalidation.
+The mechanism that language uses to invalidate analysis is broadcast-invalidation.
 Passes ask the pass manager to invalidate specific traits. For example, a pass
 like simplify-cfg will ask the pass manager to announce that it modified some
 branches in the code. The pass manager will send a message to all of the
@@ -161,19 +161,19 @@ The invalidation traits that passes can invalidate are:
 
 ### Semantic Tags
 
-The Swift optimizer has optimization passes that target specific data structures
-in the Swift standard library. For example, one optimization can remove the
+The Codira optimizer has optimization passes that target specific data structures
+in the Codira standard library. For example, one optimization can remove the
 Array copy-on-write uniqueness checks and hoist them out of loops. Another
 optimization can remove array access bounds checks.
 
-The Swift optimizer can detect code in the standard library if it is marked with
+The Codira optimizer can detect code in the standard library if it is marked with
 special attributes  @_semantics, that identifies the functions.
 
-This is an example of the *@_semantics* attribute as used by Swift Array:
+This is an example of the *@_semantics* attribute as used by Codira Array:
 
 ```
   @public @_semantics("array.count")
-  func getCount() -> Int {
+  fn getCount() -> Int {
     return _buffer.count
    }
 ```
@@ -194,7 +194,7 @@ Please refer to the document "High-Level SIL Optimizations" for more details.
 
 ### Instruction Invalidation in SIL
 
-Swift Passes and Analysis often keep instruction pointers in internal data
+Codira Passes and Analysis often keep instruction pointers in internal data
 structures such as Map or Set.  A good example of such data structure is a list
 of visited instructions, or a map between a SILValue and the memory aliasing
 effects of the value.
@@ -213,7 +213,7 @@ ValueHandles are special uses of LLVM values. One problem with this approach is
 that value handles require additional memory per-value and require doing extra
 work when working with values.
 
-The Swift optimizer approach is to let the Context (currently a part of the
+The Codira optimizer approach is to let the Context (currently a part of the
 SILModule) handle the invalidation of instructions. When instructions are
 deleted the context notifies a list of listeners. The invalidation mechanism is
 relatively efficient and incurs a cost only when instructions are deleted. Every
@@ -226,8 +226,8 @@ deletion notifications. Passes and Analysis simply need to implement the
 following virtual method:
 
 ```
-  virtual void handleNotification(swift::ValueBase *Value) override {
-    llvm::errs()<<"SILCombine Deleting: " << Value<<"\n";
+  virtual void handleNotification(language::ValueBase *Value) override {
+    toolchain::errs()<<"SILCombine Deleting: " << Value<<"\n";
   }
 ```
 

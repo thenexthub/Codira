@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing task options.
+// Codira ABI describing task options.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASK_OPTIONS_H
-#define SWIFT_ABI_TASK_OPTIONS_H
+#ifndef LANGUAGE_ABI_TASK_OPTIONS_H
+#define LANGUAGE_ABI_TASK_OPTIONS_H
 
 #include "language/ABI/Executor.h"
 #include "language/ABI/HeapObject.h"
@@ -26,7 +27,7 @@
 #include "language/ABI/MetadataValues.h"
 #include "language/Runtime/Config.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/Support/Casting.h"
 
 namespace language {
 
@@ -125,7 +126,7 @@ public:
     WitnessTable = reinterpret_cast<const TaskExecutorWitnessTable*>(witnessTable);
   }
 
-  /// Invokes Swift implemented `asUnownedTaskExecutor` in order to obtain an
+  /// Invokes Codira implemented `asUnownedTaskExecutor` in order to obtain an
   /// `TaskExecutorRef` which is properly populated with any flags it might need.
   TaskExecutorRef getExecutorRefFromUnownedTaskExecutor() const;
 
@@ -212,21 +213,21 @@ public:
   }
 };
 
-#if SWIFT_CONCURRENCY_EMBEDDED
+#if LANGUAGE_CONCURRENCY_EMBEDDED
 class ResultTypeInfoTaskOptionRecord : public TaskOptionRecord {
  public:
   size_t size;
   size_t alignMask;
 
-  void (*__ptrauth_swift_value_witness_function_pointer(
+  void (*__ptrauth_language_value_witness_function_pointer(
       SpecialPointerAuthDiscriminators::InitializeWithCopy)
             initializeWithCopy)(OpaqueValue *, OpaqueValue *);
 
-  void (*__ptrauth_swift_value_witness_function_pointer(
+  void (*__ptrauth_language_value_witness_function_pointer(
       SpecialPointerAuthDiscriminators::StoreEnumTagSinglePayload)
             storeEnumTagSinglePayload)(OpaqueValue *, unsigned, unsigned);
 
-  void (*__ptrauth_swift_value_witness_function_pointer(
+  void (*__ptrauth_language_value_witness_function_pointer(
       SpecialPointerAuthDiscriminators::Destroy) destroy)(OpaqueValue *, void *);
 
   static bool classof(const TaskOptionRecord *record) {

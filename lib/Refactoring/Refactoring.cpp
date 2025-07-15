@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Refactoring/Refactoring.h"
@@ -29,7 +30,7 @@ using namespace language::refactoring;
 StringRef getDefaultPreferredName(RefactoringKind Kind) {
   switch(Kind) {
     case RefactoringKind::None:
-      llvm_unreachable("Should be a valid refactoring kind");
+      toolchain_unreachable("Should be a valid refactoring kind");
     case RefactoringKind::GlobalRename:
     case RefactoringKind::LocalRename:
       return "newName";
@@ -78,18 +79,18 @@ static bool collectRangeStartRefactorings(const ResolvedRangeInfo &Info) {
   }
 }
 
-StringRef swift::ide::
+StringRef language::ide::
 getDescriptiveRefactoringKindName(RefactoringKind Kind) {
     switch(Kind) {
       case RefactoringKind::None:
-        llvm_unreachable("Should be a valid refactoring kind");
+        toolchain_unreachable("Should be a valid refactoring kind");
 #define REFACTORING(KIND, NAME, ID) case RefactoringKind::KIND: return NAME;
 #include "language/Refactoring/RefactoringKinds.def"
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
-  StringRef swift::ide::getDescriptiveRenameUnavailableReason(
+  StringRef language::ide::getDescriptiveRenameUnavailableReason(
       RefactorAvailableKind Kind) {
     switch(Kind) {
     case RefactorAvailableKind::Available:
@@ -103,23 +104,23 @@ getDescriptiveRefactoringKindName(RefactoringKind Kind) {
     case RefactorAvailableKind::Unavailable_has_no_accessibility:
       return "cannot decide the accessibility of the symbol";
     case RefactorAvailableKind::Unavailable_decl_from_clang:
-      return "cannot rename a Clang symbol from its Swift reference";
+      return "cannot rename a Clang symbol from its Codira reference";
     case RefactorAvailableKind::Unavailable_decl_in_macro:
       return "cannot rename a symbol declared in a macro";
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
-SourceLoc swift::ide::RangeConfig::getStart(SourceManager &SM) {
+SourceLoc language::ide::RangeConfig::getStart(SourceManager &SM) {
   return SM.getLocForLineCol(BufferID, Line, Column);
 }
 
-SourceLoc swift::ide::RangeConfig::getEnd(SourceManager &SM) {
+SourceLoc language::ide::RangeConfig::getEnd(SourceManager &SM) {
   return getStart(SM).getAdvancedLoc(Length);
 }
 
 SmallVector<RefactorAvailabilityInfo, 0>
-swift::ide::collectRefactorings(ResolvedCursorInfoPtr CursorInfo,
+language::ide::collectRefactorings(ResolvedCursorInfoPtr CursorInfo,
                                 bool ExcludeRename) {
   SmallVector<RefactorAvailabilityInfo, 0> Infos;
 
@@ -151,7 +152,7 @@ swift::ide::collectRefactorings(ResolvedCursorInfoPtr CursorInfo,
 }
 
 SmallVector<RefactorAvailabilityInfo, 0>
-swift::ide::collectRefactorings(SourceFile *SF, RangeConfig Range,
+language::ide::collectRefactorings(SourceFile *SF, RangeConfig Range,
                                 bool &CollectRangeStartRefactorings,
                                 ArrayRef<DiagnosticConsumer *> DiagConsumers) {
   if (Range.Length == 0)
@@ -175,7 +176,7 @@ swift::ide::collectRefactorings(SourceFile *SF, RangeConfig Range,
                       Range.getEnd(SF->getASTContext().SourceMgr)})),
                                                ResolvedRangeInfo());
 
-  bool enableInternalRefactoring = getenv("SWIFT_ENABLE_INTERNAL_REFACTORING_ACTIONS");
+  bool enableInternalRefactoring = getenv("LANGUAGE_ENABLE_INTERNAL_REFACTORING_ACTIONS");
 
   SmallVector<RefactorAvailabilityInfo, 0> Infos;
 
@@ -192,8 +193,8 @@ swift::ide::collectRefactorings(SourceFile *SF, RangeConfig Range,
   return Infos;
 }
 
-bool swift::ide::
-refactorSwiftModule(ModuleDecl *M, RefactoringOptions Opts,
+bool language::ide::
+refactorCodiraModule(ModuleDecl *M, RefactoringOptions Opts,
                     SourceEditConsumer &EditConsumer,
                     DiagnosticConsumer &DiagConsumer) {
   assert(Opts.Kind != RefactoringKind::None && "should have a refactoring kind.");
@@ -218,9 +219,9 @@ case RefactoringKind::KIND: {                                                  \
     case RefactoringKind::GlobalRename:
     case RefactoringKind::FindGlobalRenameRanges:
     case RefactoringKind::FindLocalRenameRanges:
-      llvm_unreachable("not a valid refactoring kind");
+      toolchain_unreachable("not a valid refactoring kind");
     case RefactoringKind::None:
-      llvm_unreachable("should not enter here.");
+      toolchain_unreachable("should not enter here.");
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }

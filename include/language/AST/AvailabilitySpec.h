@@ -1,4 +1,4 @@
-//===--- AvailabilitySpec.h - Swift Availability Query ASTs -----*- C++ -*-===//
+//===--- AvailabilitySpec.h - Codira Availability Spec ASTs ------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the availability specification AST classes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AVAILABILITY_SPEC_H
-#define SWIFT_AST_AVAILABILITY_SPEC_H
+#ifndef LANGUAGE_AST_AVAILABILITY_SPEC_H
+#define LANGUAGE_AST_AVAILABILITY_SPEC_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/AvailabilityDomain.h"
 #include "language/AST/Identifier.h"
-#include "language/AST/PlatformKind.h"
+#include "language/AST/PlatformKindUtils.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/iterator_range.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/ADT/iterator_range.h"
+#include "toolchain/Support/VersionTuple.h"
 
 namespace language {
 class ASTContext;
@@ -44,7 +45,7 @@ class AvailabilitySpec : public ASTAllocated<AvailabilitySpec> {
   SourceRange SrcRange;
 
   /// The version (may be empty if there was no version specified).
-  llvm::VersionTuple Version;
+  toolchain::VersionTuple Version;
 
   /// If there is a version specified, this is its start location within the
   /// overall source range.
@@ -56,7 +57,7 @@ class AvailabilitySpec : public ASTAllocated<AvailabilitySpec> {
   unsigned IsInvalid : 1;
 
   AvailabilitySpec(AvailabilityDomainOrIdentifier DomainOrIdentifier,
-                   SourceRange SrcRange, llvm::VersionTuple Version,
+                   SourceRange SrcRange, toolchain::VersionTuple Version,
                    SourceLoc VersionStartLoc)
       : DomainOrIdentifier(DomainOrIdentifier), SrcRange(SrcRange),
         Version(Version), VersionStartLoc(VersionStartLoc), IsInvalid(false) {}
@@ -74,16 +75,16 @@ public:
   static AvailabilitySpec *createWildcard(ASTContext &ctx, SourceLoc starLoc);
 
   /// Creates an availability specification that requires a minimum version of
-  /// some availability domain, e.g., macOS >= 10.10 or swift >= 3.0.1.
+  /// some availability domain, e.g., macOS >= 10.10 or language >= 3.0.1.
   static AvailabilitySpec *
   createForDomain(ASTContext &ctx, AvailabilityDomain domain, SourceLoc loc,
-                  llvm::VersionTuple version, SourceRange versionRange);
+                  toolchain::VersionTuple version, SourceRange versionRange);
 
   /// Creates an availability specification that requires a minimum version of
   /// some availability domain which has not yet been resolved.
   static AvailabilitySpec *
   createForDomainIdentifier(ASTContext &ctx, Identifier domainIdentifier,
-                            SourceLoc loc, llvm::VersionTuple version,
+                            SourceLoc loc, toolchain::VersionTuple version,
                             SourceRange versionRange);
 
   AvailabilitySpec *clone(ASTContext &ctx) const;
@@ -110,7 +111,7 @@ public:
   }
 
   // The version tuple that was written in source.
-  llvm::VersionTuple getRawVersion() const { return Version; }
+  toolchain::VersionTuple getRawVersion() const { return Version; }
 
   SourceRange getVersionSrcRange() const {
     if (!VersionStartLoc)
@@ -122,7 +123,7 @@ public:
   SourceLoc getMacroLoc() const { return MacroLoc; }
   void setMacroLoc(SourceLoc loc) { MacroLoc = loc; }
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
 private:
   friend class SemanticAvailabilitySpecRequest;
@@ -133,7 +134,7 @@ private:
   void setInvalid() { IsInvalid = true; }
 };
 
-inline void simple_display(llvm::raw_ostream &os,
+inline void simple_display(toolchain::raw_ostream &os,
                            const AvailabilitySpec *spec) {
   spec->print(os);
 }
@@ -159,14 +160,14 @@ public:
   bool isWildcard() const { return spec->isWildcard(); }
 
   // The platform version to compare against.
-  llvm::VersionTuple getVersion() const;
+  toolchain::VersionTuple getVersion() const;
 
   // The version to be used in codegen for version comparisons at run time.
   // This is required to support beta versions of macOS Big Sur that
   // report 10.16 at run time.
-  llvm::VersionTuple getRuntimeVersion() const { return spec->getRawVersion(); }
+  toolchain::VersionTuple getRuntimeVersion() const { return spec->getRawVersion(); }
 
-  void print(llvm::raw_ostream &os) const { spec->print(os); }
+  void print(toolchain::raw_ostream &os) const { spec->print(os); }
 };
 
 /// Wraps an array of availability specs and provides an iterator for their
@@ -192,7 +193,7 @@ private:
 public:
   SemanticAvailabilitySpecs(ArrayRef<AvailabilitySpec *> specs,
                             const DeclContext *declContext)
-      : specRange(llvm::make_range(specs.begin(), specs.end()),
+      : specRange(toolchain::make_range(specs.begin(), specs.end()),
                   Filter(declContext)) {}
 
   Range::iterator begin() const { return specRange.begin(); }
@@ -206,15 +207,15 @@ public:
 /// parsing a version tuple.
 class AvailabilityMacroMap {
 public:
-  typedef llvm::DenseMap<llvm::VersionTuple, SmallVector<AvailabilitySpec *, 4>>
+  typedef toolchain::DenseMap<toolchain::VersionTuple, SmallVector<AvailabilitySpec *, 4>>
       VersionEntry;
-  llvm::StringMap<VersionEntry> Impl;
+  toolchain::StringMap<VersionEntry> Impl;
 
   bool hasMacroName(StringRef name) const {
     return Impl.find(name) != Impl.end();
   }
 
-  bool hasMacroNameVersion(StringRef name, llvm::VersionTuple version) const {
+  bool hasMacroNameVersion(StringRef name, toolchain::VersionTuple version) const {
     auto entry = Impl.find(name);
     if (entry == Impl.end()) {
       return false;
@@ -222,14 +223,14 @@ public:
     return entry->second.find(version) != entry->second.end();
   }
 
-  void addEntry(StringRef name, llvm::VersionTuple version,
+  void addEntry(StringRef name, toolchain::VersionTuple version,
                 ArrayRef<AvailabilitySpec *> specs) {
     assert(!hasMacroNameVersion(name, version));
     Impl[name][version].assign(specs.begin(), specs.end());
   }
 
   ArrayRef<AvailabilitySpec *> getEntry(StringRef name,
-                                        llvm::VersionTuple version) const {
+                                        toolchain::VersionTuple version) const {
     auto versions = Impl.find(name);
     if (versions == Impl.end()) {
       return {};

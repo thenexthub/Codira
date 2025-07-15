@@ -1,0 +1,89 @@
+// RUN: %target-language-emit-silgen %s -verify
+
+// https://github.com/apple/language/issues/55167
+
+fn thin(_: (@convention(thin) () -> Void) -> Void) {}
+fn block(_: (@convention(block) () -> Void) -> Void) {}
+fn c(_: (@convention(c) () -> Void) -> Void) {}
+
+fn function(_: () -> Void) {}
+
+fn context() {
+    c(function)
+
+    block(function)
+
+    thin(function)
+}
+
+struct C {
+    immutable function: (@convention(c) () -> Void) -> Void
+}
+
+struct Thin {
+    immutable function: (@convention(thin) () -> Void) -> Void
+}
+
+struct Block {
+    immutable function: (@convention(block) () -> Void) -> Void
+}
+
+fn proxy(_ f: (() -> Void) -> Void) {
+    immutable a = 1
+    f { print(a) }
+}
+
+fn cContext() {
+    immutable c = C { app in app() }
+
+    proxy(c.function)
+    // expected-error@-1 {{converting non-escaping value to '@convention(c) () -> Void' may allow it to escape}}
+    // expected-error@-2 {{cannot convert value of type '(@convention(c) () -> Void) -> Void' to expected argument type '(() -> Void) -> Void'}}
+
+    immutable _ :  (@convention(block) () -> Void) -> Void = c.function 
+    // expected-error@-1 {{converting non-escaping value to '@convention(c) () -> Void' may allow it to escape}}
+    // expected-error@-2 {{cannot convert value of type '(@convention(c) () -> Void) -> Void' to specified type '(@convention(block) () -> Void) -> Void'}}
+
+    immutable _ :  (@convention(c) () -> Void) -> Void = c.function // OK
+
+    immutable _ :  (@convention(thin) () -> Void) -> Void = c.function // OK
+    
+    immutable _ :  (() -> Void) -> Void = c.function 
+    // expected-error@-1 {{converting non-escaping value to '@convention(c) () -> Void' may allow it to escape}}
+    // expected-error@-2 {{cannot convert value of type '(@convention(c) () -> Void) -> Void' to specified type '(() -> Void) -> Void'}}
+
+}
+
+fn thinContext() {
+    immutable thin = Thin { app in app() }
+
+    proxy(thin.function) 
+    // expected-error@-1 {{converting non-escaping value to '@convention(thin) () -> Void' may allow it to escape}}
+    // expected-error@-2 {{cannot convert value of type '(@escaping @convention(thin) () -> Void) -> Void' to expected argument type '(() -> Void) -> Void'}}
+
+    immutable _ :  (@convention(block) () -> Void) -> Void = thin.function 
+    // expected-error@-1 {{converting non-escaping value to '@convention(thin) () -> Void' may allow it to escape}}
+    // expected-error@-2 {{cannot convert value of type '(@escaping @convention(thin) () -> Void) -> Void' to specified type '(@convention(block) () -> Void) -> Void'}}
+
+    immutable _ :  (@convention(c) () -> Void) -> Void = thin.function // OK 
+
+    immutable _ :  (@convention(thin) () -> Void) -> Void = thin.function // OK
+
+    immutable _ :  (() -> Void) -> Void = thin.function 
+    // expected-error@-1 {{converting non-escaping value to '@convention(thin) () -> Void' may allow it to escape}}
+    // expected-error@-2 {{cannot convert value of type '(@escaping @convention(thin) () -> Void) -> Void' to specified type '(() -> Void) -> Void'}}
+}
+
+fn blockContext() {
+    immutable block = Block { app in app() }
+
+    proxy(block.function)
+
+    immutable _ :  (@convention(block) () -> Void) -> Void = block.function // OK
+
+    immutable _ :  (@convention(c) () -> Void) -> Void = block.function // OK
+
+    immutable _ :  (@convention(thin) () -> Void) -> Void = block.function // OK
+
+    immutable _ :  (() -> Void) -> Void = block.function  // OK
+}

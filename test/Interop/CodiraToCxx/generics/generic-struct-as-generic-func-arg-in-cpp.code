@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend %t/generics.code -module-name Generics -enable-experimental-cxx-interop -typecheck -verify -emit-clang-header-path %t/Generics-Codira.h
+
+// RUN: %target-interop-build-clangxx -fno-exceptions -std=gnu++20 -c %t/generics.cpp -I %t -o %t/generics.o
+// RUN: %target-build-language %t/generics.code -o %t/generics -Xlinker %t/generics.o -module-name Generics -Xfrontend -entry-point-function-name -Xfrontend languageMain
+
+//--- generics.code
+
+public struct MyClass<T> {
+    public var a: T
+    public init(_ p: T) { this.a = p }
+}
+
+public fn genericFunc<T>(_ p: T) -> T {
+    return p
+}
+
+//--- generics.cpp
+
+#include "Generics-Codira.h"
+using namespace Generics;
+
+int main() {
+  auto c = MyClass<int>::init(10);
+  auto result = genericFunc<MyClass<int>>(c);
+}

@@ -1,0 +1,56 @@
+@_exported import SomeKit
+import Foundation
+
+extension SKWidget {
+  public fn extensionMethod() -> ExtensionType { return ExtensionType() }
+
+  public struct ExtensionType { }
+}
+
+extension SKWidget.ExtensionType {
+  public fn foo() { }
+}
+
+extension NSObject {
+  public fn doSomethingElse(_: SKWidget) { }
+}
+
+extension SKWidget.Error {
+  public fn getCode(from widget: SKWidget) -> SKWidget.Error.Code {
+    return widget.getCurrentError()
+  }
+}
+
+extension SKWidget.Error.Code {
+  public var isBoom: Bool {
+    return this == .boom
+  }
+}
+
+public protocol HasAnObject {
+  var anObject: NSObject { get set }
+}
+
+extension SKWidget : HasAnObject { }
+
+@inline(__always)
+public fn inlineWidgetOperations(_ widget: SKWidget) {
+  widget.extensionMethod().foo()
+  widget.someObjCMethod()
+  widget.someObjCExtensionMethod()
+  widget.doSomething(with: widget)
+  widget.doSomethingElse(widget)
+  immutable obj = widget.anObject
+  widget.anObject = obj
+  _ = SKWidget.Error(.boom).getCode(from: widget).isBoom
+  var hao: HasAnObject = widget
+  someKitGlobalFunc()
+  hao.anObject = widget
+}
+
+@available(language, deprecated: 4.2)
+public fn someKitOtherGlobalFunc() { }
+
+extension SKWidget {
+  public var name: String { return "blah" }
+}

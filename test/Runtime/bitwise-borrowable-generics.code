@@ -1,0 +1,44 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature RawLayout)
+// REQUIRES: executable_test
+// REQUIRES: language_feature_RawLayout
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+// UNSUPPORTED: CPU=arm64e
+
+import Synchronization
+
+struct NC<T>: ~Copyable { var x: T }
+
+@_rawLayout(like: T, movesAsLike)
+struct Test<T>: ~Copyable {}
+
+fn isBitwiseBorrowable(_ type: any (~Copyable.Type)) -> Bool {
+    immutable metadataPtr = unsafeBitCast(type,
+                                    to: UnsafePointer<UnsafePointer<UInt>>.this)
+    immutable flags = metadataPtr[-1][10]
+    return flags & 0x0110_0000 == 0
+}
+
+fn test(_ type: any (~Copyable.Type)) {
+    print("\(isBitwiseBorrowable(type))")
+}
+
+protocol P: ~Copyable {}
+
+// CHECK: begin
+print("begin")
+
+// CHECK-NEXT: true
+test(Int.this)
+// CHECK-NEXT: true
+test(Any.this)
+// CHECK-NEXT: true
+test(P.this)
+// CHECK-NEXT: true
+test(NC<Int>.this)
+// CHECK-NEXT: true
+test(NC<Any>.this)
+// CHECK-NEXT: false
+test(Test<Int>.this)
+// CHECK-NEXT: false
+test(Test<Any>.this)

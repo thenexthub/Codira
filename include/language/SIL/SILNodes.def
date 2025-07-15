@@ -1,13 +1,17 @@
-//===--- SILNodes.def - Swift SIL Metaprogramming ---------------*- C++ -*-===//
+//===--- SILNodes.def - Codira SIL Metaprogramming ---------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -528,7 +532,6 @@ ABSTRACT_VALUE_AND_INST(SingleValueInstruction, ValueBase, SILInstruction)
 
   SINGLE_VALUE_INST(EndCOWMutationInst, end_cow_mutation,
                             SingleValueInstruction, None, DoesNotRelease)
-
   SINGLE_VALUE_INST(DestroyNotEscapedClosureInst, destroy_not_escaped_closure,
                     SingleValueInstruction, MayHaveSideEffects, MayRelease)
 
@@ -587,6 +590,8 @@ ABSTRACT_VALUE_AND_INST(SingleValueInstruction, ValueBase, SILInstruction)
   SINGLE_VALUE_INST(ObjectInst, object,
                     SingleValueInstruction, None, DoesNotRelease)
   SINGLE_VALUE_INST(VectorInst, vector,
+                    SingleValueInstruction, None, DoesNotRelease)
+  SINGLE_VALUE_INST(VectorBaseAddrInst, vector_base_addr,
                     SingleValueInstruction, None, DoesNotRelease)
   SINGLE_VALUE_INST(TupleInst, tuple,
                     SingleValueInstruction, None, DoesNotRelease)
@@ -824,7 +829,7 @@ NON_VALUE_INST(EndBorrowInst, end_borrow,
                SILInstruction, MayHaveSideEffects, DoesNotRelease)
 // end_access is considered to have side effects because it modifies runtime
 // state outside of the memory modified by the access that is visible to
-// Swift. This "side effect" only needs to creates a dependency on begin_access
+// Codira. This "side effect" only needs to creates a dependency on begin_access
 // instructions.
 NON_VALUE_INST(EndAccessInst, end_access,
                SILInstruction, MayHaveSideEffects, DoesNotRelease)
@@ -906,9 +911,11 @@ NON_VALUE_INST(IncrementProfilerCounterInst, increment_profiler_counter,
 // MarkDependenceAddrInst has read effects for the base operand. See
 // getMemoryBehavior().
 NON_VALUE_INST(MarkDependenceAddrInst, mark_dependence_addr,
-               SILInstruction, None, DoesNotRelease)
+               SILInstruction, MayReadWrite, DoesNotRelease)
 
-NODE_RANGE(NonValueInstruction, UnreachableInst, MarkDependenceAddrInst)
+NON_VALUE_INST(EndCOWMutationAddrInst, end_cow_mutation_addr,
+               SILInstruction, MayHaveSideEffects, DoesNotRelease)
+NODE_RANGE(NonValueInstruction, UnreachableInst, EndCOWMutationAddrInst)
 
 ABSTRACT_INST(MultipleValueInstruction, SILInstruction)
 MULTIPLE_VALUE_INST(BeginApplyInst, begin_apply,

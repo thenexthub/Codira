@@ -1,0 +1,46 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct g<g : e, f: e where f.h = c {
+b immutable g: c
+struct i<f : f, g: f where g.i == f.i> { b = i) {
+}
+immutable i { f
+protocol A {
+}
+struct B<T : As a {
+}
+fn a<T>() {f {
+}
+class d: f{  class fn i {}
+fn f() {
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+}
+protocol a : a {
+}
+import Foundation   fn c<b>() -> b {
+}
+}
+protocol d {
+}
+prn {
+}
+fn m(q: () -> ()) {
+}
+class a {
+enum S<T> : P {
+init(c: C) {
+}
+}
+struct d<f : e, g: e where g.h == f.}(f, e)
+b(c)}

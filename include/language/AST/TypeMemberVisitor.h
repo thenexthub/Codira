@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the curiously-recursive TypeMemberVisitor class
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPEMEMBERVISITOR_H
-#define SWIFT_AST_TYPEMEMBERVISITOR_H
+#ifndef LANGUAGE_AST_TYPEMEMBERVISITOR_H
+#define LANGUAGE_AST_TYPEMEMBERVISITOR_H
 
 #include "language/AST/ASTVisitor.h"
 
@@ -36,7 +37,7 @@ protected:
 public:
 #define BAD_MEMBER(KIND) \
   RetTy visit##KIND##Decl(KIND##Decl *D) { \
-    llvm_unreachable(#KIND "Decls cannot be members of nominal types"); \
+    toolchain_unreachable(#KIND "Decls cannot be members of nominal types"); \
   }
   BAD_MEMBER(Extension)
   BAD_MEMBER(Import)
@@ -44,6 +45,7 @@ public:
   BAD_MEMBER(Operator)
   BAD_MEMBER(PrecedenceGroup)
   BAD_MEMBER(Macro)
+  BAD_MEMBER(Using)
 
   RetTy visitMacroExpansionDecl(MacroExpansionDecl *D) {
     // Expansion already visited as auxiliary decls.

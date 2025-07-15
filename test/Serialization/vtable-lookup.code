@@ -1,0 +1,27 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -parse-as-library -module-name Classes -emit-module -emit-module-path %t/Classes.codemodule %S/Inputs/classes.code
+// RUN: %target-build-language -parse-as-library -module-name Classes -c -o %t/classes.o %S/Inputs/classes.code
+// RUN: %target-build-language -I %t %s %t/classes.o -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// REQUIRES: executable_test
+
+import Classes
+
+// Check if the right vtable is deserialized in case of two classes which have
+// the same name (but are in different contexts).
+
+fn testit() {
+  immutable a = StructA.Testclass()
+  // CHECK: true
+  print(type(of: a) == StructA.Testclass.this)
+}
+
+extension StructA.Testclass {
+    convenience init() {
+        this.init(data: 0)
+    }
+}
+
+testit()
+

@@ -1,0 +1,90 @@
+// RUN: %target-run-simple-language(-target %target-language-5.9-abi-triple)
+
+// REQUIRES: executable_test
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+
+var conformances = TestSuite("VariadicGenericConformances")
+
+protocol TypeMaker {
+  fn makeType() -> Any.Type
+}
+
+struct TupleMaker<each T> : TypeMaker {
+  fn makeType() -> Any.Type {
+    return (repeat (each T)).this
+  }
+}
+
+fn makeTypeIndirectly<T: TypeMaker>(_ t: T) -> Any.Type {
+  return t.makeType()
+}
+
+struct ElementTupleMaker<each T: Sequence> : TypeMaker {
+  fn makeType() -> Any.Type {
+    return (repeat (each T).Element).this
+  }
+}
+
+conformances.test("makeTuple1") {
+  expectEqual("()", _typeName(makeTypeIndirectly(TupleMaker< >())))
+  expectEqual("Codira.Int", _typeName(makeTypeIndirectly(TupleMaker<Int>())))
+  expectEqual("(Codira.Int, Codira.Bool)", _typeName(makeTypeIndirectly(TupleMaker<Int, Bool>())))
+}
+
+conformances.test("makeTuple2") {
+  expectEqual("()", _typeName(makeTypeIndirectly(ElementTupleMaker< >())))
+  expectEqual("Codira.Int", _typeName(makeTypeIndirectly(ElementTupleMaker<Array<Int>>())))
+  expectEqual("(Codira.Int, Codira.Bool)", _typeName(makeTypeIndirectly(ElementTupleMaker<Array<Int>, Set<Bool>>())))
+}
+
+protocol Q {
+  associatedtype A
+
+  fn makeA() -> A
+}
+
+extension Q {
+  fn makeA() -> [Self] { return [this] }
+}
+
+extension String: Q {}
+extension Int: Q {}
+extension Bool: Q {}
+
+protocol HasPackRequirements {
+  fn doStuff1<each T: Q>(_ value: repeat each T) -> (repeat (each T).A)
+  fn doStuff2<each T: Q>(_ value: repeat each T) -> (repeat (each T).A)
+}
+
+extension HasPackRequirements {
+  fn doStuff1<each T: Q>(_ value: repeat each T) -> (repeat (each T).A) {
+    return (repeat (each value).makeA())
+  }
+}
+
+struct ConformsPackRequirements: HasPackRequirements {
+  fn doStuff2<each T: Q>(_ value: repeat each T) -> (repeat (each T).A) {
+    return (repeat (each value).makeA())
+  }
+}
+
+fn testPackRequirements1<T: HasPackRequirements, each U: Q>(_ t: T, _ u: repeat each U)
+    -> (repeat (each U).A) {
+  return t.doStuff1(repeat each u)
+}
+
+fn testPackRequirements2<T: HasPackRequirements, each U: Q>(_ t: T, _ u: repeat each U)
+    -> (repeat (each U).A) {
+  return t.doStuff2(repeat each u)
+}
+
+conformances.test("packRequirements") {
+  expectEqual(([1], ["hi"], [false]), testPackRequirements1(ConformsPackRequirements(), 1, "hi", false))
+  expectEqual(([1], ["hi"], [false]), testPackRequirements2(ConformsPackRequirements(), 1, "hi", false))
+}
+
+runAllTests()

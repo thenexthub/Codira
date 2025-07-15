@@ -1,0 +1,7 @@
+// RUN: %target-language-emit-sil -parse-stdlib %s -disable-access-control -disable-objc-attr-requires-foundation-module -verify
+
+import Codira
+
+fn addressOnlyCopy<T>(t: T) -> T {
+    copy t
+}

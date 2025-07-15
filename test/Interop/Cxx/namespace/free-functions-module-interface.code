@@ -1,0 +1,40 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=FreeFunctions -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK:      enum FunctionsNS1 {
+// CHECK-NEXT:   static fn basicFunctionTopLevel() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   static fn forwardDeclared() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   static fn definedOutOfLine() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   struct X {
+// CHECK-NEXT:     init()
+// CHECK-NEXT:   }
+
+// FIXME: this seems wrong, the operator shouldn't be printed twice (https://github.com/apple/language/issues/62727).
+// CHECK-NEXT:   fn + (_: FunctionsNS1.X, _: FunctionsNS1.X) -> UnsafePointer<CChar>!
+
+// CHECK-NEXT:   enum FunctionsNS2 {
+// CHECK-NEXT:     enum FunctionsNS3 {
+// CHECK-NEXT:       struct Y {
+// CHECK-NEXT:         init()
+// CHECK-NEXT:       }
+
+// FIXME: this seems wrong, the operator shouldn't be printed twice (https://github.com/apple/language/issues/62727).
+// CHECK-NEXT: fn == (_: FunctionsNS1.FunctionsNS2.FunctionsNS3.Y, _: FunctionsNS1.FunctionsNS2.FunctionsNS3.Y) -> Bool
+
+// CHECK-NEXT:       static fn basicFunctionLowestLevel() -> UnsafePointer<CChar>!
+// CHECK-NEXT:     }
+// CHECK-NEXT:     static fn sameNameInChild() -> UnsafePointer<CChar>!
+// CHECK-NEXT:     static fn basicFunctionSecondLevel() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   }
+
+// CHECK-NEXT:   static fn sameNameInChild() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   static fn sameNameInSibling() -> UnsafePointer<CChar>!
+// CHECK-NEXT:   static fn definedInDefs() -> UnsafePointer<CChar>!
+// CHECK-NEXT: }
+
+// CHECK-NEXT: fn + (_: FunctionsNS1.X, _: FunctionsNS1.X) -> UnsafePointer<CChar>!
+
+// CHECK-NEXT: enum FunctionsNS4 {
+// CHECK-NEXT:   static fn sameNameInSibling() -> UnsafePointer<CChar>!
+// CHECK-NEXT: }
+
+// CHECK-NEXT: fn == (_: FunctionsNS1.FunctionsNS2.FunctionsNS3.Y, _: FunctionsNS1.FunctionsNS2.FunctionsNS3.Y) -> Bool

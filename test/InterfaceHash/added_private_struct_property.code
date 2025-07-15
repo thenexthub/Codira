@@ -1,0 +1,52 @@
+// When adding a private protocol method, the interface hash should stay the same
+// The per-type fingerprint should change
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: cp %t/{a,x}.code
+// RUN: %target-language-frontend -typecheck -primary-file %t/x.code -emit-reference-dependencies-path %t/x.codedeps -module-name main
+// RUN: %{python} %S/../Inputs/process_fine_grained_languagedeps_with_fingerprints.py %language-dependency-tool %t/x.codedeps > %t/a-processed.codedeps
+// RUN: cp %t/{b,x}.code
+// RUN: %target-language-frontend -typecheck -primary-file %t/x.code -emit-reference-dependencies-path %t/x.codedeps -module-name main
+// RUN: %{python} %S/../Inputs/process_fine_grained_languagedeps_with_fingerprints.py %language-dependency-tool %t/x.codedeps > %t/b-processed.codedeps
+
+// RUN: not diff -u %t/a-processed.codedeps %t/b-processed.codedeps > %t/diffs
+
+// BEGIN a.code
+private struct S {
+  fn f2() -> Int {
+    return 0
+  }
+
+  var y: Int = 0
+}
+
+// BEGIN b.code
+private struct S {
+  fn f2() -> Int {
+    return 0
+  }
+
+  var x: Int = 0
+  var y: Int = 0
+}
+
+// RUN: %FileCheck %s <%t/diffs -check-prefix=CHECK-SAME-INTERFACE-HASH
+// RUN: %FileCheck %s <%t/diffs -check-prefix=CHECK-DIFFERENT-TYPE-FINGERPRINT
+
+// CHECK-SAME-INTERFACE-HASH-NOT: sourceFileProvides
+
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: -topLevel implementation '' S true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: -topLevel interface      '' S true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: +topLevel implementation '' S true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: +topLevel interface      '' S true
+
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: -nominal implementation 4main1S{{[^ ]+}} '' true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: -nominal interface      4main1S{{[^ ]+}} '' true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: +nominal implementation 4main1S{{[^ ]+}} '' true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: +nominal interface      4main1S{{[^ ]+}} '' true
+
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: -potentialMember implementation 4main1S{{[^ ]+}} '' true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: -potentialMember interface      4main1S{{[^ ]+}} '' true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: +potentialMember implementation 4main1S{{[^ ]+}} '' true
+// CHECK-DIFFERENT-TYPE-FINGERPRINT-DAG: +potentialMember interface      4main1S{{[^ ]+}} '' true

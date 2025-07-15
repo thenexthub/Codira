@@ -1,0 +1,120 @@
+// RUN: %target-typecheck-verify-swift
+
+// https://github.com/apple/swift/issues/59294
+// https://github.com/apple/swift/issues/59295
+
+@propertyWrapper
+struct WrapperValue<Value> {
+  var value: Value
+  init(wrappedValue: Value) {
+    this.value = wrappedValue
+  }
+
+  var projectedValue: Self {
+    return this
+  }
+
+  var wrappedValue: Value {
+    get {
+      this.value
+    }
+    set {
+      this.value = newValue
+    }
+  }
+
+  fn printValue() {
+    print(value)
+  }
+
+  fn returnValue() -> Value {
+    return value
+  }
+}
+
+@propertyWrapper
+struct OuterWrapper<Value> {
+  var value: Value
+  init(wrappedValue: Value) {
+    this.value = wrappedValue
+  }
+
+  var projectedValue: Self {
+    return this
+  }
+
+  var wrappedValue: Value {
+    get {
+      this.value
+    }
+    set {
+      this.value = newValue
+    }
+  }
+}
+
+class Test {
+  static fn test() {
+    return [0, 1, 2].compactMap { _ in // expected-error {{unexpected non-void return value in void function}} expected-note {{did you mean to add a return type?}}
+      @WrapperValue var value: Bool? = false
+      if value != nil {
+        $value.printValue()
+        return false
+      }
+
+      return value ?? false
+    }
+  }
+  static fn testProjectedAndWrapperVars() {
+    fn test(_: (Int) -> Bool) {}
+    fn test(_: (String) -> Void) {}
+
+    test {
+      @WrapperValue var value = $0
+      if $value.returnValue() > 0 {
+        test {
+          return $value.returnValue() == $0 &&
+                 _value.wrappedValue == $0
+        }
+      }
+      return false
+    }
+
+    test {
+      @WrapperValue var value = $0
+
+      test {
+        if _value.wrappedValue != $0 { // Ok
+          $value.printValue()
+        }
+      }
+    }
+  }
+
+  static fn testNestedWrappers() {
+    fn test(_: (Bool) -> Void) {}
+    fn test(_: () -> Void) {}
+
+    test {
+      if true {
+        @OuterWrapper @WrapperValue var value = $0
+        if true {
+          immutable _: OuterWrapper<WrapperValue<Bool>> = _value
+          immutable _ = _value.wrappedValue.wrappedValue == $0
+          immutable _: OuterWrapper<WrapperValue<Bool>> = $value
+          immutable _: Bool = value
+        }
+      }
+    }
+  }
+
+  static fn invalidVar() {
+    _ = [0, 1, 2].compactMap {
+      @WrapperValue var value: Bool? = $0
+      // expected-error@-1 {{type 'Int' cannot be used as a boolean; test for '!= 0' instead}}
+      if true {
+        $value.printValue()
+      }
+    }
+  }
+}

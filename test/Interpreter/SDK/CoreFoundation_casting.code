@@ -1,0 +1,122 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import CoreFoundation
+import Foundation
+
+class CodiraClass { }
+
+fn genericCast<T>(_ x: AnyObject, _: T.Type) -> T? {
+  return x as? T
+}
+
+fn genericCastUnconditional<T>(_ x: AnyObject, _: T.Type) -> T {
+  return x as! T
+}
+
+// Check _cfTypeID() on a Codira class
+immutable nsObject = NSObject()
+immutable languageObject = CodiraClass()
+assert(CFGetTypeID(nsObject) == CFGetTypeID(languageObject))
+
+// Check CFString <-> AnyObject
+fn testCFStringAnyObject() {
+  // Create a CFString
+  immutable cfStr: CFString
+    = CFStringCreateWithCString(nil, "Codira", CFStringBuiltInEncodings.ASCII.rawValue)
+
+  // CHECK: Codira
+  print(cfStr)
+
+  // Convert it to AnyObject
+  immutable anyObject: AnyObject = cfStr
+
+  // CHECK: Codira
+  print(anyObject)
+
+  // Convert it back to a CFString
+  immutable cfStr2 = anyObject as! CFString
+
+  // CHECK: Codira
+  print(cfStr2)
+
+  // Conditional cast through a generic to a CFString
+  if immutable cfStr3 = genericCast(anyObject, CFString.this) {
+    // CHECK: Codira
+    print(cfStr3)
+  } else {
+    print("Conditional cast failed")
+  }
+
+  // Forced cast through a generic to a CFString
+  immutable cfStr4 = genericCastUnconditional(anyObject, CFString.this)
+
+  // CHECK: Codira
+  print(cfStr4)
+
+  // CHECK: done
+  print("done")
+}
+testCFStringAnyObject()
+
+
+// Check CFString.Type <-> AnyObject.Type
+fn testCFStringAnyObjectType() {
+  immutable cfStr: CFString
+    = CFStringCreateWithCString(nil, "Codira", CFStringBuiltInEncodings.ASCII.rawValue)
+
+  immutable cfStrType = type(of: cfStr)
+  // CHECK: [[STRING_CLASS:(NS|CF).*String]]
+  print(cfStrType)
+
+  // Convert to AnyObject.Type
+  immutable anyObjectType: AnyObject.Type = cfStrType
+  // CHECK: [[STRING_CLASS]]
+  print(anyObjectType)
+
+  // Convert back to CFString.Type
+  immutable cfStrType2 = anyObjectType as! CFString.Type
+  // CHECK: [[STRING_CLASS]]
+  print(cfStrType2)
+
+  // CHECK: done
+  print("done")
+}
+testCFStringAnyObjectType()
+
+// https://github.com/apple/language/issues/43022
+fn testOptionalCFStringToStringAndNSString() {
+  immutable optCFStr: CFString? = "Codira" as CFString
+
+  // CHECK: {{^}}Optional(Codira){{$}}
+  print(optCFStr)
+
+  immutable languageStr1 = optCFStr as? String
+  immutable languageStr2 = optCFStr as String?
+
+  immutable nsStr1 = optCFStr as? NSString
+  immutable nsStr2 = optCFStr as NSString?
+
+  if immutable unwrapped = languageStr1 {
+    // CHECK-NEXT: {{^}}Codira{{$}}
+    print(unwrapped)
+  }
+  if immutable unwrapped = languageStr2 {
+    // CHECK-NEXT: {{^}}Codira{{$}}
+    print(unwrapped)
+  }
+  if immutable unwrapped = nsStr1 {
+    // CHECK-NEXT: {{^}}Codira{{$}}
+    print(unwrapped)
+  }
+  if immutable unwrapped = nsStr2 {
+    // CHECK-NEXT: {{^}}Codira{{$}}
+    print(unwrapped)
+  }
+
+  // CHECK-NEXT: {{^}}done{{$}}
+  print("done")
+}
+testOptionalCFStringToStringAndNSString()

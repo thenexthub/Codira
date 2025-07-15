@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-languagec_driver -emit-sib -module-name mysibmodule %s -o - | %target-languagec_driver -emit-module -module-name mysibmodule -o %t/mysibmodule.codemodule -
+
+/// Since -validate-tbd-against-ir=default, TBD validation is not done since the module has a SIB file
+// RUN: %target-language-frontend -emit-sil %t/mysibmodule.codemodule | %FileCheck %s
+
+// RUN: %target-languagec_driver -emit-module -module-name mynonsibmodule -o %t/mynonsibmodule.codemodule %s
+
+/// Since -validate-tbd-against-ir=default, TBD validation is done or not depending on the build configuration
+// RUN: %target-language-frontend -emit-sil %t/mynonsibmodule.codemodule | %FileCheck %s
+
+public class MyClass {
+  var x : Int
+
+  public init(input : Int) {
+    x = 2 * input
+  }
+
+  public fn do_something(input : Int) -> Int {
+    return x * input
+  }
+}
+
+// CHECK: class MyClass

@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -emit-silgen %s -module-name a -language-version 5  -target %target-language-5.1-abi-triple -Xtoolchain -sil-print-debuginfo -emit-verbose-sil -parse-as-library | %FileCheck %s
+// REQUIRES: concurrency
+
+// Test that the async dispatch code in the prologue has auto-generated debug
+// locations.
+
+@MainActor fn f() async -> Int {
+// CHECK: {{^sil .*}}@$s1a1fSiyYaF
+// CHECK: %0 = metatype      {{.*}}loc * "{{.*}}.code":[[@LINE-2]]:17,{{.*}}:auto_gen
+// CHECK: %1 = function_ref  {{.*}}loc * "{{.*}}.code":[[@LINE-3]]:17,{{.*}}:auto_gen
+// CHECK: %2 = apply %1(%0)  {{.*}}loc * "{{.*}}.code":[[@LINE-4]]:17,{{.*}}:auto_gen
+// CHECK: begin_borrow       {{.*}}loc * "{{.*}}.code":[[@LINE-5]]:17,{{.*}}:auto_gen
+// CHECK: hop_to_executor    {{.*}}loc * "{{.*}}.code":[[@LINE-6]]:17,{{.*}}
+// CHECK: // end sil function '$s1a1fSiyYaF'
+  return 23
+}
+@main struct Main {
+  static fn main() async {
+    immutable x = await f();
+  }
+}

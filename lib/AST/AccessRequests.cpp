@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Subsystems.h"
@@ -24,7 +25,7 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 
-#include "llvm/ADT/bit.h"
+#include "toolchain/ADT/bit.h"
 
 #include <limits>
 
@@ -32,11 +33,11 @@ using namespace language;
 
 namespace language {
 // Implement the access-control type zone.
-#define SWIFT_TYPEID_ZONE AccessControl
-#define SWIFT_TYPEID_HEADER "swift/AST/AccessTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE AccessControl
+#define LANGUAGE_TYPEID_HEADER "language/AST/AccessTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 }
 
 //----------------------------------------------------------------------------//
@@ -158,7 +159,7 @@ AccessLevelRequest::evaluate(Evaluator &evaluator, ValueDecl *D) const {
     // There are no declarations inside a macro.
     return AccessLevel::Private;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 std::optional<AccessLevel> AccessLevelRequest::getCachedResult() const {
@@ -186,7 +187,7 @@ void AccessLevelRequest::cacheResult(AccessLevel value) const {
 // the cycle of computation associated with formal accesses, we give it its own
 // request.
 
-// In a .swiftinterface file, a stored property with an explicit @_hasStorage
+// In a .codeinterface file, a stored property with an explicit @_hasStorage
 // attribute but no setter is assumed to have originally been a private(set).
 static bool isStoredWithPrivateSetter(VarDecl *VD) {
   auto *HSA = VD->getAttrs().getAttribute<HasStorageAttr>();
@@ -352,10 +353,10 @@ DefaultAndMaxAccessLevelRequest::getCachedResult() const {
     assert(Bits != 0x7 && "more than two bits set for Default and Max");
 
     uint8_t lastSet = Bits == 0 ? std::numeric_limits<uint8_t>::max()
-                                : (llvm::countl_zero(Bits) ^
+                                : (toolchain::countl_zero(Bits) ^
                                    (std::numeric_limits<uint8_t>::digits - 1));
     uint8_t firstSet = Bits == 0 ? std::numeric_limits<uint8_t>::max()
-                                 : llvm::countr_zero(Bits);
+                                 : toolchain::countr_zero(Bits);
     AccessLevel Max = static_cast<AccessLevel>(lastSet + 1);
     AccessLevel Default = static_cast<AccessLevel>(firstSet + 1);
 
@@ -376,13 +377,13 @@ DefaultAndMaxAccessLevelRequest::cacheResult(
 
 // Define request evaluation functions for each of the access requests.
 static AbstractRequestFunction *accessRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)         \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)         \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/AccessTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerAccessRequestFunctions(Evaluator &evaluator) {
+void language::registerAccessRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::AccessControl,
                                      accessRequestFunctions);
 }

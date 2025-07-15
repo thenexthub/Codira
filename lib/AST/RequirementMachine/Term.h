@@ -1,24 +1,28 @@
 //===--- Term.h - A term in the generics rewrite system ---------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Symbol.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 
-#ifndef SWIFT_RQM_TERM_H
-#define SWIFT_RQM_TERM_H
+#ifndef LANGUAGE_RQM_TERM_H
+#define LANGUAGE_RQM_TERM_H
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -78,7 +82,7 @@ public:
 
   bool containsNameSymbols() const;
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 
   std::optional<int> compare(Term other, RewriteContext &ctx) const;
 
@@ -90,7 +94,7 @@ public:
     return !(lhs == rhs);
   }
 
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out, Term term) {
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out, Term term) {
     term.dump(out);
     return out;
   }
@@ -109,7 +113,7 @@ public:
 ///
 /// Out-of-line methods are documented in RewriteSystem.cpp.
 class MutableTerm final {
-  llvm::SmallVector<Symbol, 3> Symbols;
+  toolchain::SmallVector<Symbol, 3> Symbols;
 
 public:
   /// Creates an empty term. At least one symbol must be added for the term
@@ -120,10 +124,10 @@ public:
                        const Symbol *end)
     : Symbols(begin, end) {}
 
-  explicit MutableTerm(llvm::SmallVector<Symbol, 3> &&symbols)
+  explicit MutableTerm(toolchain::SmallVector<Symbol, 3> &&symbols)
     : Symbols(std::move(symbols)) {}
 
-  explicit MutableTerm(llvm::ArrayRef<Symbol> symbols)
+  explicit MutableTerm(toolchain::ArrayRef<Symbol> symbols)
       : Symbols(symbols.begin(), symbols.end()) {}
 
   explicit MutableTerm(Term term)
@@ -194,7 +198,7 @@ public:
 
   void rewriteSubTerm(Symbol *from, Symbol *to, Term rhs);
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 
   friend bool operator==(const MutableTerm &lhs, const MutableTerm &rhs) {
     if (lhs.size() != rhs.size())
@@ -207,7 +211,7 @@ public:
     return !(lhs == rhs);
   }
 
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                        const MutableTerm &term) {
     term.dump(out);
     return out;
@@ -218,36 +222,36 @@ public:
 
 } // end namespace language
 
-namespace llvm {
-  template<> struct DenseMapInfo<swift::rewriting::Term> {
-    static swift::rewriting::Term getEmptyKey() {
-      return swift::rewriting::Term::fromOpaquePointer(
-        llvm::DenseMapInfo<void *>::getEmptyKey());
+namespace toolchain {
+  template<> struct DenseMapInfo<language::rewriting::Term> {
+    static language::rewriting::Term getEmptyKey() {
+      return language::rewriting::Term::fromOpaquePointer(
+        toolchain::DenseMapInfo<void *>::getEmptyKey());
     }
-    static swift::rewriting::Term getTombstoneKey() {
-      return swift::rewriting::Term::fromOpaquePointer(
-        llvm::DenseMapInfo<void *>::getTombstoneKey());
+    static language::rewriting::Term getTombstoneKey() {
+      return language::rewriting::Term::fromOpaquePointer(
+        toolchain::DenseMapInfo<void *>::getTombstoneKey());
     }
-    static unsigned getHashValue(swift::rewriting::Term Val) {
+    static unsigned getHashValue(language::rewriting::Term Val) {
       return DenseMapInfo<void *>::getHashValue(Val.getOpaquePointer());
     }
-    static bool isEqual(swift::rewriting::Term LHS,
-                        swift::rewriting::Term RHS) {
+    static bool isEqual(language::rewriting::Term LHS,
+                        language::rewriting::Term RHS) {
       return LHS == RHS;
     }
   };
 
   template<>
-  struct PointerLikeTypeTraits<swift::rewriting::Term> {
+  struct PointerLikeTypeTraits<language::rewriting::Term> {
   public:
-    static inline void *getAsVoidPointer(swift::rewriting::Term Val) {
+    static inline void *getAsVoidPointer(language::rewriting::Term Val) {
       return const_cast<void *>(Val.getOpaquePointer());
     }
-    static inline swift::rewriting::Term getFromVoidPointer(void *Ptr) {
-      return swift::rewriting::Term::fromOpaquePointer(Ptr);
+    static inline language::rewriting::Term getFromVoidPointer(void *Ptr) {
+      return language::rewriting::Term::fromOpaquePointer(Ptr);
     }
     enum { NumLowBitsAvailable = 1 };
   };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

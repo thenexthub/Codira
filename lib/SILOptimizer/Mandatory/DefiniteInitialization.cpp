@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "definite-init"
@@ -36,22 +37,22 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/DistributedActor.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 using namespace ownership;
 
-llvm::cl::opt<bool> TriggerUnreachableOnFailure(
-    "sil-di-assert-on-failure", llvm::cl::init(false),
-    llvm::cl::desc("After emitting a DI error, assert instead of continuing. "
+toolchain::cl::opt<bool> TriggerUnreachableOnFailure(
+    "sil-di-assert-on-failure", toolchain::cl::init(false),
+    toolchain::cl::desc("After emitting a DI error, assert instead of continuing. "
                    "Meant for debugging ONLY!"),
-    llvm::cl::Hidden);
+    toolchain::cl::Hidden);
 
 template<typename ...ArgTypes>
 static InFlightDiagnostic diagnose(SILModule &M, SILLocation loc,
@@ -59,7 +60,7 @@ static InFlightDiagnostic diagnose(SILModule &M, SILLocation loc,
   auto diag = M.getASTContext().Diags.diagnose(loc.getSourceLoc(),
                                                Diagnostic(args...));
   if (TriggerUnreachableOnFailure)
-    llvm_unreachable("Triggering standard assertion failure routine");
+    toolchain_unreachable("Triggering standard assertion failure routine");
   return diag;
 }
 
@@ -231,7 +232,7 @@ namespace {
         set(i, mergeKinds(getConditional(i), RHS.getConditional(i)));
     }
 
-    void dump(llvm::raw_ostream &OS) const {
+    void dump(toolchain::raw_ostream &OS) const {
       OS << '(';
       for (unsigned i = 0, e = size(); i != e; ++i) {
         if (std::optional<DIKind> Elt = getConditional(i)) {
@@ -248,8 +249,8 @@ namespace {
     }
   };
  
-  LLVM_ATTRIBUTE_USED
-  inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+  TOOLCHAIN_ATTRIBUTE_USED
+  inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                        const AvailabilitySet &AS) {
     AS.dump(OS);
     return OS;
@@ -414,7 +415,7 @@ namespace {
 
     /// This is a map of uses that are not loads (i.e., they are Stores,
     /// InOutUses, and Escapes), to their entry in Uses.
-    llvm::SmallDenseMap<SILInstruction*, SmallVector<unsigned, 1>, 16> NonLoadUses;
+    toolchain::SmallDenseMap<SILInstruction*, SmallVector<unsigned, 1>, 16> NonLoadUses;
 
     /// This is true when there is an ambiguous store, which may be an init or
     /// assign, depending on the CFG path.
@@ -430,8 +431,8 @@ namespace {
     
     /// This is true when the object being checked is a 'self' parameter for a
     /// struct in a non-delegating cross-module initializer. In this case, the
-    /// initializer is not allowed to be fieldwise in Swift 5, so we produce a
-    /// warning in Swift 4 and earlier.
+    /// initializer is not allowed to be fieldwise in Codira 5, so we produce a
+    /// warning in Codira 4 and earlier.
     bool WantsCrossModuleStructInitializerDiagnostic = false;
 
     /// This is true if any diagnostics have offered a fix-it to insert
@@ -660,7 +661,7 @@ bool LifetimeChecker::shouldEmitError(const SILInstruction *Inst) {
   // Check to see if we've already emitted an error at this location.  If so,
   // swallow the error.
   SILLocation InstLoc = Inst->getLoc();
-  if (llvm::any_of(EmittedErrorLocs, [&](SILLocation L) -> bool {
+  if (toolchain::any_of(EmittedErrorLocs, [&](SILLocation L) -> bool {
         return L.getSourceLoc() == InstLoc.getSourceLoc();
       }))
     return false;
@@ -831,7 +832,7 @@ void LifetimeChecker::diagnoseInitError(const DIMemoryUse &Use,
   // As a debugging hack, print the instruction itself if there is no location
   // information.  This should never happen.
   if (Inst->getLoc().isNull())
-    llvm::dbgs() << "  the instruction: " << *Inst << "\n";
+    toolchain::dbgs() << "  the instruction: " << *Inst << "\n";
 
   // Provide context as note diagnostics.
 
@@ -967,7 +968,7 @@ void LifetimeChecker::findFullInitializationPoints(
     auto &info = getBlockInfo(&block);
 
     if (!info.HasNonLoadUse) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "full-init-finder: rejecting bb" << block.getDebugID()
                  << " b/c no non-load uses.\n");
       continue; // could not be an initializing block.
@@ -986,7 +987,7 @@ void LifetimeChecker::findFullInitializationPoints(
 
     auto outSet = info.OutAvailability;
     if (!outSet.isAllYes() && !returnsSelf(block)) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "full-init-finder: rejecting bb" << block.getDebugID()
                  << " b/c non-Yes OUT avail\n");
       continue; // then this block never sees TheMemory initialized.
@@ -998,13 +999,13 @@ void LifetimeChecker::findFullInitializationPoints(
       inSet.mergeIn(getBlockInfo(pred).OutAvailability);
 
     if (inSet.isAllYes()) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "full-init-finder: rejecting bb" << block.getDebugID()
                  << " b/c all-Yes IN avail\n");
       continue; // then this block always sees TheMemory initialized.
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "full-init-finder: bb" << block.getDebugID()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "full-init-finder: bb" << block.getDebugID()
                             << " is initializing block with in-availability: "
                             << inSet << "\n");
 
@@ -1066,7 +1067,7 @@ void LifetimeChecker::injectActorHops() {
     break;
 
   case ActorIsolation::Erased:
-    llvm_unreachable("constructor cannot have erased isolation");
+    toolchain_unreachable("constructor cannot have erased isolation");
 
   case ActorIsolation::Unspecified:
   case ActorIsolation::Nonisolated:
@@ -1080,7 +1081,7 @@ void LifetimeChecker::injectActorHops() {
   findFullInitializationPoints(hopToActorAfter);
 
   auto injectExecutorHopAfter = [&](SILInstruction *insertPt) -> void {
-    LLVM_DEBUG(llvm::dbgs() << "hop-injector: injecting after " << *insertPt);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "hop-injector: injecting after " << *insertPt);
     SILBuilderWithScope::insertAfter(insertPt, [&](SILBuilder &b) {
       SILLocation genLoc = SILLocation(ctor).asAutoGenerated();
       const bool delegating = !TheMemory.isNonDelegatingInit();
@@ -1153,7 +1154,7 @@ void LifetimeChecker::doIt() {
       if (isa<StoreInst>(Inst))
         continue;
         
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case DIUseKind::PartialStore:
       handleStoreUse(i);
       break;
@@ -1570,7 +1571,7 @@ void LifetimeChecker::handleStoreUse(unsigned UseID) {
   }
 
   // Check if we're in a struct initializer that uses CrossModuleRootSelf rather
-  // than DelegatingSelf for Swift 4 compatibility. We look for a problem case by
+  // than DelegatingSelf for Codira 4 compatibility. We look for a problem case by
   // seeing if there are any assignments to individual fields that might be
   // initializations; that is, that they're not dominated by `self = other`.
 
@@ -1822,7 +1823,7 @@ void LifetimeChecker::handleInOutUse(const DIMemoryUse &Use) {
         case AccessorKind::Init:
           return true;
         }
-        llvm_unreachable("bad kind");
+        toolchain_unreachable("bad kind");
       }();
       diagnose(Module, Use.Inst->getLoc(),
                isMutator
@@ -2091,7 +2092,7 @@ findMethodForStoreInitializationOfTemporary(const DIMemoryObjectInfo &TheMemory,
   if (!TheApply)
     return nullptr;
 
-  // Otherwise, try to get the func decl from the referenced function if we can
+  // Otherwise, try to get the fn decl from the referenced function if we can
   // find one.
   auto *Fn = TheApply->getReferencedFunctionOrNull();
   if (!Fn->hasLocation())
@@ -2116,7 +2117,7 @@ bool LifetimeChecker::diagnoseMethodCall(const DIMemoryUse &Use,
 
   // Check for an access to the base class through a borrow+cast.
   if (auto *BBI = dyn_cast<BeginBorrowInst>(Inst)) {
-    llvm::SmallVector<Operand *, 8> Worklist(BBI->use_begin(), BBI->use_end());
+    toolchain::SmallVector<Operand *, 8> Worklist(BBI->use_begin(), BBI->use_end());
     while (!Worklist.empty()) {
       auto *BBIOp = Worklist.pop_back_val();
       auto *BBIOpUser = BBIOp->getUser();
@@ -2570,7 +2571,7 @@ void LifetimeChecker::updateInstructionForInitState(unsigned UseID) {
 #define NEVER_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE(Name, name, ...) \
   if (auto *SW = dyn_cast<Store##Name##Inst>(Inst)) { \
     if (SW->isInitializationOfDest()) \
-           llvm_unreachable("should not modify store_" #name \
+           toolchain_unreachable("should not modify store_" #name \
                             " that already knows it is initialized"); \
     SW->setIsInitializationOfDest(InitKind); \
     return; \
@@ -2583,7 +2584,7 @@ void LifetimeChecker::updateInstructionForInitState(unsigned UseID) {
     // Remove this instruction from our data structures, since we will be
     // removing it.
     Use.Inst = nullptr;
-    llvm::erase_if(NonLoadUses[Inst], [&](unsigned id) { return id == UseID; });
+    toolchain::erase_if(NonLoadUses[Inst], [&](unsigned id) { return id == UseID; });
 
     if (TheMemory.isClassInitSelf() &&
         Use.Kind == DIUseKind::SelfInit) {
@@ -2620,12 +2621,12 @@ void LifetimeChecker::updateInstructionForInitState(unsigned UseID) {
     // Remove this instruction from our data structures, since we will be
     // removing it.
     Use.Inst = nullptr;
-    llvm::erase_if(NonLoadUses[Inst], [&](unsigned id) { return id == UseID; });
+    toolchain::erase_if(NonLoadUses[Inst], [&](unsigned id) { return id == UseID; });
 
     switch (Use.Kind) {
     case DIUseKind::Assign:
       AI->markAsInitialized(Use.Field.get());
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case DIUseKind::Initialization:
       AI->setMode(AssignOrInitInst::Init);
       break;
@@ -2633,7 +2634,7 @@ void LifetimeChecker::updateInstructionForInitState(unsigned UseID) {
       AI->setMode(AssignOrInitInst::Set);
       break;
     default:
-      llvm_unreachable("Wrong use kind for assign_or_init");
+      toolchain_unreachable("Wrong use kind for assign_or_init");
     }
 
     return;
@@ -2643,7 +2644,7 @@ void LifetimeChecker::updateInstructionForInitState(unsigned UseID) {
     // Remove this instruction from our data structures, since we will be
     // removing it.
     Use.Inst = nullptr;
-    llvm::erase_if(NonLoadUses[Inst], [&](unsigned id) { return id == UseID; });
+    toolchain::erase_if(NonLoadUses[Inst], [&](unsigned id) { return id == UseID; });
 
     switch (Use.Kind) {
     case DIUseKind::Initialization:
@@ -2656,7 +2657,7 @@ void LifetimeChecker::updateInstructionForInitState(unsigned UseID) {
       AI->setMode(AssignByWrapperInst::AssignWrappedValue);
       break;
     default:
-      llvm_unreachable("Wrong use kind for assign_by_wrapper");
+      toolchain_unreachable("Wrong use kind for assign_by_wrapper");
     }
 
     return;
@@ -2885,7 +2886,7 @@ static Identifier getBinaryFunction(StringRef Name, SILType IntSILTy,
   unsigned NumBits = IntTy->getWidth().getFixedWidth();
   // Name is something like: add_Int64
   std::string NameStr(Name);
-  NameStr += "_Int" + llvm::utostr(NumBits);
+  NameStr += "_Int" + toolchain::utostr(NumBits);
 
   return C.getIdentifier(NameStr);
 }
@@ -2894,7 +2895,7 @@ static Identifier getTruncateToI1Function(SILType IntSILTy, ASTContext &C) {
   unsigned NumBits = IntTy->getWidth().getFixedWidth();
 
   // Name is something like: trunc_Int64_Int8
-  std::string NameStr = "trunc_Int" + llvm::utostr(NumBits) + "_Int1";
+  std::string NameStr = "trunc_Int" + toolchain::utostr(NumBits) + "_Int1";
   return C.getIdentifier(NameStr);
 }
 
@@ -3126,7 +3127,7 @@ SILValue LifetimeChecker::handleConditionalInitAssign() {
             B.createEndAccess(Loc, value, false /*can abort*/);
             continue;
           }
-          llvm_unreachable("Covered switch isn't covered!");
+          toolchain_unreachable("Covered switch isn't covered!");
         }
       }
       B.setInsertionPoint(ContBB->begin());
@@ -3292,7 +3293,7 @@ handleConditionalDestroys(SILValue ControlVariableAddr) {
         B.createEndAccess(Loc, value, false /*can abort*/);
         continue;
       }
-      llvm_unreachable("Covered switch isn't covered!");
+      toolchain_unreachable("Covered switch isn't covered!");
     }
     return EltPtr;
   };
@@ -3456,10 +3457,10 @@ handleConditionalDestroys(SILValue ControlVariableAddr) {
     case DIKind::Yes:
       switch (CDElt.SelfInitialized) {
       case DIKind::No:
-        llvm_unreachable("Impossible to have initialized the self box where "
+        toolchain_unreachable("Impossible to have initialized the self box where "
                          "self.init was not called");
       case DIKind::Yes:
-        llvm_unreachable("This should have been an unconditional destroy");
+        toolchain_unreachable("This should have been an unconditional destroy");
 
       case DIKind::Partial: {
         // self.init or super.init was called, but we don't know if the
@@ -3503,7 +3504,7 @@ handleConditionalDestroys(SILValue ControlVariableAddr) {
       }
 
       case DIKind::Yes:
-        llvm_unreachable("Impossible to have initialized the self box where "
+        toolchain_unreachable("Impossible to have initialized the self box where "
                          "self.init may not have been called");
         break;
 
@@ -3548,7 +3549,7 @@ void LifetimeChecker::
 putIntoWorkList(SILBasicBlock *BB, WorkListType &WorkList) {
   LiveOutBlockState &State = getBlockInfo(BB);
   if (!State.isInWorkList && State.containsUndefinedValues()) {
-    LLVM_DEBUG(llvm::dbgs() << "    add block " << BB->getDebugID()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    add block " << BB->getDebugID()
                             << " to worklist\n");
     WorkList.push_back(BB);
     State.isInWorkList = true;
@@ -3557,7 +3558,7 @@ putIntoWorkList(SILBasicBlock *BB, WorkListType &WorkList) {
 
 void LifetimeChecker::
 computePredsLiveOut(SILBasicBlock *BB) {
-  LLVM_DEBUG(llvm::dbgs() << "  Get liveness for block " << BB->getDebugID()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Get liveness for block " << BB->getDebugID()
                           << "\n");
   
   // Collect blocks for which we have to calculate the out-availability.
@@ -3583,7 +3584,7 @@ computePredsLiveOut(SILBasicBlock *BB) {
   do {
     assert(iteration < upperIterationLimit &&
            "Infinite loop in dataflow analysis?");
-    LLVM_DEBUG(llvm::dbgs() << "    Iteration " << iteration++ << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Iteration " << iteration++ << "\n");
     
     changed = false;
     // We collected the blocks in reverse order. Since it is a forward dataflow-
@@ -3596,7 +3597,7 @@ computePredsLiveOut(SILBasicBlock *BB) {
       for (auto Pred : WorkBB->getPredecessorBlocks()) {
         changed |= BBState.mergeFromPred(getBlockInfo(Pred));
       }
-      LLVM_DEBUG(llvm::dbgs() << "      Block " << WorkBB->getDebugID()
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "      Block " << WorkBB->getDebugID()
                               << " out: "
                               << BBState.OutAvailability << "\n");
 
@@ -3616,7 +3617,7 @@ getOutAvailability(SILBasicBlock *BB, AvailabilitySet &Result) {
     auto &BBInfo = getBlockInfo(Pred);
     Result.mergeIn(BBInfo.OutAvailability);
   }
-  LLVM_DEBUG(llvm::dbgs() << "    Result: " << Result << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Result: " << Result << "\n");
 }
 
 void LifetimeChecker::getOutSelfInitialized(SILBasicBlock *BB,
@@ -3628,8 +3629,8 @@ void LifetimeChecker::getOutSelfInitialized(SILBasicBlock *BB,
 }
 
 AvailabilitySet
-LifetimeChecker::getLivenessAtNonTupleInst(swift::SILInstruction *Inst,
-                                           swift::SILBasicBlock *InstBB,
+LifetimeChecker::getLivenessAtNonTupleInst(language::SILInstruction *Inst,
+                                           language::SILBasicBlock *InstBB,
                                            AvailabilitySet &Result) {
   // If there is a store in the current block, scan the block to see if the
   // store is before or after the load.  If it is before, it produces the value
@@ -3671,7 +3672,7 @@ LifetimeChecker::getLivenessAtNonTupleInst(swift::SILInstruction *Inst,
 AvailabilitySet LifetimeChecker::getLivenessAtInst(SILInstruction *Inst,
                                                    unsigned FirstElt,
                                                    unsigned NumElts) {
-  LLVM_DEBUG(llvm::dbgs() << "Get liveness " << FirstElt << ", #" << NumElts
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Get liveness " << FirstElt << ", #" << NumElts
                           << " at " << *Inst);
 
   AvailabilitySet Result(TheMemory.getNumElements());
@@ -3784,7 +3785,7 @@ int LifetimeChecker::getAnyUninitializedMemberAtInst(SILInstruction *Inst,
 /// result is 'Partial'.
 DIKind LifetimeChecker::
 getSelfInitializedAtInst(SILInstruction *Inst) {
-  LLVM_DEBUG(llvm::dbgs() << "Get self initialized at " << *Inst);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Get self initialized at " << *Inst);
 
   SILBasicBlock *InstBB = Inst->getParent();
   auto &BlockInfo = getBlockInfo(InstBB);
@@ -3861,7 +3862,7 @@ bool LifetimeChecker::isInitializedAtUse(const DIMemoryUse &Use,
 
 static void processMemoryObject(MarkUninitializedInst *I,
                                 BlockStates &blockStates) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Definite Init looking at: " << *I << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Definite Init looking at: " << *I << "\n");
   DIMemoryObjectInfo MemInfo(I);
 
   // Set up the datastructure used to collect the uses of the allocation.
@@ -3880,7 +3881,7 @@ static bool checkDefiniteInitialization(SILFunction &Fn) {
   FrontendStatsTracer StatsTracer(Fn.getModule().getASTContext().Stats,
                                   "definite-init", &Fn);
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Definite Init visiting function: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Definite Init visiting function: "
                           <<  Fn.getName() << "\n");
   bool Changed = false;
 
@@ -3921,6 +3922,6 @@ class DefiniteInitialization : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createDefiniteInitialization() {
+SILTransform *language::createDefiniteInitialization() {
   return new DefiniteInitialization();
 }

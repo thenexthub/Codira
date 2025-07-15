@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass prints the tree of inlined instructions. It also prints a sorted
@@ -21,23 +22,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "llvm-inlinetree"
+#define DEBUG_TYPE "toolchain-inlinetree"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
 #include "language/Demangling/Demangle.h"
 #include "language/LLVMPasses/Passes.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/IR/DebugInfoMetadata.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/IR/DebugInfoMetadata.h"
+#include "toolchain/IR/Function.h"
+#include "toolchain/IR/Instructions.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/Pass.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/raw_ostream.h"
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
 
 //===----------------------------------------------------------------------===//
@@ -53,12 +54,12 @@ INITIALIZE_PASS_END(InlineTreePrinter,
                     "inline-tree-printer", "Inline tree printer pass",
                     false, false)
 
-llvm::cl::opt<bool>
-InlineTreeNoDemangle("inline-tree-no-demangle", llvm::cl::init(false),
-              llvm::cl::desc("Don't demangle symbols in inline tree output"));
+toolchain::cl::opt<bool>
+InlineTreeNoDemangle("inline-tree-no-demangle", toolchain::cl::init(false),
+              toolchain::cl::desc("Don't demangle symbols in inline tree output"));
 
 
-ModulePass *swift::createInlineTreePrinterPass() {
+ModulePass *language::createInlineTreePrinterPass() {
   initializeInlineTreePrinterPass(*PassRegistry::getPassRegistry());
   return new InlineTreePrinter();
 }
@@ -214,11 +215,11 @@ void InlineTree::buildTree(Function *F) {
   Node *rootNode = getNode(F->getName(), Functions2Nodes);
   rootNode->isTopLevel = true;
 
-  LLVM_DEBUG(dbgs() << "\nFunction " << F->getName() << '\n');
+  TOOLCHAIN_DEBUG(dbgs() << "\nFunction " << F->getName() << '\n');
   for (BasicBlock &BB : *F) {
     for (Instruction &I : BB) {
 
-      LLVM_DEBUG(dbgs() << I << '\n');
+      TOOLCHAIN_DEBUG(dbgs() << I << '\n');
 
       ++totalNumberOfInstructions;
       SmallVector<DILocation *, 8> InlineChain;
@@ -231,18 +232,18 @@ void InlineTree::buildTree(Function *F) {
       }
       Node *Nd = nullptr;
       DILocation *PrevDL = nullptr;
-      for (DILocation *DL : llvm::reverse(InlineChain)) {
+      for (DILocation *DL : toolchain::reverse(InlineChain)) {
         DILocalScope *Sc = DL->getScope();
         DISubprogram *SP = Sc->getSubprogram();
         assert(SP);
-        LLVM_DEBUG(dbgs() << "    f=" << SP->getLinkageName());
+        TOOLCHAIN_DEBUG(dbgs() << "    f=" << SP->getLinkageName());
         if (Nd) {
           Nd = getNode(SP->getLinkageName(), Nd->UnsortedChildren);
           Nd->UniqueLocations.insert(LocationKey(PrevDL));
-          LLVM_DEBUG(dbgs() << ", loc="; PrevDL->print(dbgs()); dbgs() << '\n');
+          TOOLCHAIN_DEBUG(dbgs() << ", loc="; PrevDL->print(dbgs()); dbgs() << '\n');
         } else {
           Nd = rootNode;
-          LLVM_DEBUG(dbgs() << ", root\n");
+          TOOLCHAIN_DEBUG(dbgs() << ", root\n");
         }
         ++Nd->numTotalInsts;
         PrevDL = DL;
@@ -376,11 +377,11 @@ bool InlineTreePrinter::runOnModule(Module &M) {
   return false;
 }
 
-llvm::PreservedAnalyses
-swift::InlineTreePrinterPass::run(llvm::Module &M,
-                                  llvm::ModuleAnalysisManager &AM) {
+toolchain::PreservedAnalyses
+language::InlineTreePrinterPass::run(toolchain::Module &M,
+                                  toolchain::ModuleAnalysisManager &AM) {
   InlineTree Tree;
   Tree.build(&M);
   Tree.print(outs());
-  return llvm::PreservedAnalyses::all();
+  return toolchain::PreservedAnalyses::all();
 }

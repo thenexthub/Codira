@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_REFCOUNTSTATE_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_REFCOUNTSTATE_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_REFCOUNTSTATE_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_REFCOUNTSTATE_H
 
 #include "RCStateTransition.h"
 #include "language/Basic/BlotMapVector.h"
@@ -435,15 +436,15 @@ static_assert(IsTriviallyCopyable<BottomUpRefCountState>::value,
 static_assert(IsTriviallyCopyable<TopDownRefCountState>::value,
               "All ref count states must be trivially copyable");
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 
 raw_ostream &operator<<(raw_ostream &OS,
-                        swift::BottomUpRefCountState::LatticeState S);
+                        language::BottomUpRefCountState::LatticeState S);
 raw_ostream &operator<<(raw_ostream &OS,
-                        swift::TopDownRefCountState::LatticeState S);
+                        language::TopDownRefCountState::LatticeState S);
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -typecheck %s -language-version 4 %api_diff_data_dir
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %s -emit-migrated-file-path %t/no_var_to_let.code.result -language-version 4 -o /dev/null %api_diff_data_dir
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %s -emit-migrated-file-path %t/no_var_to_let.code.result -language-version 4 -o /dev/null %api_diff_data_dir
+// RUN: %diff -u %s %t/no_var_to_let.code.result
+// RUN: %target-language-frontend -typecheck %s -language-version 5 %api_diff_data_dir
+
+// Note that the diff run line indicates that there should be no change.
+
+// The compiler should not suggest `immutable` instead of `var` here because
+// it is a compile error to say `for immutable ...`.
+// rdar://problem/32390726
+
+for var i in 0..<10 {
+  _ = i + 1
+}

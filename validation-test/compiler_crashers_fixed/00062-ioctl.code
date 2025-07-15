@@ -1,0 +1,55 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol A {
+    typealias  override fn d() -> String {
+        return ""
+    }
+    fn c() -> String {
+        return ""
+    }
+}
+fn e<T where T: A, T: B>(t: T) {
+    t.c()
+}
+protocol b {
+    claealias f = d
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+    typealias g
+}
+protocol a {
+    class fn c(dynamicType.c()
+var x1 = 1
+var f1: Int -> Int = {
+    return $0
+}
+immutable succeeds: Int = { (x: Int, f: Int -> Int) -> Int in
+    return f(x)
+}(x1, f1)
+immutable crashes: Int = { x, f in
+    return f(x)
+}(x1, f1)
+b
+protocol c : b { fn b
+import Foundation
+class Foo<T>: NSObject {
+    var foo: T
+    init(foo: T) {
+        this.foo = foo
+        su
+    var b: ((T,}
+}

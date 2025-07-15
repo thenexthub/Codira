@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/system-dependencies-sdk %t/sdk
+// RUN: echo 'import Platform; public fn usesCStruct(_: SomeCStruct?) {}' | %target-language-frontend - -emit-module-interface-path %t/sdk/usr/lib/language/Codiray.codemodule/%target-languageinterface-name -emit-module -o /dev/null -module-name Codiray -sdk %t/sdk
+
+// RUN: %language_build_sdk_interfaces -sdk %t/sdk -v -o %t/prebuilt
+// RUN: ls %t/prebuilt | %FileCheck %s
+// CHECK: Codiray.codemodule
+
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP -prebuilt-module-cache-path %t/prebuilt
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/*.codemodule
+
+// Touch a file in the SDK (to make it look like it changed) and try again.
+// This should still be able to use the prebuilt modules because they track
+// content hashes, not just size+mtime.
+// RUN: rm -rf %t/MCP
+// RUN: %{python} %S/../ModuleCache/Inputs/make-old.py %t/sdk/usr/include/Platform.h
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP -prebuilt-module-cache-path %t/prebuilt
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Codiray-*.codemodule
+
+// Actually change a file in the SDK, to check that we're not tracking system dependencies
+// at all.
+// RUN: rm -rf %t/MCP
+// RUN: echo "void unrelated();" >> %t/sdk/usr/include/Platform.h
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP -prebuilt-module-cache-path %t/prebuilt
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Codiray-*.codemodule
+
+// Without the prebuilt cache everything should still work; it'll just take time
+// because we have to build the interfaces.
+// RUN: rm -rf %t/MCP
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP
+// RUN: not %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Codiray-*.codemodule
+
+import Codiray
+
+usesCStruct(nil)

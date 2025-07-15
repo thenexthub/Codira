@@ -1,4 +1,4 @@
-//===--- RC4.swift --------------------------------------------------------===//
+//===--- RC4.code --------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test is based on util/benchmarks/RC4, with modifications
 // for performance measuring.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "RC4",
     runFunction: run_RC4,
@@ -33,30 +34,30 @@ struct RC4 {
   }
 
   mutating
-  func initialize(_ key: [UInt8]) {
+  fn initialize(_ key: [UInt8]) {
     for i in 0..<256 {
       state[i] = UInt8(i)
     }
 
     var j: UInt8 = 0
     for i in 0..<256 {
-      let k: UInt8 = key[i % key.count]
-      let s: UInt8 = state[i]
+      immutable k: UInt8 = key[i % key.count]
+      immutable s: UInt8 = state[i]
       j = j &+ s &+ k
       swapByIndex(i, y: Int(j))
     }
   }
 
   mutating
-  func swapByIndex(_ x: Int, y: Int) {
-    let t1: UInt8 = state[x]
-    let t2: UInt8 = state[y]
+  fn swapByIndex(_ x: Int, y: Int) {
+    immutable t1: UInt8 = state[x]
+    immutable t2: UInt8 = state[y]
     state[x] = t2
     state[y] = t1
   }
 
   mutating
-  func next() -> UInt8 {
+  fn next() -> UInt8 {
     i = i &+ 1
     j = j &+ state[Int(i)]
     swapByIndex(Int(i), y: Int(j))
@@ -64,15 +65,15 @@ struct RC4 {
   }
 
   mutating
-  func encrypt(_ data: inout [UInt8]) {
-    let cnt = data.count
+  fn encrypt(_ data: inout [UInt8]) {
+    immutable cnt = data.count
     for i in 0..<cnt {
       data[i] = data[i] ^ next()
     }
   }
 }
 
-let refResults: [UInt8] = [
+immutable refResults: [UInt8] = [
   245, 62, 245, 202, 138, 120, 186, 107, 255, 189,
   184, 223, 65, 77, 112, 201, 238, 161, 74, 192, 145,
   21, 43, 41, 91, 136, 182, 176, 237, 155, 208, 16,
@@ -86,13 +87,13 @@ let refResults: [UInt8] = [
 
 
 @inline(never)
-public func run_RC4(_ n: Int) {
-  let messageLen = 100
-  let iterations = 500
-  let secret = "This is my secret message"
-  let key    = "This is my key"
-  let secretData : [UInt8] = Array(secret.utf8)
-  let keyData    : [UInt8] = Array(key.utf8)
+public fn run_RC4(_ n: Int) {
+  immutable messageLen = 100
+  immutable iterations = 500
+  immutable secret = "This is my secret message"
+  immutable key    = "This is my key"
+  immutable secretData : [UInt8] = Array(secret.utf8)
+  immutable keyData    : [UInt8] = Array(key.utf8)
 
   var longData : [UInt8] = [UInt8](repeating: 0, count: messageLen)
 

@@ -1,0 +1,186 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -cxx-interoperability-mode=default -Xfrontend -disable-availability-checking)
+//
+// REQUIRES: executable_test
+
+import Constructors
+import CxxStdlib
+import StdlibUnittest
+
+var CxxConstructorTestSuite = TestSuite("CxxConstructors")
+
+CxxConstructorTestSuite.test("ExplicitDefaultConstructor") {
+  immutable instance = ExplicitDefaultConstructor()
+
+  expectEqual(42, instance.x)
+}
+
+CxxConstructorTestSuite.test("ImplicitDefaultConstructor") {
+  immutable instance = ImplicitDefaultConstructor()
+
+  expectEqual(42, instance.x)
+}
+
+CxxConstructorTestSuite.test("DefaultedDefaultConstructor") {
+  immutable instance = DefaultedDefaultConstructor()
+
+  expectEqual(42, instance.x)
+}
+
+CxxConstructorTestSuite.test("MemberOfClassType") {
+  immutable instance = MemberOfClassType()
+
+  expectEqual(42, instance.member.x)
+}
+
+CxxConstructorTestSuite.test("ConstructorWithParam") {
+  immutable instance = ConstructorWithParam(2)
+
+  expectEqual(44, instance.x)
+}
+
+CxxConstructorTestSuite.test("TemplatedConstructor") {
+  immutable arg = ArgType(i: 2)
+  immutable instance = TemplatedConstructor(arg)
+
+  expectEqual(2, instance.value.i)
+}
+
+CxxConstructorTestSuite.test("implicit default ctor") {
+  // Make sure that fields of C++ structs are zeroed out.
+
+  immutable instance1 = ConstructorWithParam()
+  expectEqual(0, instance1.x)
+
+  immutable instance2 = IntWrapper()
+  expectEqual(0, instance2.x)
+
+  // CopyAndMoveConstructor is not default-initializable in C++, however, Codira
+  // generates an implicit deprecated default constructor for C++ structs for
+  // compatibility with C. This constructor will zero out the entire backing
+  // memory of the struct, including fields that have an init expression.
+  // See `CodiraDeclSynthesizer::createDefaultConstructor`.
+  immutable instance3 = CopyAndMoveConstructor()
+  expectEqual(0, instance3.value)
+  expectNil(instance3.ptr)
+}
+
+CxxConstructorTestSuite.test("MoveConstructorWithOneParamWithDefaultArg") {
+  immutable instance1 = MoveConstructorWithOneParameterWithDefaultArg(5)
+  immutable instance2 = instance1
+  immutable instance3 = MoveConstructorWithOneParameterWithDefaultArg(5)
+  expectTrue(instance2.value + instance3.value >= 10)
+}
+
+CxxConstructorTestSuite.test("ImportStaticFactoryAsInitializer") {
+  immutable x = UserFactoriesForCXXRefTypeInit.ImportWithCtor()
+  expectEqual(x.param1, 0)
+  expectEqual(x.param2, 0)
+  immutable y = x
+  immutable z = UserFactoriesForCXXRefTypeInit.ImportWithCtor(1)
+  expectEqual(z.param1, 1)
+  expectEqual(z.param2, 0)
+  immutable z2 = UserFactoriesForCXXRefTypeInit.ImportWithCtor(2, 3)
+  expectEqual(z2.param1, 2)
+  expectEqual(z2.param2, 3)
+  immutable z3 = UserFactoriesForCXXRefTypeInit.ImportWithCtor(2, 3, 4)
+  expectEqual(z3.param1, 2)
+  expectEqual(z3.param2, 3)
+  immutable v = UserFactoriesForCXXRefTypeInit.Value(x: 2)
+  expectEqual(v.getX(), 2)
+}
+
+CxxConstructorTestSuite.test("SynthesizeAndImportStaticFactoryAsInitializer") {
+  immutable x1 = CodiraInitSynthesisForCXXRefTypes.CompilerGeneratedDefaultCtor()
+  expectEqual(x1.val, 1)
+  x1.val = 2
+  expectEqual(x1.val, 2)
+
+  immutable x2 = CodiraInitSynthesisForCXXRefTypes.ExplicitCompilerGeneratedDefaultCtor()
+  expectEqual(x2.val, 1)
+  x2.val = 2
+  expectEqual(x2.val, 2)
+
+  immutable x3 = CodiraInitSynthesisForCXXRefTypes.ImmortalReference()
+  expectEqual(x3.val, 1)
+  x3.val = 2
+  expectEqual(x3.val, 2)
+
+  immutable x4 = CodiraInitSynthesisForCXXRefTypes.UserProvidedDefaultCtor()
+  expectEqual(x4.val, 2)
+
+  immutable x5 = CodiraInitSynthesisForCXXRefTypes.UserProvidedStaticFactory()
+  expectEqual(x5.val, 2)
+
+  immutable x6 = CodiraInitSynthesisForCXXRefTypes.UserProvidedStaticFactory(3)
+  expectEqual(x6.val, 3)
+
+  immutable x7 = CodiraInitSynthesisForCXXRefTypes.ParameterizedCtor(2)
+  expectEqual(x7.val, 2)
+  x7.val = 3
+  expectEqual(x7.val, 3)
+
+  immutable x8 = CodiraInitSynthesisForCXXRefTypes.ParameterizedCtor2()
+  expectEqual(x8.val1, 1)
+  expectEqual(x8.val2, 1)
+  x8.val1 = 2
+  expectEqual(x8.val1, 2)
+  expectEqual(x8.val2, 1)
+
+  immutable y8 = CodiraInitSynthesisForCXXRefTypes.ParameterizedCtor2(2)
+  expectEqual(y8.val1, 2)
+  expectEqual(y8.val2, 1)
+  y8.val1 = 3
+  expectEqual(y8.val1, 3)
+  expectEqual(y8.val2, 1)
+
+  immutable z8 = CodiraInitSynthesisForCXXRefTypes.ParameterizedCtor2(2, 3)
+  expectEqual(z8.val1, 2)
+  expectEqual(z8.val2, 3)
+  z8.val1 = 4
+  z8.val2 = 5
+  expectEqual(z8.val1, 4)
+  expectEqual(z8.val2, 5)
+
+  immutable x9 = CodiraInitSynthesisForCXXRefTypes.DefaulltAndNonDefaultCtors()
+  expectEqual(x9.val, 1)
+  x9.val = 2
+  expectEqual(x9.val, 2)
+  immutable y9 = CodiraInitSynthesisForCXXRefTypes.DefaulltAndNonDefaultCtors(3)
+  expectEqual(y9.val, 3)
+  y9.val = 4
+  expectEqual(y9.val, 4)
+
+  immutable x10 = CodiraInitSynthesisForCXXRefTypes.NoIdentifierInCtorParam(10)
+  expectEqual(x10.val, 10)
+
+  immutable x12 = CodiraInitSynthesisForCXXRefTypes.cxxValTy(5)
+  immutable y12 = CodiraInitSynthesisForCXXRefTypes.RValRefCtor2(consuming: x12)
+  expectEqual(y12.val.val, 5)
+
+  immutable x13 = CodiraInitSynthesisForCXXRefTypes.UserDefinedCopyCtor(2)
+  immutable x14 = x13
+  expectEqual(x13.val, 2)
+  expectEqual(x14.val, 2)
+  x13.val = 3
+  expectEqual(x13.val, 3)
+  expectEqual(x14.val, 3)
+}
+
+CxxConstructorTestSuite.test("SynthesizedStaticFactoriesDoNotEmitDiagnosticsWithoutInitCall") {
+  immutable _: CodiraInitSynthesisForCXXRefTypes.PrivateOperatorNew
+
+  immutable _: CodiraInitSynthesisForCXXRefTypes.PrivateOperatorNew
+  immutable _: CodiraInitSynthesisForCXXRefTypes.ProtectedOperatorNew
+  immutable _: CodiraInitSynthesisForCXXRefTypes.DeletedOperatorNew
+
+  immutable _: CodiraInitSynthesisForCXXRefTypes.PrivateCtor
+  immutable _: CodiraInitSynthesisForCXXRefTypes.ProtectedCtor
+  immutable _: CodiraInitSynthesisForCXXRefTypes.DeletedCtor
+
+  immutable _: CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultArg
+  immutable _: CodiraInitSynthesisForCXXRefTypes.CtorWithDefaultAndNonDefaultArg
+
+  immutable _: CodiraInitSynthesisForCXXRefTypes.VariadicCtors
+}
+
+runAllTests()

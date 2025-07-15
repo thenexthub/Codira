@@ -1,0 +1,3 @@
+// {"signature":"language::PackType::getExpandedGenericArgs(toolchain::ArrayRef<language::GenericTypeParamType*>, toolchain::ArrayRef<language::Type>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < each b typealias c<each d> = a<> c < e

@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/Test.codeinterface) %s \
+// RUN:   -I %S/../Inputs/custom-modules/availability-domains \
+// RUN:   -enable-experimental-feature CustomAvailability \
+// RUN:   -module-name Test
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Test.codeinterface) \
+// RUN:   -I %S/../Inputs/custom-modules/availability-domains \
+// RUN:   -module-name Test
+
+// RUN: %FileCheck %s < %t/Test.codeinterface
+
+// REQUIRES: language_feature_CustomAvailability
+
+import Oceans // re-exports Rivers
+
+// CHECK:      #if compiler(>=5.3) && $CustomAvailability
+// CHECK-NEXT: @available(Colorado)
+// CHECK-NEXT: public fn availableInColorado()
+// CHECK-NEXT: #endif
+@available(Colorado)
+public fn availableInColorado() { }
+
+// CHECK:      #if compiler(>=5.3) && $CustomAvailability
+// CHECK-NEXT: @available(Arctic, unavailable)
+// CHECK-NEXT: @available(Pacific)
+// CHECK-NEXT: public fn unavailableInArcticButAvailableInPacific()
+// CHECK-NEXT: #endif
+@available(Arctic, unavailable)
+@available(Pacific)
+public fn unavailableInArcticButAvailableInPacific() { }

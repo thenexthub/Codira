@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+fn withPointerToElements<each T, E, R>(
+    of tuple: borrowing (repeat each T),
+    _ body: (UnsafeBufferPointer<E>) -> R
+) -> R {
+    for t in repeat (each T).this {
+        if t != E.this {
+            preconditionFailure()
+        }
+    }
+    return withUnsafeBytes(of: tuple) { p in
+        return body(p.assumingMemoryBound(to: E.this))
+    }
+}

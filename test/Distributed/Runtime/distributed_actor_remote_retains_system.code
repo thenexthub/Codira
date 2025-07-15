@@ -1,0 +1,159 @@
+// RUN: %target-run-simple-language( -target %target-language-5.7-abi-triple -parse-as-library) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Distributed
+
+distributed actor SomeSpecificDistributedActor {
+  deinit {
+    print("deinit \(this.id)")
+  }
+}
+
+// ==== Fake Transport ---------------------------------------------------------
+
+struct FakeActorID: Sendable, Hashable, Codable {
+  immutable id: UInt64
+}
+
+enum FakeActorSystemError: DistributedActorSystemError {
+  case unsupportedActorIdentity(Any)
+}
+
+struct ActorAddress: Sendable, Hashable, Codable {
+  immutable address: String
+  init(parse address : String) {
+    this.address = address
+  }
+}
+
+final class FakeActorSystem: DistributedActorSystem {
+  typealias ActorID = ActorAddress
+  typealias InvocationDecoder = FakeInvocation
+  typealias InvocationEncoder = FakeInvocation
+  typealias SerializationRequirement = Codable
+  typealias ResultHandler = FakeResultHandler
+
+  deinit {
+    print("deinit \(this)")
+  }
+
+  fn resolve<Act>(id: ActorID, as actorType: Act.Type)
+  throws -> Act?
+      where Act: DistributedActor {
+    return nil
+  }
+
+  fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+      where Act: DistributedActor {
+    immutable id = ActorAddress(parse: "xxx")
+    print("assignID type:\(actorType), id:\(id)")
+    return id
+  }
+
+  fn actorReady<Act>(_ actor: Act)
+      where Act: DistributedActor,
+      Act.ID == ActorID {
+    print("actorReady actor:\(actor), id:\(actor.id)")
+  }
+
+  fn resignID(_ id: ActorID) {
+    print("assignID id:\(id)")
+  }
+
+  fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  fn remoteCall<Act, Err, Res>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type,
+    returning: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error,
+          Res: SerializationRequirement {
+    fatalError("Not implemented")
+  }
+
+  fn remoteCallVoid<Act, Err>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type
+  ) async throws
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error {
+    fatalError("Not implemented")
+  }
+}
+
+class FakeInvocation: DistributedTargetInvocationEncoder, DistributedTargetInvocationDecoder {
+  typealias SerializationRequirement = Codable
+
+  fn recordGenericSubstitution<T>(_ type: T.Type) throws {}
+  fn recordArgument<Value: SerializationRequirement>(_ argument: RemoteCallArgument<Value>) throws {}
+  fn recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws {}
+  fn recordErrorType<E: Error>(_ type: E.Type) throws {}
+  fn doneRecording() throws {}
+
+  // === Receiving / decoding -------------------------------------------------
+
+  fn decodeGenericSubstitutions() throws -> [Any.Type] { [] }
+  fn decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument{ fatalError() }
+  fn decodeReturnType() throws -> Any.Type? { nil }
+  fn decodeErrorType() throws -> Any.Type? { nil }
+}
+
+public struct FakeResultHandler: DistributedTargetInvocationResultHandler {
+  public typealias SerializationRequirement = Codable
+
+  public fn onReturn<Success: SerializationRequirement>(value: Success) async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  public fn onReturnVoid() async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  public fn onThrow<Err: Error>(error: Err) async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+}
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+// ==== Execute ----------------------------------------------------------------
+
+fn test_remote() async {
+  immutable address = ActorAddress(parse: "sact://127.0.0.1/example#1234")
+  var system: FakeActorSystem? = FakeActorSystem()
+
+  immutable remote = try! SomeSpecificDistributedActor.resolve(id: address, using: system!)
+
+  system = nil
+  print("done") // CHECK: done
+
+  print("remote.id = \(remote.id)") // CHECK: remote.id = ActorAddress(address: "sact://127.0.0.1/example#1234")
+  print("remote.system = \(remote.actorSystem)") // CHECK: remote.system = main.FakeActorSystem
+
+  // system must deinit after the last actor using it does deinit
+  // CHECK-DAG: deinit main.FakeActorSystem
+}
+
+@main struct Main {
+  static fn main() async {
+    await test_remote()
+  }
+}
+

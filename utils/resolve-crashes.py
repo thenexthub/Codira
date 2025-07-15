@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# A small utility to take the output of a Swift validation test run
+# A small utility to take the output of a Codira validation test run
 # where some compiler crashers have been fixed, and move them into the
 # "fixed" testsuite, removing the "--crash" in the process.
 
@@ -16,9 +16,9 @@ def execute_cmd(cmd):
 
 # The regular expression we use to match compiler-crasher lines.
 regex = re.compile(
-    r'.*Swift(.*) :: '
+    r'.*Codira(.*) :: '
     r'(compiler_crashers|compiler_crashers_2|IDE/crashers|SIL/crashers)'
-    r'/(.*\.swift|.*\.sil).*')
+    r'/(.*\.code|.*\.sil).*')
 
 # Take the output of lit as standard input.
 for line in sys.stdin:

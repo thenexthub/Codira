@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/66553
+
+fn baz(y: [Int], z: Int) -> Int {
+  switch z {
+  case y[immutable z]: // expected-error 2{{'immutable' binding pattern cannot appear in an expression}}
+    z
+  default:
+    z
+  }
+}

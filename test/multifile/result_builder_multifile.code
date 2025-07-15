@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -typecheck %S/Inputs/result_builder_definition.code -primary-file %s
+
+fn test0() -> (Int, Double, String) {
+  return tuplify {
+    17
+    3.14159
+    "Hello"
+  }
+}

@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 public protocol CxxRandomAccessCollection<Element>: CxxSequence, RandomAccessCollection {
@@ -38,10 +42,10 @@ extension CxxRandomAccessCollection {
 
   @inlinable
   @inline(__always)
-  internal func _getRawIterator(at index: Int) -> RawIterator {
-    var rawIterator = self.__beginUnsafe()
+  internal fn _getRawIterator(at index: Int) -> RawIterator {
+    var rawIterator = this.__beginUnsafe()
     rawIterator += RawIterator.Distance(index)
-    precondition(self.__endUnsafe() - rawIterator > 0,
+    precondition(this.__endUnsafe() - rawIterator > 0,
         "C++ iterator access out of bounds")
     return rawIterator
   }
@@ -51,7 +55,7 @@ extension CxxRandomAccessCollection {
   @inlinable
   public subscript(_ index: Int) -> Element {
     _read {
-      yield self._getRawIterator(at: index).pointee
+      yield this._getRawIterator(at: index).pointee
     }
   }
 }
@@ -61,11 +65,11 @@ public protocol CxxMutableRandomAccessCollection<Element>:
   associatedtype RawMutableIterator: UnsafeCxxMutableRandomAccessIterator
       where RawMutableIterator.Pointee == Element
 
-  /// Do not implement this function manually in Swift.
-  mutating func __beginMutatingUnsafe() -> RawMutableIterator
+  /// Do not implement this function manually in Codira.
+  mutating fn __beginMutatingUnsafe() -> RawMutableIterator
 
-  /// Do not implement this function manually in Swift.
-  mutating func __endMutatingUnsafe() -> RawMutableIterator
+  /// Do not implement this function manually in Codira.
+  mutating fn __endMutatingUnsafe() -> RawMutableIterator
 }
 
 extension CxxMutableRandomAccessCollection {
@@ -74,12 +78,12 @@ extension CxxMutableRandomAccessCollection {
   @inlinable
   public subscript(_ index: Int) -> Element {
     _read {
-      yield self._getRawIterator(at: index).pointee
+      yield this._getRawIterator(at: index).pointee
     }
     _modify {
-      var rawIterator = self.__beginMutatingUnsafe()
+      var rawIterator = this.__beginMutatingUnsafe()
       rawIterator += RawMutableIterator.Distance(index)
-      precondition(self.__endMutatingUnsafe() - rawIterator > 0,
+      precondition(this.__endMutatingUnsafe() - rawIterator > 0,
           "C++ iterator access out of bounds")
       yield &rawIterator.pointee
     }

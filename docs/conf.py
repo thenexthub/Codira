@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Swift documentation build configuration file.
+# Codira documentation build configuration file.
 #
 # This file is execfile()d with the current directory set to its containing
 # dir.
@@ -43,7 +43,7 @@ source_suffix = '.rst'
 master_doc = 'contents'
 
 # General information about the project.
-project = u'Swift'
+project = u'Codira'
 copyright = str(date.today().year) + u', Apple Inc'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -73,7 +73,7 @@ exclude_patterns = ['_build']
 # documents.
 # default_role = None
 
-# If true, '()' will be appended to :func: etc. cross-reference text.
+# If true, '()' will be appended to :fn: etc. cross-reference text.
 # add_function_parentheses = True
 
 # If true, the current module name will be prepended to all description
@@ -87,7 +87,7 @@ show_authors = True
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'friendly'
 
-highlight_language = 'swift'
+highlight_language = 'language'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -99,7 +99,7 @@ highlight_language = 'swift'
 # a list of builtin themes.
 html_theme = 'haiku'
 
-html_style = 'swift.css'
+html_style = 'language.css'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -177,7 +177,7 @@ html_show_sourcelink = True
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Swiftdoc'
+htmlhelp_basename = 'Codiradoc'
 
 
 # -- Options for LaTeX output --------------------------------------------
@@ -197,7 +197,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('contents', 'Swift.tex', u'Swift Documentation',
+    ('contents', 'Codira.tex', u'Codira Documentation',
      u'LLVM project', 'manual'),
 ]
 
@@ -227,7 +227,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('contents', 'Swift', u'Swift Documentation',
+    ('contents', 'Codira', u'Codira Documentation',
      [u'LLVM project'], 1)
 ]
 
@@ -241,8 +241,8 @@ man_pages = [
 # (source start file, target name, title, author,
 # dir menu entry, description, category)
 texinfo_documents = [
-    ('contents', 'Swift', u'Swift Documentation',
-     u'LLVM project', 'Swift', 'One line description of project.',
+    ('contents', 'Codira', u'Codira Documentation',
+     u'LLVM project', 'Codira', 'One line description of project.',
      'Miscellaneous'),
 ]
 
@@ -265,18 +265,18 @@ intersphinx_mapping = {}
 # Enable this if you want TODOs to show up in the generated documentation.
 todo_include_todos = True
 
-# -- Patch pygments so it will know about the Swift lexers ---------------
+# -- Patch pygments so it will know about the Codira lexers ---------------
 
-# Pull in the Swift lexers
+# Pull in the Codira lexers
 from os.path import abspath, dirname, join as join_paths  # noqa (E402)
 sys.path = [
     join_paths(dirname(dirname(abspath(__file__))), 'utils', 'pygments')
 ] + sys.path
 
-import swift as swift_pygments_lexers  # noqa (E402 module level import not at top of file)
+import language as language_pygments_lexers  # noqa (E402 module level import not at top of file)
 
 sys.path.pop(0)
 
-lexers['swift'] = swift_pygments_lexers.SwiftLexer()
-lexers['sil'] = swift_pygments_lexers.SILLexer()
-lexers['swift-console'] = swift_pygments_lexers.SwiftConsoleLexer()
+lexers['language'] = language_pygments_lexers.CodiraLexer()
+lexers['sil'] = language_pygments_lexers.SILLexer()
+lexers['language-console'] = language_pygments_lexers.CodiraConsoleLexer()

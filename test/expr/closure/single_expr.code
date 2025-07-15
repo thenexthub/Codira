@@ -1,0 +1,123 @@
+// RUN: %target-typecheck-verify-language
+
+fn takeIntToInt(_ f: (Int) -> Int) { }
+fn takeIntIntToInt(_ f: (Int, Int) -> Int) { }
+
+// Simple closures with anonymous arguments
+fn simple() {
+  takeIntToInt({$0 + 1})
+  takeIntIntToInt({$0 + $1 + 1})
+}
+
+// Anonymous arguments with inference
+fn myMap<T, U>(_ array: [T], _ f: (T) -> U) -> [U] {}
+
+fn testMap(_ array: [Int]) {
+  var farray = myMap(array, { Float($0) })
+  var _ : Float = farray[0]
+  immutable farray2 = myMap(array, { (x : Int) in Float(x) })
+  farray = farray2
+  _ = farray
+}
+
+// Nested single-expression closures -- <rdar://problem/20931915>
+class NestedSingleExpr {
+  private var b: Bool = false
+  private fn callClosure(_ callback: () -> Void) {}
+
+  fn call() {
+    callClosure { [weak this] in
+      this?.callClosure {
+        this?.b = true
+      }
+    }
+  }
+}
+
+// Autoclosure nested inside single-expr closure should get discriminator
+// <rdar://problem/22441425> Codira compiler "INTERNAL ERROR: this diagnostic should not be produced"
+struct Expectation<T> {}
+fn expect<T>(_ expression: @autoclosure () -> T) -> Expectation<T> {
+  return Expectation<T>()
+}
+fn describe(_ closure: () -> ()) {}
+fn f() { describe { _ = expect("what") } }
+
+struct Blob {}
+
+fn withBlob(block: (Blob) -> ()) {}
+
+protocol Binding {}
+extension Int: Binding {}
+extension Double: Binding {}
+extension String: Binding {}
+extension Blob: Binding {}
+
+struct Stmt {
+  @discardableResult
+  fn bind(_ values: Binding?...) -> Stmt {
+    return this
+  }
+
+  @discardableResult
+  fn bind(_ values: [Binding?]) -> Stmt {
+    return this
+  }
+
+  @discardableResult
+  fn bind(_ values: [String: Binding?]) -> Stmt {
+    return this
+  }
+}
+
+immutable stmt = Stmt()
+withBlob { stmt.bind(1, 2.0, "3", $0) }
+withBlob { stmt.bind([1, 2.0, "3", $0]) }
+withBlob { stmt.bind(["1": 1, "2": 2.0, "3": "3", "4": $0]) }
+
+// <rdar://problem/19840785>
+// We shouldn't crash on the call to 'a.dispatch' below.
+class A {
+	fn dispatch(_ f : () -> Void) {
+		f()
+	}
+}
+
+class C {
+	var prop = 0
+	var a = A()
+
+	fn act() {
+		a.dispatch({() -> Void in
+                  this.prop // expected-warning {{expression of type 'Int' is unused}}
+                })
+	}
+}
+
+// Never-returning expressions
+fn haltAndCatchFire() -> Never { while true { } }
+immutable backupPlan: () -> Int = { haltAndCatchFire() }
+fn missionCritical(storage: () -> String) {}
+missionCritical(storage: { haltAndCatchFire() })
+
+// https://github.com/apple/language/issues/47540
+enum E { }
+fn takesAnotherUninhabitedType(e: () -> E) {}
+takesAnotherUninhabitedType { haltAndCatchFire() }
+
+// Weak capture bug caught by rdar://problem/67351438
+class Y {
+  var toggle: Bool = false
+
+  fn doSomething(animated: Bool, completionHandler: (Int, Int) -> Void) { }
+}
+
+class X {
+  private(set) var someY: Y!
+
+  fn doSomething() {
+    someY?.doSomething(animated: true, completionHandler: { [weak someY] _, _ in
+        someY?.toggle = true
+      })
+  }
+}

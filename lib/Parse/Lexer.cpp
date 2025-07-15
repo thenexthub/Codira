@@ -1,4 +1,4 @@
-//===--- Lexer.cpp - Swift Language Lexer ---------------------------------===//
+//===--- Lexer.cpp - Codira Language Lexer ---------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the Lexer and Token interfaces.
@@ -25,13 +26,13 @@
 #include "language/Basic/SourceManager.h"
 #include "language/Bridging/ASTGen.h"
 #include "language/Parse/Confusables.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/ADT/bit.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/MathExtras.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/ADT/bit.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/MathExtras.h"
+#include "toolchain/Support/MemoryBuffer.h"
 // FIXME: Figure out if this can be migrated to LLVM.
 #include "clang/Basic/CharInfo.h"
 
@@ -41,7 +42,7 @@ using namespace language;
 
 // clang::isAsciiIdentifierStart and clang::isAsciiIdentifierContinue are
 // deliberately not in this list as a reminder that they are using C rules for
-// identifiers. (Admittedly these are the same as Swift's right now.)
+// identifiers. (Admittedly these are the same as Codira's right now.)
 using clang::isAlphanumeric;
 using clang::isDigit;
 using clang::isHexDigit;
@@ -58,7 +59,7 @@ using clang::isWhitespace;
 static bool EncodeToUTF8(unsigned CharValue,
                          SmallVectorImpl<char> &Result) {
   // Number of bits in the value, ignoring leading zeros.
-  unsigned NumBits = 32-llvm::countl_zero(CharValue);
+  unsigned NumBits = 32-toolchain::countl_zero(CharValue);
 
   // Handle the leading byte, based on the number of bits in the value.
   unsigned NumTrailingBytes;
@@ -106,7 +107,7 @@ static bool isStartOfUTF8Character(unsigned char C) {
 /// validateUTF8CharacterAndAdvance - Given a pointer to the starting byte of a
 /// UTF8 character, validate it and advance the lexer past it.  This returns the
 /// encoded character or ~0U if the encoding is invalid.
-uint32_t swift::validateUTF8CharacterAndAdvance(const char *&Ptr,
+uint32_t language::validateUTF8CharacterAndAdvance(const char *&Ptr,
                                                 const char *End) {
   if (Ptr >= End)
     return ~0U;
@@ -127,7 +128,7 @@ uint32_t swift::validateUTF8CharacterAndAdvance(const char *&Ptr,
   
   // Read the number of high bits set, which indicates the number of bytes in
   // the character.
-  unsigned char EncodedBytes = llvm::countl_one(CurByte);
+  unsigned char EncodedBytes = toolchain::countl_one(CurByte);
   assert((EncodedBytes >= 2 && EncodedBytes <= 4));
   
   // Drop the high bits indicating the # bytes of the result.
@@ -155,7 +156,7 @@ uint32_t swift::validateUTF8CharacterAndAdvance(const char *&Ptr,
   // If we got here, we read the appropriate number of accumulated bytes.
   // Verify that the encoding was actually minimal.
   // Number of bits in the value, ignoring leading zeros.
-  unsigned NumBits = 32-llvm::countl_zero(CharValue);
+  unsigned NumBits = 32-toolchain::countl_zero(CharValue);
   
   if (NumBits <= 5+6)
     return EncodedBytes == 2 ? CharValue : ~0U;
@@ -351,7 +352,7 @@ Lexer::State Lexer::getStateForBeginningOfTokenLoc(SourceLoc Loc) const {
     }
     break;
   }
-  return State(SourceLoc(llvm::SMLoc::getFromPointer(Ptr)));
+  return State(SourceLoc(toolchain::SMLoc::getFromPointer(Ptr)));
 }
 
 //===----------------------------------------------------------------------===//
@@ -490,7 +491,7 @@ static bool skipToEndOfSlashStarComment(const char *&CurPtr,
 
       if (Diags) {
         // Count how many levels deep we are.
-        llvm::SmallString<8> Terminator("*/");
+        toolchain::SmallString<8> Terminator("*/");
         while (--Depth != 0)
           Terminator += "*/";
         const char *EOL = (CurPtr[-1] == '\n') ? (CurPtr - 1) : CurPtr;
@@ -663,8 +664,8 @@ static bool advanceIfValidContinuationOfOperator(char const *&ptr,
 
 /// Returns true if the given string is entirely whitespace (considering only
 /// those whitespace code points permitted in raw identifiers).
-static bool isEntirelyWhitespace(StringRef string) {
-  if (string.empty()) return false;
+static bool isEscapedIdentifierEntirelyWhitespace(StringRef string) {
+  if (string.empty()) return true;
   char const *p = string.data(), *end = string.end();
   if (!advanceIf(p, end, isPermittedRawIdentifierWhitespace))
     return false;
@@ -706,7 +707,7 @@ bool Lexer::isValidAsEscapedIdentifier(StringRef string) {
     ;
   if (p != end)
     return false;
-  return !isEntirelyWhitespace(string);
+  return !isEscapedIdentifierEntirelyWhitespace(string);
 }
 
 /// Determines if the given string is a valid operator identifier,
@@ -763,7 +764,7 @@ void Lexer::lexHash() {
   }
 
   // Map the character sequence onto
-  tok Kind = llvm::StringSwitch<tok>(StringRef(CurPtr, tmpPtr-CurPtr))
+  tok Kind = toolchain::StringSwitch<tok>(StringRef(CurPtr, tmpPtr-CurPtr))
 #define POUND_KEYWORD(id) \
   .Case(#id, tok::pound_##id)
 #include "language/AST/TokenKinds.def"
@@ -1310,7 +1311,7 @@ static bool maybeConsumeNewlineEscape(const char *&CurPtr, ssize_t Offset) {
     case '\r':
       if (*TmpPtr == '\n')
         ++TmpPtr;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case '\n':
       CurPtr = TmpPtr;
       return true;
@@ -1327,7 +1328,7 @@ static bool maybeConsumeNewlineEscape(const char *&CurPtr, ssize_t Offset) {
 static bool diagnoseZeroWidthMatchAndAdvance(char Target, const char *&CurPtr,
                                              DiagnosticEngine *Diags) {
   // TODO: Detect, diagnose and skip over zero-width characters if required.
-  // See https://github.com/apple/swift/issues/51192 for possible implementation.
+  // See https://github.com/apple/language/issues/51192 for possible implementation.
   return *CurPtr == Target && CurPtr++;
 }
 
@@ -1443,7 +1444,7 @@ unsigned Lexer::lexCharacter(const char *&CurPtr, char StopQuote,
   case '\'':
     if (CurPtr[-1] == StopQuote) {
       // Multiline and custom escaping are only enabled for " quote.
-      if (LLVM_UNLIKELY(StopQuote != '"'))
+      if (TOOLCHAIN_UNLIKELY(StopQuote != '"'))
         return ~0U;
       if (!IsMultilineString && !CustomDelimiterLen)
         return ~0U;
@@ -1484,7 +1485,7 @@ unsigned Lexer::lexCharacter(const char *&CurPtr, char StopQuote,
   case ' ': case '\t': case '\n': case '\r':
     if (IsMultilineString && maybeConsumeNewlineEscape(CurPtr, 0))
       return '\n';
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   default:  // Invalid escape.
     if (EmitDiagnostics)
       diagnose(CurPtr, diag::lex_invalid_escape);
@@ -1517,7 +1518,7 @@ unsigned Lexer::lexCharacter(const char *&CurPtr, char StopQuote,
   }
 
   // Check to see if the encoding is valid.
-  llvm::SmallString<64> TempString;
+  toolchain::SmallString<64> TempString;
   if (CharValue >= 0x80 && EncodeToUTF8(CharValue, TempString)) {
     if (EmitDiagnostics)
       diagnose(CharStart, diag::lex_invalid_unicode_scalar);
@@ -1580,7 +1581,7 @@ static const char *skipToEndOfInterpolatedExpression(const char *CurPtr,
         continue;
       assert(CurPtr[-1] == '"' &&
              "advanceIfCustomDelimiter() must stop at after the quote");
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
     case '"':
     case '\'': {
@@ -2121,7 +2122,7 @@ bool Lexer::isPotentialUnskippableBareSlashRegexLiteral(const Token &Tok) const 
 const char *Lexer::tryScanRegexLiteral(const char *TokStart, bool MustBeRegex,
                                        DiagnosticEngine *Diags,
                                        bool &CompletelyErroneous) const {
-#if SWIFT_BUILD_REGEX_PARSER_IN_COMPILER
+#if LANGUAGE_BUILD_REGEX_PARSER_IN_COMPILER
   // We need to have experimental string processing enabled, and have the
   // parsing logic for regex literals available.
   if (!LangOpts.EnableExperimentalStringProcessing)
@@ -2133,7 +2134,7 @@ const char *Lexer::tryScanRegexLiteral(const char *TokStart, bool MustBeRegex,
     switch (c) {
     case ' ':  return "space";
     case '\t': return "tab";
-    default:   llvm_unreachable("Unhandled case");
+    default:   toolchain_unreachable("Unhandled case");
     }
   };
 
@@ -2149,7 +2150,7 @@ const char *Lexer::tryScanRegexLiteral(const char *TokStart, bool MustBeRegex,
     // }
     //
     // This takes advantage of the consistent operator spacing rule.
-    // TODO: This heuristic should be sunk into the Swift library once we have a
+    // TODO: This heuristic should be sunk into the Codira library once we have a
     // way of doing fix-its from there.
     auto *RegexContentStart = TokStart + 1;
     if (*RegexContentStart == ' ' || *RegexContentStart == '\t') {
@@ -2166,13 +2167,13 @@ const char *Lexer::tryScanRegexLiteral(const char *TokStart, bool MustBeRegex,
     }
   }
 
-  // Ask the Swift library to try and lex a regex literal.
+  // Ask the Codira library to try and lex a regex literal.
   // - Ptr will not be advanced if this is not for a regex literal.
   // - CompletelyErroneous will be set if there was an error that cannot be
   //   recovered from.
   const char *Ptr = TokStart;
   CompletelyErroneous =
-      swift_ASTGen_lexRegexLiteral(&Ptr, BufferEnd, MustBeRegex, Diags);
+      language_ASTGen_lexRegexLiteral(&Ptr, BufferEnd, MustBeRegex, Diags);
 
   // If we didn't make any lexing progress, this isn't a regex literal and we
   // should fallback to lexing as something else.
@@ -2180,7 +2181,7 @@ const char *Lexer::tryScanRegexLiteral(const char *TokStart, bool MustBeRegex,
     return nullptr;
 
   // Perform some additional heuristics to see if we can lex `/.../`.
-  // TODO: These should all be sunk into the Swift library.
+  // TODO: These should all be sunk into the Codira library.
   if (IsForwardSlash) {
     // If we're lexing `/.../`, error if we ended on the opening of a comment.
     // We prefer to lex the comment as it's more likely than not that is what
@@ -2318,7 +2319,8 @@ void Lexer::lexEscapedIdentifier() {
   // If we have the terminating "`", it's an escaped/raw identifier, unless it
   // contained only operator characters or was entirely whitespace.
   StringRef IdStr(IdentifierStart, CurPtr - IdentifierStart);
-  if (*CurPtr == '`' && !isOperator(IdStr) && !isEntirelyWhitespace(IdStr)) {
+  if (*CurPtr == '`' && !isOperator(IdStr) &&
+      !isEscapedIdentifierEntirelyWhitespace(IdStr)) {
     ++CurPtr;
     formEscapedIdentifierToken(Quote);
     return;
@@ -2398,7 +2400,7 @@ bool Lexer::lexUnknown(bool EmitDiagnosticsIfToken) {
     return true;
   }
 
-  // This character isn't allowed in Swift source.
+  // This character isn't allowed in Codira source.
   uint32_t Codepoint = validateUTF8CharacterAndAdvance(Tmp, BufferEnd);
   if (Codepoint == ~0U) {
     diagnose(CurPtr - 1, diag::lex_invalid_utf8)
@@ -2453,9 +2455,9 @@ bool Lexer::lexUnknown(bool EmitDiagnosticsIfToken) {
   if ((ExpectedCodepoint =
            confusable::tryConvertConfusableCharacterToASCII(Codepoint))) {
 
-    llvm::SmallString<4> ConfusedChar;
+    toolchain::SmallString<4> ConfusedChar;
     EncodeToUTF8(Codepoint, ConfusedChar);
-    llvm::SmallString<1> ExpectedChar;
+    toolchain::SmallString<1> ExpectedChar;
     ExpectedChar += ExpectedCodepoint;
     auto charNames = confusable::getConfusableAndBaseCodepointNames(Codepoint);
     diagnose(CurPtr - 1, diag::lex_confusable_character, ConfusedChar,
@@ -2576,7 +2578,7 @@ StringRef Lexer::getEncodedStringSegmentImpl(StringRef Bytes,
 
     // String interpolation.
     case '(':
-      llvm_unreachable("string contained interpolated segments");
+      toolchain_unreachable("string contained interpolated segments");
         
       // Unicode escapes of various lengths.
     case 'u':  //  \u HEX HEX HEX HEX
@@ -2720,13 +2722,13 @@ void Lexer::lexImpl() {
 
   case '\n':
   case '\r':
-    llvm_unreachable("Newlines should be eaten by lexTrivia as LeadingTrivia");
+    toolchain_unreachable("Newlines should be eaten by lexTrivia as LeadingTrivia");
 
   case ' ':
   case '\t':
   case '\f':
   case '\v':
-    llvm_unreachable(
+    toolchain_unreachable(
         "Whitespaces should be eaten by lexTrivia as LeadingTrivia");
 
   case (char)-1:
@@ -2750,7 +2752,7 @@ void Lexer::lexImpl() {
       return formToken(tok::eof, TokStart);
 
     case NulCharacterKind::Embedded:
-      llvm_unreachable(
+      toolchain_unreachable(
           "Embedded nul should be eaten by lexTrivia as LeadingTrivia");
     }
 
@@ -2880,7 +2882,7 @@ Token Lexer::getTokenAtLocation(const SourceManager &SM, SourceLoc Loc,
   // comments and normally we won't be at the beginning of a comment token
   // (making this option irrelevant), or the caller lexed comments and
   // we need to lex just the comment token.
-  Lexer L(FakeLangOpts, SM, BufferID, nullptr, LexerMode::Swift,
+  Lexer L(FakeLangOpts, SM, BufferID, nullptr, LexerMode::Codira,
           HashbangMode::Allowed, CRM);
 
   if (SM.isRegexLiteralStart(Loc)) {
@@ -2939,7 +2941,7 @@ Restart:
     break;
   case '#':
     if (TriviaStart == ContentStart && *CurPtr == '!') {
-      // Hashbang '#!/path/to/swift'.
+      // Hashbang '#!/path/to/language'.
       --CurPtr;
       if (!IsHashbangAllowed)
         diagnose(TriviaStart, diag::lex_hashbang_not_allowed);
@@ -3021,7 +3023,7 @@ static SourceLoc getLocForStartOfTokenInBuf(SourceManager &SM,
   // and the exact token produced.
   LangOptions FakeLangOptions;
 
-  Lexer L(FakeLangOptions, SM, BufferID, nullptr, LexerMode::Swift,
+  Lexer L(FakeLangOptions, SM, BufferID, nullptr, LexerMode::Codira,
           HashbangMode::Allowed, CommentRetentionMode::None,
           BufferStart, BufferEnd);
 
@@ -3157,7 +3159,7 @@ StringRef Lexer::getIndentationForLine(SourceManager &SM, SourceLoc Loc,
                                        StringRef *ExtraIndentation) {
   // FIXME: do something more intelligent here.
   //
-  // Four spaces is the typical indentation in Swift code, so for now just use
+  // Four spaces is the typical indentation in Codira code, so for now just use
   // that directly here, but if someone was to do something better, updating
   // here will update everyone.
 
@@ -3213,7 +3215,7 @@ bool tryAdvanceToEndOfConflictMarker(const char *&CurPtr,
   return false;
 }
 
-ArrayRef<Token> swift::
+ArrayRef<Token> language::
 slice_token_array(ArrayRef<Token> AllTokens, SourceLoc StartLoc,
                   SourceLoc EndLoc) {
   assert(StartLoc.isValid() && EndLoc.isValid());

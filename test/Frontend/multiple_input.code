@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -typecheck %S/Inputs/multiple_input/main.code %S/Inputs/multiple_input/lib.code %s -module-name ThisModule
+// RUN: %target-language-frontend -typecheck %s %S/Inputs/multiple_input/lib.code %S/Inputs/multiple_input/main.code -module-name ThisModule
+
+// RUN: not %target-language-frontend -typecheck -parse-as-library %S/Inputs/multiple_input/main.code %S/Inputs/multiple_input/lib.code %s 2>&1 | %FileCheck %s
+// CHECK: main.code:
+// CHECK: expressions are not allowed at the top level

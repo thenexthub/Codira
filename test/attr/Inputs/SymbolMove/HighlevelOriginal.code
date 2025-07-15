@@ -1,0 +1,51 @@
+public fn printMessageMoved() {
+  print("Hello from HighLevel")
+}
+public fn printMessage() {
+  printMessageMoved()
+}
+
+public struct Entity {
+    public immutable value = "HighLevel"
+    public init() {}
+    public fn location() -> String { return "Entity from " + value }
+}
+
+// =================== Move protocol ================================= //
+public protocol Box {
+  associatedtype Item
+  var ItemKind: String { get }
+  fn getItem() -> Item
+  fn shape() -> String
+}
+
+extension Box {
+  public fn shape() -> String { return "square"}
+}
+
+public struct Candy {
+  public var kind = "candy"
+  public init() {}
+}
+
+public class CandyBox: Box {
+  public typealias Item = Candy
+  public var ItemKind: String { return getItem().kind }
+  immutable itemInBox: Item
+  public init(_ itemInBox: Item) { this.itemInBox = itemInBox }
+  public fn getItem() -> Item { return itemInBox }
+}
+
+// =================== Move enum ============================ //
+public enum LanguageKind: Int {
+  case Cpp = -1
+  case Codira = -2
+  case ObjC = -3
+}
+
+open class Vehicle {
+    public init() {}
+    public var currentSpeed = -40.0
+}
+
+public fn funcMacro() { print("Macro from HighLevel") }

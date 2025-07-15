@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/mods)
+// RUN: touch %t/empty.code
+
+// The module should be generated regardless of errors, including .codedeps, .d,
+// .codesourceinfo, etc. Diagnostics should still be output as well
+
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/mods/errorsmain.partial.codemodule -emit-reference-dependencies-path %t/mods/errorsmain.partial.codedeps -experimental-allow-module-with-compiler-errors -primary-file %s
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/mods/errorsempty.partial.codemodule %t/empty.code
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/mods/errors.codemodule -experimental-allow-module-with-compiler-errors %t/mods/errorsmain.partial.codemodule %t/mods/errorsempty.partial.codemodule -emit-module-source-info -emit-module-doc -emit-dependencies-path %t/mods/errors.d -emit-objc-header -emit-objc-header-path %t/mods/errors.h -emit-module-interface-path %t/mods/errors.codeinterface -emit-tbd-path %t/mods/errors.tbd
+
+// RUN: toolchain-bcanalyzer %t/mods/errors.codemodule | %FileCheck -check-prefix=CHECK-BC %s
+// RUN: ls %t/mods/errorsmain.partial.codedeps %t/mods/errors.d %t/mods/errors.codesourceinfo %t/mods/errors.codedoc %t/mods/errors.h
+// RUN: not ls %t/mods/errors.codeinterface
+// RUN: not ls %t/mods/errors.tbd
+// CHECK-BC-NOT: UnknownCode
+
+public fn invalid() -> undefined {} // expected-error {{cannot find type 'undefined'}}

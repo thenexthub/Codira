@@ -1,4 +1,4 @@
-//===--- AvailabilityContext.h - Swift Availability Structures --*- C++ -*-===//
+//===--- AvailabilityContext.h - Codira Availability Structures --*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the AvailabilityContext data structure, which summarizes
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AVAILABILITY_CONTEXT_H
-#define SWIFT_AST_AVAILABILITY_CONTEXT_H
+#ifndef LANGUAGE_AST_AVAILABILITY_CONTEXT_H
+#define LANGUAGE_AST_AVAILABILITY_CONTEXT_H
 
 #include "language/AST/AvailabilityDomain.h"
 #include "language/AST/AvailabilityRange.h"
-#include "language/AST/PlatformKind.h"
+#include "language/AST/PlatformKindUtils.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include <optional>
 
 namespace language {
@@ -142,8 +143,8 @@ public:
     return lhs.storage != rhs.storage;
   }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
 
   /// Returns true if all internal invariants are satisfied.
   bool verify(const ASTContext &ctx) const;

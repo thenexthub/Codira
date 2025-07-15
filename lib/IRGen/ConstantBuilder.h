@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation of constant packed LLVM structs.
@@ -18,10 +19,10 @@
 
 #include "language/ABI/MetadataValues.h"
 #include "language/AST/IRGenOptions.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/GlobalVariable.h"
-#include "llvm/IR/Instructions.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/DerivedTypes.h"
+#include "toolchain/IR/GlobalVariable.h"
+#include "toolchain/IR/Instructions.h"
 #include "clang/CodeGen/ConstantInitBuilder.h"
 
 #include "Address.h"
@@ -48,7 +49,7 @@ struct ConstantInitBuilderTraits {
   using StructBuilder = ConstantStructBuilder;
 };
 
-/// A Swift customization of Clang's ConstantInitBuilder.
+/// A Codira customization of Clang's ConstantInitBuilder.
 class ConstantInitBuilder
     : public clang::CodeGen::ConstantInitBuilderTemplateBase<
                                                     ConstantInitBuilderTraits> {
@@ -85,7 +86,7 @@ public:
 
   void addSize(Size size) { addInt(IGM().SizeTy, size.getValue()); }
 
-  void addCompactFunctionReferenceOrNull(llvm::Function *function) {
+  void addCompactFunctionReferenceOrNull(toolchain::Function *function) {
     if (function) {
       addCompactFunctionReference(function);
     } else {
@@ -96,16 +97,16 @@ public:
   /// Add a 32-bit function reference to the given function. The reference
   /// is direct relative pointer whenever possible. Otherwise, it is a
   /// absolute pointer assuming the function address is 32-bit.
-  void addCompactFunctionReference(llvm::Function *function) {
+  void addCompactFunctionReference(toolchain::Function *function) {
     if (IGM().getOptions().CompactAbsoluteFunctionPointer) {
       // Assume that the function address is 32-bit.
-      add(llvm::ConstantExpr::getPtrToInt(function, IGM().RelativeAddressTy));
+      add(toolchain::ConstantExpr::getPtrToInt(function, IGM().RelativeAddressTy));
     } else {
       addRelativeOffset(IGM().RelativeAddressTy, function);
     }
   }
 
-  void addRelativeAddressOrNull(llvm::Constant *target) {
+  void addRelativeAddressOrNull(toolchain::Constant *target) {
     if (target) {
       addRelativeAddress(target);
     } else {
@@ -113,10 +114,10 @@ public:
     }
   }
 
-  void addRelativeAddress(llvm::Constant *target) {
-    assert(!isa<llvm::ConstantPointerNull>(target));
+  void addRelativeAddress(toolchain::Constant *target) {
+    assert(!isa<toolchain::ConstantPointerNull>(target));
     assert((!IGM().getOptions().CompactAbsoluteFunctionPointer ||
-           !isa<llvm::Function>(target)) && "use addCompactFunctionReference");
+           !isa<toolchain::Function>(target)) && "use addCompactFunctionReference");
     addRelativeOffset(IGM().RelativeAddressTy, target);
   }
 
@@ -146,17 +147,17 @@ public:
   void addAlignmentPadding(Alignment align) {
     auto misalignment = getNextOffsetFromGlobal() % align;
     if (misalignment != Size(0))
-      add(llvm::ConstantAggregateZero::get(
-            llvm::ArrayType::get(IGM().Int8Ty,
+      add(toolchain::ConstantAggregateZero::get(
+            toolchain::ArrayType::get(IGM().Int8Ty,
                                  align.getValue() - misalignment.getValue())));
   }
 
   using super::addSignedPointer;
-  void addSignedPointer(llvm::Constant *pointer,
+  void addSignedPointer(toolchain::Constant *pointer,
                         const clang::PointerAuthSchema &schema,
                         const PointerAuthEntity &entity);
 
-  void addSignedPointer(llvm::Constant *pointer,
+  void addSignedPointer(toolchain::Constant *pointer,
                         const clang::PointerAuthSchema &schema,
                         uint16_t otherDiscriminator);
 
@@ -169,12 +170,12 @@ class ConstantArrayBuilder
     : public clang::CodeGen::ConstantArrayBuilderTemplateBase<
                                                     ConstantInitBuilderTraits> {
 private:
-  llvm::Type *EltTy;
+  toolchain::Type *EltTy;
 
 public:
   ConstantArrayBuilder(InitBuilder &builder,
                        AggregateBuilderBase *parent,
-                       llvm::Type *eltTy)
+                       toolchain::Type *eltTy)
     : ConstantArrayBuilderTemplateBase(builder, parent, eltTy), EltTy(eltTy) {}
 
   void addAlignmentPadding(Alignment align) {
@@ -186,7 +187,7 @@ public:
     assert(misalignment.getValue() % eltSize == 0);
 
     for (unsigned i = 0, n = misalignment.getValue() / eltSize; i != n; ++i)
-      add(llvm::Constant::getNullValue(EltTy));
+      add(toolchain::Constant::getNullValue(EltTy));
   }
 };
 

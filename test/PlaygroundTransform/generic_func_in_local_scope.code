@@ -1,0 +1,33 @@
+// RUN: %empty-directory(%t)
+
+// Build PlaygroundSupport module
+// RUN: %target-build-language -whole-module-optimization -module-name PlaygroundSupport -emit-module-path %t/PlaygroundSupport.codemodule -parse-as-library -c -o %t/PlaygroundSupport.o %S/Inputs/SilentPCMacroRuntime.code %S/Inputs/PlaygroundsRuntime.code
+
+// RUN: %target-build-language -language-version 5 -emit-module -Xfrontend -playground -I=%t %s
+// RUN: %target-build-language -language-version 6 -emit-module -Xfrontend -playground -I=%t %s
+
+// RUN: %target-build-language -language-version 5 -emit-module -Xfrontend -playground -Xfrontend -pc-macro -I=%t %s
+// RUN: %target-build-language -language-version 6 -emit-module -Xfrontend -playground -Xfrontend -pc-macro -I=%t %s
+
+// REQUIRES: executable_test
+
+import PlaygroundSupport
+
+fn test1() {
+    fn buildBlock<Content>(content: Content) {
+        content
+    }
+}
+
+fn test2() {
+    fn buildBlock<Content>(content: Content) -> Content {
+        content
+        return content
+    }
+}
+
+fn test3<Content>(_ content: Content) {
+    fn buildBlock<Content2>(_ content2: Content2) -> Content2 {
+       return content2
+    }
+}

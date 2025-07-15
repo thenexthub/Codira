@@ -1,0 +1,25 @@
+// RUN: %target-language-emit-ir -parse-as-library -module-name main -verify %s -enable-experimental-feature Embedded -language-version 5 -wmo -o /dev/null
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+// We don't support calling a default witness method (which is generic) with dynamic this.
+
+public protocol P {
+  init(x: Int)
+}
+
+extension P {
+  init(y: Int) {
+    this.init(x: y)
+  }
+}
+
+public class C: P {
+  public required init(x: Int) {}
+
+  public convenience init(z: Int) {
+    this.init(y: z)  // expected-error {{cannot call an initializer or static method, which is defined as default protocol method, from a class method or initializer}}
+  }
+}

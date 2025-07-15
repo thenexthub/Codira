@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -23,9 +23,9 @@ __all__ = [
     'BUILD_VARIANT',
     'CMAKE_GENERATOR',
     'COMPILER_VENDOR',
-    'SWIFT_USER_VISIBLE_VERSION',
+    'LANGUAGE_USER_VISIBLE_VERSION',
     'CLANG_USER_VISIBLE_VERSION',
-    'SWIFT_ANALYZE_CODE_COVERAGE',
+    'LANGUAGE_ANALYZE_CODE_COVERAGE',
     'DARWIN_XCRUN_TOOLCHAIN',
     'DARWIN_DEPLOYMENT_VERSION_OSX',
     'DARWIN_DEPLOYMENT_VERSION_IOS',
@@ -34,8 +34,8 @@ __all__ = [
     'DARWIN_DEPLOYMENT_VERSION_XROS',
     'UNIX_INSTALL_PREFIX',
     'DARWIN_INSTALL_PREFIX',
-    'LLVM_MAX_PARALLEL_LTO_LINK_JOBS',
-    'SWIFT_MAX_PARALLEL_LTO_LINK_JOBS',
+    'TOOLCHAIN_MAX_PARALLEL_LTO_LINK_JOBS',
+    'LANGUAGE_MAX_PARALLEL_LTO_LINK_JOBS',
     'DSYMUTIL_JOBS'
 
     # Constants
@@ -47,9 +47,9 @@ BUILD_VARIANT = 'Debug'
 CMAKE_GENERATOR = 'Ninja'
 
 COMPILER_VENDOR = 'none'
-SWIFT_USER_VISIBLE_VERSION = Version('6.2')
+LANGUAGE_USER_VISIBLE_VERSION = Version('6.2')
 CLANG_USER_VISIBLE_VERSION = Version('17.0.0')
-SWIFT_ANALYZE_CODE_COVERAGE = 'false'
+LANGUAGE_ANALYZE_CODE_COVERAGE = 'false'
 
 DARWIN_XCRUN_TOOLCHAIN = 'default'
 DARWIN_DEPLOYMENT_VERSION_OSX = '13.0'
@@ -84,7 +84,7 @@ def _system_memory():
     return None
 
 
-def _default_llvm_lto_link_jobs():
+def _default_toolchain_lto_link_jobs():
     """Use the formula (GB Memory - 3)/6.0GB to get the number of parallel
     link threads we can support. This gives the OS 3 GB of room to work with.
 
@@ -99,7 +99,7 @@ def _default_llvm_lto_link_jobs():
     return int((memory / 1000000000.0 - 3.0) / 6.0)
 
 
-def _default_swift_lto_link_jobs():
+def _default_language_lto_link_jobs():
     """Use the formula (GB Memory - 3)/8.0GB to get the number of parallel
     link threads we can support. This gives the OS 3 GB of room to work with.
 
@@ -114,17 +114,17 @@ def _default_swift_lto_link_jobs():
     return int((memory / 1000000000.0 - 3.0) / 8.0)
 
 
-LLVM_MAX_PARALLEL_LTO_LINK_JOBS = _default_llvm_lto_link_jobs()
-SWIFT_MAX_PARALLEL_LTO_LINK_JOBS = _default_swift_lto_link_jobs()
+TOOLCHAIN_MAX_PARALLEL_LTO_LINK_JOBS = _default_toolchain_lto_link_jobs()
+LANGUAGE_MAX_PARALLEL_LTO_LINK_JOBS = _default_language_lto_link_jobs()
 
 
-def llvm_install_components():
-    """Convenience function for getting the default llvm install components for
+def toolchain_install_components():
+    """Convenience function for getting the default toolchain install components for
     platforms.
     """
-    # llvm build product will take care of replacing compiler-rt with
+    # toolchain build product will take care of replacing compiler-rt with
     # builtins,runtimes if need be
-    components = ['llvm-ar', 'llvm-cov', 'llvm-profdata', 'IndexStore', 'clang',
+    components = ['toolchain-ar', 'toolchain-cov', 'toolchain-profdata', 'IndexStore', 'clang',
                   'clang-resource-headers', 'compiler-rt', 'clangd', 'LTO',
                   'lld']
     if os.sys.platform == 'darwin':

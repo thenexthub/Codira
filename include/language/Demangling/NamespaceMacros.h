@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Macros that conditionally define an inline namespace so that symbols used in
@@ -20,19 +21,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_NAMESPACE_MACROS_H
-#define SWIFT_DEMANGLING_NAMESPACE_MACROS_H
+#ifndef LANGUAGE_DEMANGLING_NAMESPACE_MACROS_H
+#define LANGUAGE_DEMANGLING_NAMESPACE_MACROS_H
 
 #if defined(__cplusplus)
 
-#if defined(SWIFT_INLINE_NAMESPACE)
-#define SWIFT_BEGIN_INLINE_NAMESPACE inline namespace language_INLINE_NAMESPACE {
-#define SWIFT_END_INLINE_NAMESPACE }
+#if defined(LANGUAGE_INLINE_NAMESPACE)
+#define LANGUAGE_BEGIN_INLINE_NAMESPACE inline namespace LANGUAGE_INLINE_NAMESPACE {
+#define LANGUAGE_END_INLINE_NAMESPACE }
 #else
-#define SWIFT_BEGIN_INLINE_NAMESPACE
-#define SWIFT_END_INLINE_NAMESPACE
+#define LANGUAGE_BEGIN_INLINE_NAMESPACE
+#define LANGUAGE_END_INLINE_NAMESPACE
 #endif
 
 #endif
 
-#endif // SWIFT_DEMANGLING_NAMESPACE_MACROS_H
+#endif // LANGUAGE_DEMANGLING_NAMESPACE_MACROS_H

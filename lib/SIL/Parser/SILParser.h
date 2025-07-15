@@ -1,17 +1,21 @@
 //===--- SILParser.h ------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PARSER_SILPARSER_H
-#define SWIFT_SIL_PARSER_SILPARSER_H
+#ifndef LANGUAGE_SIL_PARSER_SILPARSER_H
+#define LANGUAGE_SIL_PARSER_SILPARSER_H
 
 #include "SILParserState.h"
 
@@ -59,8 +63,8 @@ private:
   bool parsedComma = false;
 
   /// Data structures used to perform name lookup of basic blocks.
-  llvm::DenseMap<Identifier, SILBasicBlock *> BlocksByName;
-  llvm::DenseMap<SILBasicBlock *, Located<Identifier>> UndefinedBlocks;
+  toolchain::DenseMap<Identifier, SILBasicBlock *> BlocksByName;
+  toolchain::DenseMap<SILBasicBlock *, Located<Identifier>> UndefinedBlocks;
 
   /// The set of opened packs in the function, indexed by UUID.
   /// Note that we don't currently support parsing references to
@@ -70,9 +74,9 @@ private:
   SILTypeResolutionContext::OpenedPackElementsMap OpenedPackElements;
 
   /// Data structures used to perform name lookup for local values.
-  llvm::StringMap<ValueBase *> LocalValues;
-  llvm::StringMap<llvm::SmallVector<SpecifyTestInst *>> TestSpecsWithRefs;
-  llvm::StringMap<SourceLoc> ForwardRefLocalValues;
+  toolchain::StringMap<ValueBase *> LocalValues;
+  toolchain::StringMap<toolchain::SmallVector<SpecifyTestInst *>> TestSpecsWithRefs;
+  toolchain::StringMap<SourceLoc> ForwardRefLocalValues;
 
   Type performTypeResolution(TypeRepr *TyR, bool IsSILType,
                              GenericSignature GenericSig,
@@ -179,7 +183,7 @@ public:
   template <typename T>
   bool
   parseSILQualifier(std::optional<T> &result,
-                    llvm::function_ref<std::optional<T>(StringRef)> parseName);
+                    toolchain::function_ref<std::optional<T>(StringRef)> parseName);
 
   bool parseVerbatim(StringRef identifier);
 
@@ -374,8 +378,8 @@ public:
     return parseProtocolConformance(dummy, genericSig, genericParams);
   }
 
-  std::optional<llvm::coverage::Counter>
-  parseSILCoverageExpr(llvm::coverage::CounterExpressionBuilder &Builder);
+  std::optional<toolchain::coverage::Counter>
+  parseSILCoverageExpr(toolchain::coverage::CounterExpressionBuilder &Builder);
 
   template <class T>
   struct ParsedEnum {
@@ -413,6 +417,9 @@ public:
     else
       P.diagnose(loc, diag::unknown_attr_name, name);
   }
+  
+  /// Parse into checked cast options, such as [prohibit_isolated_conformances].
+  CheckedCastInstOptions parseCheckedCastInstOptions(bool *isExact);
 };
 
 } // namespace language

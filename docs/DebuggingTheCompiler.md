@@ -3,12 +3,12 @@
 
 This document contains some useful information for debugging:
 
-* The Swift compiler.
-* Intermediate output of the Swift Compiler.
-* Swift applications at runtime.
+* The Codira compiler.
+* Intermediate output of the Codira Compiler.
+* Codira applications at runtime.
 
 Please feel free to add any useful tips that one finds to this document for the
-benefit of all Swift developers.
+benefit of all Codira developers.
 
 **Table of Contents**
 
@@ -22,16 +22,16 @@ benefit of all Swift developers.
         - [Enabling Logging](#enabling-logging)
     - [Debugging on SIL Level](#debugging-on-sil-level)
         - [Options for Dumping the SIL](#options-for-dumping-the-sil)
-        - [Getting CommandLine for swift stdlib from Ninja to enable dumping stdlib SIL](#getting-commandline-for-swift-stdlib-from-ninja-to-enable-dumping-stdlib-sil)
+        - [Getting CommandLine for language stdlib from Ninja to enable dumping stdlib SIL](#getting-commandline-for-language-stdlib-from-ninja-to-enable-dumping-stdlib-sil)
         - [Dumping the SIL and other Data in LLDB](#dumping-the-sil-and-other-data-in-lldb)
     - [Debugging and Profiling on SIL level](#debugging-and-profiling-on-sil-level)
         - [SIL source level profiling using -sil-based-debuginfo](#sil-source-level-profiling)
-        - [ViewCFG: Regex based CFG Printer for SIL/LLVM-IR](#viewcfg-regex-based-cfg-printer-for-silllvm-ir)
+        - [ViewCFG: Regex based CFG Printer for SIL/LLVM-IR](#viewcfg-regex-based-cfg-printer-for-siltoolchain-ir)
         - [Debugging the Compiler using advanced LLDB Breakpoints](#debugging-the-compiler-using-advanced-lldb-breakpoints)
         - [Debugging the Compiler using LLDB Scripts](#debugging-the-compiler-using-lldb-scripts)
         - [Custom LLDB Commands](#custom-lldb-commands)
-    - [Debugging at LLVM Level](#debugging-at-llvm-level)
-        - [Options for Dumping LLVM IR](#options-for-dumping-llvm-ir)
+    - [Debugging at LLVM Level](#debugging-at-toolchain-level)
+        - [Options for Dumping LLVM IR](#options-for-dumping-toolchain-ir)
     - [Bisecting Compiler Errors](#bisecting-compiler-errors)
         - [Bisecting on SIL optimizer pass counts to identify optimizer bugs](#bisecting-on-sil-optimizer-pass-counts-to-identify-optimizer-bugs)
         - [Using git-bisect in the presence of branch forwarding/feature branches](#using-git-bisect-in-the-presence-of-branch-forwardingfeature-branches)
@@ -41,12 +41,12 @@ benefit of all Swift developers.
 - [Debugging the Compiler Build](#debugging-the-compiler-build)
     - [Build Dry Run](#build-dry-run)
 - [Debugging the Compiler Driver](#debugging-the-compiler-driver-build)
-    - [Swift Compiler Driver F.A.Q](#swift-compiler-driver-f.a.q.)
+    - [Codira Compiler Driver F.A.Q](#language-compiler-driver-f.a.q.)
     - [Building the compiler without using the standalone driver](#building-the-compiler-without-the-standalone-driver)
     - [Invoking the compiler without forwarding to the standalone driver](#invoking-the-compiler-without-forwarding-to-the-standalone-driver)
     - [Reproducing the Compiler Driver build steps](#reproducing-the-compiler-driver-build-steps)
     - [Installing the Compiler Driver](#installing-the-compiler-driver)
-- [Debugging Swift Executables](#debugging-swift-executables)
+- [Debugging Codira Executables](#debugging-language-executables)
     - [Determining the mangled name of a function in LLDB](#determining-the-mangled-name-of-a-function-in-lldb)
     - [Manually symbolication using LLDB](#manually-symbolication-using-lldb)
     - [Viewing allocation history, references, and page-level info](#viewing-allocation-history-references-and-page-level-info)
@@ -72,25 +72,25 @@ into multiple lines. This is helpful to understand and edit long command lines.
 ## Printing the Intermediate Representations
 
 The most important thing when debugging the compiler is to examine the IR.
-Here is how to dump the IR after the main phases of the Swift compiler
+Here is how to dump the IR after the main phases of the Codira compiler
 (assuming you are compiling with optimizations enabled):
 
 * **Parser** To print the AST after parsing:
 
 ```sh
-swiftc -dump-ast -O file.swift
+languagec -dump-ast -O file.code
 ```
 
 * **SILGen** To print the SIL immediately after SILGen:
 
 ```sh
-swiftc -emit-silgen -O file.swift
+languagec -emit-silgen -O file.code
 ```
 
 * **Mandatory SIL passes** To print the SIL after the mandatory passes:
 
 ```sh
-swiftc -emit-sil -Onone file.swift
+languagec -emit-sil -Onone file.code
 ```
 
   Well, this is not quite true, because the compiler is running some passes
@@ -101,31 +101,31 @@ swiftc -emit-sil -Onone file.swift
    optimization pipeline:
 
 ```sh
-swiftc -emit-sil -O file.swift
+languagec -emit-sil -O file.code
 ```
 
-* **Debug info in SIL** To print debug info from `file.swift` in SIL:
+* **Debug info in SIL** To print debug info from `file.code` in SIL:
 
 ```sh
-swiftc -g -emit-sil -O file.swift
+languagec -g -emit-sil -O file.code
 ```
 
 * **IRGen** To print the LLVM IR after IR generation:
 
 ```sh
-swiftc -emit-ir -Xfrontend -disable-llvm-optzns -O file.swift
+languagec -emit-ir -Xfrontend -disable-toolchain-optzns -O file.code
 ```
 
 * **LLVM passes** To print the LLVM IR after LLVM passes:
 
 ```sh
-swiftc -emit-ir -O file.swift
+languagec -emit-ir -O file.code
 ```
 
 * **Code generation** To print the final generated code:
 
 ```sh
-swiftc -S -O file.swift
+languagec -S -O file.code
 ```
 
 Compilation stops at the phase where you print the output. So if you want to
@@ -138,14 +138,14 @@ with an additional `-o <file>` option.
 ### Asserting on first emitted Warning/Assert Diagnostic
 
 When changing the type checker and various SIL passes, one can cause a series of
-cascading diagnostics (errors/warnings) to be emitted. Since Swift does not by
+cascading diagnostics (errors/warnings) to be emitted. Since Codira does not by
 default assert when emitting such diagnostics, it becomes difficult to know
 where to stop in the debugger. Rather than trying to guess/check if one has an
-asserts swift compiler, one can use the following options to cause the
+asserts language compiler, one can use the following options to cause the
 diagnostic engine to assert on the first error/warning:
 
-* `-Xllvm -swift-diagnostics-assert-on-error=1`
-* `-Xllvm -swift-diagnostics-assert-on-warning=1`
+* `-Xtoolchain -language-diagnostics-assert-on-error=1`
+* `-Xtoolchain -language-diagnostics-assert-on-warning=1`
 
 These allow one to dump a stack trace of where the diagnostic is being emitted
 (if run without a debugger) or drop into the debugger if a debugger is attached.
@@ -166,24 +166,24 @@ This will cause the typechecker to log its internal state as it solves
 constraints and present the final type checked solution, e.g.:
 
 ```
----Constraint solving at [test.swift:3:1 - line:3:1]---
+---Constraint solving at [test.code:3:1 - line:3:1]---
 
 ---Initial constraints for the given expression---
-(integer_literal_expr type='$T0' location=test.swift:3:1 range=[test.swift:3:1 - line:3:1] value=0 builtin_initializer=**NULL** initializer=**NULL**)
+(integer_literal_expr type='$T0' location=test.code:3:1 range=[test.code:3:1 - line:3:1] value=0 builtin_initializer=**NULL** initializer=**NULL**)
 
 Score: <default 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0>
 Type Variables:
-   ($T0 [attributes: [literal: integer]] [potential bindings: (default type of literal) Int]) @ locator@0x13e009800 [IntegerLiteral@test.swift:3:1]
+   ($T0 [attributes: [literal: integer]] [potential bindings: (default type of literal) Int]) @ locator@0x13e009800 [IntegerLiteral@test.code:3:1]
 
 Inactive Constraints:
-  $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.swift:3:1]
+  $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.code:3:1]
 
   (Potential Binding(s): 
     ($T0 [attributes: [literal: integer]] [potential bindings: (default type of literal) Int])
   (attempting type variable $T0 := Int
-    (considering: $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.swift:3:1]
+    (considering: $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.code:3:1]
       (simplification result:
-        (removed constraint: $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.swift:3:1])
+        (removed constraint: $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.code:3:1])
       )
       (outcome: simplified)
     )
@@ -192,7 +192,7 @@ Inactive Constraints:
         > $T0 := Int
       )
       (Removed Constraint: 
-        > $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.swift:3:1]
+        > $T0 literal conforms to ExpressibleByIntegerLiteral @ locator@0x13e009800 [IntegerLiteral@test.code:3:1]
       )
     )
     (found solution: <default 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0>)
@@ -206,17 +206,17 @@ Time: 2.164000e+00ms
 ---Solution---
 Fixed score: <default 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0>
 Type variables:
-  $T0 as Int @ locator@0x13e009800 [IntegerLiteral@test.swift:3:1]
+  $T0 as Int @ locator@0x13e009800 [IntegerLiteral@test.code:3:1]
 
 ---Type-checked expression---
-(integer_literal_expr type='Int' location=test.swift:3:1 range=[test.swift:3:1 - line:3:1] value=0 builtin_initializer=Swift.(file).Int.init(_builtinIntegerLiteral:) initializer=**NULL**)
+(integer_literal_expr type='Int' location=test.code:3:1 range=[test.code:3:1 - line:3:1] value=0 builtin_initializer=Codira.(file).Int.init(_builtinIntegerLiteral:) initializer=**NULL**)
 ```
 
-When using swift LLDB REPL, one can dump the same output for each
+When using language LLDB REPL, one can dump the same output for each
 expression as one evaluates the expression by enabling constraints debugging by
 passing the flag `-Xfrontend -debug-constraints`:
 
-    $ swift repl -Xfrontend -debug-constraints
+    $ language repl -Xfrontend -debug-constraints
     1> let foo = 1
 
 ### Debugging Evaluator Cycles
@@ -226,10 +226,10 @@ the request evaluator. The error looks as follows:
 
 ```
 <unknown>:0: error: circular reference
-file.swift:18:22: note: through reference here
+file.code:18:22: note: through reference here
 16 | 
 17 | extension MyType {
-18 |   public static func test() -> MyType { ... }
+18 |   public static fn test() -> MyType { ... }
    |                      `- note: through reference here
 19 | }
 20 | 
@@ -249,47 +249,47 @@ to dump the SIL also between pass runs.
 
 A short (non-exhaustive) list of SIL printing options:
 
-* `-Xllvm '-sil-print-function=SWIFT_MANGLED_NAME'`: Print the specified
+* `-Xtoolchain '-sil-print-function=LANGUAGE_MANGLED_NAME'`: Print the specified
   function after each pass which modifies the function. Note that for module
   passes, the function is printed if the pass changed _any_ function (the
   pass manager doesn't know which functions a module pass has changed).
   Multiple functions can be specified as a comma separated list.
 
-* `-Xllvm '-sil-print-functions=NAME'`: Like `-sil-print-function`, except that
+* `-Xtoolchain '-sil-print-functions=NAME'`: Like `-sil-print-function`, except that
   functions are selected if NAME is _contained_ in their mangled names.
 
-* `-Xllvm -sil-print-all`: Print all functions when ever a function pass
+* `-Xtoolchain -sil-print-all`: Print all functions when ever a function pass
   modifies a function and print the entire module if a module pass modifies
   the SILModule.
 
-* `-Xllvm -sil-print-around=$PASS_NAME`: Print the SIL before and after a pass
+* `-Xtoolchain -sil-print-around=$PASS_NAME`: Print the SIL before and after a pass
   with name `$PASS_NAME` runs on a function or module.
   By default it prints the whole module. To print only specific functions, add
   `-sil-print-function` and/or `-sil-print-functions`.
 
-* `-Xllvm -sil-print-before=$PASS_NAME`: Like `-sil-print-around`, but prints
+* `-Xtoolchain -sil-print-before=$PASS_NAME`: Like `-sil-print-around`, but prints
   the SIL only _before_ the specified pass runs.
 
-* `-Xllvm -sil-print-after=$PASS_NAME`: Like `-sil-print-around`, but prints
+* `-Xtoolchain -sil-print-after=$PASS_NAME`: Like `-sil-print-around`, but prints
   the SIL only _after_ the specified pass did run.
 
 NOTE: This may emit a lot of text to stderr, so be sure to pipe the
 output to a file.
 
-### Getting CommandLine for swift stdlib from Ninja to enable dumping stdlib SIL
+### Getting CommandLine for language stdlib from Ninja to enable dumping stdlib SIL
 
-If one builds swift using ninja and wants to dump the SIL of the
+If one builds language using ninja and wants to dump the SIL of the
 stdlib using some of the SIL dumping options from the previous
 section, one can use the following one-liner:
 
-    ninja -t commands | grep swiftc | grep 'Swift\.o'
+    ninja -t commands | grep languagec | grep 'Codira\.o'
 
 This should give one a single command line that one can use for
-Swift.o, perfect for applying the previous sections options to.
+Codira.o, perfect for applying the previous sections options to.
 
 ### Dumping the SIL and other Data in LLDB
 
-When debugging the Swift compiler with LLDB (or Xcode, of course), there is
+When debugging the Codira compiler with LLDB (or Xcode, of course), there is
 even a more powerful way to examine the data in the compiler, e.g. the SIL.
 Following LLVM's dump() convention, many SIL classes (as well as AST classes)
 provide a dump() function. You can call the dump function with LLDB's
@@ -319,9 +319,9 @@ debugging press <CTRL>-C on the LLDB prompt.
 Note that this only works in Xcode if the PATH variable in the scheme's
 environment setting contains the path to the dot tool.
 
-swift/Basic/Debug.h includes macros to help contributors declare these methods
+language/Basic/Debug.h includes macros to help contributors declare these methods
 with the proper attributes to ensure they'll be available in the debugger. In
-particular, if you see `SWIFT_DEBUG_DUMP` in a class declaration, that class
+particular, if you see `LANGUAGE_DEBUG_DUMP` in a class declaration, that class
 has a `dump()` method you can call.
 
 ### Pass statistics
@@ -339,19 +339,19 @@ The compiler provides a way to debug and profile on SIL level. To enable SIL
 debugging add the front-end option -sil-based-debuginfo together with -g.
 Example:
 
-    swiftc -g -Xfrontend -sil-based-debuginfo -O test.swift -o a.out
+    languagec -g -Xfrontend -sil-based-debuginfo -O test.code -o a.out
 
 This writes the SIL after optimizations into a file and generates debug info
 for it. In the debugger and profiler you can then see the SIL code instead of
-the Swift source code.
+the Codira source code.
 For details see the SILDebugInfoGenerator pass.
 
-To enable SIL debugging and profiling for the Swift standard library, use
+To enable SIL debugging and profiling for the Codira standard library, use
 the build-script-impl option `--build-sil-debugging-stdlib`.
 
 ### ViewCFG: Regex based CFG Printer for SIL/LLVM-IR
 
-ViewCFG (`./utils/viewcfg`) is a script that parses a textual CFG (e.g. a llvm
+ViewCFG (`./utils/viewcfg`) is a script that parses a textual CFG (e.g. a toolchain
 or sil function) and displays a .dot file of the CFG. Since the parsing is done
 using regular expressions (i.e. ignoring language semantics), ViewCFG can:
 
@@ -398,7 +398,7 @@ used with viewcfg:
 ### Debugging the Compiler using advanced LLDB Breakpoints
 
 LLDB has very powerful breakpoints, which can be utilized in many ways to debug
-the compiler and Swift executables. The examples in this section show the LLDB
+the compiler and Codira executables. The examples in this section show the LLDB
 command lines. In Xcode you can set the breakpoint properties by clicking 'Edit
 breakpoint'.
 
@@ -467,7 +467,7 @@ breakpoint/crash/assert) you can list the current breakpoints:
 
 which will then show you the number of times that each breakpoint was hit. In
 this case, we know that `GlobalARCOpts::run` was hit 85 times. So, now
-we know to ignore swift_getGenericMetadata 84 times, i.e.:
+we know to ignore language_getGenericMetadata 84 times, i.e.:
 
     (lldb) br set -i 84 -n GlobalARCOpts::run
 
@@ -493,7 +493,7 @@ example of this consider the following script (which without any loss of
 generality will be called test.lldb):
 
     env DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib
-    break set -n swift_getGenericMetadata
+    break set -n language_getGenericMetadata
     break mod 1 -i 83
     process launch -- --stdlib-unittest-in-process --stdlib-unittest-filter "DefaultedForwardMutableCollection<OpaqueValue<Int>>.Type.subscript(_: Range)/Set/semantics"
     break set -l 224
@@ -503,15 +503,15 @@ generality will be called test.lldb):
     c
     dis -f
 
-TODO: Change this example to apply to the Swift compiler instead of to the
+TODO: Change this example to apply to the Codira compiler instead of to the
 stdlib unittests.
 
 Then by running `lldb test -s test.lldb`, lldb will:
 
 1. Enable guard malloc.
-2. Set a break point on swift_getGenericMetadata and set it to be ignored for 83 hits.
-3. Launch the application and stop at swift_getGenericMetadata after 83 hits have been ignored.
-4. In the same file as swift_getGenericMetadata introduce a new breakpoint at line 224 and continue.
+2. Set a break point on language_getGenericMetadata and set it to be ignored for 83 hits.
+3. Launch the application and stop at language_getGenericMetadata after 83 hits have been ignored.
+4. In the same file as language_getGenericMetadata introduce a new breakpoint at line 224 and continue.
 5. When we break at line 224 in that file, evaluate an expression pointer.
 6. Set a breakpoint at the address of the expression pointer and continue.
 7. When we hit the breakpoint set at the function pointer's address, disassemble
@@ -554,9 +554,9 @@ do with custom commands. The LLDB Python API surfaces a lot of useful
 functionality, such as arbitrary expression evaluation.
 
 There are some pre-defined custom commands which can be especially useful while
-debugging the swift compiler. These commands live in
-`swift/utils/lldb/lldbToolBox.py`. There is a wrapper script available in
-`SWIFT_BINARY_DIR/bin/lldb-with-tools` which launches lldb with those
+debugging the language compiler. These commands live in
+`language/utils/lldb/lldbToolBox.py`. There is a wrapper script available in
+`LANGUAGE_BINARY_DIR/bin/lldb-with-tools` which launches lldb with those
 commands loaded.
 
 A command named `sequence` is included in lldbToolBox. `sequence` runs
@@ -570,13 +570,13 @@ to define custom commands using just other lldb commands. For example,
 
 ### Options for Dumping LLVM IR
 
-Similar to SIL, one can configure LLVM to dump the llvm-ir at various points in
+Similar to SIL, one can configure LLVM to dump the toolchain-ir at various points in
 the pipeline. Here is a quick summary of the various options:
 
-* ``-Xllvm -print-before=$PASS_ID``: Print the LLVM IR before a specified LLVM pass runs.
-* ``-Xllvm -print-before-all``: Print the LLVM IR before each pass runs.
-* ``-Xllvm -print-after-all``: Print the LLVM IR after each pass runs.
-* ``-Xllvm -filter-print-funcs=$FUNC_NAME_1,$FUNC_NAME_2,...,$FUNC_NAME_N``:
+* ``-Xtoolchain -print-before=$PASS_ID``: Print the LLVM IR before a specified LLVM pass runs.
+* ``-Xtoolchain -print-before-all``: Print the LLVM IR before each pass runs.
+* ``-Xtoolchain -print-after-all``: Print the LLVM IR after each pass runs.
+* ``-Xtoolchain -filter-print-funcs=$FUNC_NAME_1,$FUNC_NAME_2,...,$FUNC_NAME_N``:
   When printing IR for functions for print-[before|after]-all options, Only
   print the IR for functions whose name is in this comma separated list.
 
@@ -591,27 +591,27 @@ Here's how to generate assembly or object code:
 
 ```
 # Emit assembly in Intel syntax (AT&T syntax is the default)
-swiftc tmp.swift -emit-assembly -Xllvm -x86-asm-syntax=intel -o tmp.S
+languagec tmp.code -emit-assembly -Xtoolchain -x86-asm-syntax=intel -o tmp.S
 
 # Emit object code
-swiftc tmp.swift -emit-object -o tmp.o
+languagec tmp.code -emit-object -o tmp.o
 ```
 
-Understanding mangled names can be hard though: `swift demangle` to the rescue!
+Understanding mangled names can be hard though: `language demangle` to the rescue!
 
 ```
-swiftc tmp.swift -emit-assembly -Xllvm -x86-asm-syntax=intel -o - \
-  | swift demangle > tmp-demangled.S
+languagec tmp.code -emit-assembly -Xtoolchain -x86-asm-syntax=intel -o - \
+  | language demangle > tmp-demangled.S
 
-swiftc tmp.swift -emit-object -o tmp.o
+languagec tmp.code -emit-object -o tmp.o
 
 # Look at where different symbols are located, sorting by address (-n)
 # and displaying section names (-m)
-nm -n -m tmp.o | swift demangle > tmp.txt
+nm -n -m tmp.o | language demangle > tmp.txt
 
 # Inspect disassembly of an existing dylib (AT&T syntax is the default)
 objdump -d -macho --x86-asm-syntax=intel /path/to/libcake.dylib \
-  | swift demangle > libcake.S
+  | language demangle > libcake.S
 ```
 
 ### Working with multiple files
@@ -625,9 +625,9 @@ If you want to inspect assembly or object code for individual files when
 compiling under WMO, you can mimic this by doing the following:
 
 ```
-# Assuming all .swift files from the MyProject/Sources directory
+# Assuming all .code files from the MyProject/Sources directory
 # need to be included
-find MyProject/Sources -name '*.swift' -type f > input-files.txt
+find MyProject/Sources -name '*.code' -type f > input-files.txt
 
 # In some cases, projects may use multiple files with the same
 # name but in different directories (for different schemes),
@@ -639,25 +639,25 @@ mkdir Output
 
 # 1. -output-filelist doesn't recreate a subdirectory structure,
 #    so first strip out directories
-# 2. map .swift files to assembly files
-sed -e 's|.*/|Output/|;s|\.swift|.S|' input-files.txt > output-files.txt
+# 2. map .code files to assembly files
+sed -e 's|.*/|Output/|;s|\.code|.S|' input-files.txt > output-files.txt
 
-# Save command-line arguments from Xcode's 'CompileSwiftSources' phase in
+# Save command-line arguments from Xcode's 'CompileCodiraSources' phase in
 # the build log to a file for convenience, say args.txt.
 #
 # -sdk /path/to/sdk <... other args ...>
 
-xcrun swift-frontend @args.txt \
+xcrun language-frontend @args.txt \
   -filelist input-files.txt \
   -output-filelist output-files.txt \
   -O -whole-module-optimization \
   -emit-assembly
 ```
 
-If you are manually calling `swift-frontend` without an Xcode invocation to
+If you are manually calling `language-frontend` without an Xcode invocation to
 use as a template, you will need to at least add
 `-sdk "$(xcrun --show-sdk-path macosx)"` (if compiling for macOS),
-and `-I /path/to/includedir` to include necessary swift modules and interfaces.
+and `-I /path/to/includedir` to include necessary language modules and interfaces.
 
 ### Working with multi-architecture binaries
 
@@ -667,7 +667,7 @@ architectures, so a universal binary might look funny due to two copies of
 everything. Use `nm -arch` to look at a specific architecture:
 
 ```
-nm -n -m -arch x86_64 path/to/libcake.dylib | swift demangle
+nm -n -m -arch x86_64 path/to/libcake.dylib | language demangle
 ```
 
 [universal binaries]: https://en.wikipedia.org/wiki/Universal_binary
@@ -688,13 +688,13 @@ listing of commonly used tools on macOS, along with some example use cases:
   - Potential use cases: If you're building a binary in multiple configurations,
     and forgot which binary corresponds to which configuration, you can look
     through the output of `strings` to identify differences.
-- `c++filt`: The C++ equivalent of `swift-demangle`.
+- `c++filt`: The C++ equivalent of `language-demangle`.
   - Potential use cases: Looking at the generated code for the
-    Swift runtime, investigating C++ interop issues.
+    Codira runtime, investigating C++ interop issues.
 
 - Linking:
   - `libtool`: A tool to create static and dynamic libraries. Generally, it's
-    easier to instead ask `swiftc` to link files, but potentially handy as
+    easier to instead ask `languagec` to link files, but potentially handy as
     a higher-level alternative to `ld`, `ar` and `lipo`.
 
 - Debug info:
@@ -706,8 +706,8 @@ listing of commonly used tools on macOS, along with some example use cases:
       `image list` in LLDB.
 - `objdump`: Dump object files.
    Some examples of using `objdump` are documented in the previous subsection.
-   If you have a Swift compiler build, you can use `llvm-objdump` from
-   `$LLVM_BUILD_DIR/bin` instead of using the system `objdump`.
+   If you have a Codira compiler build, you can use `toolchain-objdump` from
+   `$TOOLCHAIN_BUILD_DIR/bin` instead of using the system `objdump`.
 
    Compared to other tools on this list, `objdump` packs a LOT of
    functionality; it can show information about sections, relocations
@@ -742,19 +742,19 @@ which causes the miscompile.
 Currently there is no tool to automatically identify the bad optimization, but
 it's quite easy to do this manually:
 
-1. Add the compiler option `-Xllvm -sil-opt-pass-count=<n>`, where `<n>`
+1. Add the compiler option `-Xtoolchain -sil-opt-pass-count=<n>`, where `<n>`
    is the number of optimizations to run.
 
 2. Bisect: find n where the executable crashes, but does not crash
    with n-1. First just try n = 10, 100, 1000, 10000, etc. to find
    an upper bound). Then can either bisect the invocation by hand or
    place the invocation into a script and use
-   `./llvm-project/llvm/utils/bisect` to automatically bisect
+   `./toolchain-project/toolchain/utils/bisect` to automatically bisect
    based on the scripts error code. Example invocation:
 
-     bisect --start=0 --end=10000 ./invoke_swift_passing_N.sh "%(count)s"
+     bisect --start=0 --end=10000 ./invoke_language_passing_N.sh "%(count)s"
 
-3. Add another option `-Xllvm -sil-print-last`. The output can be
+3. Add another option `-Xtoolchain -sil-print-last`. The output can be
    large, so it's best to redirect stderr to a file (`2> output`).
    The output contains the SIL before and after the bad optimization.
 
@@ -765,11 +765,11 @@ it's quite easy to do this manually:
 
 5. If the bad optimization is SILCombine or SimplifyCFG (which do a lot of
    transformations in a single run) it's helpful to continue bisecting on
-   the sub-pass number. The option `-Xllvm -sil-opt-pass-count=<n>.<m>`
+   the sub-pass number. The option `-Xtoolchain -sil-opt-pass-count=<n>.<m>`
    can be used for that, where `m` is the sub-pass number.
 
 For bisecting pass counts in large projects, the pass counts can be read from
-a configuration file using the `-Xllvm -sil-pass-count-config-file=<file>`
+a configuration file using the `-Xtoolchain -sil-pass-count-config-file=<file>`
 option. For details see the comment for `SILPassCountConfigFile` in the pass
 manager sources.
 
@@ -836,7 +836,7 @@ one just bisected.
 
 ### Reducing SIL test cases using bug_reducer
 
-There is functionality provided in ./swift/utils/bug_reducer/bug_reducer.py for
+There is functionality provided in ./language/utils/bug_reducer/bug_reducer.py for
 reducing SIL test cases by:
 
 1. Producing intermediate sib files that only require some of the passes to
@@ -845,20 +845,20 @@ reducing SIL test cases by:
    partitioning a module into unoptimized and optimized modules.
 
 For more information and a high level example, see:
-./swift/utils/bug_reducer/README.md.
+./language/utils/bug_reducer/README.md.
 
 ### Syncing branches during bisects
 
 When bisecting it might be necessary to run the `update-checkout` script
 each time you change shas. To do this you can pass `--match-timestamp`
-to automatically checkout match the timestamp of the `swiftlang/swift` repo
+to automatically checkout match the timestamp of the `languagelang/language` repo
 across the other repos.
 
 ## Disabling PCH Verification
 
 Sometimes one needs to try to compile against PCH modules where the PCH version
 verification checking is too strict. To work around this, one can disable the
-checking by passing in to swift:
+checking by passing in to language:
 
 ```sh
 -Xcc -Xclang -Xcc -fno-validate-pch
@@ -872,8 +872,8 @@ format expected by the compiler crashes and undefined behavior may result.
 ### Create Ubuntu Container 
 
 1. Use an x86 machine. The following instructions currently don’t work on arm64. It might be easy to adjust them or not, I have not tried
-2. Clone (or pull) swift-docker: https://github.com/swiftlang/swift-docker
-3. Build the Ubuntu 22.04 container: `cd swift-ci/master/ubuntu/22.04; docker build .`
+2. Clone (or pull) language-docker: https://github.com/languagelang/language-docker
+3. Build the Ubuntu 22.04 container: `cd language-ci/master/ubuntu/22.04; docker build .`
 4. `docker run -it --cpus <CPUs> --memory <Memory> -v ~/<path to your local sources>:/src-on-host:cached --name lsan-reproducer --cap-add=SYS_PTRACE --security-opt seccomp=unconfined <hash that docker build outputs> bash`
     - The `-cap-add` and `-security-opt` arguments are needed to run LLDB inside the Docker container
 5. Copy the sources to inside the Docker container: `cp -r /src-on-host/* ~`
@@ -883,34 +883,34 @@ Build inside the Container
 
 1. `utils/build-script --preset buildbot_incremental_linux,lsan,tools=RDA,stdlib=DA,test=no`
 2. This should reproduce the LSAN failure
-3. Now, disassemble the failing CMake invocation to a swiftc invocation. I needed to set one environment variable and could the copy the swiftc invocation (but this might change as the build changes)
+3. Now, disassemble the failing CMake invocation to a languagec invocation. I needed to set one environment variable and could the copy the languagec invocation (but this might change as the build changes)
 
 ```
-export LD_LIBRARY_PATH=/opt/swift/5.8.1/usr/lib/swift/linux
-/home/build-user/build/buildbot_incremental_lsan/swift-linux-x86_64/./bin/swiftc <many arguments>
+export LD_LIBRARY_PATH=/opt/language/5.8.1/usr/lib/language/linux
+/home/build-user/build/buildbot_incremental_lsan/language-linux-x86_64/./bin/languagec <many arguments>
 ```
 
 ### Symbolicating the LSAN report
 
 For reasons that are not clear to me, LSAN does not symbolicate the report. To get the functions at the reported offsets, perform the following steps (there might be easier steps, please update this document if you know any).
 
-1. Run the swiftc invocation that fails and copy the leak report to somewhere. The leak report should look like the following.
+1. Run the languagec invocation that fails and copy the leak report to somewhere. The leak report should look like the following.
 ```
 ==3863==ERROR: LeakSanitizer: detected memory leaks
 
 Direct leak of 120 byte(s) in 3 object(s) allocated from:
- #0 0x55b91c0b59b8 (/home/build-user/build/buildbot_incremental_lsan/swift-linux-x86_64/bin/swift-frontend+0x14d09b8)
- #1 0x55b91d51281c (/home/build-user/build/buildbot_incremental_lsan/swift-linux-x86_64/bin/swift-frontend+0x292d81c)
- #2 0x55b91c1b8700 (/home/build-user/build/buildbot_incremental_lsan/swift-linux-x86_64/bin/swift-frontend+0x15d3700)
+ #0 0x55b91c0b59b8 (/home/build-user/build/buildbot_incremental_lsan/language-linux-x86_64/bin/language-frontend+0x14d09b8)
+ #1 0x55b91d51281c (/home/build-user/build/buildbot_incremental_lsan/language-linux-x86_64/bin/language-frontend+0x292d81c)
+ #2 0x55b91c1b8700 (/home/build-user/build/buildbot_incremental_lsan/language-linux-x86_64/bin/language-frontend+0x15d3700)
 
 SUMMARY: LeakSanitizer: 120 byte(s) leaked in 3 allocation(s).
 ```
-2. `lldb -- <your swiftc invocation above>`
-3. Start running swiftc inside lldb by executing `r`
-4. Find the loaded offset of swift-frontend by running `image list`
+2. `lldb -- <your languagec invocation above>`
+3. Start running languagec inside lldb by executing `r`
+4. Find the loaded offset of language-frontend by running `image list`
 For example, this might output
 ```
-[  0] 0AEA10C1 0x0000555555554000 /home/build-user/build/buildbot_incremental_lsan/swift-linux-x86_64/bin/swift-frontend 
+[  0] 0AEA10C1 0x0000555555554000 /home/build-user/build/buildbot_incremental_lsan/language-linux-x86_64/bin/language-frontend 
 [  1] D52BB67A-BBBB-E429-6E87-FC16144CA7CE-55276DD6 0x00007ffff7ffb000 [vdso] (0x00007ffff7ffb000)
 [  2] 9EA8014C-F020-21A2-9E57-AA3E0512E9BB-6E30541D 0x00007ffff7dd3000 /lib/x86_64-linux-gnu/ld-2.27.so
 ```
@@ -920,8 +920,8 @@ The loaded offset is `0x0000555555554000`
 
 ```
 (lldb) image lookup -a 0x555557E8181C
-      Address: swiftc[0x000000000292d81c] (swiftc.PT_LOAD[0]..text + 22056284)
-      Summary: swiftc`registerFunctionTest(BridgedStringRef, void*) + 28 at SILBridging.cpp:148:3
+      Address: languagec[0x000000000292d81c] (languagec.PT_LOAD[0]..text + 22056284)
+      Summary: languagec`registerFunctionTest(BridgedStringRef, void*) + 28 at SILBridging.cpp:148:3
 ```
 
 7. Hoorray, you know which function is leaking.
@@ -948,83 +948,83 @@ such configuration.
 
 # Debugging the Compiler Driver
 
-The Swift compiler uses a standalone compiler-driver application written in
-Swift: [swift-driver](https://github.com/swiftlang/swift-driver). When building the
+The Codira compiler uses a standalone compiler-driver application written in
+Codira: [language-driver](https://github.com/languagelang/language-driver). When building the
 compiler using `build-script`, by default, the standalone driver will be built
-first, using the host toolchain, if the host toolchain contains a Swift
-compiler. If the host toolchain does not contain Swift, a warning is emitted and
+first, using the host toolchain, if the host toolchain contains a Codira
+compiler. If the host toolchain does not contain Codira, a warning is emitted and
 the legacy compiler-driver (integrated in the C++ code-base) will be used. In
-the future, a host toolchain containing a Swift compiler may become mandatory.
-Once the compiler is built, the compiler build directory (`swift-<OS>-<ARCH>`)
+the future, a host toolchain containing a Codira compiler may become mandatory.
+Once the compiler is built, the compiler build directory (`language-<OS>-<ARCH>`)
 is updated with a symlink to the standalone driver, ensuring calls to the build
-directory's `swift` and `swiftc` always forward to the standalone driver.
+directory's `language` and `languagec` always forward to the standalone driver.
 
 For more information about the driver, see:
-[github.com/swiftlang/swift-driver/blob/main/README.md](https://github.com/swiftlang/swift-driver/blob/main/README.md)
+[github.com/languagelang/language-driver/blob/main/README.md](https://github.com/languagelang/language-driver/blob/main/README.md)
 
-## Swift Compiler Driver F.A.Q.
-> What's the difference between invoking 'swiftc' vs. 'swift-driver' at the top
+## Codira Compiler Driver F.A.Q.
+> What's the difference between invoking 'languagec' vs. 'language-driver' at the top
   level?
 
-Today, `swift` and `swiftc` are symbolic links to the compiler binary
-(`swift-frontend`). Invoking `swiftc` causes the executable to detects that it
+Today, `language` and `languagec` are symbolic links to the compiler binary
+(`language-frontend`). Invoking `languagec` causes the executable to detects that it
 is a compiler-driver invocation, and not a direct compiler-frontend invocation,
 by examining the invoked program's name. The compiler frontend can be invoked
-directly by invoking the `swift-frontend` executable, or passing in the
-`-frontend` option to `swiftc`.
+directly by invoking the `language-frontend` executable, or passing in the
+`-frontend` option to `languagec`.
 
-The standalone [Compiler Driver](https://github.com/swiftlang/swift-driver) is
-installed as a separate `swift-driver` executable in the Swift toolchain's `bin`
-directory. When a user launches the compiler by invoking `swiftc`, the C++ based
-compiler executable forwards the invocation to the `swift-driver` executable if
+The standalone [Compiler Driver](https://github.com/languagelang/language-driver) is
+installed as a separate `language-driver` executable in the Codira toolchain's `bin`
+directory. When a user launches the compiler by invoking `languagec`, the C++ based
+compiler executable forwards the invocation to the `language-driver` executable if
 one is found alongside it. This forwarding mechanism is in-place temporarily, to
 allow for an easy fallback to the legacy driver via one of the two escape
 hatches:
 
 - `-disallow-use-new-driver` command line flag
-- `SWIFT_USE_OLD_DRIVER` environment variable
+- `LANGUAGE_USE_OLD_DRIVER` environment variable
 
-If the user is to directly invoke the `swift-driver` executable, the behaviour
-should be the same as invoking the `swiftc` executable, but without the option
+If the user is to directly invoke the `language-driver` executable, the behaviour
+should be the same as invoking the `languagec` executable, but without the option
 for a legacy driver fallback.
 
-Once the legacy driver is deprecated, `swift` and `swiftc` executables will
-become symbolic links to the `swift-driver` executable directly.
+Once the legacy driver is deprecated, `language` and `languagec` executables will
+become symbolic links to the `language-driver` executable directly.
 
 
-> Will 'swiftc ... -###' always print the same set of commands for the old/new
-  driver? Do they call 'swift-frontend' the same way?
+> Will 'languagec ... -###' always print the same set of commands for the old/new
+  driver? Do they call 'language-frontend' the same way?
 
-The standalone [Compiler Driver](https://github.com/swiftlang/swift-driver) is meant
+The standalone [Compiler Driver](https://github.com/languagelang/language-driver) is meant
 to be a direct drop-in replacement for the C++-based legacy driver. It has the
 exact same command-line interface. The expectation is that its behaviour closely
 matches the legacy driver; however, during, and after the transition to the new
 driver being the default its behaviour may start to diverge from the legacy
 driver as par for the course of its evolution and gaining new features, etc.
-Today, broadly-speaking, sets of `swift-frontend` invocations generated by the
+Today, broadly-speaking, sets of `language-frontend` invocations generated by the
 two drivers are expected to be very similar.
 
 ## Building the compiler without the standalone driver
 One can build the compiler that does not rely on the standalone driver and
 instead uses the legacy, built-in driver using the `build-script` option: 
-`--skip-early-swift-driver`.
+`--skip-early-language-driver`.
 
 ## Invoking the compiler without forwarding to the standalone driver
-The Swift compiler can currently be invoked in an execution mode that will use
+The Codira compiler can currently be invoked in an execution mode that will use
 the legacy C++-based compiler driver using one of the following two options:
-- Passing `-disallow-use-new-driver` argument to the `swiftc` invocation
-- Setting the `SWIFT_USE_OLD_DRIVER` environment variable 
+- Passing `-disallow-use-new-driver` argument to the `languagec` invocation
+- Setting the `LANGUAGE_USE_OLD_DRIVER` environment variable 
 
 ## Reproducing the Compiler Driver build steps
 A "[dry-run](#build-dry-run)" invocation of the `build-script` can be used to
-examine the SwiftDriver build stage and commands, without executing it. For
+examine the CodiraDriver build stage and commands, without executing it. For
 example:
 ```
 $ utils/build-script --release-debuginfo --dry-run
-+ mkdir -p /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert
---- Building earlyswiftdriver ---
-+ /SwiftWorkspace/swift-driver/Utilities/build-script-helper.py build --package-path /SwiftWorkspace/swift-driver --build-path /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/earlyswiftdriver-macosx-x86_64 --configuration release --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake --local_compiler_build
-Building the standard library for: swift-test-stdlib-macosx-x86_64
++ mkdir -p /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert
+--- Building earlylanguagedriver ---
++ /CodiraWorkspace/language-driver/Utilities/build-script-helper.py build --package-path /CodiraWorkspace/language-driver --build-path /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/earlylanguagedriver-macosx-x86_64 --configuration release --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake --local_compiler_build
+Building the standard library for: language-test-stdlib-macosx-x86_64
 ...
 ```
 One of the first steps is an invocation of the driver's
@@ -1033,43 +1033,43 @@ One of the first steps is an invocation of the driver's
 (`--build-path`). 
 
 ## Installing the Compiler Driver
-In order to create a Swift compiler installation (`--install-swift`), the
+In order to create a Codira compiler installation (`--install-language`), the
 standalone driver must be built as a separate build product using the
-*just-built* Swift compiler and toolchain (the ones built in the same
-`build-script` invocation, preceding the SwiftDriver build product). The
+*just-built* Codira compiler and toolchain (the ones built in the same
+`build-script` invocation, preceding the CodiraDriver build product). The
 additional build product is added to the build by specifying the
-`--swift-driver` option of the `build-script`. The driver product is installed
+`--language-driver` option of the `build-script`. The driver product is installed
 into the resulting toolchain installation by specifying the
-`--install-swift-driver` option of the `build-script`.
+`--install-language-driver` option of the `build-script`.
 
 Note, a "dry-run" `build-script` invocation when installing the standalone
 driver will demonstrate the commands required to build and install the driver as
 a standalone build product:
 ```
-$ utils/build-script --release-debuginfo --dry-run --swift-driver --install-swift-driver
+$ utils/build-script --release-debuginfo --dry-run --language-driver --install-language-driver
 ...
---- Cleaning swiftdriver ---
-+ /SwiftWorkspace/swift-driver/Utilities/build-script-helper.py clean --package-path /SwiftWorkspace/swift-driver --build-path /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/swiftdriver-macosx-x86_64 --configuration release --toolchain /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-x86_64/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake
---- Building swiftdriver ---
-+ /SwiftWorkspace/swift-driver/Utilities/build-script-helper.py build --package-path /SwiftWorkspace/swift-driver --build-path /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/swiftdriver-macosx-x86_64 --configuration release --toolchain /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-x86_64/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake
---- Installing swiftdriver ---
-+ /SwiftWorkspace/swift-driver/Utilities/build-script-helper.py install --package-path /SwiftWorkspace/swift-driver --build-path /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/swiftdriver-macosx-x
-86_64 --configuration release --toolchain /SwiftWorkspace/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-x86_64/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake
+--- Cleaning languagedriver ---
++ /CodiraWorkspace/language-driver/Utilities/build-script-helper.py clean --package-path /CodiraWorkspace/language-driver --build-path /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/languagedriver-macosx-x86_64 --configuration release --toolchain /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-x86_64/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake
+--- Building languagedriver ---
++ /CodiraWorkspace/language-driver/Utilities/build-script-helper.py build --package-path /CodiraWorkspace/language-driver --build-path /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/languagedriver-macosx-x86_64 --configuration release --toolchain /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-x86_64/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake
+--- Installing languagedriver ---
++ /CodiraWorkspace/language-driver/Utilities/build-script-helper.py install --package-path /CodiraWorkspace/language-driver --build-path /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/languagedriver-macosx-x
+86_64 --configuration release --toolchain /CodiraWorkspace/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-x86_64/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr --ninja-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/ninja --cmake-bin /Applications/Xcode.app/Contents/Developer/usr/local/bin/cmake
 ```
 These invocations of the driver's `build-script-helper.py` script specify the
 individual build actions (`clean`, `build`, `install`), the product build path
 (`--build-path`), and the *just-built* toolchain which should be used
 (`--toolchain`).
 
-# Debugging Swift Executables
+# Debugging Codira Executables
 
-One can use the previous tips for debugging the Swift compiler with Swift
+One can use the previous tips for debugging the Codira compiler with Codira
 executables as well. Here are some additional useful techniques that one can use
-in Swift executables.
+in Codira executables.
 
 ## Determining the mangled name of a function in LLDB
 
-One problem that often comes up when debugging Swift code in LLDB is that LLDB
+One problem that often comes up when debugging Codira code in LLDB is that LLDB
 shows the demangled name instead of the mangled name. This can lead to mistakes
 where due to the length of the mangled names one will look at the wrong
 function. Using the following command, one can find the mangled name of the
@@ -1077,15 +1077,15 @@ function in the current frame:
 
     (lldb) image lookup -va $pc
     Address: CollectionType3[0x0000000100004db0] (CollectionType3.__TEXT.__text + 16000)
-    Summary: CollectionType3`ext.CollectionType3.CollectionType3.MutableCollectionType2<A where A: CollectionType3.MutableCollectionType2>.(subscript.materializeForSet : (Swift.Range<A.Index>) -> Swift.MutableSlice<A>).(closure #1)
-    Module: file = "/Volumes/Files/work/solon/build/build-swift/validation-test-macosx-x86_64/stdlib/Output/CollectionType.swift.gyb.tmp/CollectionType3", arch = "x86_64"
-    Symbol: id = {0x0000008c}, range = [0x0000000100004db0-0x00000001000056f0), name="ext.CollectionType3.CollectionType3.MutableCollectionType2<A where A: CollectionType3.MutableCollectionType2>.(subscript.materializeForSet : (Swift.Range<A.Index>) -> Swift.MutableSlice<A>).(closure #1)", mangled="_TFFeRq_15CollectionType322MutableCollectionType2_S_S0_m9subscriptFGVs5Rangeqq_s16MutableIndexable5Index_GVs12MutableSliceq__U_FTBpRBBRQPS0_MS4__T_"
+    Summary: CollectionType3`ext.CollectionType3.CollectionType3.MutableCollectionType2<A where A: CollectionType3.MutableCollectionType2>.(subscript.materializeForSet : (Codira.Range<A.Index>) -> Codira.MutableSlice<A>).(closure #1)
+    Module: file = "/Volumes/Files/work/solon/build/build-language/validation-test-macosx-x86_64/stdlib/Output/CollectionType.code.gyb.tmp/CollectionType3", arch = "x86_64"
+    Symbol: id = {0x0000008c}, range = [0x0000000100004db0-0x00000001000056f0), name="ext.CollectionType3.CollectionType3.MutableCollectionType2<A where A: CollectionType3.MutableCollectionType2>.(subscript.materializeForSet : (Codira.Range<A.Index>) -> Codira.MutableSlice<A>).(closure #1)", mangled="_TFFeRq_15CollectionType322MutableCollectionType2_S_S0_m9subscriptFGVs5Rangeqq_s16MutableIndexable5Index_GVs12MutableSliceq__U_FTBpRBBRQPS0_MS4__T_"
 
 ## Manually symbolication using LLDB
 
 One can perform manual symbolication of a crash log or an executable using LLDB
 without running the actual executable. For a detailed guide on how to do this,
-see: https://lldb.llvm.org/symbolication.html.
+see: https://lldb.toolchain.org/symbolication.html.
 
 ## Viewing allocation history, references, and page-level info
 
@@ -1204,17 +1204,17 @@ Some relevant Microsoft documentation:
 # Debugging LLDB failures
 
 Sometimes one needs to be able to while debugging actually debug LLDB and its
-interaction with Swift itself. Some examples of problems where this can come up
+interaction with Codira itself. Some examples of problems where this can come up
 are:
 
 1. Compiler bugs when LLDB attempts to evaluate an expression. (expression
    debugging)
-2. Swift variables being shown with no types. (type debugging)
+2. Codira variables being shown with no types. (type debugging)
 
 To gain further insight into these sorts of failures, we use LLDB log
 categories. LLDB log categories provide introspection by causing LLDB to dump
 verbose information relevant to the category into the log as it works. The two
-log channels that are useful for debugging Swift issues are the "types" and
+log channels that are useful for debugging Codira issues are the "types" and
 "expression" log channels.
 
 For more details about any of the information below, please run:
@@ -1223,16 +1223,16 @@ For more details about any of the information below, please run:
 
 ## "Types" Log
 
-The "types" log reports on LLDB's process of constructing SwiftASTContexts and
+The "types" log reports on LLDB's process of constructing CodiraASTContexts and
 errors that may occur. The two main tasks here are:
 
-1. Constructing the SwiftASTContext for a specific single Swift module. This is
+1. Constructing the CodiraASTContext for a specific single Codira module. This is
    used to implement frame local variable dumping via the lldb `frame
    variable` command, as well as the Xcode locals view. On failure, local
    variables will not have types.
 
-2. Building a SwiftASTContext in which to run Swift expressions using the
-   "expression" command. Upon failure, one will see an error like: "Shared Swift
+2. Building a CodiraASTContext in which to run Codira expressions using the
+   "expression" command. Upon failure, one will see an error like: "Shared Codira
    state for has developed fatal errors and is being discarded."
 
 These errors can be debugged by turning on the types log:
@@ -1254,7 +1254,7 @@ imported.
 ## "Expression" Log
 
 The "expression" log reports on the process of wrapping, parsing, SILGen'ing,
-JITing, and inserting an expression into the current Swift module. Since this can
+JITing, and inserting an expression into the current Codira module. Since this can
 only be triggered by the user manually evaluating expression, this can be turned
 on at any point before evaluating an expression. To enable expression logging,
 first run:
@@ -1273,7 +1273,7 @@ following non-exhaustive list of state:
 7. The assembly code that will be used by the JIT.
 
 **NOTE** LLDB runs a handful of preparatory expressions that it uses to set up
-for running Swift expressions. These can make the expression logs hard to read
+for running Codira expressions. These can make the expression logs hard to read
 especially if one evaluates multiple expressions with the logging enabled. In
 such a situation, run all expressions before the bad expression, turn on the
 logging, and only then run the bad expression.
@@ -1290,18 +1290,18 @@ Note, you can also turn on more than one log at a time as well, e.x.:
 
 Recent versions of LLVM package the tool `clang-tidy`. This can be used in
 combination with a json compilation database to run static analyzer checks as
-well as cleanups/modernizations on a code-base. Swift's cmake invocation by
-default creates one of these json databases at the root path of the swift host
+well as cleanups/modernizations on a code-base. Codira's cmake invocation by
+default creates one of these json databases at the root path of the language host
 build, for example on macOS:
 
-    $PATH_TO_BUILD/swift-macosx-$(uname -m)/compile_commands.json
+    $PATH_TO_BUILD/language-macosx-$(uname -m)/compile_commands.json
 
 Using this file, one invokes `clang-tidy` on a specific file in the codebase
 as follows:
 
-    clang-tidy -p=$PATH_TO_BUILD/swift-macosx-$(uname -m)/compile_commands.json $FULL_PATH_TO_FILE
+    clang-tidy -p=$PATH_TO_BUILD/language-macosx-$(uname -m)/compile_commands.json $FULL_PATH_TO_FILE
 
 One can also use shell regex to visit multiple files in the same directory. Example:
 
-    clang-tidy -p=$PATH_TO_BUILD/swift-macosx-$(uname -m)/compile_commands.json $FULL_PATH_TO_DIR/*.cpp
+    clang-tidy -p=$PATH_TO_BUILD/language-macosx-$(uname -m)/compile_commands.json $FULL_PATH_TO_DIR/*.cpp
 

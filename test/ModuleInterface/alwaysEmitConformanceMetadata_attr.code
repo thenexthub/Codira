@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+
+// Ensure the attribute is printed in languageinterface files
+// RUN: %target-language-emit-module-interface(%t/Foo.codeinterface) %s -module-name Foo
+// RUN: %target-language-typecheck-module-from-interface(%t/Foo.codeinterface) -module-name Foo
+// RUN: %FileCheck %s < %t/Foo.codeinterface
+
+// Ensure the attribute is in .codemodule files
+// RUN: %target-language-ide-test -print-module -module-to-print Foo -I %t -source-filename %s -fully-qualified-types -print-access > %t/printed-module.txt
+// RUN: %FileCheck %s < %t/printed-module.txt
+
+@_alwaysEmitConformanceMetadata
+public protocol TestP {
+    static var foo: Int { get }
+}
+
+
+// CHECK: @_alwaysEmitConformanceMetadata public protocol TestP

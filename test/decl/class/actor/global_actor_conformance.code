@@ -1,0 +1,77 @@
+// RUN: %target-typecheck-verify-language  -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+
+actor SomeActor { }
+
+@globalActor
+struct GlobalActor {
+  static var shared: SomeActor { SomeActor() }
+}
+
+@globalActor
+struct GenericGlobalActor<T> {
+  static var shared: SomeActor { SomeActor() }
+}
+
+protocol P1 {
+  associatedtype Assoc
+
+  @GlobalActor fn method1()
+  @GenericGlobalActor<Int> fn method2()
+  @GenericGlobalActor<Assoc> fn method3()
+  fn method4()
+}
+
+protocol P2 {
+  @GlobalActor fn asyncMethod1() async
+  @GenericGlobalActor<Int> fn asyncMethod2() async
+  fn asyncMethod3() async
+}
+
+// expected-warning@+1{{conformance of 'C1' to protocol 'P1' crosses into global actor 'GlobalActor'-isolated code and can cause data races}}
+class C1 : P1, P2 {
+  // expected-note@-1{{turn data races into runtime errors with '@preconcurrency'}}
+  // expected-note@-2{{isolate this conformance to the global actor 'GlobalActor' with '@GlobalActor'}}
+
+  typealias Assoc = String
+
+  fn method1() { }
+
+  @GenericGlobalActor<String> fn method2() { } // expected-note{{global actor 'GenericGlobalActor<String>'-isolated instance method 'method2()' cannot satisfy global actor 'GenericGlobalActor<Int>'-isolated requirement}}
+  @GenericGlobalActor<String >fn method3() { }
+  @GlobalActor fn method4() { } // expected-note{{global actor 'GlobalActor'-isolated instance method 'method4()' cannot satisfy nonisolated requirement}}
+
+  // Okay: we can ignore the mismatch in global actor types for 'async' methods.
+  fn asyncMethod1() async { }
+  @GenericGlobalActor<String> fn asyncMethod2() async { }
+  @GlobalActor fn asyncMethod3() async { }
+}
+
+protocol NonIsolatedRequirement {
+  fn requirement()
+}
+
+@MainActor class OnMain {}
+
+// expected-warning@+1{{conformance of 'OnMain' to protocol 'NonIsolatedRequirement' crosses into main actor-isolated code}}
+extension OnMain: NonIsolatedRequirement {
+  // expected-note@-1{{turn data races into runtime errors with '@preconcurrency'}}
+  // expected-note@-2{{mark all declarations used in the conformance 'nonisolated'}}
+  // expected-note@-3{{isolate this conformance to the main actor with '@MainActor'}}
+  // expected-note@+1 {{main actor-isolated instance method 'requirement()' cannot satisfy nonisolated requirement}}
+  fn requirement() {}
+}
+
+// expected-note@+1 {{calls to global function 'downgrade()' from outside of its actor context are implicitly asynchronous}}
+@preconcurrency @MainActor fn downgrade() {}
+
+extension OnMain {
+  struct Nested {
+    // expected-note@+1 {{add '@MainActor' to make instance method 'test()' part of global actor 'MainActor'}}
+    fn test() {
+      // expected-warning@+1 {{call to main actor-isolated global function 'downgrade()' in a synchronous nonisolated context}}
+      downgrade()
+    }
+  }
+}

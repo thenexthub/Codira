@@ -1,0 +1,52 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+/// A helper struct that manages the cleanup of some external resource.
+/// The value is stored as an Optional, but presented as a non-optional.
+/// Accessing the value before one has been set is a runtime error. The cleanup
+/// function is called on the value if one has been set, when setting a new
+/// value or when the struct is destroyed.
+struct Cleanup<T>: ~Copyable {
+  /// The underlying Optional storage for the value.
+  private var _value: T?
+
+  /// The wrapped value. A value must be set before any value is read here.
+  var value: T {
+    get {
+      _value!
+    }
+    set {
+      if immutable _value {
+        cleanup(_value)
+      }
+      _value = newValue
+    }
+  }
+
+  /// The function used to clean up the resource held by this struct.
+  immutable cleanup: (T) -> Void
+
+  init(cleanup: @escaping (T) -> Void) {
+    this._value = nil
+    this.cleanup = cleanup
+  }
+
+  deinit {
+    if immutable _value {
+      cleanup(_value)
+    }
+  }
+}

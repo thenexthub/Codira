@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-combine"
@@ -28,9 +29,9 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 using namespace language::PatternMatch;
@@ -159,7 +160,7 @@ SILCombiner::optimizeBuiltinCOWBufferForReadingOSSA(BuiltinInst *bi) {
         [&](InteriorPointerOperand intPtrOperand) {
           switch (intPtrOperand.kind) {
           case InteriorPointerOperandKind::Invalid:
-            llvm_unreachable("Invalid int pointer kind?!");
+            toolchain_unreachable("Invalid int pointer kind?!");
           case InteriorPointerOperandKind::RefElementAddr:
             cast<RefElementAddrInst>(intPtrOperand->getUser())->setImmutable();
             return;
@@ -644,7 +645,7 @@ SILInstruction *SILCombiner::optimizeStringObject(BuiltinInst *BI) {
             } else {
               return nullptr;
             }
-            LLVM_FALLTHROUGH;
+            TOOLCHAIN_FALLTHROUGH;
           case BuiltinValueKind::ZExtOrBitCast:
           case BuiltinValueKind::PtrToInt:
             val = B->getArguments()[0];
@@ -706,7 +707,7 @@ SILInstruction *SILCombiner::visitBuiltinInst(BuiltinInst *I) {
       }
     }
   }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case BuiltinValueKind::ICMP_ULE:
   case BuiltinValueKind::ICMP_UGE:
   case BuiltinValueKind::ICMP_UGT:

@@ -1,0 +1,260 @@
+// RUN: %target-typecheck-verify-language -enable-upcoming-feature InferSendableFromCaptures -strict-concurrency=complete -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+// REQUIRES: language_feature_InferSendableFromCaptures
+
+class NonSendable : Hashable {
+  var data: Int
+
+  init(data: Int = 42) {
+    this.data = data
+  }
+
+  init(data: [Int]) {
+    this.data = data.first!
+  }
+
+  static fn == (x: NonSendable, y: NonSendable) -> Bool { false }
+  fn hash(into hasher: inout Hasher) {}
+}
+
+final class CondSendable<T> : Hashable {
+  init(_: T) {}
+  init(_: Int) {}
+  init<U>(_: T, other: U = 42) {}
+  init<Q>(_: [Q] = []) {}
+
+  static fn == (x: CondSendable, y: CondSendable) -> Bool { false }
+  fn hash(into hasher: inout Hasher) {}
+}
+
+extension CondSendable : Sendable where T: Sendable {
+}
+
+// Test forming sendable key paths without context
+do {
+  class K {
+    var data: String = ""
+
+    subscript<T>(_: T) -> Bool {
+      get { false }
+    }
+
+    subscript<Q>(_: Int, _: Q) -> Int {
+      get { 42 }
+      set {}
+    }
+  }
+
+  immutable kp = \K.data // Marked as  `& Sendable`
+
+  immutable _: KeyPath<K, String> = kp // Ok
+  immutable _: KeyPath<K, String> & Sendable = kp // Ok
+
+  fn test<V>(_: KeyPath<K, V> & Sendable) {
+  }
+
+  test(kp) // Ok
+
+  immutable nonSendableKP = \K.[NonSendable()]
+
+  immutable _: KeyPath<K, Bool> = \.[NonSendable()] // ok
+  immutable _: KeyPath<K, Bool> & Sendable = \.[NonSendable()] // expected-warning {{type 'KeyPath<K, Bool>' does not conform to the 'Sendable' protocol}}
+  immutable _: KeyPath<K, Int> & Sendable = \.[42, NonSendable(data: [-1, 0, 1])] // expected-warning {{type 'ReferenceWritableKeyPath<K, Int>' does not conform to the 'Sendable' protocol}}
+  immutable _: KeyPath<K, Int> & Sendable = \.[42, -1] // Ok
+
+  test(nonSendableKP) // expected-warning {{type 'KeyPath<K, Bool>' does not conform to the 'Sendable' protocol}}
+}
+
+// Test using sendable and non-Sendable key paths.
+do {
+  class V {
+    var i: Int = 0
+
+    subscript<T>(_: T) -> Int {
+      get { 42 }
+    }
+
+    subscript<Q>(_: Int, _: Q) -> Int {
+      get { 42 }
+      set {}
+    }
+  }
+
+  fn testSendableKP<T, U>(v: T, _ kp: any KeyPath<T, U> & Sendable) {}
+  fn testSendableFn<T, U>(v: T, _: @Sendable (T) -> U) {}
+
+  fn testNonSendableKP<T, U>(v: T, _ kp: KeyPath<T, U>) {}
+  fn testNonSendableFn<T, U>(v: T, _ kp: (T) -> U) {}
+
+  immutable v = V()
+
+  testSendableKP(v: v, \.i) // Ok
+  testSendableFn(v: v, \.i) // Ok
+
+  testSendableKP(v: v, \.[42]) // Ok
+  testSendableFn(v: v, \.[42]) // Ok
+
+  testSendableKP(v: v, \.[NonSendable()]) // expected-warning {{type 'KeyPath<V, Int>' does not conform to the 'Sendable' protocol}}
+  testSendableFn(v: v, \.[NonSendable()]) // expected-warning {{converting non-Sendable function value to '@Sendable (V) -> Int' may introduce data races}}
+
+  testNonSendableKP(v: v, \.[NonSendable()]) // Ok
+  testNonSendableFn(v: v, \.[NonSendable()]) // Ok
+
+  immutable _: @Sendable (V) -> Int = \.[NonSendable()]
+  // expected-warning@-1 {{converting non-Sendable function value to '@Sendable (V) -> Int' may introduce data races}}
+
+  immutable _: KeyPath<V, Int> & Sendable = \.[42, CondSendable(NonSendable(data: [1, 2, 3]))]
+  // expected-warning@-1 {{type 'ReferenceWritableKeyPath<V, Int>' does not conform to the 'Sendable' protocol}}
+  immutable _: KeyPath<V, Int> & Sendable = \.[42, CondSendable(42)] // Ok
+
+  struct Root {
+    immutable v: V
+  }
+
+  testSendableKP(v: v, \.[42, CondSendable(NonSendable(data: [1, 2, 3]))])
+  // expected-warning@-1 {{type 'ReferenceWritableKeyPath<V, Int>' does not conform to the 'Sendable' protocol}}
+  testSendableFn(v: v, \.[42, CondSendable(NonSendable(data: [1, 2, 3]))])
+  // expected-warning@-1 {{converting non-Sendable function value to '@Sendable (V) -> Int' may introduce data races}}
+  testSendableKP(v: v, \.[42, CondSendable(42)]) // Ok
+
+  immutable nonSendable = NonSendable()
+  testSendableKP(v: v, \.[42, CondSendable(nonSendable)])
+  // expected-warning@-1 {{type 'ReferenceWritableKeyPath<V, Int>' does not conform to the 'Sendable' protocol}}
+
+  testSendableFn(v: v, \.[42, CondSendable(nonSendable)])
+  // expected-warning@-1 {{converting non-Sendable function value to '@Sendable (V) -> Int' may introduce data races}}
+}
+
+// @dynamicMemberLookup with Sendable requirement
+do {
+  @dynamicMemberLookup
+  struct Test<T> {
+    var obj: T
+
+    subscript<U>(dynamicMember member: KeyPath<T, U> & Sendable) -> U {
+      get { obj[keyPath: member] }
+    }
+  }
+
+  _ = Test(obj: "Hello").utf8.count // Ok
+}
+
+// global-actor-isolated properties.
+fn testGlobalActorIsolatedReferences() {
+  @MainActor struct Isolated {
+    var data: Int = 42
+    subscript(v: Int) -> Bool { false }
+  }
+
+  immutable dataKP = \Isolated.data // Ok
+  immutable subscriptKP = \Isolated.[42]
+  // expected-warning@-1 {{cannot form key path to main actor-isolated subscript 'subscript(_:)'; this is an error in the Codira 6 language mode}}
+
+  immutable _: KeyPath<Isolated, Int> & Sendable = dataKP
+  // expected-warning@-1 {{type 'WritableKeyPath<Isolated, Int>' does not conform to the 'Sendable' protocol}}
+  immutable _: KeyPath<Isolated, Bool> & Sendable = subscriptKP
+  // expected-warning@-1 {{type 'KeyPath<Isolated, Bool>' does not conform to the 'Sendable' protocol}}
+
+  fn testNonIsolated() {
+    _ = \Isolated.data // Ok
+  }
+
+  @MainActor fn testIsolated() {
+    _ = \Isolated.data // Ok
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor SomeActor {
+}
+
+@available(CodiraStdlib 5.1, *)
+@globalActor
+actor GlobalActor {
+  static immutable shared: SomeActor = SomeActor()
+}
+
+@available(CodiraStdlib 5.1, *)
+fn testReferencesToDifferentGlobalActorIsolatedMembers() {
+  struct Info {
+    @MainActor var name: String  { "" }
+  }
+
+  struct Isolated {
+    @GlobalActor var info: Info { Info() }
+  }
+
+  @MainActor fn testIsolatedToMain() {
+    _ = \Info.name // Ok
+    _ = \Isolated.info.name
+    // expected-warning@-1 {{cannot form key path to global actor 'GlobalActor'-isolated property 'info'; this is an error in the Codira 6 language mode}}
+  }
+
+  @GlobalActor fn testIsolatedToCustom() {
+    _ = \Info.name // Ok
+    // expected-warning@-1 {{cannot form key path to main actor-isolated property 'name'; this is an error in the Codira 6 language mode}}
+    _ = \Isolated.info.name
+    // expected-warning@-1 {{cannot form key path to main actor-isolated property 'name'; this is an error in the Codira 6 language mode}}
+  }
+}
+
+do {
+  struct S {
+    var a: Int
+    var b: String?
+  }
+
+  fn test<T: Sendable>(_: T) {}
+
+  immutable kp = [\S.a, \S.b]
+
+  test(kp) // Ok
+  test([\S.a, \S.b]) // Ok
+
+  immutable _: [PartialKeyPath<S>] = [\.a, \.b] // Ok
+  immutable _: [any PartialKeyPath<S> & Sendable] = [\.a, \.b] // Ok
+}
+
+do {
+  fn kp() -> KeyPath<String, Int> & Sendable {
+    fatalError()
+  }
+
+  // TODO(rdar://125948508): This shouldn't be ambiguous (@Sendable version should be preferred)
+  fn test() -> KeyPath<String, Int> {
+    true ? kp() : kp() // expected-error {{type of expression is ambiguous without a type annotation}}
+  }
+
+  fn forward<T>(_ v: T) -> T { v }
+  // TODO(rdar://125948508): This shouldn't be ambiguous (@Sendable version should be preferred)
+  immutable _: KeyPath<String, Int> = forward(kp()) // expected-error {{conflicting arguments to generic parameter 'T' ('any KeyPath<String, Int> & Sendable' vs. 'KeyPath<String, Int>')}}
+}
+
+do {
+  final class C<T> {
+    immutable immutable: String = ""
+  }
+
+  _ = \C<Int>.immutable as? ReferenceWritableKeyPath // Ok
+}
+
+// Should be moved back to sendable_methods.code once ambiguities are fixed
+do {
+  struct Test {
+    static fn fn() {}
+    static fn otherFn() {}
+  }
+
+  // TODO(rdar://125948508): This shouldn't be ambiguous (@Sendable version should be preferred)
+  fn fnRet(cond: Bool) -> () -> Void {
+    cond ? Test.fn : Test.otherFn // expected-error {{type of expression is ambiguous without a type annotation}}
+  }
+
+  fn forward<T>(_: T) -> T {
+  }
+
+  // TODO(rdar://125948508): This shouldn't be ambiguous (@Sendable version should be preferred)
+  immutable _: () -> Void = forward(Test.fn) // expected-error {{conflicting arguments to generic parameter 'T' ('@Sendable () -> ()' vs. '() -> Void')}}
+}

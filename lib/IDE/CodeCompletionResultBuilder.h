@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LIB_IDE_CODE_COMPLETION_RESULT_BUILDER_H
-#define SWIFT_LIB_IDE_CODE_COMPLETION_RESULT_BUILDER_H
+#ifndef LANGUAGE_LIB_IDE_CODE_COMPLETION_RESULT_BUILDER_H
+#define LANGUAGE_LIB_IDE_CODE_COMPLETION_RESULT_BUILDER_H
 
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/StringExtras.h"
 #include "language/IDE/CodeCompletionResult.h"
 #include "language/IDE/CodeCompletionResultSink.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
 
 namespace clang {
 class Module;
@@ -52,7 +53,7 @@ class CodeCompletionResultBuilder {
   CodeCompletionKeywordKind KeywordKind = CodeCompletionKeywordKind::None;
   unsigned CurrentNestingLevel = 0;
   SmallVector<CodeCompletionString::Chunk, 4> Chunks;
-  llvm::PointerUnion<const ModuleDecl *, const clang::Module *>
+  toolchain::PointerUnion<const ModuleDecl *, const clang::Module *>
       CurrentModule;
   bool Cancelled = false;
   ContextFreeNotRecommendedReason ContextFreeNotRecReason =
@@ -164,7 +165,7 @@ public:
   }
 
   void withNestedGroup(CodeCompletionString::Chunk::ChunkKind Kind,
-                  llvm::function_ref<void()> body);
+                  toolchain::function_ref<void()> body);
 
   void addAccessControlKeyword(AccessLevel Access) {
     switch (Access) {
@@ -379,7 +380,7 @@ public:
   }
 
   StringRef escapeWithBackticks(StringRef Word,
-                                llvm::SmallString<16> &Escaped) {
+                                toolchain::SmallString<16> &Escaped) {
     Escaped.append("`");
     Escaped.append(Word);
     Escaped.append("`");
@@ -387,12 +388,12 @@ public:
   }
 
   StringRef escapeKeyword(StringRef Word, bool escapeAllKeywords,
-                          llvm::SmallString<16> &EscapedKeyword) {
+                          toolchain::SmallString<16> &EscapedKeyword) {
     EscapedKeyword.clear();
     bool shouldEscape = false;
     if (escapeAllKeywords) {
 #define KEYWORD(kw) .Case(#kw, true)
-      shouldEscape = llvm::StringSwitch<bool>(Word)
+      shouldEscape = toolchain::StringSwitch<bool>(Word)
 #include "language/AST/TokenKinds.def"
                          .Default(Lexer::identifierMustAlwaysBeEscaped(Word));
     } else {
@@ -471,7 +472,9 @@ public:
     getLastChunk().setIsAnnotation();
   }
 
-  void addTypeAnnotation(Type T, PrintOptions PO, StringRef suffix = "");
+  void addTypeAnnotation(Type T, const PrintOptions &PO,
+                         NonRecursivePrintOptions nrOptions = std::nullopt,
+                         StringRef suffix = "");
 
   void addBraceStmtWithCursor(StringRef Description = "") {
     addChunkWithText(
@@ -497,4 +500,4 @@ public:
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_LIB_IDE_CODE_COMPLETION_RESULT_BUILDER_H
+#endif // LANGUAGE_LIB_IDE_CODE_COMPLETION_RESULT_BUILDER_H

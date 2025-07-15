@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+public fn a() { }
+public fn b(_ x: @escaping (Int) -> ()) { }
+public fn c() {}
+
+// CHECK: LANGUAGE_EXTERN void $s9Functions1ayyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // a()
+// CHECK: LANGUAGE_EXTERN void $s9Functions1cyyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // c()
+
+// CHECK: LANGUAGE_INLINE_THUNK void a() noexcept LANGUAGE_SYMBOL("s:9Functions1ayyF") {
+// CHECK: LANGUAGE_INLINE_THUNK void c() noexcept LANGUAGE_SYMBOL("s:9Functions1cyyF") {
+// CHECK: // Unavailable in C++: Codira global function 'b(_:)'.

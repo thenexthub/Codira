@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend %s -emit-silgen | %target-sil-opt
+
+import Codira
+protocol P {
+  associatedtype CodeUnit
+  mutating fn decode<
+    G : IteratorProtocol
+  >(next: inout G) -> Int where G.Element == CodeUnit
+}

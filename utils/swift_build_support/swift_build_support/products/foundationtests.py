@@ -1,12 +1,12 @@
-# swift_build_support/products/foundationtests.py -----------------------*- python -*-
+# language_build_support/products/foundationtests.py -----------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -17,11 +17,11 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
-from . import swiftsyntax
+from . import language
+from . import languagepm
+from . import languagesyntax
 from . import xctest
 from .. import shell
 
@@ -53,23 +53,26 @@ class FoundationTests(product.Product):
         return self.args.test_foundation
 
     def configuration(self):
-        return 'release' if self.is_release() else 'debug'
+        if self.args.foundation_tests_build_variant in ['Release', 'RelWithDebInfo']:
+            return 'release'
+        else:
+            return 'debug'
 
     def test(self, host_target):
-        swift_exec = os.path.join(
+        language_exec = os.path.join(
             self.install_toolchain_path(host_target),
             'bin',
-            'swift'
+            'language'
         )
-        package_path = os.path.join(self.source_dir, '..', 'swift-corelibs-foundation')
+        package_path = os.path.join(self.source_dir, '..', 'language-corelibs-foundation')
         package_path = os.path.abspath(package_path)
         include_path = os.path.join(
             self.install_toolchain_path(host_target),
             'lib',
-            'swift'
+            'language'
         )
         cmd = [
-            swift_exec,
+            language_exec,
             'test',
             '--toolchain', self.install_toolchain_path(host_target),
             '--configuration', self.configuration(),
@@ -79,19 +82,19 @@ class FoundationTests(product.Product):
         if self.args.verbose_build:
             cmd.append('--verbose')
         shell.call(cmd, env={
-            'SWIFTCI_USE_LOCAL_DEPS': '1',
+            'LANGUAGECI_USE_LOCAL_DEPS': '1',
             'DISPATCH_INCLUDE_PATH': include_path
         })
 
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM,
-                swiftsyntax.SwiftSyntax]
+                languagepm.CodiraPM,
+                languagesyntax.CodiraSyntax]

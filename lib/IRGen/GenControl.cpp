@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements general IR generation for control flow.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/Function.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/IR/Function.h"
 #include "IRGenFunction.h"
 #include "IRGenModule.h"
 #include "language/Basic/Assertions.h"
@@ -28,9 +29,9 @@ using namespace irgen;
 
 /// Insert the given basic block after the IP block and move the
 /// insertion point to it.  Only valid if the IP is valid.
-void IRBuilder::emitBlock(llvm::BasicBlock *BB) {
+void IRBuilder::emitBlock(toolchain::BasicBlock *BB) {
   assert(ClearedIP == nullptr);
-  llvm::BasicBlock *CurBB = GetInsertBlock();
+  toolchain::BasicBlock *CurBB = GetInsertBlock();
   assert(CurBB && "current insertion point is invalid");
   CurBB->getParent()->insert(std::next(CurBB->getIterator()), BB);
   IRBuilderBase::SetInsertPoint(BB);
@@ -38,8 +39,8 @@ void IRBuilder::emitBlock(llvm::BasicBlock *BB) {
 
 /// Create a new basic block with the given name.  The block is not
 /// automatically inserted into the function.
-llvm::BasicBlock *
-IRGenFunction::createBasicBlock(const llvm::Twine &Name) {
-  return llvm::BasicBlock::Create(IGM.getLLVMContext(), Name);
+toolchain::BasicBlock *
+IRGenFunction::createBasicBlock(const toolchain::Twine &Name) {
+  return toolchain::BasicBlock::Create(IGM.getLLVMContext(), Name);
 }
 

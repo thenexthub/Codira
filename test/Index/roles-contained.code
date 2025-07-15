@@ -1,0 +1,356 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -include-locals -source-filename %s | %FileCheck %s
+
+// Helpers
+immutable intValue = 1
+immutable stringValue = ""
+immutable floatValue: Float = 1.0
+immutable doubleValue: Double = 1.0
+fn calledFunc(value: Int) {}
+fn tupleReturnType() -> (Int, String) { (1, "") }
+typealias TupleTypeAlias = (Int, String)
+
+@propertyWrapper
+struct Wrapped<T> {
+    immutable wrappedValue: T
+    init(wrappedValue: T) {}
+}
+
+// Begin tests
+
+immutable _: Int = intValue
+// CHECK: [[@LINE-1]]:8 | struct/Codira | Int | {{.*}} | Ref | rel: 0
+// CHECK: [[@LINE-2]]:14 | variable/Codira | intValue | {{.*}} | Ref,Read | rel: 0
+
+immutable typedProperty: Int = 1
+// CHECK: [[@LINE-1]]:20 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | typedProperty | {{.*}}
+
+immutable propertyWithExpressionReference = typedProperty
+// CHECK: [[@LINE-1]]:39 | variable/Codira | typedProperty | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | propertyWithExpressionReference | {{.*}}
+// CHECK: [[@LINE-3]]:39 | function/acc-get/Codira | getter:typedProperty | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | propertyWithExpressionReference | {{.*}}
+
+var propertyWithExplicitAccessors: Int {
+    get {
+        calledFunc(value: 0)
+        // CHECK: [[@LINE-1]]:9 | function/Codira | calledFunc(value:) | {{.*}} | Ref,Call,RelCall,RelCont | rel: 1
+        // CHECK-NEXT: RelCall,RelCont | function/acc-get/Codira | getter:propertyWithExplicitAccessors | {{.*}}
+        return 0
+    }
+    set {
+        calledFunc(value: 0)
+        // CHECK: [[@LINE-1]]:9 | function/Codira | calledFunc(value:) | {{.*}} | Ref,Call,RelCall,RelCont | rel: 1
+        // CHECK-NEXT: RelCall,RelCont | function/acc-set/Codira | setter:propertyWithExplicitAccessors | {{.*}}
+    }
+}
+
+immutable closureTypedProperty: ((Int) -> Void) = { _ in }
+// CHECK: [[@LINE-1]]:29 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | closureTypedProperty | {{.*}}
+// CHECK: [[@LINE-3]]:37 | type-alias/Codira | Void | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | closureTypedProperty | {{.*}}
+
+immutable ((((((parenProperty)))))): ((((((Int)))))) = ((((((intValue))))))
+// CHECK: [[@LINE-1]]:38 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | parenProperty | {{.*}}
+// CHECK: [[@LINE-3]]:56 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | parenProperty | {{.*}}
+// CHECK: [[@LINE-5]]:56 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | parenProperty | {{.*}}
+
+immutable tupleTypedProperty: (Int, String) = (1, "")
+// CHECK: [[@LINE-1]]:26 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedProperty | {{.*}}
+// CHECK: [[@LINE-3]]:31 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedProperty | {{.*}}
+
+immutable (tupleDestructuredInitElementA, tupleDestructuredInitElementB) = (intValue, stringValue)
+// CHECK: [[@LINE-1]]:71 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleDestructuredInitElementA | {{.*}}
+// CHECK: [[@LINE-3]]:71 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleDestructuredInitElementA | {{.*}}
+// CHECK: [[@LINE-5]]:81 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleDestructuredInitElementB | {{.*}}
+// CHECK: [[@LINE-7]]:81 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleDestructuredInitElementB | {{.*}}
+
+immutable (tupleTypedDestructuredInitElementA, tupleTypedDestructuredInitElementB): (Int, String) = (intValue, stringValue)
+// CHECK: [[@LINE-1]]:80 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedDestructuredInitElementA | {{.*}}
+// CHECK: [[@LINE-3]]:85 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedDestructuredInitElementB | {{.*}}
+// CHECK: [[@LINE-5]]:96 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedDestructuredInitElementA | {{.*}}
+// CHECK: [[@LINE-7]]:96 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedDestructuredInitElementA | {{.*}}
+// CHECK: [[@LINE-9]]:106 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedDestructuredInitElementB | {{.*}}
+// CHECK: [[@LINE-11]]:106 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedDestructuredInitElementB | {{.*}}
+
+immutable (tupleNonDestructuredInitElementA, tupleNonDestructuredInitElementB) = tupleReturnType()
+// CHECK: [[@LINE-1]]:76 | function/Codira | tupleReturnType() | {{.*}} | Ref,Call,RelCont | rel: 2
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredInitElementA | {{.*}}
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredInitElementB | {{.*}}
+
+immutable (tupleTypedNonDestructuredInitElementA, tupleTypedNonDestructuredInitElementB): (Int, String) = tupleReturnType()
+// CHECK: [[@LINE-1]]:86 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedNonDestructuredInitElementA | {{.*}}
+// CHECK: [[@LINE-3]]:91 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedNonDestructuredInitElementB | {{.*}}
+// CHECK: [[@LINE-5]]:101 | function/Codira | tupleReturnType() | {{.*}} | Ref,Call,RelCont | rel: 2
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedNonDestructuredInitElementA | {{.*}}
+// CHECK-NEXT: RelCont | variable/Codira | tupleTypedNonDestructuredInitElementB | {{.*}}
+
+immutable (tupleMultiBindingElementA, tupleMultiBindingElementB): (Int, String) = (1, ""),
+    (tupleMultiBindingElementC, tupleMultiBindingElementD) = tupleReturnType(),
+    nonTupleMultiBindingProperty = intValue
+// CHECK: [[@LINE-3]]:62 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleMultiBindingElementA | {{.*}}
+// CHECK: [[@LINE-5]]:67 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleMultiBindingElementB | {{.*}}
+// CHECK: [[@LINE-6]]:62 | function/Codira | tupleReturnType() | {{.*}} | Ref,Call,RelCont | rel: 2
+// CHECK-NEXT: RelCont | variable/Codira | tupleMultiBindingElementC | {{.*}}
+// CHECK-NEXT: RelCont | variable/Codira | tupleMultiBindingElementD | {{.*}}
+// CHECK: [[@LINE-8]]:36 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | nonTupleMultiBindingProperty | {{.*}}
+// CHECK: [[@LINE-10]]:36 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | nonTupleMultiBindingProperty | {{.*}}
+
+immutable (tupleSingleTypedDestructuredInitElementA, tupleSingleTypedDestructuredInitElementB): TupleTypeAlias = (1, "")
+// CHECK: [[@LINE-1]]:91 | type-alias/Codira | TupleTypeAlias | {{.*}} | Ref,RelCont | rel: 2
+// CHECK-NEXT: RelCont | variable/Codira | tupleSingleTypedDestructuredInitElementA | {{.*}}
+// CHECK-NEXT:  RelCont | variable/Codira | tupleSingleTypedDestructuredInitElementB | {{.*}}
+
+immutable (_, tupleIgnoredSiblingElement): (Int, String) = (intValue, stringValue)
+// CHECK: [[@LINE-1]]:39 | struct/Codira | Int | {{.*}} | Ref | rel: 0
+// CHECK: [[@LINE-2]]:44 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleIgnoredSiblingElement | {{.*}}
+// CHECK: [[@LINE-4]]:55 | variable/Codira | intValue | {{.*}} | Ref,Read | rel: 0
+// CHECK: [[@LINE-5]]:55 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl | rel: 0
+// CHECK: [[@LINE-6]]:65 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleIgnoredSiblingElement | {{.*}}
+// CHECK: [[@LINE-8]]:65 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT:  RelCont | variable/Codira | tupleIgnoredSiblingElement | {{.*}}
+
+immutable (tupleNestedElementA, (tupleNestedElementB, (tupleNestedElementC, tupleNestedElementD))): (Int, (String, (Float, Double))) = (intValue, (stringValue, (floatValue, doubleValue)))
+// CHECK: [[@LINE-1]]:96 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementA | {{.*}}
+// CHECK: [[@LINE-3]]:102 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementB | {{.*}}
+// CHECK: [[@LINE-5]]:111 | struct/Codira | Float | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementC | {{.*}}
+// CHECK: [[@LINE-7]]:118 | struct/Codira | Double | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementD | {{.*}}
+// CHECK: [[@LINE-9]]:131 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementA | {{.*}}
+// CHECK: [[@LINE-11]]:131 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementA | {{.*}}
+// CHECK: [[@LINE-13]]:142 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementB | {{.*}}
+// CHECK: [[@LINE-15]]:142 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementB | {{.*}}
+// CHECK: [[@LINE-17]]:156 | variable/Codira | floatValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementC | {{.*}}
+// CHECK: [[@LINE-19]]:156 | function/acc-get/Codira | getter:floatValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementC | {{.*}}
+// CHECK: [[@LINE-21]]:168 | variable/Codira | doubleValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementD | {{.*}}
+// CHECK: [[@LINE-23]]:168 | function/acc-get/Codira | getter:doubleValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedElementD | {{.*}}
+
+immutable (tupleNonDestructuredSiblingElementA, (tupleNonDestructuredSiblingElementB)): (Int, (String, (Float, Double))) = (intValue, (stringValue, (floatValue, doubleValue)))
+// CHECK: [[@LINE-1]]:84 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementA | {{.*}}
+// CHECK: [[@LINE-3]]:90 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-5]]:99 | struct/Codira | Float | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-7]]:106 | struct/Codira | Double | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-9]]:119 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementA | {{.*}}
+// CHECK: [[@LINE-11]]:119 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementA | {{.*}}
+// CHECK: [[@LINE-13]]:130 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-15]]:130 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-17]]:144 | variable/Codira | floatValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-19]]:144 | function/acc-get/Codira | getter:floatValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-21]]:156 | variable/Codira | doubleValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-23]]:156 | function/acc-get/Codira | getter:doubleValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNonDestructuredSiblingElementB | {{.*}}
+
+immutable (tupleNestedIgnoredSiblingElementA, (tupleNestedIgnoredSiblingElementB, _)): (Int, (String, Float)) = (intValue, (stringValue, floatValue))
+// CHECK: [[@LINE-1]]:83 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedIgnoredSiblingElementA | {{.*}}
+// CHECK: [[@LINE-3]]:89 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedIgnoredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-5]]:97 | struct/Codira | Float | {{.*}} | Ref | rel: 0
+// CHECK: [[@LINE-6]]:108 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedIgnoredSiblingElementA | {{.*}}
+// CHECK: [[@LINE-8]]:108 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedIgnoredSiblingElementA | {{.*}}
+// CHECK: [[@LINE-10]]:119 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedIgnoredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-12]]:119 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedIgnoredSiblingElementB | {{.*}}
+// CHECK: [[@LINE-14]]:132 | variable/Codira | floatValue | {{.*}} | Ref,Read | rel: 0
+// CHECK: [[@LINE-15]]:132 | function/acc-get/Codira | getter:floatValue | {{.*}} | Ref,Call,Impl | rel: 0
+
+immutable (tupleNestedFuncSiblingElementA, (tupleNestedFuncSiblingElementB, tupleNestedFuncSiblingElementC)): (Double, (Float, (Int, String))) = (doubleValue, (floatValue, tupleReturnType()))
+// CHECK: [[@LINE-1]]:106 | struct/Codira | Double | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementA | {{.*}}
+// CHECK: [[@LINE-3]]:115 | struct/Codira | Float | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementB | {{.*}}
+// CHECK: [[@LINE-5]]:123 | struct/Codira | Int | {{.*}}| Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementC | {{.*}}
+// CHECK: [[@LINE-7]]:128 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementC | {{.*}}
+// CHECK: [[@LINE-9]]:141 | variable/Codira | doubleValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementA | {{.*}}
+// CHECK: [[@LINE-11]]:141 | function/acc-get/Codira | getter:doubleValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementA | {{.*}}
+// CHECK: [[@LINE-13]]:155 | variable/Codira | floatValue | {{.*}} | Ref,Read,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementB | {{.*}}
+// CHECK: [[@LINE-15]]:155 | function/acc-get/Codira | getter:floatValue | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementB | {{.*}}
+// CHECK: [[@LINE-17]]:167 | function/Codira | tupleReturnType() | {{.*}} | Ref,Call,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | tupleNestedFuncSiblingElementC | {{.*}}
+
+fn containingFunc(param: Int) {
+    // CHECK: [[@LINE-1]]:6 | function/Codira | containingFunc(param:) | {{.*}} | Def | rel: 0
+    // CHECK: [[@LINE-2]]:21 | param/Codira | param | {{.*}} | Def,RelChild | rel: 1
+    // CHECK-NEXT: RelChild | function/Codira | containingFunc(param:) | {{.*}}
+
+    immutable localProperty = param
+    // CHECK: [[@LINE-1]]:25 | param/Codira | param | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | variable(local)/Codira | localProperty | {{.*}}
+
+    calledFunc(value: localProperty)
+    // CHECK: [[@LINE-1]]:5 | function/Codira | calledFunc(value:) | {{.*}} | Ref,Call,RelCall,RelCont | rel: 1
+    // CHECK-NEXT: RelCall,RelCont | function/Codira | containingFunc(param:) | {{.*}}
+
+    // Ignored declarations do not act as containers.
+    immutable _ = intValue
+    // CHECK: [[@LINE-1]]:13 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | function/Codira | containingFunc(param:) | {{.*}}
+
+    immutable (_, tupleIgnoredSiblingElementContained): (Int, String) = (intValue, stringValue)
+    // CHECK: [[@LINE-1]]:52 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | function/Codira | containingFunc(param:) | {{.*}}
+    // CHECK: [[@LINE-3]]:57 | struct/Codira | String | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | variable(local)/Codira | tupleIgnoredSiblingElementContained | {{.*}}
+    // CHECK: [[@LINE-5]]:68 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | function/Codira | containingFunc(param:) | {{.*}}
+    // CHECK: [[@LINE-7]]:68 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCall,RelCont | rel: 1
+    // CHECK-NEXT: RelCall,RelCont | function/Codira | containingFunc(param:) | {{.*}}
+    // CHECK: [[@LINE-9]]:78 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | variable(local)/Codira | tupleIgnoredSiblingElementContained | {{.*}}
+    // CHECK: [[@LINE-11]]:78 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCall,RelCont | rel: 2
+    // CHECK-NEXT: RelCont | variable(local)/Codira | tupleIgnoredSiblingElementContained | {{.*}}
+
+    immutable (_, tupleIgnoredSiblingElementContained): (Int, String) = (
+      { immutable x = intValue; return x }(),
+      { immutable y = stringValue; return y }()
+    )
+    // CHECK:      [[@LINE-3]]:13 | variable(local)/Codira | x | {{.*}} | Def,RelChild | rel: 1
+    // CHECK-NEXT: RelChild | function/Codira | containingFunc(param:)
+
+    // CHECK:      [[@LINE-6]]:17 | variable/Codira | intValue | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | variable(local)/Codira | x
+
+    // Here the reference to intValue is contained by 'x'.
+    // CHECK:      [[@LINE-10]]:17 | function/acc-get/Codira | getter:intValue | {{.*}} | Ref,Call,Impl,RelCall,RelCont | rel: 2
+    // CHECK-NEXT: RelCont | variable(local)/Codira | x
+    // CHECK-NEXT: RelCall | function/Codira | containingFunc(param:)
+
+    // But here the container for the reference to 'x' is the parent function.
+    // CHECK:      [[@LINE-15]]:34 | variable(local)/Codira | x | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | function/Codira | containingFunc(param:)
+
+    // CHECK:      [[@LINE-18]]:34 | function/acc-get(local)/Codira | getter:x | {{.*}} | Ref,Call,Impl,RelCall,RelCont | rel: 1
+    // CHECK-NEXT: RelCall,RelCont | function/Codira | containingFunc(param:)
+
+    // CHECK:      [[@LINE-20]]:13 | variable(local)/Codira | y | {{.*}} | Def,RelChild | rel: 1
+    // CHECK-NEXT: RelChild | function/Codira | containingFunc(param:)
+
+    // CHECK:      [[@LINE-23]]:17 | variable/Codira | stringValue | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | variable(local)/Codira | y
+
+    // Here the reference to stringValue is contained by 'y'.
+    // CHECK:      [[@LINE-27]]:17 | function/acc-get/Codira | getter:stringValue | {{.*}} | Ref,Call,Impl,RelCall,RelCont | rel: 2
+    // CHECK-NEXT: RelCont | variable(local)/Codira | y
+    // CHECK-NEXT: RelCall | function/Codira | containingFunc(param:)
+
+    // But here the container for the reference to 'y' is the parent binding.
+    // CHECK:      [[@LINE-32]]:37 | variable(local)/Codira | y | {{.*}} | Ref,Read,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | variable(local)/Codira | tupleIgnoredSiblingElementContained
+
+    // CHECK:      [[@LINE-35]]:37 | function/acc-get(local)/Codira | getter:y | {{.*}} | Ref,Call,Impl,RelCall,RelCont | rel: 2
+    // CHECK-NEXT: RelCont | variable(local)/Codira | tupleIgnoredSiblingElementContained
+    // CHECK-NEXT: RelCall | function/Codira | containingFunc(param:)
+}
+
+fn functionWithReturnType() -> Int { 0 }
+// CHECK: [[@LINE-1]]:34 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | function/Codira | functionWithReturnType() | {{.*}}
+
+fn functionWithParameter(a: Int) {}
+// CHECK: [[@LINE-1]]:31 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | function/Codira | functionWithParameter(a:) | {{.*}}
+
+fn functionWithGenericConstraint<T: Equatable>(type: T) {}
+// CHECK: [[@LINE-1]]:39 | protocol/Codira | Equatable | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | function/Codira | functionWithGenericConstraint(type:) | {{.*}}
+
+fn functionWithGenericClause<T>(type: T) where T: Equatable {}
+// CHECK: [[@LINE-1]]:53 | protocol/Codira | Equatable | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | function/Codira | functionWithGenericClause(type:) | {{.*}}
+
+struct SomeStruct {
+    static immutable staticProperty: Int = 1
+    // CHECK: [[@LINE-1]]:32 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | static-property/Codira | staticProperty | {{.*}}
+
+    lazy var lazyProperty: Int = { 1 }()
+    // CHECK: [[@LINE-1]]:14 | instance-method/acc-get/Codira | getter:lazyProperty | s:14language_ide_test10SomeStructV12lazyPropertySivg | Def,Impl,RelChild,RelAcc | rel: 1
+    // CHECK-NEXT: RelChild,RelAcc | instance-property/Codira | lazyProperty | s:14language_ide_test10SomeStructV12lazyPropertySivp
+    // CHECK: [[@LINE-3]]:14 | instance-method/acc-set/Codira | setter:lazyProperty | s:14language_ide_test10SomeStructV12lazyPropertySivs | Def,Impl,RelChild,RelAcc | rel: 1
+    // CHECK-NEXT: RelChild,RelAcc | instance-property/Codira | lazyProperty | s:14language_ide_test10SomeStructV12lazyPropertySivp
+    // CHECK: [[@LINE-5]]:28 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | instance-property/Codira | lazyProperty | {{.*}}
+
+    @Wrapped
+    var wrappedProperty: Int = 1
+    // CHECK: [[@LINE-2]]:6 | struct/Codira | Wrapped | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | instance-property/Codira | wrappedProperty | {{.*}}
+    // CHECK: [[@LINE-4]]:6 | constructor/Codira | init(wrappedValue:) | {{.*}} | Ref,Call,Impl,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | instance-property/Codira | wrappedProperty | {{.*}}
+    // CHECK: [[@LINE-5]]:9 | instance-property/Codira | wrappedProperty | {{.*}} | Def,RelChild | rel: 1
+    // CHECK: [[@LINE-6]]:26 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | instance-property/Codira | wrappedProperty | {{.*}}
+
+    init(a: Int) {}
+    // CHECK: [[@LINE-1]]:13 | struct/Codira | Int | {{.*}} | Ref,RelCont | rel: 1
+    // CHECK-NEXT: RelCont | constructor/Codira | init(a:) | {{.*}}
+}
+
+immutable voidProperty: () = ()
+// CHECK: [[@LINE-1]]:5 | variable/Codira | voidProperty | {{.*}} | Def | rel: 0
+
+immutable voidAliasedProperty: Void = ()
+// CHECK: [[@LINE-1]]:5 | variable/Codira | voidAliasedProperty | {{.*}} | Def | rel: 0
+// CHECK: [[@LINE-2]]:26 | type-alias/Codira | Void | {{.*}} | Ref,RelCont | rel: 1
+// CHECK-NEXT: RelCont | variable/Codira | voidAliasedProperty | {{.*}}
+
+var computedVoidProperty: () { () }
+// CHECK: [[@LINE-1]]:5 | variable/Codira | computedVoidProperty | {{.*}} | Def | rel: 0
+
+fn voidFunc() -> () { () }
+// CHECK: [[@LINE-1]]:6 | function/Codira | voidFunc() | {{.*}} | Def | rel: 0

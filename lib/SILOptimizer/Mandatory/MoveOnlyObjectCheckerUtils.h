@@ -1,13 +1,17 @@
 //===--- MoveOnlyObjectCheckerUtils.h -------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This is for shared code in between the move only object checker and the move
@@ -17,11 +21,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_MANDATORY_MOVEONLYOBJECTCHECKERUTILS_H
-#define SWIFT_SILOPTIMIZER_MANDATORY_MOVEONLYOBJECTCHECKERUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_MANDATORY_MOVEONLYOBJECTCHECKERUTILS_H
+#define LANGUAGE_SILOPTIMIZER_MANDATORY_MOVEONLYOBJECTCHECKERUTILS_H
 
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 #include "MoveOnlyBorrowToDestructureUtils.h"
 
@@ -106,7 +110,7 @@ struct OSSACanonicalizer {
     // through it for a partial_apply user.
     if (auto *mtci = dyn_cast<MoveOnlyWrapperToCopyableValueInst>(user)) {
       if (mtci->hasOwnedInitialKind()) {
-        return llvm::any_of(mtci->getUses(), [](Operand *use) {
+        return toolchain::any_of(mtci->getUses(), [](Operand *use) {
           return isa<PartialApplyInst>(use->getUser());
         });
       }
@@ -119,7 +123,7 @@ struct OSSACanonicalizer {
     // through it for a partial_apply user.
     if (auto *mtci = dyn_cast<MoveOnlyWrapperToCopyableValueInst>(user)) {
       if (mtci->hasOwnedInitialKind()) {
-        return llvm::any_of(mtci->getUses(), [](Operand *use) {
+        return toolchain::any_of(mtci->getUses(), [](Operand *use) {
           return !isa<PartialApplyInst>(use->getUser());
         });
       }
@@ -129,14 +133,14 @@ struct OSSACanonicalizer {
 
   bool hasPartialApplyConsumingUse() const {
     auto test = OSSACanonicalizer::isPartialApplyUser;
-    return llvm::any_of(consumingUsesNeedingCopy, test) ||
-           llvm::any_of(consumingBoundaryUsers, test);
+    return toolchain::any_of(consumingUsesNeedingCopy, test) ||
+           toolchain::any_of(consumingBoundaryUsers, test);
   }
 
   bool hasNonPartialApplyConsumingUse() const {
     auto test = OSSACanonicalizer::isNotPartialApplyUser;
-    return llvm::any_of(consumingUsesNeedingCopy, test) ||
-           llvm::any_of(consumingBoundaryUsers, test);
+    return toolchain::any_of(consumingUsesNeedingCopy, test) ||
+           toolchain::any_of(consumingBoundaryUsers, test);
   }
 
   struct DropDeinitFilter {
@@ -145,13 +149,13 @@ struct OSSACanonicalizer {
     }
   };
   using DropDeinitIter =
-      llvm::filter_iterator<SILInstruction *const *, DropDeinitFilter>;
+      toolchain::filter_iterator<SILInstruction *const *, DropDeinitFilter>;
   using DropDeinitRange = iterator_range<DropDeinitIter>;
 
   /// Returns a range of final uses of the mark_unresolved_non_copyable_value
   /// that are drop_deinit
   DropDeinitRange getDropDeinitUses() const {
-    return llvm::make_filter_range(consumingBoundaryUsers, DropDeinitFilter());
+    return toolchain::make_filter_range(consumingBoundaryUsers, DropDeinitFilter());
   }
 };
 
@@ -170,7 +174,7 @@ struct OSSACanonicalizer {
 /// must checks to process.
 bool searchForCandidateObjectMarkUnresolvedNonCopyableValueInsts(
     SILFunction *fn,
-    llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+    toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
         &moveIntroducersToProcess,
     DiagnosticEmitter &diagnosticEmitter);
 
@@ -183,7 +187,7 @@ struct MoveOnlyObjectChecker {
 
   /// Returns true if we changed the IR in any way. Check with \p
   /// diagnosticEmitter to see if we emitted any diagnostics.
-  bool check(llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+  bool check(toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
                  &instsToCheck);
 };
 

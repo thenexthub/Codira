@@ -1,42 +1,42 @@
-# swift_build_support/products/swiftformat.py -----------------*- python -*-
+# language_build_support/products/languageformat.py -----------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import os
 
-from build_swift.build_swift.constants import MULTIROOT_DATA_FILE_PATH
+from build_language.build_language.constants import MULTIROOT_DATA_FILE_PATH
 
 from . import cmark
 from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
-from . import swiftsyntax
+from . import language
+from . import languagepm
+from . import languagesyntax
 from . import xctest
 from .. import shell
 from .. import targets
 
 
-class SwiftFormat(product.Product):
+class CodiraFormat(product.Product):
     @classmethod
     def product_source_name(cls):
         """product_source_name() -> str
 
         The name of the source code directory of this product.
         """
-        return "swift-format"
+        return "language-format"
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -47,7 +47,7 @@ class SwiftFormat(product.Product):
         return False
 
     @classmethod
-    def is_swiftpm_unified_build_product(cls):
+    def is_languagepm_unified_build_product(cls):
         return True
 
     def configuration(self):
@@ -74,20 +74,20 @@ class SwiftFormat(product.Product):
         if self.has_cross_compile_hosts() and action != 'test':
             if self.is_darwin_host(host_target):
                 if len(self.args.cross_compile_hosts) != 1:
-                    raise RuntimeError("Cross-Compiling swift-format to multiple " +
+                    raise RuntimeError("Cross-Compiling language-format to multiple " +
                                        "targets is not supported")
                 helper_cmd += ['--cross-compile-host', self.args.cross_compile_hosts[0]]
             elif self.is_cross_compile_target(host_target):
                 helper_cmd.extend(['--cross-compile-host', host_target])
                 build_toolchain_path = install_destdir + self.args.install_prefix
-                resource_dir = f'{build_toolchain_path}/lib/swift'
+                resource_dir = f'{build_toolchain_path}/lib/language'
                 cross_compile_config = targets.StdlibDeploymentTarget \
                     .get_target_for_name(host_target) \
                     .platform \
-                    .swiftpm_config(
+                    .codepm_config(
                         self.args,
                         output_dir=build_toolchain_path,
-                        swift_toolchain=toolchain_path,
+                        language_toolchain=toolchain_path,
                         resource_path=resource_dir
                     )
                 helper_cmd += ['--cross-compile-config', cross_compile_config]
@@ -108,7 +108,7 @@ class SwiftFormat(product.Product):
 
     def lint_sourcekitlsp(self):
         linting_cmd = [
-            os.path.join(self.build_dir, self.configuration(), 'swift-format'),
+            os.path.join(self.build_dir, self.configuration(), 'language-format'),
             'lint',
             '--parallel',
             '--strict',
@@ -118,13 +118,13 @@ class SwiftFormat(product.Product):
         shell.call(linting_cmd)
 
     def should_test(self, host_target):
-        return self.args.test_swiftformat
+        return self.args.test_languageformat
 
     def test(self, host_target):
         self.run_build_script_helper('test', host_target)
 
     def should_install(self, host_target):
-        return self.args.install_swiftformat
+        return self.args.install_languageformat
 
     def install(self, host_target):
         install_destdir = self.host_install_destdir(host_target)
@@ -137,12 +137,12 @@ class SwiftFormat(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM,
-                swiftsyntax.SwiftSyntax]
+                languagepm.CodiraPM,
+                languagesyntax.CodiraSyntax]

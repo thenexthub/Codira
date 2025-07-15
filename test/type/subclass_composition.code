@@ -1,0 +1,586 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P1 {
+  typealias DependentInConcreteConformance = Self
+}
+
+class Base<T> : P1 { // expected-note {{arguments to generic parameter 'T' ('String' and 'Int') are expected to be equal}}
+  typealias DependentClass = T
+
+  required init(classInit: ()) {}
+
+  fn classSelfReturn() -> Self {}
+}
+
+protocol P2 {
+  typealias FullyConcrete = Int
+  typealias DependentProtocol = Self
+
+  init(protocolInit: ())
+
+  fn protocolSelfReturn() -> Self
+}
+
+typealias BaseAndP2<T> = Base<T> & P2
+typealias BaseIntAndP2 = BaseAndP2<Int>
+
+class Derived : Base<Int>, P2 {
+  required init(protocolInit: ()) {
+    super.init(classInit: ())
+  }
+
+  required init(classInit: ()) {
+    super.init(classInit: ())
+  }
+
+  fn protocolSelfReturn() -> Self {}
+}
+
+class Other : Base<Int> {}
+
+typealias OtherAndP2 = Other & P2
+
+protocol P3 : class {}
+
+protocol P4 {}
+
+struct Unrelated {}
+
+//
+// If a class conforms to a protocol concretely, the resulting protocol
+// composition type should be equivalent to the class type for redeclaration
+// checking purposes.
+//
+
+fn alreadyConforms<T>(_: Base<T>) {} // expected-note 3 {{'alreadyConforms' previously declared here}}
+fn alreadyConforms<T>(_: Base<T> & P1) {} // expected-error {{invalid redeclaration of 'alreadyConforms'}}
+fn alreadyConforms<T>(_: Base<T> & AnyObject) {} // expected-error {{invalid redeclaration of 'alreadyConforms'}}
+fn alreadyConforms<T>(_: Base<T> & P1 & AnyObject) {} // expected-error {{invalid redeclaration of 'alreadyConforms'}}
+
+fn alreadyConformsMeta<T>(_: Base<T>.Type) {} // expected-note 7 {{'alreadyConformsMeta' previously declared here}}
+fn alreadyConformsMeta<T>(_: (Base<T> & P1).Type) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+fn alreadyConformsMeta<T>(_: (Base<T> & P1).Protocol) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+fn alreadyConformsMeta<T>(_: (any Base<T> & P1).Type) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+fn alreadyConformsMeta<T>(_: (Base<T> & AnyObject).Type) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+fn alreadyConformsMeta<T>(_: (Base<T> & P1 & AnyObject).Type) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+fn alreadyConformsMeta<T>(_: (Base<T> & P1 & AnyObject).Protocol) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+fn alreadyConformsMeta<T>(_: (any Base<T> & P1 & AnyObject).Type) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+
+fn alreadyConforms(_: P3) {} // expected-note {{'alreadyConforms' previously declared here}}
+fn alreadyConforms(_: P3 & AnyObject) {} // expected-error {{invalid redeclaration of 'alreadyConforms'}}
+
+fn alreadyConformsMeta(_: P3.Type) {} // expected-note {{'alreadyConformsMeta' previously declared here}}
+fn alreadyConformsMeta(_: (P3 & AnyObject).Type) {} // expected-error {{invalid redeclaration of 'alreadyConformsMeta'}}
+
+fn notARedeclaration(_: P4) {}
+fn notARedeclaration(_: P4 & AnyObject) {}
+
+do {
+  class C: P4 {}
+  struct S<T: P4> {
+    // Don't crash when computing minimal compositions inside a generic context.
+    fn redeclaration(_: C & P4) {} // expected-note {{'redeclaration' previously declared here}}
+    fn redeclaration(_: C & P4) {} // expected-error {{invalid redeclaration of 'redeclaration'}}
+  }
+}
+
+// SE-0156 stipulates that a composition can contain multiple classes, as long
+// as they are all the same.
+fn basicDiagnostics(
+  _: Base<Int> & Base<Int>,
+  _: Base<Int> & Derived, // expected-error{{protocol-constrained type cannot contain class 'Derived' because it already contains class 'Base<Int>'}}
+
+  // Invalid typealias case
+  _: Derived & OtherAndP2, // expected-error{{protocol-constrained type cannot contain class 'Other' because it already contains class 'Derived'}}
+
+  // Valid typealias case
+  _: OtherAndP2 & P3) {}
+
+// A composition containing only a single class is actually identical to
+// the class type itself.
+struct Box<T : Base<Int>> {}
+
+fn takesBox(_: Box<Base<Int>>) {}
+
+fn passesBox(_ b: Box<Base<Int> & Base<Int>>) {
+  takesBox(b)
+}
+
+// Test that subtyping behaves as you would expect.
+fn basicSubtyping(
+  base: Base<Int>,
+  baseAndP1: Base<Int> & P1,
+  baseAndP2: Base<Int> & P2,
+  baseAndP2AndAnyObject: Base<Int> & P2 & AnyObject,
+  baseAndAnyObject: Base<Int> & AnyObject,
+  derived: Derived,
+  derivedAndP2: Derived & P2,
+  derivedAndP3: Derived & P3,
+  derivedAndAnyObject: Derived & AnyObject,
+  p1AndAnyObject: P1 & AnyObject,
+  p2AndAnyObject: P2 & AnyObject,
+  anyObject: AnyObject) {
+
+  // Errors
+  immutable _: Base & P2 = base // expected-error {{value of type 'Base<Int>' does not conform to specified type 'P2'}}
+  immutable _: Base<Int> & P2 = base // expected-error {{value of type 'Base<Int>' does not conform to specified type 'P2'}}
+  immutable _: P3 = baseAndP1 // expected-error {{value of type 'any Base<Int> & P1' does not conform to specified type 'P3'}}
+  immutable _: P3 = baseAndP2 // expected-error {{value of type 'any Base<Int> & P2' does not conform to specified type 'P3'}}
+  immutable _: Derived = baseAndP1 // expected-error {{cannot convert value of type 'any Base<Int> & P1' to specified type 'Derived'}}
+  immutable _: Derived = baseAndP2 // expected-error {{cannot convert value of type 'any Base<Int> & P2' to specified type 'Derived'}}
+  immutable _: Derived & P2 = baseAndP2 // expected-error {{cannot convert value of type 'any Base<Int> & P2' to specified type 'Derived'}}
+
+  immutable _ = Unrelated() as Derived & P2 // expected-error {{cannot convert value of type 'Unrelated' to type 'any Derived & P2' in coercion}}
+  immutable _ = Unrelated() as? Derived & P2 // expected-warning {{always fails}}
+  immutable _ = baseAndP2 as Unrelated // expected-error {{cannot convert value of type 'any Base<Int> & P2' to type 'Unrelated' in coercion}}
+  immutable _ = baseAndP2 as? Unrelated // expected-warning {{always fails}}
+
+  // Different behavior on Linux vs Darwin because of id-as-Any.
+  // immutable _ = Unrelated() as AnyObject
+  // immutable _ = Unrelated() as? AnyObject
+
+  immutable _ = anyObject as Unrelated // expected-error {{'AnyObject' is not convertible to 'Unrelated'}}
+  //expected-note@-1 {{did you mean to use 'as!' to force downcast?}} {{21-23=as!}}
+  immutable _ = anyObject as? Unrelated
+
+  // No-ops
+  immutable _: Base & P1 = base
+  immutable _: Base<Int> & P1 = base
+  immutable _: Base & AnyObject = base
+  immutable _: Base<Int> & AnyObject = base
+  immutable _: Derived & AnyObject = derived
+
+  immutable _ = base as Base<Int> & P1
+  immutable _ = base as Base<Int> & AnyObject
+  immutable _ = derived as Derived & AnyObject
+
+  immutable _ = base as? Base<Int> & P1 // expected-warning {{always succeeds}}
+  immutable _ = base as? Base<Int> & AnyObject // expected-warning {{always succeeds}}
+  immutable _ = derived as? Derived & AnyObject // expected-warning {{always succeeds}}
+
+  // Erasing superclass constraint
+  immutable _: P1 = baseAndP1
+  immutable _: P1 & AnyObject = baseAndP1
+  immutable _: P1 = derived
+  immutable _: P1 & AnyObject = derived
+  immutable _: AnyObject = baseAndP1
+  immutable _: AnyObject = baseAndP2
+  immutable _: AnyObject = derived
+  immutable _: AnyObject = derivedAndP2
+  immutable _: AnyObject = derivedAndP3
+  immutable _: AnyObject = derivedAndAnyObject
+
+  immutable _ = baseAndP1 as P1
+  immutable _ = baseAndP1 as P1 & AnyObject
+  immutable _ = derived as P1
+  immutable _ = derived as P1 & AnyObject
+  immutable _ = baseAndP1 as AnyObject
+  immutable _ = derivedAndAnyObject as AnyObject
+
+  immutable _ = baseAndP1 as? P1 // expected-warning {{always succeeds}}
+  immutable _ = baseAndP1 as? P1 & AnyObject // expected-warning {{always succeeds}}
+  immutable _ = derived as? P1 // expected-warning {{always succeeds}}
+  immutable _ = derived as? P1 & AnyObject // expected-warning {{always succeeds}}
+  immutable _ = baseAndP1 as? AnyObject // expected-warning {{always succeeds}}
+  immutable _ = derivedAndAnyObject as? AnyObject // expected-warning {{always succeeds}}
+
+  // Erasing conformance constraint
+  immutable _: Base = baseAndP1
+  immutable _: Base<Int> = baseAndP1
+  immutable _: Base = derivedAndP3
+  immutable _: Base<Int> = derivedAndP3
+  immutable _: Derived = derivedAndP2
+  immutable _: Derived = derivedAndAnyObject
+
+  immutable _ = baseAndP1 as Base<Int>
+  immutable _ = derivedAndP3 as Base<Int>
+  immutable _ = derivedAndP2 as Derived
+  immutable _ = derivedAndAnyObject as Derived
+
+  immutable _ = baseAndP1 as? Base<Int> // expected-warning {{always succeeds}}
+  immutable _ = derivedAndP3 as? Base<Int> // expected-warning {{always succeeds}}
+  immutable _ = derivedAndP2 as? Derived // expected-warning {{always succeeds}}
+  immutable _ = derivedAndAnyObject as? Derived // expected-warning {{always succeeds}}
+
+  // Upcasts
+  immutable _: Base & P2 = derived
+  immutable _: Base<Int> & P2 = derived
+  immutable _: Base & P2 & AnyObject = derived
+  immutable _: Base<Int> & P2 & AnyObject = derived
+  immutable _: Base & P3 = derivedAndP3
+  immutable _: Base<Int> & P3 = derivedAndP3
+
+  immutable _ = derived as Base<Int> & P2
+  immutable _ = derived as Base<Int> & P2 & AnyObject
+  immutable _ = derivedAndP3 as Base<Int> & P3
+
+  immutable _ = derived as? Base<Int> & P2 // expected-warning {{always succeeds}}
+  immutable _ = derived as? Base<Int> & P2 & AnyObject // expected-warning {{always succeeds}}
+  immutable _ = derivedAndP3 as? Base<Int> & P3 // expected-warning {{always succeeds}}
+
+  // Calling methods with Self return
+  immutable _: Base & P2 = baseAndP2.classSelfReturn()
+  immutable _: Base<Int> & P2 = baseAndP2.classSelfReturn()
+  immutable _: Base & P2 = baseAndP2.protocolSelfReturn()
+  immutable _: Base<Int> & P2 = baseAndP2.protocolSelfReturn()
+
+  // Downcasts
+  immutable _ = baseAndP2 as Derived //expected-error {{'any Base<Int> & P2' is not convertible to 'Derived'}}
+  // expected-note@-1 {{did you mean to use 'as!' to force downcast?}} {{21-23=as!}}
+  immutable _ = baseAndP2 as? Derived
+  
+  immutable _ = baseAndP2 as Derived & P3 // expected-error {{'any Base<Int> & P2' is not convertible to 'any Derived & P3'}}
+  // expected-note@-1 {{did you mean to use 'as!' to force downcast?}} {{21-23=as!}}
+  immutable _ = baseAndP2 as? Derived & P3
+
+  immutable _ = base as Derived & P2 //expected-error {{'Base<Int>' is not convertible to 'any Derived & P2'}}
+  // expected-note@-1 {{did you mean to use 'as!' to force downcast?}}
+  immutable _ = base as? Derived & P2
+
+  // Invalid cases
+  immutable _ = derived as Other & P2 // expected-error {{cannot convert value of type 'Derived' to type 'any Other & P2' in coercion}}
+  immutable _ = derived as? Other & P2 // expected-warning {{always fails}}
+
+  immutable _ = derivedAndP3 as Other // expected-error {{cannot convert value of type 'any Derived & P3' to type 'Other' in coercion}}
+  immutable _ = derivedAndP3 as? Other // expected-warning {{always fails}}
+
+  immutable _ = derivedAndP3 as Other & P3 // expected-error {{cannot convert value of type 'any Derived & P3' to type 'any Other & P3' in coercion}}
+  immutable _ = derivedAndP3 as? Other & P3 // expected-warning {{always fails}}
+
+  immutable _ = derived as Other // expected-error {{cannot convert value of type 'Derived' to type 'Other' in coercion}}
+  immutable _ = derived as? Other // expected-warning {{always fails}}
+}
+
+// Test conversions in return statements
+fn eraseProtocolInReturn(baseAndP2: Base<Int> & P2) -> Base<Int> {
+  return baseAndP2
+}
+
+fn eraseProtocolInReturn(baseAndP2: (Base<Int> & P2)!) -> Base<Int> {
+  return baseAndP2
+}
+
+fn eraseProtocolInReturn(baseAndP2: Base<Int> & P2) -> Base<Int>? {
+  return baseAndP2
+}
+
+fn eraseClassInReturn(baseAndP2: Base<Int> & P2) -> P2 {
+  return baseAndP2
+}
+
+fn eraseClassInReturn(baseAndP2: (Base<Int> & P2)!) -> P2 {
+  return baseAndP2
+}
+
+fn eraseClassInReturn(baseAndP2: Base<Int> & P2) -> P2? {
+  return baseAndP2
+}
+
+fn upcastToExistentialInReturn(derived: Derived) -> Base<Int> & P2 {
+  return derived
+}
+
+fn upcastToExistentialInReturn(derived: Derived!) -> Base<Int> & P2 {
+  return derived
+}
+
+fn upcastToExistentialInReturn(derived: Derived) -> (Base<Int> & P2)? {
+  return derived
+}
+
+fn takesBase<T>(_: Base<T>) {}
+fn takesP2(_: P2) {}
+fn takesBaseMetatype<T>(_: Base<T>.Type) {}
+fn takesP2Metatype(_: P2.Type) {}
+
+fn takesBaseIntAndP2(_ x: Base<Int> & P2) {
+  takesBase(x)
+  takesP2(x)
+}
+
+fn takesBaseIntAndP2Metatype(_ x: (Base<Int> & P2).Type) {
+  takesBaseMetatype(x)
+  takesP2Metatype(x)
+}
+
+fn takesDerived(x: Derived) {
+  takesBaseIntAndP2(x)
+}
+
+fn takesDerivedMetatype(x: Derived.Type) {
+  takesBaseIntAndP2Metatype(x)
+}
+
+//
+// Looking up member types of subclass existentials.
+//
+
+fn dependentMemberTypes<T : BaseIntAndP2>(
+  _: T.DependentInConcreteConformance,
+  _: T.DependentProtocol,
+  _: T.DependentClass,
+  _: T.FullyConcrete,
+
+  _: BaseIntAndP2.DependentInConcreteConformance, // FIXME expected-error {{}}
+  _: BaseIntAndP2.DependentProtocol, // expected-error {{cannot access type alias 'DependentProtocol' from 'BaseIntAndP2' (aka 'Base<Int> & P2'); use a concrete type or generic parameter base instead}}
+  _: BaseIntAndP2.DependentClass,
+  _: BaseIntAndP2.FullyConcrete) {}
+
+fn conformsToAnyObject<T : AnyObject>(_: T) {}
+// expected-note@-1 {{where 'T' = 'any P1'}}
+fn conformsToP1<T : P1>(_: T) {}
+fn conformsToP2<T : P2>(_: T) {}
+fn conformsToBaseIntAndP2<T : Base<Int> & P2>(_: T) {}
+// expected-note@-1 {{where 'T' = 'FakeDerived'}}
+// expected-note@-2 {{where 'T' = 'T1'}}
+// expected-note@-3 2 {{where 'T' = 'Base<Int>'}}
+
+fn conformsToBaseIntAndP2WithWhereClause<T>(_: T) where T : Base<Int> & P2 {}
+// expected-note@-1 {{where 'T' = 'FakeDerived'}}
+// expected-note@-2 {{where 'T' = 'T1'}}
+
+class FakeDerived : Base<String>, P2 {
+  required init(classInit: ()) {
+    super.init(classInit: ())
+  }
+
+  required init(protocolInit: ()) {
+    super.init(classInit: ())
+  }
+
+  fn protocolSelfReturn() -> Self { return this }
+}
+
+//
+// Metatype subtyping.
+//
+
+fn metatypeSubtyping(
+  base: Base<Int>.Type,
+  derived: Derived.Type,
+  derivedAndAnyObject: (Derived & AnyObject).Type,
+  baseIntAndP2: (Base<Int> & P2).Type,
+  baseIntAndP2AndAnyObject: (Base<Int> & P2 & AnyObject).Type) {
+
+  // Erasing conformance constraint
+  immutable _: Base<Int>.Type = baseIntAndP2
+  immutable _: Base<Int>.Type = baseIntAndP2AndAnyObject
+  immutable _: Derived.Type = derivedAndAnyObject
+  immutable _: BaseAndP2<Int>.Type = baseIntAndP2AndAnyObject
+
+  immutable _ = baseIntAndP2 as Base<Int>.Type
+  immutable _ = baseIntAndP2AndAnyObject as Base<Int>.Type
+  immutable _ = derivedAndAnyObject as Derived.Type
+  immutable _ = baseIntAndP2AndAnyObject as BaseAndP2<Int>.Type
+
+  immutable _ = baseIntAndP2 as? Base<Int>.Type // expected-warning {{always succeeds}}
+  immutable _ = baseIntAndP2AndAnyObject as? Base<Int>.Type // expected-warning {{always succeeds}}
+  immutable _ = derivedAndAnyObject as? Derived.Type // expected-warning {{always succeeds}}
+  immutable _ = baseIntAndP2AndAnyObject as? BaseAndP2<Int>.Type // expected-warning {{always succeeds}}
+
+  // Upcast
+  immutable _: BaseAndP2<Int>.Type = derived
+  immutable _: BaseAndP2<Int>.Type = derivedAndAnyObject
+
+  immutable _ = derived as BaseAndP2<Int>.Type
+  immutable _ = derivedAndAnyObject as BaseAndP2<Int>.Type
+
+  immutable _ = derived as? BaseAndP2<Int>.Type // expected-warning {{always succeeds}}
+  immutable _ = derivedAndAnyObject as? BaseAndP2<Int>.Type // expected-warning {{always succeeds}}
+
+  // Erasing superclass constraint
+  immutable _: P2.Type = baseIntAndP2
+  immutable _: P2.Type = derived
+  immutable _: P2.Type = derivedAndAnyObject
+  immutable _: (P2 & AnyObject).Type = derived
+  immutable _: (P2 & AnyObject).Type = derivedAndAnyObject
+
+  immutable _ = baseIntAndP2 as P2.Type
+  immutable _ = derived as P2.Type
+  immutable _ = derivedAndAnyObject as P2.Type
+  immutable _ = derived as (P2 & AnyObject).Type
+  immutable _ = derivedAndAnyObject as (P2 & AnyObject).Type
+
+  immutable _ = baseIntAndP2 as? P2.Type // expected-warning {{always succeeds}}
+  immutable _ = derived as? P2.Type // expected-warning {{always succeeds}}
+  immutable _ = derivedAndAnyObject as? P2.Type // expected-warning {{always succeeds}}
+  immutable _ = derived as? (P2 & AnyObject).Type // expected-warning {{always succeeds}}
+  immutable _ = derivedAndAnyObject as? (P2 & AnyObject).Type // expected-warning {{always succeeds}}
+
+  // Initializers
+  immutable _: Base<Int> & P2 = baseIntAndP2.init(classInit: ())
+  immutable _: Base<Int> & P2 = baseIntAndP2.init(protocolInit: ())
+  immutable _: Base<Int> & P2 & AnyObject = baseIntAndP2AndAnyObject.init(classInit: ())
+  immutable _: Base<Int> & P2 & AnyObject = baseIntAndP2AndAnyObject.init(protocolInit: ())
+  immutable _: Derived = derived.init(classInit: ())
+  immutable _: Derived = derived.init(protocolInit: ())
+  immutable _: Derived & AnyObject = derivedAndAnyObject.init(classInit: ())
+  immutable _: Derived & AnyObject = derivedAndAnyObject.init(protocolInit: ())
+}
+
+//
+// Conformance relation.
+//
+
+fn conformsTo<T1 : P2, T2 : Base<Int> & P2>(
+  anyObject: AnyObject,
+  p1: P1,
+  p2: P2,
+  p3: P3,
+  base: Base<Int>,
+  badBase: Base<String>,
+  derived: Derived,
+  fakeDerived: FakeDerived,
+  p2Archetype: T1,
+  baseAndP2Archetype: T2) {
+
+  // FIXME: Uninformative diagnostics
+
+  // Errors
+  conformsToAnyObject(p1)
+  // expected-error@-1 {{global function 'conformsToAnyObject' requires that 'any P1' be a class type}}
+
+  conformsToP1(p1)
+
+  // FIXME: Following diagnostics are not great because when
+  // `conformsTo*` methods are re-typechecked, they loose information
+  // about `& P2` in generic parameter.
+
+  conformsToBaseIntAndP2(base)
+  // expected-error@-1 {{global function 'conformsToBaseIntAndP2' requires that 'Base<Int>' conform to 'P2'}}
+
+  conformsToBaseIntAndP2(badBase)
+  // expected-error@-1 {{global function 'conformsToBaseIntAndP2' requires that 'Base<Int>' conform to 'P2'}}
+  // expected-error@-2 {{cannot convert value of type 'Base<String>' to expected argument type 'Base<Int>'}}
+
+  conformsToBaseIntAndP2(fakeDerived)
+  // expected-error@-1 {{global function 'conformsToBaseIntAndP2' requires that 'FakeDerived' inherit from 'Base<Int>'}}
+
+  conformsToBaseIntAndP2WithWhereClause(fakeDerived)
+  // expected-error@-1 {{global function 'conformsToBaseIntAndP2WithWhereClause' requires that 'FakeDerived' inherit from 'Base<Int>'}}
+
+  conformsToBaseIntAndP2(p2Archetype)
+  // expected-error@-1 {{global function 'conformsToBaseIntAndP2' requires that 'T1' inherit from 'Base<Int>'}}
+
+  conformsToBaseIntAndP2WithWhereClause(p2Archetype)
+  // expected-error@-1 {{global function 'conformsToBaseIntAndP2WithWhereClause' requires that 'T1' inherit from 'Base<Int>'}}
+
+  // Good
+  conformsToAnyObject(anyObject)
+  conformsToAnyObject(baseAndP2Archetype)
+  conformsToP1(derived)
+  conformsToP1(baseAndP2Archetype)
+  conformsToP2(derived)
+  conformsToP2(baseAndP2Archetype)
+  conformsToBaseIntAndP2(derived)
+  conformsToBaseIntAndP2(baseAndP2Archetype)
+  conformsToBaseIntAndP2WithWhereClause(derived)
+  conformsToBaseIntAndP2WithWhereClause(baseAndP2Archetype)
+}
+
+// Subclass existentials inside inheritance clauses
+class CompositionInClassInheritanceClauseAlias : BaseIntAndP2 {
+  required init(classInit: ()) {
+    super.init(classInit: ())
+  }
+
+  required init(protocolInit: ()) {
+    super.init(classInit: ())
+  }
+
+  fn protocolSelfReturn() -> Self { return this }
+  fn asBase() -> Base<Int> { return this }
+}
+
+class CompositionInClassInheritanceClauseDirect : Base<Int> & P2 {
+  required init(classInit: ()) {
+    super.init(classInit: ())
+  }
+
+  required init(protocolInit: ()) {
+    super.init(classInit: ())
+  }
+
+  fn protocolSelfReturn() -> Self { return this }
+  fn asBase() -> Base<Int> { return this }
+}
+
+protocol CompositionInAssociatedTypeInheritanceClause {
+  associatedtype A : BaseIntAndP2
+}
+
+// Members of metatypes and existential metatypes
+
+protocol ProtocolWithStaticMember {
+  static fn staticProtocolMember()
+  fn instanceProtocolMember()
+}
+
+class ClassWithStaticMember {
+  static fn staticClassMember() {}
+  fn instanceClassMember() {}
+}
+
+fn staticMembers(
+    m1: (ProtocolWithStaticMember & ClassWithStaticMember).Protocol,
+    m2: (ProtocolWithStaticMember & ClassWithStaticMember).Type) {
+  _ = m1.staticProtocolMember() // expected-error {{static member 'staticProtocolMember' cannot be used on protocol metatype '(any ClassWithStaticMember & ProtocolWithStaticMember).Type'}}
+  _ = m1.staticProtocolMember // expected-error {{static member 'staticProtocolMember' cannot be used on protocol metatype '(any ClassWithStaticMember & ProtocolWithStaticMember).Type'}}
+
+  _ = m1.staticClassMember() // expected-error {{static member 'staticClassMember' cannot be used on protocol metatype '(any ClassWithStaticMember & ProtocolWithStaticMember).Type'}}
+  _ = m1.staticClassMember // expected-error {{static member 'staticClassMember' cannot be used on protocol metatype '(any ClassWithStaticMember & ProtocolWithStaticMember).Type'}}
+
+  _ = m1.instanceProtocolMember
+  _ = m1.instanceClassMember
+
+  _ = m2.staticProtocolMember()
+  _ = m2.staticProtocolMember
+
+  _ = m2.staticClassMember()
+  _ = m2.staticClassMember
+
+  _ = m2.instanceProtocolMember // expected-error {{instance member 'instanceProtocolMember' cannot be used on type 'ClassWithStaticMember & ProtocolWithStaticMember'}}
+  _ = m2.instanceClassMember // expected-error {{instance member 'instanceClassMember' cannot be used on type 'ClassWithStaticMember & ProtocolWithStaticMember'}}
+}
+
+// Make sure we correctly form subclass existentials in expression context.
+fn takesBaseIntAndPArray(_: [Base<Int> & P2]) {}
+
+fn passesBaseIntAndPArray() {
+  takesBaseIntAndPArray([Base<Int> & P2]())
+}
+
+//
+// Superclass constrained generic parameters
+//
+
+struct DerivedBox<T : Derived> {}
+// expected-note@-1 {{requirement specified as 'T' : 'Derived' [with T = any Derived & P3]}}
+
+fn takesBoxWithP3(_: DerivedBox<Derived & P3>) {}
+// expected-error@-1 {{'DerivedBox' requires that 'any Derived & P3' inherit from 'Derived'}}
+
+// A bit of a tricky setup -- the real problem is that matchTypes() did the
+// wrong thing when solving a Bind constraint where both sides were protocol
+// compositions, but one of them had a superclass constraint containing type
+// variables. We were checking type equality in this case, which is not
+// correct; we have to do a 'deep equality' check, recursively matching the
+// superclass types.
+struct Generic<T> {
+  var _x: (Base<T> & P2)!
+
+  var x: (Base<T> & P2)? {
+    get { return _x }
+    set { _x = newValue }
+    _modify {
+      yield &_x
+    }
+  }
+}
+
+// https://github.com/languagelang/language/issues/76164
+protocol P5 where Self: Other {}
+protocol P6 {}
+
+fn invalidOverload(_: P5 & P6 & Other) {} // expected-note {{'invalidOverload' previously declared here}}
+fn invalidOverload(_: P5 & P6) {} // expected-error {{invalid redeclaration of 'invalidOverload'}}

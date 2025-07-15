@@ -1,0 +1,35 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+ass fn b()
+() {
+class A<T where l.c : l) -> String {
+public var a: T -> String {
+protocol A {
+}
+case .b {
+protocol d = F>({
+protocol d where S<T? = {
+return b[[Any) {
+case b where f({
+return NSData(n: A..a
+var b[(Any)
+class fn f() { c(start, Any, g> {
+if c : c {
+class C(A<T
+init(T>Bool]
+init() -> Self {
+return z(true }
+b(start: Array<H : B? {
+fn g(f() -> Any, f: A, y: Int = F>(g, AnyObject, k : Sequence> ()
+struct c : (i(c]()
+defa

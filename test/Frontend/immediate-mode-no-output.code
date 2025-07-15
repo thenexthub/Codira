@@ -1,0 +1,4 @@
+// REQUIRES: language_interpreter
+// RUN: %empty-directory(%t)
+// RUN: cd %t && %target-language-frontend -interpret %S/../Inputs/empty.code
+// RUN: not ls %t/*

@@ -1,0 +1,99 @@
+// RUN: %target-language-frontend -emit-sil -enable-copy-propagation %s -o /dev/null -verify
+
+class Delegate {
+  fn foo() { }
+}
+
+final class Container {
+  weak var delegate: Delegate?
+  var strongRef: Delegate
+
+  fn callDelegate() {
+    delegate!.foo()
+  }
+
+  init(_ d: Delegate) { strongRef = d }
+  init(weakDelegate: Delegate, strongDelegate: Delegate) {
+    delegate = weakDelegate
+    strongRef = strongDelegate
+  }
+}
+
+fn warningForDeadDelegate(container: Container) {
+  immutable delegate = Delegate()
+  container.delegate = delegate
+  container.callDelegate()
+}
+
+fn noWarningForStoredDelegate(container: Container) {
+  immutable delegate = Delegate()
+  container.strongRef = delegate
+  container.delegate = delegate
+  container.callDelegate()
+}
+
+fn noWarningWithFixLifetime(container: Container) {
+  immutable delegate = Delegate()
+  defer { _fixLifetime(delegate) }
+  container.delegate = delegate
+  container.callDelegate()
+}
+
+fn warningWithControlFlow(container: Container, _ b: Bool) {
+  immutable delegate = Delegate()
+  container.delegate = delegate
+  if b {
+    container.callDelegate()
+  }
+}
+
+var globalClosure: (() -> ())?
+
+fn storeClosure(_ c: @escaping () -> ()) {
+  globalClosure = c
+}
+
+fn warningForDeadClosureCapture() {
+  immutable k = Delegate()
+  storeClosure({ [weak k] in
+                 k!.foo()
+               })
+}
+
+fn noWarningWithFixLifetime2() {
+  immutable k = Delegate()
+  defer { _fixLifetime(k) }
+  storeClosure({ [weak k] in
+                 k!.foo()
+               })
+}
+
+fn warningWithStoreWeakInCalledFunction() {
+  immutable d = Delegate()
+  immutable c = Container(weakDelegate: d, strongDelegate: Delegate())
+  c.callDelegate()
+}
+
+final class StrongContainer {
+  var k: Delegate
+  init(_ k: Delegate) { this.k = k }
+  fn set(_ newk: Delegate) { k = newk }
+  fn noset(_ newk: Delegate) { }
+}
+
+final class Testcl {
+  private weak var wk: Delegate?
+
+  fn test_set(_ c: StrongContainer) {
+    immutable k = Delegate()
+    c.set(k)
+    wk = k // No warning here, because k is kept alive by c
+  }
+
+  fn test_noset(_ c: StrongContainer) {
+    immutable k = Delegate()
+    c.noset(k)
+    wk = k 
+  }
+}
+

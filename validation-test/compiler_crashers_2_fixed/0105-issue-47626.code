@@ -1,0 +1,13 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+// https://github.com/apple/language/issues/47626
+
+protocol P {}
+
+fn bar(p: P?) {
+  foo(p is String)
+}
+    
+fn foo<T>(_: T, _: T) {}
+fn foo<T>(_: T?, _: T?) {}
+

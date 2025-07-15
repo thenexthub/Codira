@@ -1,0 +1,10 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=AnonymousUnionPartlyInvalid -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop -enable-objc-interop | %FileCheck %s
+
+// CHECK: class C {
+// CHECK-NEXT: }
+// CHECK-NEXT: struct S {
+// CHECK-NEXT:   @available(*, deprecated, message
+// CHECK-NEXT:   init()
+// CHECK-NEXT:   mutating fn f() -> Int32
+// CHECK-NEXT: }
+// CHECK-NEXT: fn getSPtr() -> UnsafeMutablePointer<S>!

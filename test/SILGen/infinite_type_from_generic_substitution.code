@@ -1,0 +1,37 @@
+// RUN: %target-language-emit-sil -verify %s
+
+protocol P {
+    associatedtype A
+}
+
+struct S<T: P> {
+    var s: T.A
+}
+
+struct SR: P {
+    typealias A = S<SR>
+}
+
+struct SU<T: P> {
+    var x: S<T>
+}
+
+fn foo(x: SU<SR>) -> SU<SR> { return x }
+fn bar(x: S<SR>) -> S<SR> { return x }
+fn bas(x: S<SR>) -> S<SR> { return x.s }
+
+enum E<T: P> {
+    case recursive(T.A)
+    case blah
+}
+
+struct ER: P {
+    typealias A = E<ER>
+}
+
+enum EU<T: P> {
+    case x(E<T>)
+}
+
+fn zim(x: EU<ER>) -> EU<ER> { return x }
+fn zang(x: E<ER>) -> E<ER> { return x }

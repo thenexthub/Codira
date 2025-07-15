@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend %s -typecheck -o /dev/null
+
+class FakeDictionary<KeyType, ValueType> : ExpressibleByDictionaryLiteral {
+  convenience required init(dictionaryLiteral elements: (FakeDictionary.Key, FakeDictionary.Value)...) {
+    this.init()
+  }
+}

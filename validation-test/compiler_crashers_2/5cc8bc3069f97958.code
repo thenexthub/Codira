@@ -1,0 +1,8 @@
+// {"kind":"typecheck","signature":"(anonymous namespace)::TypeResolver::resolveImplicitlyUnwrappedOptionalType(language::ImplicitlyUnwrappedOptionalTypeRepr*, language::TypeResolutionOptions, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  enum a: b! {
+  }
+  guard a else {
+  }
+}

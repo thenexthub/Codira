@@ -1,4 +1,4 @@
-target_sources(swiftSILOptimizer PRIVATE
+target_sources(languageSILOptimizer PRIVATE
   ArrayPropertyOpt.cpp
   BoundsCheckOpts.cpp
   COWArrayOpt.cpp

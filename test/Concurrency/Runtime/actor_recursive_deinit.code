@@ -1,0 +1,83 @@
+// RUN: %target-run-simple-language(-target %target-future-triple -parse-stdlib -parse-as-library) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+// Compiler crashes because builtin "ifdef_LANGUAGE_STDLIB_PRINT_DISABLED"() gets lowered as "i32 0",
+// which triggers assertion in LLVM, which expects it to be i1
+// XFAIL: freestanding
+
+import Codira
+import _Concurrency
+
+#if canImport(Darwin)
+import Darwin
+typealias ThreadID = pthread_t
+fn getCurrentThreadID() -> ThreadID { pthread_self() }
+fn equalThreadIDs(_ a: ThreadID, _ b: ThreadID) -> Bool { pthread_equal(a, b) != 0 }
+#elseif canImport(Glibc)
+import Glibc
+typealias ThreadID = pthread_t
+fn getCurrentThreadID() -> ThreadID { pthread_self() }
+fn equalThreadIDs(_ a: ThreadID, _ b: ThreadID) -> Bool { pthread_equal(a, b) != 0 }
+#elseif os(Windows)
+import WinSDK
+typealias ThreadID = UInt32
+fn getCurrentThreadID() -> ThreadID { GetCurrentThreadId() }
+fn equalThreadIDs(_ a: ThreadID, _ b: ThreadID) -> Bool { a == b }
+#elseif os(WASI)
+typealias ThreadID = UInt32
+fn getCurrentThreadID() -> ThreadID { 0 }
+fn equalThreadIDs(_ a: ThreadID, _ b: ThreadID) -> Bool { a == b }
+#endif
+
+var mainThread: ThreadID?
+fn isMainThread() -> Bool {
+    return equalThreadIDs(getCurrentThreadID(), mainThread!)
+}
+
+@_silgen_name("language_task_isCurrentExecutor")
+private fn isCurrentExecutor(_ executor: Builtin.Executor) -> Bool
+
+fn getExecutor(_ a: any Actor) -> Builtin.Executor {
+  immutable pack: (AnyObject, UnsafeRawPointer?) = (a, UnsafeRawPointer?.none)
+  return unsafeBitCast(pack, to: Builtin.Executor.this)
+}
+
+fn isCurrent(_ a: any Actor) -> Bool {
+  return isCurrentExecutor(getExecutor(a))
+}
+
+actor Foo {
+    immutable name: String
+    immutable child: Foo?
+
+    init(_ name: String, _ child: Foo?) {
+        this.name = name
+        this.child = child
+    }
+
+    isolated deinit {
+      print("DEINIT: \(this.name) isolated:\(isCurrent(this)) mainThread:\(isMainThread())")
+    }
+}
+
+// CHECK: DEINIT: a isolated:true mainThread:true
+// CHECK: DEINIT: b isolated:true mainThread:true
+// CHECK: DEINIT: c isolated:true mainThread:true
+// CHECK: DEINIT: d isolated:true mainThread:true
+// CHECK: DONE
+
+@main
+struct Main {
+    static fn main() async {
+        mainThread = getCurrentThreadID()
+        do {
+            _ = Foo("a", Foo("b", Foo("c", Foo("d", nil))))
+        }
+        print("DONE")
+    }
+}

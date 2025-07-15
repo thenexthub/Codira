@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+
+// Test some invalid uses
+// RUN: not %target-language-frontend -typecheck %s -interface-compiler-version A 2>&1 | %FileCheck %s --check-prefix=INVALID
+// RUN: not %target-language-frontend -typecheck %s -interface-compiler-version 6.0.0.0.1.6 2>&1 |  %FileCheck %s --check-prefix=INVALID
+// RUN: not %target-language-frontend -typecheck %s -interface-compiler-version 6.xx 2>&1 | %FileCheck %s --check-prefix=INVALID
+
+// INVALID: <unknown>:0: error: invalid value '{{.*}}' in '-interface-compiler-version {{.*}}'
+
+// RUN: %target-typecheck-verify-language %s -interface-compiler-version 6
+// RUN: %target-typecheck-verify-language %s -interface-compiler-version 6.1
+// RUN: %target-typecheck-verify-language %s -interface-compiler-version 6.1.0.0
+// RUN: %target-typecheck-verify-language %s -interface-compiler-version 6.1.0.0.0
+
+/// Build the libraries.
+// RUN: %target-language-frontend %s \
+// RUN:   -module-name Lib \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:   -enable-library-evolution \
+// RUN:   -language-version 6
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Lib.codeinterface)
+
+/// Check option in languageinterface
+// RUN: cat %t/Lib.codeinterface | %FileCheck --check-prefix=CHECK-OPTION %s
+// CHECK-OPTION: language-module-flags-ignorable:
+// CHECK-OPTION-SAME: -interface-compiler-version {{.*}}
+
+/// Check option in languagemodule
+// RUN: toolchain-bcanalyzer --dump %t/Lib.codemodule | %FileCheck --check-prefix=CHECK-MODULE-OPTION %s
+// CHECK-MODULE-OPTION: <OPTIONS_BLOCK
+// CHECK-MODULE-OPTION-NOT: <LANGUAGE_INTERFACE_COMPILER_VERSION abbrevid={{.*}}/> blob data = '{{.*}}'
+// CHECK-MODULE-OPTION: </OPTIONS_BLOCK>
+
+// Drop and rebuilt languagemodule to make sure that the version is inferred from the interface file.
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -compile-module-from-interface %t/Lib.codeinterface -o %t/Lib.codemodule -module-name Lib
+
+/// Check option in languagemodule
+// RUN: toolchain-bcanalyzer --dump %t/Lib.codemodule | %FileCheck --check-prefix=CHECK-REBUILT-MODULE-OPTION %s
+// CHECK-REBUILT-MODULE-OPTION: <OPTIONS_BLOCK
+// CHECK-REBUILT-MODULE-OPTION: <LANGUAGE_INTERFACE_COMPILER_VERSION abbrevid={{.*}}/> blob data = '{{.*}}'
+// CHECK-REBUILT-MODULE-OPTION: </OPTIONS_BLOCK>
+
+public struct S {
+    public var test: Int = 42
+}

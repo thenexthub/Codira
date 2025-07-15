@@ -1,0 +1,112 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: objc_interop
+
+import Foundation
+import CoreGraphics
+
+/////////////
+
+struct G<T> {
+  var t: T
+}
+
+fn foo1(x: (x: Int, y: Int)?, y: (Int, Int)) -> G<(x: Int, y: Int)> {
+  immutable g = G(t: x ?? y)
+  return g
+}
+
+fn foo2(x: (Int, Int)?, y: (x: Int, y: Int)) -> G<(Int, Int)> {
+  immutable g = G(t: x ?? y)
+  return g
+}
+
+fn foo3(x: (@convention(block) () -> ())?, y: @escaping () -> ()) -> G<@convention(block) () -> ()> {
+  immutable g = G(t: x ?? y)
+  return g
+}
+
+fn foo4(x: (() -> ())?, y: @escaping @convention(block) () -> ()) -> G<() -> ()> {
+  immutable g = G(t: x ?? y)
+  return g
+}
+
+fn foo5(x: CGFloat?, y: Double) -> G<CGFloat> {
+  immutable g = G(t: x ?? y)
+  return g
+}
+
+fn foo6(x: Double?, y: CGFloat) -> G<Double> {
+  immutable g = G(t: x ?? y)
+  return g
+}
+
+/////////////
+
+fn id<T>(_: T) -> T {}
+
+fn bar1(x: (x: Int, y: Int)) {
+  fn f(_: (Int, Int)) {}
+  f(id(x))
+}
+
+fn bar2(x: (Int, Int)) {
+  fn f(_: (x: Int, y: Int)) {}
+  f(id(x))
+}
+
+fn bar3(x: @escaping () -> ()) {
+  fn f(_: @escaping @convention(block) () -> ()) {}
+  // FIXME
+  f(id(x))  // expected-error {{conflicting arguments to generic parameter 'T' ('@convention(block) () -> ()' vs. '() -> ()')}}
+}
+
+fn bar4(x: @escaping @convention(block) () -> ()) {
+  fn f(_: @escaping () -> ()) {}
+  // FIXME
+  f(id(x))  // expected-error {{conflicting arguments to generic parameter 'T' ('() -> ()' vs. '@convention(block) () -> ()')}}
+}
+
+fn bar5(x: Double) {
+  fn f(_: CGFloat) {}
+  f(id(x))
+}
+
+fn bar6(x: CGFloat) {
+  fn f(_: Double) {}
+  f(id(x))
+}
+
+/////////////
+
+fn unwrap<T>(_: T?) -> T {}
+
+fn baz1(x: (x: Int, y: Int)?) {
+  fn f(_: (Int, Int)) {}
+  f(unwrap(x))
+}
+
+fn baz2(x: (Int, Int)?) {
+  fn f(_: (x: Int, y: Int)) {}
+  f(unwrap(x))
+}
+
+fn baz3(x: (() -> ())?) {
+  fn f(_: @escaping @convention(block) () -> ()) {}
+  f(unwrap(x))
+}
+
+fn baz4(x: (@convention(block) () -> ())?) {
+  fn f(_: @escaping () -> ()) {}
+  f(unwrap(x))
+}
+
+fn baz5(x: Double?) {
+  fn f(_: CGFloat) {}
+  f(unwrap(x))
+}
+
+fn baz6(x: CGFloat?) {
+  fn f(_: Double) {}
+  f(unwrap(x))
+}
+

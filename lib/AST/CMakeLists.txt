@@ -1,11 +1,11 @@
 
-set(SWIFTAST_LLVM_LINK_COMPONENTS
+set(LANGUAGEAST_TOOLCHAIN_LINK_COMPONENTS
   bitreader bitwriter coroutines coverage irreader debuginfoDWARF
   profiledata instrumentation object objcarcopts mc mcparser
-  bitreader bitwriter lto ipo option core support remarks ${LLVM_TARGETS_TO_BUILD}
+  bitreader bitwriter lto ipo option core support remarks ${TOOLCHAIN_TARGETS_TO_BUILD}
 )
 
-add_swift_host_library(swiftAST STATIC
+add_language_host_library(languageAST STATIC
   AbstractSourceFileDepGraphFactory.cpp
   AccessNotes.cpp
   AccessRequests.cpp
@@ -30,12 +30,13 @@ add_swift_host_library(swiftAST STATIC
   AvailabilityConstraint.cpp
   AvailabilityContext.cpp
   AvailabilityDomain.cpp
+  AvailabilityQuery.cpp
   AvailabilityScope.cpp
   AvailabilityScopeBuilder.cpp
   AvailabilitySpec.cpp
   Builtins.cpp
   CaptureInfo.cpp
-  ClangSwiftTypeCorrespondence.cpp
+  ClangCodiraTypeCorrespondence.cpp
   ClangTypeConverter.cpp
   Concurrency.cpp
   ConcreteDeclRef.cpp
@@ -86,7 +87,7 @@ add_swift_host_library(swiftAST STATIC
   ParameterPack.cpp
   Parameter.cpp
   Pattern.cpp
-  PlatformKind.cpp
+  PlatformKindUtils.cpp
   PluginLoader.cpp
   PluginRegistry.cpp
   PrettyStackTrace.cpp
@@ -95,6 +96,7 @@ add_swift_host_library(swiftAST STATIC
   RawComment.cpp
   Requirement.cpp
   RequirementEnvironment.cpp
+  RequirementMachine/ApplyInverses.cpp
   RequirementMachine/ConcreteContraction.cpp
   RequirementMachine/ConcreteTypeWitness.cpp
   RequirementMachine/Diagnostics.cpp
@@ -126,7 +128,7 @@ add_swift_host_library(swiftAST STATIC
   Stmt.cpp
   StorageImpl.cpp
   SubstitutionMap.cpp
-  SwiftNameTranslation.cpp
+  CodiraNameTranslation.cpp
   Type.cpp
   TypeCheckRequests.cpp
   TypeDeclFinder.cpp
@@ -137,20 +139,20 @@ add_swift_host_library(swiftAST STATIC
   UnqualifiedLookup.cpp
   USRGeneration.cpp
 
-  LLVM_LINK_COMPONENTS
-  ${SWIFTAST_LLVM_LINK_COMPONENTS}
+  TOOLCHAIN_LINK_COMPONENTS
+  ${LANGUAGEAST_TOOLCHAIN_LINK_COMPONENTS}
   )
 
 add_subdirectory(Bridging)
 
-if(SWIFT_FORCE_OPTIMIZED_TYPECHECKER)
+if(LANGUAGE_FORCE_OPTIMIZED_TYPECHECKER)
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-    target_compile_options(swiftAST PRIVATE /O2 /Ob2)
+    target_compile_options(languageAST PRIVATE /O2 /Ob2)
   else()
-    target_compile_options(swiftAST PRIVATE -O3)
+    target_compile_options(languageAST PRIVATE -O3)
   endif()
 endif()
-target_link_libraries(swiftAST INTERFACE
+target_link_libraries(languageAST INTERFACE
   clangCodeGen
   clangIndex
   clangFormat
@@ -171,13 +173,13 @@ target_link_libraries(swiftAST INTERFACE
   clangAPINotes
   clangBasic)
 
-target_link_libraries(swiftAST
-  PUBLIC swiftBasic
-  PRIVATE swiftMarkup)
+target_link_libraries(languageAST
+  PUBLIC languageBasic
+  PRIVATE languageMarkup)
 
-if (SWIFT_BUILD_SWIFT_SYNTAX)
-  target_link_libraries(swiftAST
-    PRIVATE swiftASTGen)
+if (LANGUAGE_BUILD_LANGUAGE_SYNTAX)
+  target_link_libraries(languageAST
+    PRIVATE languageASTGen)
 endif()
 
-set_swift_llvm_is_available(swiftAST)
+set_language_toolchain_is_available(languageAST)

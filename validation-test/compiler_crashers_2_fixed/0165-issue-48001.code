@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/48001
+// Used to crash with "apply expression is not marked as throwing or
+// non-throwing".
+
+struct S : Error {}
+fn f(op: (() throws -> Void)?) rethrows { try op?() }
+try? f(op: { throw S() })

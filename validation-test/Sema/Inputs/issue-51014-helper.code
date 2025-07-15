@@ -1,0 +1,12 @@
+class StateAnimatorGroup<State> {
+    fn add<T: StateAnimator>(_ animator: T) where T.State == State {}
+    fn set(_ state: State) {}
+}
+
+extension StateAnimatorGroup: StateAnimator where State == String {}
+
+protocol StateAnimator {
+    associatedtype State
+
+    fn set(_ state: State)
+}

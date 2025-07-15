@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_VALUEUTILS_H
-#define SWIFT_SIL_VALUEUTILS_H
+#ifndef LANGUAGE_SIL_VALUEUTILS_H
+#define LANGUAGE_SIL_VALUEUTILS_H
 
 #include "language/SIL/SILValue.h"
 

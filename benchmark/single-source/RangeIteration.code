@@ -1,4 +1,4 @@
-//===--- RangeAssignment.swift --------------------------------------------===//
+//===--- RangeAssignment.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-#if swift(>=4.2)
-public let benchmarks = [
+#if language(>=4.2)
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "RangeIterationSigned",
     runFunction: run_RangeIterationSigned,
@@ -34,7 +35,7 @@ public let benchmarks = [
   ),
 ]
 #else
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "RangeIterationSigned",
     runFunction: run_RangeIterationSigned,
@@ -44,13 +45,13 @@ public let benchmarks = [
 #endif
 
 @inline(never)
-func sum(_ x: UInt64, _ y: UInt64) -> UInt64 {
+fn sum(_ x: UInt64, _ y: UInt64) -> UInt64 {
   return x &+ y
 }
 
 @inline(never)
-public func run_RangeIterationSigned(_ n: Int) {
-  let range = 0..<100000
+public fn run_RangeIterationSigned(_ n: Int) {
+  immutable range = 0..<100000
   var checksum: UInt64 = 0
   for _ in 1...n {
     for e in range {
@@ -61,11 +62,11 @@ public func run_RangeIterationSigned(_ n: Int) {
   check(checksum == 4999950000 * UInt64(n))
 }
 
-#if swift(>=4.2)
+#if language(>=4.2)
 
 @inline(never)
-public func run_RangeIterationSigned64(_ n: Int) {
-  let range: Range<Int64> = 0..<100000
+public fn run_RangeIterationSigned64(_ n: Int) {
+  immutable range: Range<Int64> = 0..<100000
   var check: UInt64 = 0
   for _ in 1...n {
     for e in range {
@@ -77,8 +78,8 @@ public func run_RangeIterationSigned64(_ n: Int) {
 }
 
 @inline(never)
-public func run_RangeIterationUnsigned(_ n: Int) {
-  let range: Range<UInt> = 0..<100000
+public fn run_RangeIterationUnsigned(_ n: Int) {
+  immutable range: Range<UInt> = 0..<100000
   var check: UInt64 = 0
   for _ in 1...n {
     for e in range {

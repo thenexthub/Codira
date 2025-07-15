@@ -1,0 +1,55 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn b<d {
+enum b {
+fn c
+var _ = c
+}
+}
+fn q(v: h) -> <r>(() -> r) -> h {
+}
+struct e<r> {
+}
+protocol p {
+}
+protocol m : p {
+}
+protocol v : p {
+}
+protocol m {
+}
+fn s<s : m, v : m u v.v == s> (m: v) {
+}
+fn s<v : m u v.v == v> (m: v) fn f class fn b() {
+struct c {
+}
+protocol e {
+}
+fn a(b: Int = 0) {
+}
+fn b(c) -> <d>(() -> d) {
+}
+class A {
+}
+}
+im D : C {
+typealias Fr e: Int -> Int = {
+}
+immutable d: Int =  { ce)
+fn b<d-> d { class d:b class b
+st.C == E> {s fn c() { }
+}
+fn i(f: g) -> <j>(() -> j) -> g { fn g
+k, l {
+typealias l = m<k<m>, f>
+}

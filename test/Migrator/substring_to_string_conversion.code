@@ -1,0 +1,3 @@
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %S/Inputs/substring_to_string_conversion.code -emit-migrated-file-path %t/substring_to_string_conversion.code.result -language-version 4
+// RUN: diff -u %S/substring_to_string_conversion.code.expected %t/substring_to_string_conversion.code.result
+// XFAIL: *

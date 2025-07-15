@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-instruction-worklist"
@@ -19,9 +20,9 @@
 using namespace language;
 
 void SILInstructionWorklistBase::withDebugStream(
-    std::function<void(llvm::raw_ostream &stream, const char *loggingName)>
+    std::function<void(toolchain::raw_ostream &stream, const char *loggingName)>
         perform) {
 #ifndef NDEBUG
-  LLVM_DEBUG(perform(llvm::dbgs(), loggingName));
+  TOOLCHAIN_DEBUG(perform(toolchain::dbgs(), loggingName));
 #endif
 }

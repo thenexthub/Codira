@@ -1,0 +1,658 @@
+class C<T> {
+}
+
+extension C : module_with_class_extension.P8 {
+}
+
+extension C where T : module_with_class_extension.D {
+
+    fn foo()
+
+    fn bar()
+}
+
+extension C where T : module_with_class_extension.E {
+
+    fn baz()
+}
+
+class D {
+}
+
+class E {
+}
+
+class F<T> where T : module_with_class_extension.D {
+
+    fn bar()
+}
+
+extension F : module_with_class_extension.P8 {
+}
+
+protocol P8 {
+
+    associatedtype T
+}
+
+extension P8 where Self.T : module_with_class_extension.D {
+
+    fn bar()
+}
+
+extension P8 where Self.T : module_with_class_extension.E {
+
+    fn baz()
+}
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 0,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 8,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 16,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "C",
+    key.usr: "s:27module_with_class_extension1CC",
+    key.offset: 26,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 30,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "P8",
+    key.usr: "s:27module_with_class_extension2P8P",
+    key.offset: 58,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 66,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "C",
+    key.usr: "s:27module_with_class_extension1CC",
+    key.offset: 76,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 78,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:27module_with_class_extension1CC1Txmfp",
+    key.offset: 84,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 88,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "D",
+    key.usr: "s:27module_with_class_extension1DC",
+    key.offset: 116,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 125,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 130,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 141,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 146,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 155,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "C",
+    key.usr: "s:27module_with_class_extension1CC",
+    key.offset: 165,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 167,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:27module_with_class_extension1CC1Txmfp",
+    key.offset: 173,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 177,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "E",
+    key.usr: "s:27module_with_class_extension1EC",
+    key.offset: 205,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 214,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 219,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 228,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 234,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 241,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 247,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 254,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 260,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 262,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 265,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "T",
+    key.usr: "s:27module_with_class_extension1FC1Txmfp",
+    key.offset: 271,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 275,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "D",
+    key.usr: "s:27module_with_class_extension1DC",
+    key.offset: 303,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 312,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 317,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 326,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "F",
+    key.usr: "s:27module_with_class_extension1FC",
+    key.offset: 336,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 340,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "P8",
+    key.usr: "s:27module_with_class_extension2P8P",
+    key.offset: 368,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 376,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 385,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 395,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 410,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 415,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "P8",
+    key.usr: "s:27module_with_class_extension2P8P",
+    key.offset: 425,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 428,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "Self",
+    key.usr: "s:27module_with_class_extension2P8P4Selfxmfp",
+    key.offset: 434,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.ref.associatedtype,
+    key.name: "T",
+    key.usr: "s:27module_with_class_extension2P8P1TQa",
+    key.offset: 439,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 443,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "D",
+    key.usr: "s:27module_with_class_extension1DC",
+    key.offset: 471,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 480,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 485,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 494,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.name: "P8",
+    key.usr: "s:27module_with_class_extension2P8P",
+    key.offset: 504,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 507,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.generic_type_param,
+    key.name: "Self",
+    key.usr: "s:27module_with_class_extension2P8P4Selfxmfp",
+    key.offset: 513,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.ref.associatedtype,
+    key.name: "T",
+    key.usr: "s:27module_with_class_extension2P8P1TQa",
+    key.offset: 518,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 522,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.name: "E",
+    key.usr: "s:27module_with_class_extension1EC",
+    key.offset: 550,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 559,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 564,
+    key.length: 3
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.class,
+    key.name: "C",
+    key.usr: "s:27module_with_class_extension1CC",
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.offset: 0,
+    key.length: 14,
+    key.fully_annotated_decl: "<decl.class><syntaxtype.keyword>class</syntaxtype.keyword> <decl.name>C</decl.name>&lt;<decl.generic_type_param usr=\"s:27module_with_class_extension1CC1Txmfp\"><decl.generic_type_param.name>T</decl.generic_type_param.name></decl.generic_type_param>&gt;</decl.class>"
+  },
+  {
+    key.kind: source.lang.code.decl.extension.class,
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.offset: 16,
+    key.length: 48,
+    key.fully_annotated_decl: "<decl.extension.class><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.class usr=\"s:27module_with_class_extension1CC\">C</ref.class></decl.name> : <ref.protocol usr=\"s:27module_with_class_extension2P8P\">P8</ref.protocol></decl.extension.class>",
+    key.conforms: [
+      {
+        key.kind: source.lang.code.ref.protocol,
+        key.name: "P8",
+        key.usr: "s:27module_with_class_extension2P8P"
+      }
+    ],
+    key.extends: {
+      key.kind: source.lang.code.ref.class,
+      key.name: "C",
+      key.usr: "s:27module_with_class_extension1CC"
+    }
+  },
+  {
+    key.kind: source.lang.code.decl.extension.class,
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T : D"
+      }
+    ],
+    key.offset: 66,
+    key.length: 87,
+    key.fully_annotated_decl: "<decl.extension.class><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.class usr=\"s:27module_with_class_extension1CC\">C</ref.class></decl.name> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:27module_with_class_extension1CC1Txmfp\">T</ref.generic_type_param> : <ref.class usr=\"s:27module_with_class_extension1DC\">D</ref.class></decl.generic_type_requirement></decl.extension.class>",
+    key.extends: {
+      key.kind: source.lang.code.ref.class,
+      key.name: "C",
+      key.usr: "s:27module_with_class_extension1CC"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "foo()",
+        key.usr: "s:27module_with_class_extension1CCA2A1DCRbzlE3fooyyF",
+        key.offset: 125,
+        key.length: 10,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>foo</decl.name>()</decl.function.method.instance>"
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "bar()",
+        key.usr: "s:27module_with_class_extension2P8PA2A1DC1TRczrlE3baryyF::SYNTHESIZED::s:27module_with_class_extension1CC",
+        key.original_usr: "s:27module_with_class_extension2P8PA2A1DC1TRczrlE3baryyF",
+        key.offset: 141,
+        key.length: 10,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>bar</decl.name>()</decl.function.method.instance>"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.class,
+    key.generic_requirements: [
+      {
+        key.description: "T : E"
+      }
+    ],
+    key.offset: 155,
+    key.length: 71,
+    key.fully_annotated_decl: "<syntaxtype.keyword>extension</syntaxtype.keyword> <ref.class usr=\"s:27module_with_class_extension1CC\">C</ref.class> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:27module_with_class_extension1CC1Txmfp\">T</ref.generic_type_param> : <ref.class usr=\"s:27module_with_class_extension1EC\">E</ref.class></decl.generic_type_requirement>",
+    key.extends: {
+      key.kind: source.lang.code.ref.class,
+      key.name: "C",
+      key.usr: "s:27module_with_class_extension1CC"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "baz()",
+        key.usr: "s:27module_with_class_extension2P8PA2A1EC1TRczrlE3bazyyF::SYNTHESIZED::s:27module_with_class_extension1CC",
+        key.original_usr: "s:27module_with_class_extension2P8PA2A1EC1TRczrlE3bazyyF",
+        key.offset: 214,
+        key.length: 10,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>baz</decl.name>()</decl.function.method.instance>"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.name: "D",
+    key.usr: "s:27module_with_class_extension1DC",
+    key.offset: 228,
+    key.length: 11,
+    key.fully_annotated_decl: "<decl.class><syntaxtype.keyword>class</syntaxtype.keyword> <decl.name>D</decl.name></decl.class>"
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.name: "E",
+    key.usr: "s:27module_with_class_extension1EC",
+    key.offset: 241,
+    key.length: 11,
+    key.fully_annotated_decl: "<decl.class><syntaxtype.keyword>class</syntaxtype.keyword> <decl.name>E</decl.name></decl.class>"
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.name: "F",
+    key.usr: "s:27module_with_class_extension1FC",
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T : D"
+      }
+    ],
+    key.offset: 254,
+    key.length: 70,
+    key.fully_annotated_decl: "<decl.class><syntaxtype.keyword>class</syntaxtype.keyword> <decl.name>F</decl.name>&lt;<decl.generic_type_param usr=\"s:27module_with_class_extension1FC1Txmfp\"><decl.generic_type_param.name>T</decl.generic_type_param.name></decl.generic_type_param>&gt; <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:27module_with_class_extension1FC1Txmfp\">T</ref.generic_type_param> : <ref.class usr=\"s:27module_with_class_extension1DC\">D</ref.class></decl.generic_type_requirement></decl.class>",
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "bar()",
+        key.usr: "s:27module_with_class_extension2P8PA2A1DC1TRczrlE3baryyF::SYNTHESIZED::s:27module_with_class_extension1FC",
+        key.original_usr: "s:27module_with_class_extension2P8PA2A1DC1TRczrlE3baryyF",
+        key.offset: 312,
+        key.length: 10,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>bar</decl.name>()</decl.function.method.instance>"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.class,
+    key.generic_params: [
+      {
+        key.name: "T"
+      }
+    ],
+    key.generic_requirements: [
+      {
+        key.description: "T : D"
+      }
+    ],
+    key.offset: 326,
+    key.length: 48,
+    key.fully_annotated_decl: "<decl.extension.class><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.class usr=\"s:27module_with_class_extension1FC\">F</ref.class></decl.name> : <ref.protocol usr=\"s:27module_with_class_extension2P8P\">P8</ref.protocol></decl.extension.class>",
+    key.conforms: [
+      {
+        key.kind: source.lang.code.ref.protocol,
+        key.name: "P8",
+        key.usr: "s:27module_with_class_extension2P8P"
+      }
+    ],
+    key.extends: {
+      key.kind: source.lang.code.ref.class,
+      key.name: "F",
+      key.usr: "s:27module_with_class_extension1FC"
+    }
+  },
+  {
+    key.kind: source.lang.code.decl.protocol,
+    key.name: "P8",
+    key.usr: "s:27module_with_class_extension2P8P",
+    key.offset: 376,
+    key.length: 37,
+    key.fully_annotated_decl: "<decl.protocol><syntaxtype.keyword>protocol</syntaxtype.keyword> <decl.name>P8</decl.name></decl.protocol>",
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.associatedtype,
+        key.name: "T",
+        key.usr: "s:27module_with_class_extension2P8P1TQa",
+        key.offset: 395,
+        key.length: 16,
+        key.fully_annotated_decl: "<decl.associatedtype><syntaxtype.keyword>associatedtype</syntaxtype.keyword> <decl.name>T</decl.name></decl.associatedtype>"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.protocol,
+    key.generic_requirements: [
+      {
+        key.description: "Self.T : D"
+      }
+    ],
+    key.offset: 415,
+    key.length: 77,
+    key.fully_annotated_decl: "<decl.extension.protocol><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.protocol usr=\"s:27module_with_class_extension2P8P\">P8</ref.protocol></decl.name> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:27module_with_class_extension2P8P4Selfxmfp\">Self</ref.generic_type_param>.<ref.associatedtype usr=\"s:27module_with_class_extension2P8P1TQa\">T</ref.associatedtype> : <ref.class usr=\"s:27module_with_class_extension1DC\">D</ref.class></decl.generic_type_requirement></decl.extension.protocol>",
+    key.extends: {
+      key.kind: source.lang.code.ref.protocol,
+      key.name: "P8",
+      key.usr: "s:27module_with_class_extension2P8P"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "bar()",
+        key.usr: "s:27module_with_class_extension2P8PA2A1DC1TRczrlE3baryyF",
+        key.offset: 480,
+        key.length: 10,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>bar</decl.name>()</decl.function.method.instance>"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension.protocol,
+    key.generic_requirements: [
+      {
+        key.description: "Self.T : E"
+      }
+    ],
+    key.offset: 494,
+    key.length: 77,
+    key.fully_annotated_decl: "<decl.extension.protocol><syntaxtype.keyword>extension</syntaxtype.keyword> <decl.name><ref.protocol usr=\"s:27module_with_class_extension2P8P\">P8</ref.protocol></decl.name> <syntaxtype.keyword>where</syntaxtype.keyword> <decl.generic_type_requirement><ref.generic_type_param usr=\"s:27module_with_class_extension2P8P4Selfxmfp\">Self</ref.generic_type_param>.<ref.associatedtype usr=\"s:27module_with_class_extension2P8P1TQa\">T</ref.associatedtype> : <ref.class usr=\"s:27module_with_class_extension1EC\">E</ref.class></decl.generic_type_requirement></decl.extension.protocol>",
+    key.extends: {
+      key.kind: source.lang.code.ref.protocol,
+      key.name: "P8",
+      key.usr: "s:27module_with_class_extension2P8P"
+    },
+    key.entities: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.name: "baz()",
+        key.usr: "s:27module_with_class_extension2P8PA2A1EC1TRczrlE3bazyyF",
+        key.offset: 559,
+        key.length: 10,
+        key.fully_annotated_decl: "<decl.function.method.instance><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>baz</decl.name>()</decl.function.method.instance>"
+      }
+    ]
+  }
+]

@@ -1,0 +1,6 @@
+fn testStringLiteral() -> String {
+  let name = "Jason"
+  print("Hello, \(name)!")
+  return NSLocalizedString("abc", comment: "")
+}
+

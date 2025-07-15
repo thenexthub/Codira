@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-sil -enable-experimental-concurrency -target %target-language-5.1-abi-triple %s | %FileCheck %s
+// REQUIRES: concurrency
+
+// REQUIRES: language_in_compiler
+
+@_transparent
+fn reasyncFunction(_ value: Optional<Int>, _ fn: () async throws -> Int) reasync rethrows -> Int {
+  switch value {
+  case .some(immutable x): return x
+  case .none: return try await fn()
+  }
+}
+
+// CHECK-LABEL: sil hidden @$s26mandatory_inlining_reasync20callsReasyncFunctionSiyF : $@convention(thin) () -> Int {
+// CHECK: [[FN:%.*]] = function_ref @$s26mandatory_inlining_reasync20callsReasyncFunctionSiyFSiyXEfU_ : $@convention(thin) () -> Int
+// CHECK-NEXT: [[RESULT:%.*]] = apply [[FN]]() : $@convention(thin) () -> Int
+// CHECK-NEXT:  return [[RESULT]] : $Int
+fn callsReasyncFunction() -> Int {
+  return reasyncFunction(nil, { return 321 } )
+}

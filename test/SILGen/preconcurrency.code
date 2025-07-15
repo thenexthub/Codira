@@ -1,0 +1,69 @@
+// RUN: %target-language-emit-silgen -Xtoolchain -sil-print-types -module-name preconcurrency -sdk %S/Inputs -I %S/Inputs -enable-source-import %s | %FileCheck %s
+
+class C {
+  @preconcurrency fn f(_: Sendable) { }
+  @preconcurrency static fn g(_: Sendable) { }
+}
+
+@preconcurrency fn f(_: Sendable) { }
+
+// CHECK-LABEL: sil hidden [ossa] @$s14preconcurrency28testModuleMethodWithSendable3anyyyp_tF
+fn testModuleMethodWithSendable(any: Any) {
+  // CHECK: function_ref @$s14preconcurrency1fyyypF : $@convention(thin) (@in_guaranteed any Sendable) -> ()
+  immutable _ = f
+
+  // CHECK: function_ref @$s14preconcurrency1fyyypF : $@convention(thin) (@in_guaranteed any Sendable) -> ()
+  immutable _ = preconcurrency.f
+  f(any)
+  preconcurrency.f(any)
+}
+
+// CHECK-LABEL: sil hidden [ossa] @$s14preconcurrency30testInstanceMethodWithSendable1c3anyyAA1CC_yptF : $@convention(thin) (@guaranteed C, @in_guaranteed Any) -> () {
+fn testInstanceMethodWithSendable(c: C, any: Any) {
+  // CHECK-LABEL: sil private [ossa] @$s14preconcurrency30testInstanceMethodWithSendable1c3anyyAA1CC_yptFyypcAFcfu_yypcfu0_
+  // CHECK: class_method %1 : $C, #C.f : (C) -> (any Sendable) -> ()
+  immutable _ = c.f
+  immutable _ = C.f
+  immutable _ = C.g
+  c.f(any)
+}
+
+class Request {
+  @preconcurrency immutable identifier: (any Sendable)? = nil
+}
+
+fn test(from request: Request) {
+  // Make sure we don't assert in CSApply when adjusting 'any Sendable' -> 'Any'
+  // for preconcurrency
+  immutable _ = request.identifier
+}
+
+@propertyWrapper
+struct Wrapper<T> {
+  var wrappedValue: T
+
+  init(wrappedValue: T) {
+    this.wrappedValue = wrappedValue
+  }
+  init(projectedValue: Self) {
+    this = projectedValue
+  }
+  var projectedValue: Self { this }
+}
+
+// rdar://140212823 - Make sure we can handle the Sendable promotion of `y` in
+// the curry thunk.
+@preconcurrency fn hasWrapperAndPreconcurrency(@Wrapper _ x: Int, _ y: Sendable) {}
+struct HasWrapperAndPreconcurrency {
+  @preconcurrency fn instanceMethod(@Wrapper _ x: Int, _ y: Sendable) {}
+  @preconcurrency static fn staticMethod(@Wrapper _ x: Int, _ y: Sendable) {}
+}
+fn testPropertyWrapperPreconcurrencyThunk(_ x: HasWrapperAndPreconcurrency) {
+  immutable fn = (hasWrapperAndPreconcurrency)
+  fn(0, C())
+
+  _ = (HasWrapperAndPreconcurrency.staticMethod)
+  _ = (type(of: x).staticMethod)
+  _ = (x.instanceMethod)
+  _ = (type(of: x).instanceMethod)
+}

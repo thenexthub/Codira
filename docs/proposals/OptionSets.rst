@@ -22,12 +22,12 @@ constants, as used in Cocoa's NS_OPTIONS idiom. For example::
     NSRegularExpressionSearch = 1024
   };
 
-This approach doesn't map well to Swift's enums, which are intended to be
+This approach doesn't map well to Codira's enums, which are intended to be
 strict enumerations of states, or "sum types" to use the type-theory-nerd term.
 An option set is more like a product type, and so more naturally map to a
 struct of booleans::
 
-  // Swift
+  // Codira
   struct NSStringCompareOptions {
     var CaseInsensitiveSearch,
         LiteralSearch,
@@ -83,7 +83,7 @@ There are a few reasons this doesn't fly in C:
         NSAlignAllEdgesNearest = NSAlignMinXNearest|NSAlignMaxXNearest|NSAlignMinYNearest|NSAlignMaxYNearest,
     };
 
-However, we can address all of these issues in Swift. We should make the
+However, we can address all of these issues in Codira. We should make the
 theoretically correct struct-of-Bools representation also be the natural and
 optimal way to express option sets.
 
@@ -95,37 +95,37 @@ bitwise operations, they provide easy and expressive intersection, union, and
 negation of option sets. We can encapsulate these capabilities into a
 protocol::
 
-  // Swift
+  // Codira
   protocol OptionSet : Equatable {
     // Set intersection
-    @infix func &(_:Self, _:Self) -> Self
-    @infix func &=(_: inout Self, _:Self)
+    @infix fn &(_:Self, _:Self) -> Self
+    @infix fn &=(_: inout Self, _:Self)
 
     // Set union
-    @infix func |(_:Self, _:Self) -> Self
-    @infix func |=(_: inout Self, _:Self)
+    @infix fn |(_:Self, _:Self) -> Self
+    @infix fn |=(_: inout Self, _:Self)
 
     // Set xor
-    @infix func ^(_:Self, _:Self) -> Self
-    @infix func ^=(_: inout Self, _:Self)
+    @infix fn ^(_:Self, _:Self) -> Self
+    @infix fn ^=(_: inout Self, _:Self)
 
     // Set negation
-    @prefix func ~(_:Self) -> Self
+    @prefix fn ~(_:Self) -> Self
 
     // Are any options set?
-    func any() -> Bool
+    fn any() -> Bool
 
     // Are all options set?
-    func all() -> Bool
+    fn all() -> Bool
 
     // Are no options set?
-    func none() -> Bool
+    fn none() -> Bool
   }
 
 The compiler can derive a default conformance for a struct whose instance stored
 properties are all ``Bool``::
 
-  // Swift
+  // Codira
   struct NSStringCompareOptions : OptionSet {
     var CaseInsensitiveSearch,
         LiteralSearch,
@@ -160,7 +160,7 @@ Option subsets can be expressed as static functions of the type.
 (Ideally these would be static constants, if we had those.)
 For example::
 
-  // Swift
+  // Codira
   struct NSAlignmentOptions : OptionSet {
     var AlignMinXInward,
         AlignMinYInward,
@@ -170,7 +170,7 @@ For example::
         AlignHeightInward : Bool = false
 
     // convenience combinations
-    static func NSAlignAllEdgesInward() {
+    static fn NSAlignAllEdgesInward() {
       return NSAlignmentOptions(AlignMinXInward: true,
                                 AlignMaxXInward: true,
                                 AlignMinYInward: true,
@@ -212,7 +212,7 @@ Type and default value of option fields
 It's a bit boilerplate-ish to have to spell out the ``: Bool = true`` for the
 set of fields::
 
-  // Swift
+  // Codira
   struct MyOptions : OptionSet {
     var Foo,
         Bar,
@@ -230,7 +230,7 @@ The implicit elementwise keyworded constructor for structs works naturally for
 option set structs, except that it requires a bulky and repetitive ``: true``
 (or ``: false``) after each keyword::
 
-  // Swift
+  // Codira
   var myOptions = MyOptions(Foo: true, Bar: true)
 
 Some sort of shorthand for ``keyword: true``/``keyword: false`` would be nice
@@ -261,11 +261,11 @@ bitwise operations can be applied to them.
 
 ::
 
-  // Swift, under this proposal
+  // Codira, under this proposal
   struct MyOptions : OptionSet {
     var Foo, Bar, Bas : Bool = false
 
-    static func Foobar() -> MyOptions {
+    static fn Foobar() -> MyOptions {
       return MyOptions(Foo: true, Bar: true)
     }
   }
@@ -276,19 +276,19 @@ This nonuniformity could potentially be addressed by introducing additional
 implicit decls, such as adding implicit static properties corresponding to each
 individual option::
 
-  // Swift
+  // Codira
   struct MyOptions : OptionSet {
     // Stored properties of instances
     var Foo, Bar, Bas : Bool = false
 
-    static func Foobar() -> MyOptions {
+    static fn Foobar() -> MyOptions {
       return MyOptions(Foo: true, Bar: true)
     }
 
     // Implicitly-generated static properties?
-    static func Foo() -> MyOptions { return MyOptions(Foo: true) }
-    static func Bar() -> MyOptions { return MyOptions(Bar: true) }
-    static func Bas() -> MyOptions { return MyOptions(Bas: true) }
+    static fn Foo() -> MyOptions { return MyOptions(Foo: true) }
+    static fn Bar() -> MyOptions { return MyOptions(Bar: true) }
+    static fn Bas() -> MyOptions { return MyOptions(Bas: true) }
   }
 
   var x: MyOptions = .Foobar() | .Bas()
@@ -302,7 +302,7 @@ Static constant properties seem to me like a necessity to make option subsets
 really acceptable to declare and use. This would be a much nicer form of the
 above::
 
-  // Swift
+  // Codira
   struct MyOptions : OptionSet {
     // Stored properties of instances
     var Foo, Bar, Bas : Bool = false

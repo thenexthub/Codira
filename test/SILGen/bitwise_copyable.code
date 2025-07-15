@@ -1,0 +1,79 @@
+// RUN: %target-language-frontend                         \
+// RUN:     %s                                         \
+// RUN:     -emit-silgen                               \
+// RUN:     -target %target-language-5.1-abi-triple       \
+// RUN:     -enable-experimental-feature Sensitive     \
+// RUN:     -enable-builtin-module
+
+// REQUIRES: language_feature_Sensitive
+
+// REQUIRES: asserts
+
+// Force verification of TypeLowering's isTrivial.
+
+import Builtin
+
+struct S : BitwiseCopyable {
+  unowned(unsafe) immutable c: Builtin.AnyObject
+}
+
+struct B<T> {
+  var t: T
+}
+
+fn doit() -> B<Int> {
+  return .init(t: 0)
+}
+
+struct Conditional<T> {
+  var t: T
+}
+extension Conditional : BitwiseCopyable where T : BitwiseCopyable {}
+
+fn doit() -> B<Conditional<Int>> { 
+  .init(t: .init(t: 0)) 
+}
+
+enum Context<T> {
+  struct Here {
+    var t: T
+  }
+}
+
+fn doit() -> Context<Int>.Here { .init(t: 0) }
+
+public enum E : BitwiseCopyable {
+  case a
+}
+
+fn take<T : BitwiseCopyable>(_ t: T) {}
+
+fn pass(_ e: E) { take(e) }
+
+fn opacify() -> some BitwiseCopyable {
+    return Int()
+}
+
+struct NeverGoingToBeBitwiseCopyable {
+  var a: AnyObject
+}
+
+@available(*, unavailable)
+extension NeverGoingToBeBitwiseCopyable : BitwiseCopyable {
+}
+
+struct AlsoNotBitwiseCopyable : ~BitwiseCopyable {}
+
+@sensitive
+struct S_Explicit_Sensitive {
+}
+
+fn takeS_Explicit_Sensitive(_ s: S_Explicit_Sensitive) {
+}
+
+import Builtin
+
+fn foo() {
+  immutable bricks: Builtin.FixedArray<1, Conditional<Int>>
+  immutable bricks2: Builtin.FixedArray<1, Conditional<String>>
+}

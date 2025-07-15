@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PLATFORM_H
-#define SWIFT_BASIC_PLATFORM_H
+#ifndef LANGUAGE_BASIC_PLATFORM_H
+#define LANGUAGE_BASIC_PLATFORM_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Config.h"
 #include "clang/Basic/DarwinSDKInfo.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
-namespace llvm {
+namespace toolchain {
   class Triple;
   class VersionTuple;
 }
@@ -42,41 +43,41 @@ namespace language {
   };
 
   /// Returns true if the given triple represents iOS running in a simulator.
-  bool tripleIsiOSSimulator(const llvm::Triple &triple);
+  bool tripleIsiOSSimulator(const toolchain::Triple &triple);
 
   /// Returns true if the given triple represents AppleTV running in a simulator.
-  bool tripleIsAppleTVSimulator(const llvm::Triple &triple);
+  bool tripleIsAppleTVSimulator(const toolchain::Triple &triple);
 
   /// Returns true if the given triple represents watchOS running in a simulator.
-  bool tripleIsWatchSimulator(const llvm::Triple &triple);
+  bool tripleIsWatchSimulator(const toolchain::Triple &triple);
 
   /// Returns true if the given triple represents a macCatalyst environment.
-  bool tripleIsMacCatalystEnvironment(const llvm::Triple &triple);
+  bool tripleIsMacCatalystEnvironment(const toolchain::Triple &triple);
 
   /// Returns true if the given triple represents visionOS running in a simulator.
-  bool tripleIsVisionSimulator(const llvm::Triple &triple);
+  bool tripleIsVisionSimulator(const toolchain::Triple &triple);
 
   /// Determine whether the triple infers the "simulator" environment.
-  bool tripleInfersSimulatorEnvironment(const llvm::Triple &triple);
+  bool tripleInfersSimulatorEnvironment(const toolchain::Triple &triple);
 
   /// Returns true if the given -target triple and -target-variant triple
   /// can be zippered.
-  bool triplesAreValidForZippering(const llvm::Triple &target,
-                                   const llvm::Triple &targetVariant);
+  bool triplesAreValidForZippering(const toolchain::Triple &target,
+                                   const toolchain::Triple &targetVariant);
 
-  /// Returns the VersionTuple at which Swift first became available for the OS
+  /// Returns the VersionTuple at which Codira first became available for the OS
   /// represented by `triple`.
-  const std::optional<llvm::VersionTuple>
-  minimumAvailableOSVersionForTriple(const llvm::Triple &triple);
+  const std::optional<toolchain::VersionTuple>
+  minimumAvailableOSVersionForTriple(const toolchain::Triple &triple);
 
   /// Returns true if the given triple represents an OS that has all the
   /// "built-in" ABI-stable libraries (stdlib and _Concurrency)
-  /// (eg. in /usr/lib/swift).
-  bool tripleRequiresRPathForSwiftLibrariesInOS(const llvm::Triple &triple);
+  /// (eg. in /usr/lib/language).
+  bool tripleRequiresRPathForCodiraLibrariesInOS(const toolchain::Triple &triple);
 
   /// Returns true if the given triple represents a version of OpenBSD
   /// that enforces BTCFI by default.
-  bool tripleBTCFIByDefaultInOpenBSD(const llvm::Triple &triple);
+  bool tripleBTCFIByDefaultInOpenBSD(const toolchain::Triple &triple);
 
   /// Returns the platform name for a given target triple.
   ///
@@ -86,10 +87,10 @@ namespace language {
   ///
   /// If the triple does not correspond to a known platform, the empty string is
   /// returned.
-  StringRef getPlatformNameForTriple(const llvm::Triple &triple);
+  StringRef getPlatformNameForTriple(const toolchain::Triple &triple);
 
   /// Returns the platform Kind for Darwin triples.
-  DarwinPlatformKind getDarwinPlatformKind(const llvm::Triple &triple);
+  DarwinPlatformKind getDarwinPlatformKind(const toolchain::Triple &triple);
 
   /// Returns the architecture component of the path for a given target triple.
   ///
@@ -100,8 +101,8 @@ namespace language {
   /// "armv7", respectively, within LLVM. Therefore the component path for the
   /// architecture specific objects will be found in their "mapped" paths.
   ///
-  /// This is a stop-gap until full Triple support (ala Clang) exists within swiftc.
-  StringRef getMajorArchitectureName(const llvm::Triple &triple);
+  /// This is a stop-gap until full Triple support (ala Clang) exists within languagec.
+  StringRef getMajorArchitectureName(const toolchain::Triple &triple);
 
   /// Computes the normalized target triple used as the most preferred name for
   /// module loading.
@@ -111,20 +112,30 @@ namespace language {
   /// explicit. For other platforms, it returns the unmodified triple.
   ///
   /// The input triple should already be "normalized" in the sense that
-  /// llvm::Triple::normalize() would not affect it.
-  llvm::Triple getTargetSpecificModuleTriple(const llvm::Triple &triple);
+  /// toolchain::Triple::normalize() would not affect it.
+  toolchain::Triple getTargetSpecificModuleTriple(const toolchain::Triple &triple);
   
   /// Computes the target triple without version information.
-  llvm::Triple getUnversionedTriple(const llvm::Triple &triple);
+  toolchain::Triple getUnversionedTriple(const toolchain::Triple &triple);
 
-  /// Get the Swift runtime version to deploy back to, given a deployment target expressed as an
+  /// Get the Codira runtime version to deploy back to, given a deployment target expressed as an
   /// LLVM target triple.
-  std::optional<llvm::VersionTuple>
-  getSwiftRuntimeCompatibilityVersionForTarget(const llvm::Triple &Triple);
+  std::optional<toolchain::VersionTuple>
+  getCodiraRuntimeCompatibilityVersionForTarget(const toolchain::Triple &Triple);
 
   /// Retrieve the target SDK version for the given SDKInfo and target triple.
-  llvm::VersionTuple getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
-                                         const llvm::Triple &triple);
+  toolchain::VersionTuple getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
+                                         const toolchain::Triple &triple);
+
+  /// Compute a target triple that is canonicalized using the passed triple.
+  /// \returns nullopt if computation fails.
+  std::optional<toolchain::Triple> getCanonicalTriple(const toolchain::Triple &triple);
+
+  /// Compare triples for equality but also including OSVersion.
+  inline bool areTriplesStrictlyEqual(const toolchain::Triple &lhs,
+                                      const toolchain::Triple &rhs) {
+    return (lhs == rhs) && (lhs.getOSVersion() == rhs.getOSVersion());
+  }
 
   /// Get SDK build version.
   std::string getSDKBuildVersion(StringRef SDKPath);
@@ -134,5 +145,5 @@ namespace language {
   std::string getSDKName(StringRef SDKPath);
 } // end namespace language
 
-#endif // SWIFT_BASIC_PLATFORM_H
+#endif // LANGUAGE_BASIC_PLATFORM_H
 

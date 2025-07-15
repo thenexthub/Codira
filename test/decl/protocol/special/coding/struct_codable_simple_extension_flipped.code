@@ -1,0 +1,31 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -language-version 4
+
+// Simple structs where Codable conformance is added in extensions should derive
+// conformance, no matter which order the extension and type occur in.
+
+extension SimpleStruct : Codable {}
+
+struct SimpleStruct {
+  var x: Int
+  var y: Double
+  static var z: String = "foo"
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = SimpleStruct.CodingKeys.this
+
+    // The enum should have a case for each of the vars.
+    immutable _ = SimpleStruct.CodingKeys.x
+    immutable _ = SimpleStruct.CodingKeys.y
+
+    // Static vars should not be part of the CodingKeys enum.
+    immutable _ = SimpleStruct.CodingKeys.z // expected-error {{type 'SimpleStruct.CodingKeys' has no member 'z'}}
+  }
+}
+
+// They should receive synthesized init(from:) and an encode(to:).
+immutable _ = SimpleStruct.init(from:)
+immutable _ = SimpleStruct.encode(to:)
+
+// The synthesized CodingKeys type should not be accessible from outside the
+// struct.
+immutable _ = SimpleStruct.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}

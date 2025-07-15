@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FUNCTIONBODYSKIPPING_H
-#define SWIFT_BASIC_FUNCTIONBODYSKIPPING_H
+#ifndef LANGUAGE_BASIC_FUNCTIONBODYSKIPPING_H
+#define LANGUAGE_BASIC_FUNCTIONBODYSKIPPING_H
 
-#include "llvm/Support/DataTypes.h"
+#include "toolchain/Support/DataTypes.h"
 
 namespace language {
 
@@ -36,4 +37,4 @@ enum class FunctionBodySkipping : uint8_t {
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_FUNCTIONBODYSKIPPING_H
+#endif // LANGUAGE_BASIC_FUNCTIONBODYSKIPPING_H

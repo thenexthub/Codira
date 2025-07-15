@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend -target %target-cpu-apple-macos12 -emit-ir -o - -primary-file %s | %FileCheck %s
+// REQUIRES: concurrency
+// REQUIRES: OS=macosx
+
+fn useGenericMetatype(_ type: Any.Type) { }
+
+// CHECK-LABEL: define hidden languagecc void @"$s52backward_deploy_nonisolated_nonsending_function_type29testNonisolatedNonsendingTypeyyF"()
+fn testNonisolatedNonsendingType() {
+  typealias Fn = nonisolated(nonsending) () async throws -> Int
+
+  // CHECK: call languagecc %language.metadata_response @"$sSiyYaKYCcMa"
+  // CHECK: call languagecc void @"$s52backward_deploy_nonisolated_nonsending_function_type18useGenericMetatypeyyypXpF"
+  useGenericMetatype(Fn.this)
+}
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc %language.metadata_response @"$sSiyYaKYCcMa"
+// CHECK: call ptr @language_getExtendedFunctionTypeMetadata(i{{32|64}} 2768240640, {{i32|i64}} 0, ptr null, ptr null, ptr @"$sSiN"

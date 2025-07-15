@@ -1,0 +1,4 @@
+// {"signature":"getTypeForSymbolRange(language::rewriting::Symbol const*, language::rewriting::Symbol const*, toolchain::ArrayRef<language::GenericTypeParamType*>, language::rewriting::PropertyMap const&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Combine extension Publishers.Share{a <b , c where Upstream == Publishers.FlatMap <b, c>{fn a <c where Upstream == Publishers.FlatMap <b, c>, c.Output ==

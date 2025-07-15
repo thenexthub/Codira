@@ -1,4 +1,4 @@
-target_sources(swiftSIL PRIVATE
+target_sources(languageSIL PRIVATE
   DebugInfoVerifier.cpp
   LinearLifetimeChecker.cpp
   MemoryLifetimeVerifier.cpp

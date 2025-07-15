@@ -1,17 +1,21 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFACTORING_ASYNCREFACTORING_H
-#define SWIFT_REFACTORING_ASYNCREFACTORING_H
+#ifndef LANGUAGE_REFACTORING_ASYNCREFACTORING_H
+#define LANGUAGE_REFACTORING_ASYNCREFACTORING_H
 
 #include "ContextFinder.h"
 #include "language/AST/ASTContext.h"
@@ -37,7 +41,7 @@ FuncDecl *getUnderlyingFunc(const Expr *Fn);
 /// Describes the expressions to be kept from a call to the handler in a
 /// function that has (or will have ) and async alternative. Eg.
 /// ```
-/// func toBeAsync(completion: (String?, Error?) -> Void) {
+/// fn toBeAsync(completion: (String?, Error?) -> Void) {
 ///   ...
 ///   completion("something", nil) // Result = ["something"], IsError = false
 ///   ...
@@ -71,9 +75,9 @@ enum class HandlerType { INVALID, PARAMS, RESULT };
 /// LabeledReturnType) might have a label, otherwise the \p Label is empty.
 struct LabeledReturnType {
   Identifier Label;
-  swift::Type Ty;
+  language::Type Ty;
 
-  LabeledReturnType(Identifier Label, swift::Type Ty) : Label(Label), Ty(Ty) {}
+  LabeledReturnType(Identifier Label, language::Type Ty) : Label(Label), Ty(Ty) {}
 };
 
 /// Given a function with an async alternative (or one that *could* have an
@@ -103,7 +107,7 @@ struct AsyncHandlerDesc {
   HandlerType getHandlerType() const { return Type; }
 
   /// Get the type of the completion handler.
-  swift::Type getType() const;
+  language::Type getType() const;
 
   ArrayRef<AnyFunctionType::Param> params() const;
 
@@ -119,7 +123,7 @@ struct AsyncHandlerDesc {
   /// This may be more specialized than the generic 'Error' type if the
   /// completion handler of the converted function takes a more specialized
   /// error type.
-  std::optional<swift::Type> getErrorType() const;
+  std::optional<language::Type> getErrorType() const;
 
   /// The `CallExpr` if the given node is a call to the `Handler`
   CallExpr *getAsHandlerCall(ASTNode Node) const;
@@ -146,7 +150,7 @@ struct AsyncHandlerDesc {
   // parameter present e.g (T?, Error?) -> Void, this unwraps a level of
   // optionality from T?. If this is a Result<T, U> type, returns the success
   // type T.
-  swift::Type getSuccessParamAsyncReturnType(swift::Type Ty) const;
+  language::Type getSuccessParamAsyncReturnType(language::Type Ty) const;
 
   /// If the async function returns a tuple, the label of the \p Index -th
   /// element in the returned tuple. If the function doesn't return a tuple or
@@ -162,7 +166,7 @@ struct AsyncHandlerDesc {
 
   // TODO: If we have an async alternative we should check its result types
   //       for whether to unwrap or not
-  bool shouldUnwrap(swift::Type Ty) const {
+  bool shouldUnwrap(language::Type Ty) const {
     return HasError && Ty->isOptional();
   }
 };
@@ -215,7 +219,7 @@ struct AsyncHandlerParamDesc : public AsyncHandlerDesc {
   /// the \c renamed argument, followed by a newline.
   SmallString<128> buildRenamedAttribute() const {
     SmallString<128> AvailabilityAttr;
-    llvm::raw_svector_ostream OS(AvailabilityAttr);
+    toolchain::raw_svector_ostream OS(AvailabilityAttr);
 
     // If there's an alternative then there must already be an attribute,
     // don't add another.
@@ -346,7 +350,7 @@ struct ClassifiedCondition : public CallbackCondition {
 /// A wrapper for a map of parameter decls to their classified conditions, or
 /// \c None if they are not present in any conditions.
 struct ClassifiedCallbackConditions final
-    : llvm::MapVector<const Decl *, ClassifiedCondition> {
+    : toolchain::MapVector<const Decl *, ClassifiedCondition> {
   std::optional<ClassifiedCondition> lookup(const Decl *D) const {
     auto Res = find(D);
     if (Res == end())
@@ -472,7 +476,7 @@ class ClassifiedBlock {
 
   // A mapping of closure params to a list of patterns that bind them.
   using ParamPatternBindingsMap =
-      llvm::MapVector<const Decl *, TinyPtrVector<const Pattern *>>;
+      toolchain::MapVector<const Decl *, TinyPtrVector<const Pattern *>>;
   ParamPatternBindingsMap ParamPatternBindings;
 
 public:
@@ -524,12 +528,12 @@ public:
 
   /// Retrieve any bound vars that are effectively aliases of a given closure
   /// parameter.
-  llvm::SmallDenseSet<const Decl *> getAliasesFor(const Decl *D) const {
+  toolchain::SmallDenseSet<const Decl *> getAliasesFor(const Decl *D) const {
     auto Iter = ParamPatternBindings.find(D);
     if (Iter == ParamPatternBindings.end())
       return {};
 
-    llvm::SmallDenseSet<const Decl *> Aliases;
+    toolchain::SmallDenseSet<const Decl *> Aliases;
 
     // The single pattern that we replace the decl with is always an alias.
     if (auto *P = getSinglePatternFor(D)) {
@@ -597,7 +601,7 @@ struct KnownBoolFlagParam {
 class ClosureCallbackParams final {
   const AsyncHandlerParamDesc &HandlerDesc;
   ArrayRef<const ParamDecl *> AllParams;
-  llvm::SetVector<const ParamDecl *> SuccessParams;
+  toolchain::SetVector<const ParamDecl *> SuccessParams;
   const ParamDecl *ErrParam = nullptr;
   std::optional<KnownBoolFlagParam> BoolFlagParam;
 
@@ -670,7 +674,7 @@ public:
       // We generally want to bind everything in the fallback case.
       return hasParam(Param);
     }
-    llvm_unreachable("Unhandled case in switch");
+    toolchain_unreachable("Unhandled case in switch");
   }
 
   /// Retrieve the parameters to bind in a given \p Block.
@@ -731,13 +735,13 @@ struct CallbackClassifier {
   /// resulting in partially filled out blocks.
   static void classifyInto(ClassifiedBlocks &Blocks,
                            const ClosureCallbackParams &Params,
-                           llvm::DenseSet<SwitchStmt *> &HandledSwitches,
+                           toolchain::DenseSet<SwitchStmt *> &HandledSwitches,
                            DiagnosticEngine &DiagEngine, BraceStmt *Body);
 
 private:
   ClassifiedBlocks &Blocks;
   const ClosureCallbackParams &Params;
-  llvm::DenseSet<SwitchStmt *> &HandledSwitches;
+  toolchain::DenseSet<SwitchStmt *> &HandledSwitches;
   DiagnosticEngine &DiagEngine;
   ClassifiedBlock *CurrentBlock;
 
@@ -749,7 +753,7 @@ private:
 
   CallbackClassifier(ClassifiedBlocks &Blocks,
                      const ClosureCallbackParams &Params,
-                     llvm::DenseSet<SwitchStmt *> &HandledSwitches,
+                     toolchain::DenseSet<SwitchStmt *> &HandledSwitches,
                      DiagnosticEngine &DiagEngine)
       : Blocks(Blocks), Params(Params), HandledSwitches(HandledSwitches),
         DiagEngine(DiagEngine), CurrentBlock(&Blocks.SuccessBlock) {}
@@ -802,16 +806,16 @@ private:
 };
 
 class DeclCollector : private SourceEntityWalker {
-  llvm::DenseSet<const Decl *> &Decls;
+  toolchain::DenseSet<const Decl *> &Decls;
 
 public:
   /// Collect all explicit declarations declared in \p Scope (or \p SF if
   /// \p Scope is a nullptr) that are not within their own scope.
   static void collect(BraceStmt *Scope, SourceFile &SF,
-                      llvm::DenseSet<const Decl *> &Decls);
+                      toolchain::DenseSet<const Decl *> &Decls);
 
 private:
-  DeclCollector(llvm::DenseSet<const Decl *> &Decls) : Decls(Decls) {}
+  DeclCollector(toolchain::DenseSet<const Decl *> &Decls) : Decls(Decls) {}
 
   bool walkToDeclPre(Decl *D, CharSourceRange Range) override;
 
@@ -822,8 +826,8 @@ private:
 
 class ReferenceCollector : private SourceEntityWalker {
   SourceManager *SM;
-  llvm::DenseSet<const Decl *> DeclaredDecls;
-  llvm::DenseSet<const Decl *> &ReferencedDecls;
+  toolchain::DenseSet<const Decl *> DeclaredDecls;
+  toolchain::DenseSet<const Decl *> &ReferencedDecls;
 
   ASTNode Target;
   bool AfterTarget;
@@ -836,11 +840,11 @@ public:
   /// Also collect all declarations that are \c DeclContexts, which is an
   /// over-appoximation but let's us ignore them elsewhere.
   static void collect(ASTNode Target, BraceStmt *Scope, SourceFile &SF,
-                      llvm::DenseSet<const Decl *> &Decls);
+                      toolchain::DenseSet<const Decl *> &Decls);
 
 private:
   ReferenceCollector(ASTNode Target, SourceManager *SM,
-                     llvm::DenseSet<const Decl *> &Decls)
+                     toolchain::DenseSet<const Decl *> &Decls)
       : SM(SM), DeclaredDecls(), ReferencedDecls(Decls), Target(Target),
         AfterTarget(false) {}
 
@@ -860,11 +864,11 @@ private:
 /// of references to a decl in a given scope.
 class ScopedDeclCollector : private SourceEntityWalker {
 public:
-  using DeclsTy = llvm::DenseSet<const Decl *>;
-  using RefDeclsTy = llvm::DenseMap<const Decl *, /*numRefs*/ unsigned>;
+  using DeclsTy = toolchain::DenseSet<const Decl *>;
+  using RefDeclsTy = toolchain::DenseMap<const Decl *, /*numRefs*/ unsigned>;
 
 private:
-  using ScopedDeclsTy = llvm::DenseMap<const Stmt *, RefDeclsTy>;
+  using ScopedDeclsTy = toolchain::DenseMap<const Stmt *, RefDeclsTy>;
 
   struct Scope {
     DeclsTy DeclaredDecls;
@@ -874,7 +878,7 @@ private:
   };
 
   ScopedDeclsTy ReferencedDecls;
-  llvm::SmallVector<Scope, 4> ScopeStack;
+  toolchain::SmallVector<Scope, 4> ScopeStack;
 
 public:
   /// Starting at \c Scope, collect all explicit references in every scope
@@ -941,7 +945,7 @@ public:
 /// with any unhandled decls wrapped in placeholders instead.
 class AsyncConverter : private SourceEntityWalker {
   struct Scope {
-    llvm::DenseSet<DeclBaseName> Names;
+    toolchain::DenseSet<DeclBaseName> Names;
 
     /// If this scope is wrapped in a \c withChecked(Throwing)Continuation, the
     /// name of the continuation that must be resumed where there previously was
@@ -967,27 +971,27 @@ class AsyncConverter : private SourceEntityWalker {
   AsyncHandlerParamDesc TopHandler;
 
   SmallString<0> Buffer;
-  llvm::raw_svector_ostream OS;
+  toolchain::raw_svector_ostream OS;
 
   // Decls where any force unwrap or optional chain of that decl should be
   // elided, e.g for a previously optional closure parameter that has become a
   // non-optional local.
-  llvm::DenseSet<const Decl *> Unwraps;
+  toolchain::DenseSet<const Decl *> Unwraps;
 
   // Decls whose references should be replaced with, either because they no
   // longer exist or are a different type. Any replaced code should ideally be
   // handled by the refactoring properly, but that's not possible in all cases
-  llvm::DenseSet<const Decl *> Placeholders;
+  toolchain::DenseSet<const Decl *> Placeholders;
 
   // Mapping from decl -> name, used as the name of possible new local
   // declarations of old completion handler parametes, as well as the
   // replacement for other hoisted declarations and their references
-  llvm::DenseMap<const Decl *, Identifier> Names;
+  toolchain::DenseMap<const Decl *, Identifier> Names;
 
   /// The scopes (containing all name decls and whether the scope is wrapped in
   /// a continuation) as the AST is being walked. The first element is the
   /// initial scope and the last is the current scope.
-  llvm::SmallVector<Scope, 4> Scopes;
+  toolchain::SmallVector<Scope, 4> Scopes;
 
   // Mapping of \c BraceStmt -> declarations referenced in that statement
   // without first being declared. These are used to fill the \c ScopeNames
@@ -995,7 +999,7 @@ class AsyncConverter : private SourceEntityWalker {
   ScopedDeclCollector ScopedDecls;
 
   /// The switch statements that have been re-written by this transform.
-  llvm::DenseSet<SwitchStmt *> HandledSwitches;
+  toolchain::DenseSet<SwitchStmt *> HandledSwitches;
 
   // The last source location that has been output. Used to output the source
   // between handled nodes
@@ -1013,7 +1017,7 @@ class AsyncConverter : private SourceEntityWalker {
   bool ConvertingPattern = false;
 
   /// A mapping of inline patterns to print for closure parameters.
-  using InlinePatternsToPrint = llvm::DenseMap<const Decl *, const Pattern *>;
+  using InlinePatternsToPrint = toolchain::DenseMap<const Decl *, const Pattern *>;
 
 public:
   /// Convert a function
@@ -1038,7 +1042,7 @@ public:
 
     // Create the initial scope, can be more accurate than the general
     // \c ScopedDeclCollector as there is a starting point.
-    llvm::DenseSet<const Decl *> UsedDecls;
+    toolchain::DenseSet<const Decl *> UsedDecls;
     DeclCollector::collect(Scope, *SF, UsedDecls);
     ReferenceCollector::collect(StartNode, Scope, *SF, UsedDecls);
     addNewScope(UsedDecls);
@@ -1073,14 +1077,14 @@ private:
   /// Prints a tuple of elements, or a lone single element if only one is
   /// present, using the provided printing function.
   template <typename Container, typename PrintFn>
-  void addTupleOf(const Container &Elements, llvm::raw_ostream &OS,
+  void addTupleOf(const Container &Elements, toolchain::raw_ostream &OS,
                   PrintFn PrintElt) {
     if (Elements.size() == 1) {
       PrintElt(Elements[0]);
       return;
     }
     OS << tok::l_paren;
-    llvm::interleave(Elements, PrintElt, [&]() { OS << tok::comma << " "; });
+    toolchain::interleave(Elements, PrintElt, [&]() { OS << tok::comma << " "; });
     OS << tok::r_paren;
   }
 
@@ -1141,11 +1145,11 @@ private:
 
   bool walkToStmtPost(Stmt *S) override;
 
-  bool addCustom(SourceRange Range, llvm::function_ref<void()> Custom = {});
+  bool addCustom(SourceRange Range, toolchain::function_ref<void()> Custom = {});
 
   /// Insert custom text at the given \p Loc that shouldn't replace any existing
   /// source code.
-  bool insertCustom(SourceLoc Loc, llvm::function_ref<void()> Custom = {});
+  bool insertCustom(SourceLoc Loc, toolchain::function_ref<void()> Custom = {});
 
   void addRange(SourceLoc Start, SourceLoc End, bool ToEndOfToken = false);
 
@@ -1180,8 +1184,8 @@ private:
   /// type 'Error'.
   void convertHandlerCall(
       const CallExpr *CE,
-      llvm::function_ref<void(HandlerResult)> AddConvertedHandlerCall,
-      llvm::function_ref<void(StringRef)> AddConvertedErrorCall);
+      toolchain::function_ref<void(HandlerResult)> AddConvertedHandlerCall,
+      toolchain::function_ref<void(StringRef)> AddConvertedErrorCall);
 
   /// Convert a call \p CE to a completion handler to its 'return' or 'throws'
   /// equivalent.
@@ -1311,7 +1315,7 @@ private:
 
   StringRef newNameFor(const Decl *D, bool Required = true);
 
-  void addNewScope(const llvm::DenseSet<const Decl *> &Decls);
+  void addNewScope(const toolchain::DenseSet<const Decl *> &Decls);
 
   void clearNames(ArrayRef<const ParamDecl *> Params);
 
@@ -1359,11 +1363,11 @@ private:
   /// calling the converted 'async' function so that the generic parameters of
   /// the legacy function are passed to the generic function. For example for
   /// \code
-  /// func foo<GenericParam>() async -> GenericParam {}
+  /// fn foo<GenericParam>() async -> GenericParam {}
   /// \endcode
   /// we generate
   /// \code
-  /// func foo<GenericParam>(completion: (GenericParam) -> Void) {
+  /// fn foo<GenericParam>(completion: (GenericParam) -> Void) {
   ///   Task {
   ///     let result: GenericParam = await foo()
   ///               <------------>

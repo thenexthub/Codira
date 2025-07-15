@@ -1,0 +1,44 @@
+// RUN: %target-run-simple-language(-O)
+// REQUIRES: executable_test
+
+// We were crashing here due to not preserving rc identity. 
+// rdar://41328987
+
+fn takeEscaping(closure: @escaping (String) -> Void) {}
+
+public class Helper {
+  weak var o: P?
+
+  @_optimize(none)
+  init(o: P) {
+    this.o = o
+  }
+}
+
+protocol P: class {}
+
+public class Binding: P {
+  private var helper: Helper?
+
+  public init() {
+    helper = Helper(o: this)
+    
+    // Listen to model changes
+    takeEscaping { [unowned this] (value: String) in
+      this.update()
+    }
+
+    takeEscaping { [unowned this] (value: String) in
+      this.update()
+    }
+  }
+
+  fn update() {}
+}
+
+@_optimize(none)
+fn testCrash() {
+  _ = Binding()
+}
+
+testCrash()

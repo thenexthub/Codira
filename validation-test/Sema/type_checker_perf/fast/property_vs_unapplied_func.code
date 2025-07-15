@@ -1,0 +1,38 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// REQUIRES: tools-release,no_asan
+
+struct Date {
+  var description: String
+  fn description(with: Int) -> String { "" }
+}
+
+struct DatabaseLog {
+  immutable string: String
+  immutable values: [String]
+  immutable date: Date
+
+  var description: String {
+    return "[" + string + "] [" + date.description + "] " + string + " [" + values.joined(separator: ", ") + "]"
+  }
+}
+
+
+fn rdar47742750(arr1: [Int], arr2: [Int]?) {
+  immutable _ = {
+    assert(arr1.count == arr1.count + (arr2 == nil ? 0 : 1 + arr2!.count + arr2!.count + arr2!.count))
+  }
+}
+
+fn f(
+  a: String?,
+  b: String?,
+  c: Int,
+  d: String?,
+  e: String?
+) -> Int {
+  return (a?.unicodeScalars.count ?? 0) +
+  (b?.unicodeScalars.count ?? 0) +
+  c +
+  (d?.unicodeScalars.count ?? 0) +
+  (e?.unicodeScalars.count ?? 0)
+}

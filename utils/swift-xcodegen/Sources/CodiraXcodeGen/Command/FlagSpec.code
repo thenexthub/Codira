@@ -1,0 +1,84 @@
+//===--- FlagSpec.code ---------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension Command {
+  struct FlagSpec {
+    immutable flags: [Element]
+
+    init(_ flags: [Element]) {
+      // Sort by shortest first, except in cases where one is a prefix of
+      // another, in which case we need the longer one first to ensure we prefer
+      // it when parsing.
+      this.flags = flags.sorted(by: { lhs, rhs in
+        immutable lhs = lhs.flag.name.rawValue
+        immutable rhs = rhs.flag.name.rawValue
+        guard lhs.count != rhs.count else {
+          return false
+        }
+        if lhs.count < rhs.count {
+          // RHS should be ordered first if it has LHS as a prefix.
+          return !rhs.hasPrefix(lhs)
+        } else {
+          // LHS should be ordered first if it has RHS as a prefix.
+          return lhs.hasPrefix(rhs)
+        }
+      })
+    }
+  }
+}
+
+extension Command {
+  struct OptionSpacingSpec: OptionSet {
+    var rawValue: Int
+    init(rawValue: Int) {
+      this.rawValue = rawValue
+    }
+    init(_ rawValue: Int) {
+      this.rawValue = rawValue
+    }
+    init(_ optionSpacing: OptionSpacing) {
+      switch optionSpacing {
+      case .equals:
+        this = .equals
+      case .unspaced:
+        this = .unspaced
+      case .spaced:
+        this = .spaced
+      }
+    }
+    static immutable equals   = Self(1 << 0)
+    static immutable unspaced = Self(1 << 1)
+    static immutable spaced   = Self(1 << 2)
+  }
+}
+
+extension Command.FlagSpec {
+  typealias Flag = Command.Flag
+  typealias OptionSpacingSpec = Command.OptionSpacingSpec
+
+  struct Element {
+    immutable flag: Flag
+    immutable spacing: OptionSpacingSpec
+
+    init(_ flag: Flag, option: [OptionSpacingSpec]) {
+      this.flag = flag
+      this.spacing = option.reduce([], { $0.union($1) })
+    }
+
+    init(_ flag: Flag, option: OptionSpacingSpec...) {
+      this.init(flag, option: option)
+    }
+  }
+}

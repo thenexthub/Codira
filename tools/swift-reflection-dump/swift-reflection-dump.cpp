@@ -1,4 +1,4 @@
-//===--- swift-reflection-dump.cpp - Reflection testing application -------===//
+//===--- language-reflection-dump.cpp - Reflection testing application -------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,27 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-// This is a host-side tool to dump remote reflection sections in swift
+// This is a host-side tool to dump remote reflection sections in language
 // binaries.
 //===----------------------------------------------------------------------===//
 
 #include "language/ABI/MetadataValues.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Demangling/Demangle.h"
 #include "language/RemoteInspection/ReflectionContext.h"
 #include "language/RemoteInspection/TypeRef.h"
 #include "language/RemoteInspection/TypeRefBuilder.h"
 #include "language/StaticMirror/ObjectFileContext.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Object/Archive.h"
-#include "llvm/Object/COFF.h"
-#include "llvm/Object/ELF.h"
-#include "llvm/Object/ELFObjectFile.h"
-#include "llvm/Object/MachOUniversal.h"
-#include "llvm/Object/RelocationResolver.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Object/Archive.h"
+#include "toolchain/Object/COFF.h"
+#include "toolchain/Object/ELF.h"
+#include "toolchain/Object/ELFObjectFile.h"
+#include "toolchain/Object/MachOUniversal.h"
+#include "toolchain/Object/RelocationResolver.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Error.h"
 
 #if defined(_WIN32)
 #include <io.h>
@@ -47,10 +48,10 @@
 #include <csignal>
 #include <iostream>
 
-using llvm::ArrayRef;
-using llvm::dyn_cast;
-using llvm::StringRef;
-using namespace llvm::object;
+using toolchain::ArrayRef;
+using toolchain::dyn_cast;
+using toolchain::StringRef;
+using namespace toolchain::object;
 
 using namespace language;
 using namespace language::reflection;
@@ -61,31 +62,31 @@ using namespace Demangle;
 enum class ActionType { DumpReflectionSections, DumpTypeLowering };
 
 namespace options {
-static llvm::cl::opt<ActionType> Action(
-    llvm::cl::desc("Mode:"),
-    llvm::cl::values(
+static toolchain::cl::opt<ActionType> Action(
+    toolchain::cl::desc("Mode:"),
+    toolchain::cl::values(
         clEnumValN(ActionType::DumpReflectionSections,
                    "dump-reflection-sections",
                    "Dump the field reflection section"),
         clEnumValN(
             ActionType::DumpTypeLowering, "dump-type-lowering",
             "Dump the field layout for typeref strings read from stdin")),
-    llvm::cl::init(ActionType::DumpReflectionSections));
+    toolchain::cl::init(ActionType::DumpReflectionSections));
 
-static llvm::cl::list<std::string>
-BinaryFilename(llvm::cl::Positional,
-                   llvm::cl::desc("Filenames of the binary files"),
-                   llvm::cl::OneOrMore);
+static toolchain::cl::list<std::string>
+BinaryFilename(toolchain::cl::Positional,
+                   toolchain::cl::desc("Filenames of the binary files"),
+                   toolchain::cl::OneOrMore);
 
-static llvm::cl::opt<std::string>
+static toolchain::cl::opt<std::string>
     Architecture("arch",
-                 llvm::cl::desc("Architecture to inspect in the binary"),
-                 llvm::cl::Required);
+                 toolchain::cl::desc("Architecture to inspect in the binary"),
+                 toolchain::cl::Required);
 
-#if SWIFT_OBJC_INTEROP
-static llvm::cl::opt<bool> DisableObjCInterop(
+#if LANGUAGE_OBJC_INTEROP
+static toolchain::cl::opt<bool> DisableObjCInterop(
     "no-objc-interop",
-    llvm::cl::desc("Disable Objective-C interoperability support"));
+    toolchain::cl::desc("Disable Objective-C interoperability support"));
 #endif
 } // end namespace options
 
@@ -118,7 +119,7 @@ static int doDumpReflectionSections(ArrayRef<std::string> BinaryFilenames,
     ObjectFiles.push_back(O);
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   bool ObjCInterop = !options::DisableObjCInterop;
 #else
   bool ObjCInterop = false;
@@ -131,7 +132,7 @@ static int doDumpReflectionSections(ArrayRef<std::string> BinaryFilenames,
     // Dump everything
     switch (context->PointerSize) {
     case 4:
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       if (!options::DisableObjCInterop)
         builder.dumpAllSections<WithObjCInterop, 4>(stream);
       else
@@ -141,7 +142,7 @@ static int doDumpReflectionSections(ArrayRef<std::string> BinaryFilenames,
 #endif
       break;
     case 8:
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       if (!options::DisableObjCInterop)
         builder.dumpAllSections<WithObjCInterop, 8>(stream);
       else
@@ -165,7 +166,7 @@ static int doDumpReflectionSections(ArrayRef<std::string> BinaryFilenames,
 
       Demangle::Demangler Dem;
       auto Demangled = Dem.demangleType(Line);
-      auto Result = swift::Demangle::decodeMangledType(builder, Demangled);
+      auto Result = language::Demangle::decodeMangledType(builder, Demangled);
       if (Result.isError()) {
         auto *error = Result.getError();
         char *str = error->copyErrorString();
@@ -192,7 +193,7 @@ static int doDumpReflectionSections(ArrayRef<std::string> BinaryFilenames,
 
 int main(int argc, char *argv[]) {
   PROGRAM_START(argc, argv);
-  llvm::cl::ParseCommandLineOptions(argc, argv, "Swift Reflection Dump\n");
+  toolchain::cl::ParseCommandLineOptions(argc, argv, "Codira Reflection Dump\n");
   return doDumpReflectionSections(options::BinaryFilename,
                                   options::Architecture, options::Action,
                                   std::cout);

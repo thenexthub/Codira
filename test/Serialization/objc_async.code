@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t-scratch)
+// RUN: %target-language-frontend -emit-module -o %t-scratch/def_objc_async~partial.codemodule -primary-file %S/Inputs/def_objc_async.code -module-name def_objc_async  -target %target-language-5.1-abi-triple
+// RUN: %target-language-frontend -merge-modules -emit-module -parse-as-library -enable-testing %t-scratch/def_objc_async~partial.codemodule -module-name def_objc_async -o %t/def_objc_async.codemodule  -target %target-language-5.1-abi-triple
+// RUN: %target-language-frontend -typecheck -I%t -verify %s  -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+// REQUIRES: objc_interop
+
+// Temporarily disable for asan (rdar://89808212)
+// UNSUPPORTED: asan
+
+import def_objc_async
+import Foundation
+
+class Derived: Base {
+}
+
+extension Derived {
+	override fn foo(id: Int) async { }
+}

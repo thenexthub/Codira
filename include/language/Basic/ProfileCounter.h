@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file Declares ProfileCounter, a convenient type for PGO
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PROFILECOUNTER_H
-#define SWIFT_BASIC_PROFILECOUNTER_H
+#ifndef LANGUAGE_BASIC_PROFILECOUNTER_H
+#define LANGUAGE_BASIC_PROFILECOUNTER_H
 
 #include <cassert>
 #include <cstdint>
@@ -62,4 +63,4 @@ public:
 };
 } // end namespace language
 
-#endif // SWIFT_BASIC_PROFILECOUNTER_H
+#endif // LANGUAGE_BASIC_PROFILECOUNTER_H

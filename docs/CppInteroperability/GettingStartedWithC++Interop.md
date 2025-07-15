@@ -1,14 +1,14 @@
-[** ‼️ The official C++ interoperability documentation is live at Swift.org and provides an up-to-date guide for mixing Swift and C++ ‼️ **](https://www.swift.org/documentation/cxx-interop/)
+[** ‼️ The official C++ interoperability documentation is live at Codira.org and provides an up-to-date guide for mixing Codira and C++ ‼️ **](https://www.code.org/documentation/cxx-interop/)
 
 # Getting started with C++ Interoperability
 
-This document is designed to get you started with bidirectional API-level interoperability between Swift and C++.
+This document is designed to get you started with bidirectional API-level interoperability between Codira and C++.
 
 ## Table of Contents
 
 - [Creating a Module to contain your C++ source code](#creating-a-module-to-contain-your-c-source-code)
 - [Adding C++ to an Xcode project](#adding-c-to-an-xcode-project)
-- [Creating a Swift Package](#Creating-a-Swift-Package)
+- [Creating a Codira Package](#Creating-a-Codira-Package)
 - [Building with CMake](#building-with-cmake)
 
 ## Creating a Module to contain your C++ source code
@@ -33,15 +33,15 @@ module CxxTest {
 
 Add the C++ module to the include path and enable C++ interop:
 - Navigate to your project directory
-- In `Project` navigate to `Build Settings` -> `Swift Compiler`
-- Under `Custom Flags` -> `Other Swift Flags` add `-cxx-interoperability-mode=default`
+- In `Project` navigate to `Build Settings` -> `Codira Compiler`
+- Under `Custom Flags` -> `Other Codira Flags` add `-cxx-interoperability-mode=default`
 - Under `Search Paths` -> `Import Paths` add your search path to the C++ module (i.e, `./ProjectName/CxxTest`). 
 
-- This should now allow your to import your C++ Module into any `.swift` file.
+- This should now allow your to import your C++ Module into any `.code` file.
 
 ```
-//In ContentView.swift
-import SwiftUI
+//In ContentView.code
+import CodiraUI
 import CxxTest
 
 struct ContentView: View {
@@ -75,15 +75,15 @@ int cxxFunction(int n) {
 ```
 
 
-## Creating a Swift Package
-After creating your Swift package project, follow the steps [Creating a Module to contain your C++ source code](#creating-a-module-to-contain-your-c-source-code) in your `Source` directory
+## Creating a Codira Package
+After creating your Codira package project, follow the steps [Creating a Module to contain your C++ source code](#creating-a-module-to-contain-your-c-source-code) in your `Source` directory
 
-- In your Package Manifest, you need to configure the Swift target's dependencies and compiler flags
+- In your Package Manifest, you need to configure the Codira target's dependencies and compiler flags
 - In this example the name of the package is `CxxInterop`
-- Swift code will be in `Sources/CxxInterop` called `main.swift`
+- Codira code will be in `Sources/CxxInterop` called `main.code`
 - C++ source code follows the example shown in [Creating a Module to contain your C++ source code](#creating-a-module-to-contain-your-c-source-code)
-- Under targets, add the name of your C++ module and the directory containing the Swift code as a target.
-- In the target defining your Swift target, add a`dependencies` to the C++ Module, the `path`, `source`, and `swiftSettings` with `unsafeFlags` with the source to the C++ Module, and enable `-cxx-interoperability-mode=default`
+- Under targets, add the name of your C++ module and the directory containing the Codira code as a target.
+- In the target defining your Codira target, add a`dependencies` to the C++ Module, the `path`, `source`, and `languageSettings` with `unsafeFlags` with the source to the C++ Module, and enable `-cxx-interoperability-mode=default`
 
 ```
 //In Package Manifest
@@ -110,8 +110,8 @@ let package = Package(
             name: "CxxInterop",
             dependencies: ["CxxTest"],
             path: "./Sources/CxxInterop",
-            sources: [ "main.swift" ],
-            swiftSettings: [.unsafeFlags([
+            sources: [ "main.code" ],
+            languageSettings: [.unsafeFlags([
                 "-I", "Sources/CxxTest",
                 "-cxx-interoperability-mode=default",
             ])]
@@ -121,16 +121,16 @@ let package = Package(
 
 ```
 
-- We are now able to import our C++ Module into our swift code, and import the package into existing projects
+- We are now able to import our C++ Module into our language code, and import the package into existing projects
 
 ```
-//In main.swift
+//In main.code
 
 import CxxTest
 
 public struct CxxInterop {
 
-    public func callCxxFunction(n: Int32) -> Int32 {
+    public fn callCxxFunction(n: Int32) -> Int32 {
         return cxxFunction(n: n)
     }
 }
@@ -147,14 +147,14 @@ After creating your project follow the steps [Creating a Module to contain your 
 - In`add_library` invoke `cxx-support` with the path to the C++ implementation file
 - Add the `target_include_directories` with `cxx-support` and path to the C++ Module `${CMAKE_SOURCE_DIR}/Sources/CxxTest`
 - Add the `add_executable` to the specific files/directory you would like to generate source, with`SHELL:-cxx-interoperability-mode=default`.
-- In the example below we will be following the file structure used in [Creating a Swift Package](#Creating-a-Swift-Package)
+- In the example below we will be following the file structure used in [Creating a Codira Package](#Creating-a-Codira-Package)
 
 ```
 // In CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.18)
 
-project(CxxInterop LANGUAGES CXX Swift)
+project(CxxInterop LANGUAGES CXX Codira)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
@@ -167,7 +167,7 @@ target_compile_options(cxx-support PRIVATE
 target_include_directories(cxx-support PUBLIC
   ${CMAKE_SOURCE_DIR}/Sources/CxxTest)
 
-add_executable(CxxInterop ./Sources/CxxInterop/main.swift)
+add_executable(CxxInterop ./Sources/CxxInterop/main.code)
 target_compile_options(CxxInterop PRIVATE
   "SHELL:-cxx-interoperability-mode=default")
 target_link_libraries(CxxInterop PRIVATE cxx-support)
@@ -175,12 +175,12 @@ target_link_libraries(CxxInterop PRIVATE cxx-support)
 ```
 
 ```
-//In main.swift
+//In main.code
 
 import CxxTest
 
 public struct CxxInterop {
-    public static func main() {
+    public static fn main() {
         let result = cxxFunction(7)
         print(result)
     }
@@ -195,6 +195,6 @@ CxxInterop.main()
 - To generate an Xcode project run `cmake -GXcode`
 - To generate with Ninja run `cmake -GNinja`
 
-- For more information on `cmake` see the  'GettingStarted' documentation: (https://github.com/swiftlang/swift/blob/main/docs/HowToGuides/GettingStarted.md)
+- For more information on `cmake` see the  'GettingStarted' documentation: (https://github.com/languagelang/language/blob/main/docs/HowToGuides/GettingStarted.md)
 
 

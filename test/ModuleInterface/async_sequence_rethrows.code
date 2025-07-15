@@ -1,0 +1,10 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name _Concurrency -disable-implicit-concurrency-module-import
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name _Concurrency -disable-implicit-concurrency-module-import
+// RUN: %FileCheck %s < %t.codeinterface
+
+// REQUIRES: concurrency
+
+// CHECK-NOT: @rethrows
+// CHECK: public protocol AsyncIteratorProtocol
+public protocol AsyncIteratorProtocol {
+}

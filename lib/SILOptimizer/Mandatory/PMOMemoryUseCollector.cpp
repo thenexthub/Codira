@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "definite-init"
@@ -20,9 +21,9 @@
 #include "language/SIL/InstructionUtils.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILBuilder.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 
@@ -263,7 +264,7 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
       // Generally, we set the "InStructSubElement" flag and recursively process
       // the uses so that we know that we're looking at something within the
       // current element.
-      llvm::SaveAndRestore<bool> X(InStructSubElement, true);
+      toolchain::SaveAndRestore<bool> X(InStructSubElement, true);
       if (!collectUses(seai))
         return false;
       continue;
@@ -333,7 +334,7 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
           case StoreOwnershipQualifier::Trivial:
             return PMOUseKind::InitOrAssign;
           }
-          llvm_unreachable("covered switch");
+          toolchain_unreachable("covered switch");
         })();
         Uses.emplace_back(si, kind);
         continue;
@@ -411,7 +412,7 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
       case ParameterConvention::Pack_Owned:
       case ParameterConvention::Pack_Guaranteed:
       case ParameterConvention::Pack_Inout:
-        llvm_unreachable("address value passed to indirect parameter");
+        toolchain_unreachable("address value passed to indirect parameter");
 
       // If this is an in-parameter, it is like a load.
       case ParameterConvention::Indirect_In_CXX:
@@ -431,7 +432,7 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
         continue;
       }
       }
-      llvm_unreachable("bad parameter convention");
+      toolchain_unreachable("bad parameter convention");
     }
 
     // init_existential_addr is modeled as an initialization store.
@@ -516,7 +517,7 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
     for (auto *User : UsesToScalarize) {
       ElementTmps.clear();
 
-      LLVM_DEBUG(llvm::errs() << "  *** Scalarizing: " << *User << "\n");
+      TOOLCHAIN_DEBUG(toolchain::errs() << "  *** Scalarizing: " << *User << "\n");
 
       // Scalarize LoadInst
       if (auto *LI = dyn_cast<LoadInst>(User)) {
@@ -572,7 +573,7 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
     // Now that we've scalarized some stuff, recurse down into the newly created
     // element address computations to recursively process it.  This can cause
     // further scalarization.
-    if (llvm::any_of(ElementAddrs, [&](SILValue v) {
+    if (toolchain::any_of(ElementAddrs, [&](SILValue v) {
           return !collectUses(cast<TupleElementAddrInst>(v));
         })) {
       return false;
@@ -585,14 +586,14 @@ bool ElementUseCollector::collectUses(SILValue Pointer) {
 /// collectPMOElementUsesFrom - Analyze all uses of the specified allocation
 /// instruction (alloc_box, alloc_stack or mark_uninitialized), classifying them
 /// and storing the information found into the Uses lists.
-bool swift::collectPMOElementUsesFrom(
+bool language::collectPMOElementUsesFrom(
     const PMOMemoryObjectInfo &MemoryInfo, SmallVectorImpl<PMOMemoryUse> &Uses)
 {
   return
     ElementUseCollector(MemoryInfo, Uses, /*Releases*/nullptr).collectFrom();
 }
 
-bool swift::collectPMOElementUsesAndDestroysFrom(
+bool language::collectPMOElementUsesAndDestroysFrom(
     const PMOMemoryObjectInfo &MemoryInfo, SmallVectorImpl<PMOMemoryUse> &Uses,
     SmallVectorImpl<SILInstruction *> &Releases) {
   return ElementUseCollector(MemoryInfo, Uses, &Releases).collectFrom();

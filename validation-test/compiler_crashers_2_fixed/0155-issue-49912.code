@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/49912
+
+public protocol E {
+	associatedtype F
+	
+	static fn g(_: F) -> Self
+}
+
+internal enum CF {
+	case f
+}
+
+internal enum CE: E {
+	case f(CF)
+	
+	static fn g(_ f: CF) -> CE {
+		return CE.f(f)
+	}
+	
+	static immutable cf = CE.g(.f)
+}

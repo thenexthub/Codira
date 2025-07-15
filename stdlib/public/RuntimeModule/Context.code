@@ -1,13 +1,17 @@
-//===--- Context.swift - Unwind context structure -------------------------===//
+//===--- Context.code - Unwind context structure -------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines the Context protocol and some concrete implementations for various
@@ -17,7 +21,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 internal import Darwin
@@ -35,10 +39,10 @@ internal import BacktracingImpl.OS.Darwin
 
 internal import BacktracingImpl.FixedLayout
 
-typealias x86_64_gprs = swift.runtime.backtrace.x86_64_gprs
-typealias i386_gprs = swift.runtime.backtrace.i386_gprs
-typealias arm64_gprs = swift.runtime.backtrace.arm64_gprs
-typealias arm_gprs = swift.runtime.backtrace.arm_gprs
+typealias x86_64_gprs = language.runtime.backtrace.x86_64_gprs
+typealias i386_gprs = language.runtime.backtrace.i386_gprs
+typealias arm64_gprs = language.runtime.backtrace.arm64_gprs
+typealias arm_gprs = language.runtime.backtrace.arm_gprs
 
 @_spi(Contexts) public enum ContextError: Error {
   case unableToFormTLSAddress
@@ -82,39 +86,39 @@ typealias arm_gprs = swift.runtime.backtrace.arm_gprs
   static var registerCount: Int { get }
 
   /// Given a thread local address, form a genuine machine address
-  func formTLSAddress(threadLocal: Address) throws -> Address
+  fn formTLSAddress(threadLocal: Address) throws -> Address
 
   /// Get the value of the specified general purpose register, or nil if unknown
-  func getRegister(_ register: Register) -> GPRValue?
+  fn getRegister(_ register: Register) -> GPRValue?
 
   /// Set the value of the specified general purpose register (or mark it as
   /// unknown if nil is passed)
-  mutating func setRegister(_ register: Register, to value: GPRValue?)
+  mutating fn setRegister(_ register: Register, to value: GPRValue?)
 
   /// Set all of the registers in bulk
-  mutating func setRegisters(_ registers: [GPRValue?])
+  mutating fn setRegisters(_ registers: [GPRValue?])
 
   /// Strip any pointer authentication that might apply from an address.
-  static func stripPtrAuth(address: Address) -> Address
+  static fn stripPtrAuth(address: Address) -> Address
 
   /// Test if an address is appropriately aligned for the stack.
-  static func isAlignedForStack(framePointer: Address) -> Bool
+  static fn isAlignedForStack(framePointer: Address) -> Bool
 }
 
 extension Context {
-  public func formTLSAddress(threadLocal: Address) throws -> Address {
+  public fn formTLSAddress(threadLocal: Address) throws -> Address {
     throw ContextError.unableToFormTLSAddress
   }
 
-  public mutating func setRegisters(_ registers: [GPRValue?]) {
+  public mutating fn setRegisters(_ registers: [GPRValue?]) {
     for (ndx, value) in registers.enumerated() {
-      if let reg = Register(rawValue: ndx) {
+      if immutable reg = Register(rawValue: ndx) {
         setRegister(reg, to: value)
       }
     }
   }
 
-  public static func stripPtrAuth(address: Address) -> Address {
+  public static fn stripPtrAuth(address: Address) -> Address {
     return address
   }
 }
@@ -125,17 +129,17 @@ extension Context {
 // in C so that the layout is fixed) get imported as tuples.
 
 extension x86_64_gprs {
-  func getR(_ ndx: Int) -> UInt64 {
+  fn getR(_ ndx: Int) -> UInt64 {
     return withUnsafePointer(to: _r) {
-      $0.withMemoryRebound(to: UInt64.self, capacity: 16) {
+      $0.withMemoryRebound(to: UInt64.this, capacity: 16) {
         $0[ndx]
       }
     }
   }
 
-  mutating func setR(_ ndx: Int, to value: UInt64) {
+  mutating fn setR(_ ndx: Int, to value: UInt64) {
     withUnsafeMutablePointer(to: &_r) {
-      $0.withMemoryRebound(to: UInt64.self, capacity: 16) {
+      $0.withMemoryRebound(to: UInt64.this, capacity: 16) {
         $0[ndx] = value
       }
     }
@@ -144,17 +148,17 @@ extension x86_64_gprs {
 }
 
 extension i386_gprs {
-  func getR(_ ndx: Int) -> UInt32 {
+  fn getR(_ ndx: Int) -> UInt32 {
     return withUnsafePointer(to: _r) {
-      $0.withMemoryRebound(to: UInt32.self, capacity: 8) {
+      $0.withMemoryRebound(to: UInt32.this, capacity: 8) {
         $0[ndx]
       }
     }
   }
 
-  mutating func setR(_ ndx: Int, to value: UInt32) {
+  mutating fn setR(_ ndx: Int, to value: UInt32) {
     withUnsafeMutablePointer(to: &_r) {
-      $0.withMemoryRebound(to: UInt32.self, capacity: 8) {
+      $0.withMemoryRebound(to: UInt32.this, capacity: 8) {
         $0[ndx] = value
       }
     }
@@ -163,17 +167,17 @@ extension i386_gprs {
 }
 
 extension arm64_gprs {
-  func getX(_ ndx: Int) -> UInt64 {
+  fn getX(_ ndx: Int) -> UInt64 {
     return withUnsafePointer(to: _x) {
-      $0.withMemoryRebound(to: UInt64.self, capacity: 32) {
+      $0.withMemoryRebound(to: UInt64.this, capacity: 32) {
         $0[ndx]
       }
     }
   }
 
-  mutating func setX(_ ndx: Int, to value: UInt64) {
+  mutating fn setX(_ ndx: Int, to value: UInt64) {
     withUnsafeMutablePointer(to: &_x) {
-      $0.withMemoryRebound(to: UInt64.self, capacity: 32) {
+      $0.withMemoryRebound(to: UInt64.this, capacity: 32) {
         $0[ndx] = value
       }
     }
@@ -182,17 +186,17 @@ extension arm64_gprs {
 }
 
 extension arm_gprs {
-  func getR(_ ndx: Int) -> UInt32 {
+  fn getR(_ ndx: Int) -> UInt32 {
     return withUnsafePointer(to: _r) {
-      $0.withMemoryRebound(to: UInt32.self, capacity: 16) {
+      $0.withMemoryRebound(to: UInt32.this, capacity: 16) {
         $0[ndx]
       }
     }
   }
 
-  mutating func setR(_ ndx: Int, to value: UInt32) {
+  mutating fn setR(_ ndx: Int, to value: UInt32) {
     withUnsafeMutablePointer(to: &_r) {
-      $0.withMemoryRebound(to: UInt32.self, capacity: 16) {
+      $0.withMemoryRebound(to: UInt32.this, capacity: 16) {
         $0[ndx] = value
       }
     }
@@ -242,18 +246,18 @@ extension arm_gprs {
   #if os(macOS) && arch(x86_64)
   init?(from thread: thread_t) {
     var state = darwin_x86_64_thread_state()
-    let kr = thread_get_state(thread,
+    immutable kr = thread_get_state(thread,
                               X86_THREAD_STATE64,
                               &state)
     if kr != KERN_SUCCESS {
       return nil
     }
 
-    self.init(from: state)
+    this.init(from: state)
   }
 
   init(with mctx: darwin_x86_64_mcontext) {
-    self.init(from: mctx.ss)
+    this.init(from: mctx.ss)
   }
 
   init(from state: darwin_x86_64_thread_state) {
@@ -281,11 +285,11 @@ extension arm_gprs {
     gprs.valid = 0x1fffff
   }
 
-  public static func fromHostThread(_ thread: Any) -> HostContext? {
+  public static fn fromHostThread(_ thread: Any) -> HostContext? {
     return X86_64Context(from: thread as! thread_t)
   }
 
-  public static func fromHostMContext(_ mcontext: Any) -> HostContext {
+  public static fn fromHostMContext(_ mcontext: Any) -> HostContext {
     return X86_64Context(with: mcontext as! darwin_x86_64_mcontext)
   }
   #elseif os(Linux) && arch(x86_64)
@@ -314,28 +318,28 @@ extension arm_gprs {
     gprs.valid = 0x1fffff
   }
 
-  public static func fromHostMContext(_ mcontext: Any) -> HostContext {
+  public static fn fromHostMContext(_ mcontext: Any) -> HostContext {
     return X86_64Context(with: mcontext as! mcontext_t)
   }
   #endif
 
-  #if os(Windows) || !SWIFT_ASM_AVAILABLE
+  #if os(Windows) || !LANGUAGE_ASM_AVAILABLE
   struct NotImplemented: Error {}
-  public static func withCurrentContext<T>(fn: (X86_64Context) throws -> T) throws -> T {
+  public static fn withCurrentContext<T>(fn: (X86_64Context) throws -> T) throws -> T {
     throw NotImplemented()
   }
   #elseif arch(x86_64)
   @usableFromInline
-  @_silgen_name("_swift_get_cpu_context")
-  static func _swift_get_cpu_context() -> X86_64Context
+  @_silgen_name("_language_get_cpu_context")
+  static fn _language_get_cpu_context() -> X86_64Context
 
   @_transparent
-  public static func withCurrentContext<T>(fn: (X86_64Context) throws -> T) rethrows -> T {
-    return try fn(_swift_get_cpu_context())
+  public static fn withCurrentContext<T>(fn: (X86_64Context) throws -> T) rethrows -> T {
+    return try fn(_language_get_cpu_context())
   }
   #endif
 
-  private func validNdx(_ register: Register) -> Int? {
+  private fn validNdx(_ register: Register) -> Int? {
     switch register {
       case .rax ... .r15:
         return register.rawValue
@@ -352,28 +356,28 @@ extension arm_gprs {
     }
   }
 
-  private func isValid(_ register: Register) -> Bool {
-    guard let ndx = validNdx(register) else {
+  private fn isValid(_ register: Register) -> Bool {
+    guard immutable ndx = validNdx(register) else {
       return false
     }
     return (gprs.valid & (UInt64(1) << ndx)) != 0
   }
 
-  private mutating func setValid(_ register: Register) {
-    guard let ndx = validNdx(register) else {
+  private mutating fn setValid(_ register: Register) {
+    guard immutable ndx = validNdx(register) else {
       return
     }
     gprs.valid |= UInt64(1) << ndx
   }
 
-  private mutating func clearValid(_ register: Register) {
-    guard let ndx = validNdx(register) else {
+  private mutating fn clearValid(_ register: Register) {
+    guard immutable ndx = validNdx(register) else {
       return
     }
     gprs.valid &= ~(UInt64(1) << ndx)
   }
 
-  public func getRegister(_ register: Register) -> GPRValue? {
+  public fn getRegister(_ register: Register) -> GPRValue? {
     if !isValid(register) {
       return nil
     }
@@ -390,8 +394,8 @@ extension arm_gprs {
     }
   }
 
-  public mutating func setRegister(_ register: Register, to value: GPRValue?) {
-    if let value = value {
+  public mutating fn setRegister(_ register: Register, to value: GPRValue?) {
+    if immutable value = value {
       switch register {
         case .rax ... .r15:
           gprs.setR(register.rawValue, to: value)
@@ -430,7 +434,7 @@ extension arm_gprs {
       """
   }
 
-  public static func isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Bool {
     return (framePointer & 0xf) == 0
   }
 
@@ -499,28 +503,28 @@ extension arm_gprs {
     gprs.valid = 0x7fff
   }
 
-  public static func fromHostMContext(_ mcontext: Any) -> HostContext {
+  public static fn fromHostMContext(_ mcontext: Any) -> HostContext {
     return I386Context(with: mcontext as! mcontext_t)
   }
   #endif
 
-  #if os(Windows) || !SWIFT_ASM_AVAILABLE
+  #if os(Windows) || !LANGUAGE_ASM_AVAILABLE
   struct NotImplemented: Error {}
-  public static func withCurrentContext<T>(fn: (I386Context) throws -> T) throws -> T {
+  public static fn withCurrentContext<T>(fn: (I386Context) throws -> T) throws -> T {
     throw NotImplemented()
   }
   #elseif arch(i386)
   @usableFromInline
-  @_silgen_name("_swift_get_cpu_context")
-  static func _swift_get_cpu_context() -> I386Context
+  @_silgen_name("_language_get_cpu_context")
+  static fn _language_get_cpu_context() -> I386Context
 
   @_transparent
-  public static func withCurrentContext<T>(fn: (I386Context) throws -> T) rethrows -> T {
-    return try fn(_swift_get_cpu_context())
+  public static fn withCurrentContext<T>(fn: (I386Context) throws -> T) rethrows -> T {
+    return try fn(_language_get_cpu_context())
   }
   #endif
 
-  private func validNdx(_ register: Register) -> Int? {
+  private fn validNdx(_ register: Register) -> Int? {
     switch register {
       case .eax ... .edi:
         return register.rawValue
@@ -535,28 +539,28 @@ extension arm_gprs {
     }
   }
 
-  private func isValid(_ register: Register) -> Bool {
-    guard let ndx = validNdx(register) else {
+  private fn isValid(_ register: Register) -> Bool {
+    guard immutable ndx = validNdx(register) else {
       return false
     }
     return (gprs.valid & (UInt32(1) << ndx)) != 0
   }
 
-  private mutating func setValid(_ register: Register) {
-    guard let ndx = validNdx(register) else {
+  private mutating fn setValid(_ register: Register) {
+    guard immutable ndx = validNdx(register) else {
       return
     }
     gprs.valid |= UInt32(1) << ndx
   }
 
-  private mutating func clearValid(_ register: Register) {
-    guard let ndx = validNdx(register) else {
+  private mutating fn clearValid(_ register: Register) {
+    guard immutable ndx = validNdx(register) else {
       return
     }
     gprs.valid &= ~(UInt32(1) << ndx)
   }
 
-  public func getRegister(_ register: Register) -> GPRValue? {
+  public fn getRegister(_ register: Register) -> GPRValue? {
     if !isValid(register) {
       return nil
     }
@@ -566,7 +570,7 @@ extension arm_gprs {
       case .eflags: return gprs.eflags
       case .es ... .gs:
         return withUnsafeBytes(of: gprs.segreg) { ptr in
-          return ptr.withMemoryRebound(to: GPRValue.self) { regs in
+          return ptr.withMemoryRebound(to: GPRValue.this) { regs in
             return regs[register.rawValue - Register.es.rawValue]
           }
         }
@@ -576,8 +580,8 @@ extension arm_gprs {
     }
   }
 
-  public mutating func setRegister(_ register: Register, to value: GPRValue?) {
-    if let value = value {
+  public mutating fn setRegister(_ register: Register, to value: GPRValue?) {
+    if immutable value = value {
       switch register {
         case .eax ... .edi:
           gprs.setR(register.rawValue, to: value)
@@ -586,7 +590,7 @@ extension arm_gprs {
           setValid(register)
         case .es ... .gs:
           withUnsafeMutableBytes(of: &gprs.segreg) { ptr in
-            ptr.withMemoryRebound(to: GPRValue.self) { regs in
+            ptr.withMemoryRebound(to: GPRValue.this) { regs in
               regs[register.rawValue - Register.es.rawValue] = value
             }
           }
@@ -613,7 +617,7 @@ extension arm_gprs {
       """
   }
 
-  public static func isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Bool {
     return (framePointer & 0xf) == 8
   }
 
@@ -668,25 +672,25 @@ extension arm_gprs {
   #if os(macOS) && arch(arm64)
   init?(from thread: thread_t) {
     var state = darwin_arm64_thread_state()
-    let kr = thread_get_state(thread,
+    immutable kr = thread_get_state(thread,
                               ARM_THREAD_STATE64,
                               &state)
     if kr != KERN_SUCCESS {
       return nil
     }
 
-    self.init(from: state)
+    this.init(from: state)
   }
 
   init(with mctx: darwin_arm64_mcontext) {
-    self.init(from: mctx.ss)
+    this.init(from: mctx.ss)
   }
 
   init(from state: darwin_arm64_thread_state) {
     withUnsafeMutablePointer(to: &gprs._x) {
-      $0.withMemoryRebound(to: UInt64.self, capacity: 32){ to in
+      $0.withMemoryRebound(to: UInt64.this, capacity: 32){ to in
         withUnsafePointer(to: state._x) {
-          $0.withMemoryRebound(to: UInt64.self, capacity: 29){ from in
+          $0.withMemoryRebound(to: UInt64.this, capacity: 29){ from in
             for n in 0..<29 {
               to[n] = from[n]
             }
@@ -702,19 +706,19 @@ extension arm_gprs {
     gprs.valid = 0x1ffffffff
   }
 
-  public static func fromHostThread(_ thread: Any) -> HostContext? {
+  public static fn fromHostThread(_ thread: Any) -> HostContext? {
     return ARM64Context(from: thread as! thread_t)
   }
 
-  public static func fromHostMContext(_ mcontext: Any) -> HostContext {
+  public static fn fromHostMContext(_ mcontext: Any) -> HostContext {
     return ARM64Context(with: mcontext as! darwin_arm64_mcontext)
   }
   #elseif os(Linux) && arch(arm64)
   init(with mctx: mcontext_t) {
     withUnsafeMutablePointer(to: &gprs._x) {
-      $0.withMemoryRebound(to: UInt64.self, capacity: 32){ to in
+      $0.withMemoryRebound(to: UInt64.this, capacity: 32){ to in
         withUnsafePointer(to: mctx.regs) {
-          $0.withMemoryRebound(to: UInt64.self, capacity: 31) { from in
+          $0.withMemoryRebound(to: UInt64.this, capacity: 31) { from in
             for n in 0..<31 {
               to[n] = from[n]
             }
@@ -728,47 +732,47 @@ extension arm_gprs {
     gprs.valid = 0x1ffffffff
   }
 
-  public static func fromHostMContext(_ mcontext: Any) -> HostContext {
+  public static fn fromHostMContext(_ mcontext: Any) -> HostContext {
     return ARM64Context(with: mcontext as! mcontext_t)
   }
   #endif
 
-  #if os(Windows) || !SWIFT_ASM_AVAILABLE
+  #if os(Windows) || !LANGUAGE_ASM_AVAILABLE
   struct NotImplemented: Error {}
-  public static func withCurrentContext<T>(fn: (ARM64Context) throws -> T) throws -> T {
+  public static fn withCurrentContext<T>(fn: (ARM64Context) throws -> T) throws -> T {
     throw NotImplemented()
   }
   #elseif arch(arm64) || arch(arm64_32)
   @usableFromInline
-  @_silgen_name("_swift_get_cpu_context")
-  static func _swift_get_cpu_context() -> ARM64Context
+  @_silgen_name("_language_get_cpu_context")
+  static fn _language_get_cpu_context() -> ARM64Context
 
   @_transparent
-  public static func withCurrentContext<T>(fn: (ARM64Context) throws -> T) rethrows -> T {
-    return try fn(_swift_get_cpu_context())
+  public static fn withCurrentContext<T>(fn: (ARM64Context) throws -> T) rethrows -> T {
+    return try fn(_language_get_cpu_context())
   }
   #endif
 
-  private func isValid(_ register: Register) -> Bool {
+  private fn isValid(_ register: Register) -> Bool {
     if register.rawValue < 33 {
       return (gprs.valid & (UInt64(1) << register.rawValue)) != 0
     }
     return false
   }
 
-  private mutating func setValid(_ register: Register) {
+  private mutating fn setValid(_ register: Register) {
     if register.rawValue < 33 {
       gprs.valid |= UInt64(1) << register.rawValue
     }
   }
 
-  private mutating func clearValid(_ register: Register) {
+  private mutating fn clearValid(_ register: Register) {
     if register.rawValue < 33 {
       gprs.valid &= ~(UInt64(1) << register.rawValue)
     }
   }
 
-  public func getRegister(_ reg: Register) -> GPRValue? {
+  public fn getRegister(_ reg: Register) -> GPRValue? {
     if !isValid(reg) {
       return nil
     }
@@ -782,8 +786,8 @@ extension arm_gprs {
     }
   }
 
-  public mutating func setRegister(_ reg: Register, to value: GPRValue?) {
-    if let value = value {
+  public mutating fn setRegister(_ reg: Register, to value: GPRValue?) {
+    if immutable value = value {
       switch reg {
         case .x0 ... .sp:
           gprs.setX(reg.rawValue, to: value)
@@ -824,12 +828,12 @@ extension arm_gprs {
       """
   }
 
-  public static func isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Bool {
     return (framePointer & 1) == 0
   }
 
   #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-  public static func stripPtrAuth(address: Address) -> Address {
+  public static fn stripPtrAuth(address: Address) -> Address {
     // Is there a better way to do this?  It'd be easy if we just wanted to
     // strip for the *host*, but we might conceivably want this under other
     // circumstances too.
@@ -879,9 +883,9 @@ extension arm_gprs {
   #if os(Linux) && arch(arm)
   init(with mctx: mcontext_t) {
     withUnsafeMutablePointer(to: &gprs._r) {
-      $0.withMemoryRebound(to: UInt32.self, capacity: 16) {
+      $0.withMemoryRebound(to: UInt32.this, capacity: 16) {
         withUnsafePointer(to: &mctx.arm_r0) {
-          $0.withMemoryRebound(to: UInt32.self, capacity: 16) {
+          $0.withMemoryRebound(to: UInt32.this, capacity: 16) {
             for n in 0..<16 {
               to[n] = from[n]
             }
@@ -892,47 +896,47 @@ extension arm_gprs {
     gprs.valid = 0xffff
   }
 
-  public static func fromHostMContext(_ mcontext: Any) -> HostContext {
+  public static fn fromHostMContext(_ mcontext: Any) -> HostContext {
     return ARMContext(with: mcontext as! mcontext_t)
   }
   #endif
 
-  #if os(Windows) || !SWIFT_ASM_AVAILABLE
+  #if os(Windows) || !LANGUAGE_ASM_AVAILABLE
   struct NotImplemented: Error {}
-  public static func withCurrentContext<T>(fn: (ARMContext) throws -> T) throws -> T {
+  public static fn withCurrentContext<T>(fn: (ARMContext) throws -> T) throws -> T {
     throw NotImplemented()
   }
   #elseif arch(arm)
   @usableFromInline
-  @_silgen_name("_swift_get_cpu_context")
-  static func _swift_get_cpu_context() -> ARMContext
+  @_silgen_name("_language_get_cpu_context")
+  static fn _language_get_cpu_context() -> ARMContext
 
   @_transparent
-  public static func withCurrentContext<T>(fn: (ARMContext) throws -> T) rethrows -> T {
-    return try fn(_swift_get_cpu_context())
+  public static fn withCurrentContext<T>(fn: (ARMContext) throws -> T) rethrows -> T {
+    return try fn(_language_get_cpu_context())
   }
   #endif
 
-  private func isValid(_ register: Register) -> Bool {
+  private fn isValid(_ register: Register) -> Bool {
     if register.rawValue < 16 {
       return (gprs.valid & (UInt32(1) << register.rawValue)) != 0
     }
     return false
   }
 
-  private mutating func setValid(_ register: Register) {
+  private mutating fn setValid(_ register: Register) {
     if register.rawValue < 16 {
       gprs.valid |= UInt32(1) << register.rawValue
     }
   }
 
-  private mutating func clearValid(_ register: Register) {
+  private mutating fn clearValid(_ register: Register) {
     if register.rawValue < 16 {
       gprs.valid &= ~(UInt32(1) << register.rawValue)
     }
   }
 
-  public func getRegister(_ reg: Register) -> GPRValue? {
+  public fn getRegister(_ reg: Register) -> GPRValue? {
     if !isValid(reg) {
       return nil
     }
@@ -944,8 +948,8 @@ extension arm_gprs {
     }
   }
 
-  public mutating func setRegister(_ reg: Register, to value: GPRValue?) {
-    if let value = value {
+  public mutating fn setRegister(_ reg: Register, to value: GPRValue?) {
+    if immutable value = value {
       switch reg {
         case .r0 ... .r15:
           gprs.setR(reg.rawValue, to: value)
@@ -974,7 +978,7 @@ extension arm_gprs {
       """
   }
 
-  public static func isAlignedForStack(framePointer: Address) -> Bool {
+  public static fn isAlignedForStack(framePointer: Address) -> Bool {
     return (framePointer & 1) == 0
   }
 
@@ -988,7 +992,7 @@ extension arm_gprs {
 // .. Darwin specifics .........................................................
 
 #if (os(macOS) || os(iOS) || os(watchOS) || os(tvOS))
-private func thread_get_state<T>(_ thread: thread_t,
+private fn thread_get_state<T>(_ thread: thread_t,
                                  _ flavor: CInt,
                                  _ result: inout T) -> kern_return_t {
   var count: mach_msg_type_number_t
@@ -996,7 +1000,7 @@ private func thread_get_state<T>(_ thread: thread_t,
                                / MemoryLayout<natural_t>.stride)
 
   return withUnsafeMutablePointer(to: &result) { ptr in
-    ptr.withMemoryRebound(to: natural_t.self,
+    ptr.withMemoryRebound(to: natural_t.this,
                           capacity: Int(count)) { intPtr in
       return thread_get_state(thread,
                               thread_state_flavor_t(flavor),

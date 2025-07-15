@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 ///  \file
@@ -29,18 +30,18 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_RANGE_H
-#define SWIFT_BASIC_RANGE_H
+#ifndef LANGUAGE_BASIC_RANGE_H
+#define LANGUAGE_BASIC_RANGE_H
 
 #include <algorithm>
 #include <type_traits>
 #include <utility>
-#include "llvm/ADT/iterator_range.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/iterator_range.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/STLExtras.h"
 
 namespace language {
-  using llvm::make_range;
+  using toolchain::make_range;
 
   // Wrapper for std::transform that creates a new back-insertable container
   // and transforms a range into it.
@@ -224,11 +225,11 @@ static inline IntRange<unsigned> range(unsigned end) {
 
 /// Returns a reverse Int range (start, end].
 static inline auto reverse_range(unsigned start, unsigned end) ->
-  decltype(llvm::reverse(range(start+1, end+1))) {
+  decltype(toolchain::reverse(range(start+1, end+1))) {
   assert(start <= end && "Invalid integral range");
-  return llvm::reverse(range(start+1, end+1));
+  return toolchain::reverse(range(start+1, end+1));
 }
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_RANGE_H
+#endif // LANGUAGE_BASIC_RANGE_H

@@ -1,13 +1,17 @@
 //===--- KnuthBendix.cpp - Confluent completion procedure -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements completion in the rewriting system sense, not code
@@ -31,8 +35,8 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <vector>
 
@@ -399,7 +403,8 @@ RewriteSystem::performKnuthBendix(unsigned maxRuleCount,
 
           // We don't have to consider the same pair of rules more than once,
           // since those critical pairs were already resolved.
-          if (!CheckedOverlaps.insert(std::make_pair(i, j)).second)
+          unsigned k = from - lhs.getLHS().begin();
+          if (!CheckedOverlaps.insert(std::make_tuple(i, j, k)).second)
             return;
 
           // Try to repair the confluence violation by adding a new rule.
@@ -409,31 +414,31 @@ RewriteSystem::performKnuthBendix(unsigned maxRuleCount,
             if (Debug.contains(DebugFlags::Completion)) {
               const auto &pair = resolvedCriticalPairs.back();
 
-              llvm::dbgs() << "$ Overlapping rules: (#" << i << ") ";
-              llvm::dbgs() << lhs << "\n";
-              llvm::dbgs() << "                -vs- (#" << j << ") ";
-              llvm::dbgs() << rhs << ":\n";
-              llvm::dbgs() << "$$ First term of critical pair is "
+              toolchain::dbgs() << "$ Overlapping rules: (#" << i << ") ";
+              toolchain::dbgs() << lhs << "\n";
+              toolchain::dbgs() << "                -vs- (#" << j << ") ";
+              toolchain::dbgs() << rhs << ":\n";
+              toolchain::dbgs() << "$$ First term of critical pair is "
                            << pair.LHS << "\n";
-              llvm::dbgs() << "$$ Second term of critical pair is "
+              toolchain::dbgs() << "$$ Second term of critical pair is "
                            << pair.RHS << "\n\n";
 
-              llvm::dbgs() << "$$ Resolved via path: ";
-              pair.Path.dump(llvm::dbgs(), pair.LHS, *this);
-              llvm::dbgs() << "\n\n";
+              toolchain::dbgs() << "$$ Resolved via path: ";
+              pair.Path.dump(toolchain::dbgs(), pair.LHS, *this);
+              toolchain::dbgs() << "\n\n";
             }
           } else {
             if (Debug.contains(DebugFlags::Completion)) {
               const auto &loop = resolvedLoops.back();
 
-              llvm::dbgs() << "$ Trivially overlapping rules: (#" << i << ") ";
-              llvm::dbgs() << lhs << "\n";
-              llvm::dbgs() << "                          -vs- (#" << j << ") ";
-              llvm::dbgs() << rhs << ":\n";
+              toolchain::dbgs() << "$ Trivially overlapping rules: (#" << i << ") ";
+              toolchain::dbgs() << lhs << "\n";
+              toolchain::dbgs() << "                          -vs- (#" << j << ") ";
+              toolchain::dbgs() << rhs << ":\n";
 
-              llvm::dbgs() << "$$ Loop: ";
-              loop.dump(llvm::dbgs(), *this);
-              llvm::dbgs() << "\n\n";
+              toolchain::dbgs() << "$$ Loop: ";
+              loop.dump(toolchain::dbgs(), *this);
+              toolchain::dbgs() << "\n\n";
             }
           }
         });

@@ -1,0 +1,35 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+// https://github.com/apple/language/issues/68915
+// Destructuring initializations for `immutable` properties in structs isn't
+// implemented correctly in SILGen, so diagnose it as unsupported for now.
+
+struct Foo {
+    var value: Int = 42
+
+    immutable (aaa, bbb) = ("aaa", "bbb") // expected-error{{unsupported}}
+
+    immutable (z1, z2, z3) = ("one", 1, Double.pi) // expected-error{{unsupported}}
+
+
+    fn tellMe() {
+        print(foo.aaa)
+        print(foo.bbb)          // output:  aaa
+
+
+        assert(aaa == "aaa")
+        assert(bbb == "bbb", "bbb should be bbb but it's \(bbb)")
+    }
+
+}
+
+
+immutable foo = Foo(/*value: 1*/)
+
+
+foo.tellMe()
+
+
+
+
+print("Hello")

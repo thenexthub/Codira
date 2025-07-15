@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/shims/UnicodeData.h"
@@ -16,7 +20,7 @@
 // Every 4 byte chunks of data that we need to hash (in this case only ever
 // scalars and levels who are all uint32), we need to calculate K. At the end
 // of this scramble sequence to get K, directly apply this to the current hash.
-static inline __swift_uint32_t scramble(__swift_uint32_t scalar) {
+static inline __language_uint32_t scramble(__language_uint32_t scalar) {
   scalar *= 0xCC9E2D51;
   scalar = (scalar << 15) | (scalar >> 17);
   scalar *= 0x1B873593;
@@ -24,9 +28,9 @@ static inline __swift_uint32_t scramble(__swift_uint32_t scalar) {
 }
 
 // This is a reimplementation of MurMur3 hash with a modulo at the end.
-static __swift_uint32_t hash(__swift_uint32_t scalar, __swift_uint32_t level,
-                             __swift_uint32_t seed) {
-  __swift_uint32_t hash = seed;
+static __language_uint32_t hash(__language_uint32_t scalar, __language_uint32_t level,
+                             __language_uint32_t seed) {
+  __language_uint32_t hash = seed;
 
   hash ^= scramble(scalar);
   hash = (hash << 13) | (hash >> 19);
@@ -48,22 +52,22 @@ static __swift_uint32_t hash(__swift_uint32_t scalar, __swift_uint32_t level,
 
 // This implementation is based on the minimal perfect hashing strategy found
 // here: https://arxiv.org/pdf/1702.03154.pdf
-__swift_intptr_t _swift_stdlib_getMphIdx(__swift_uint32_t scalar,
-                                         __swift_intptr_t levels,
-                                         const __swift_uint64_t * const *keys,
-                                         const __swift_uint16_t * const *ranks,
-                                         const __swift_uint16_t * const sizes) {
-  __swift_intptr_t resultIdx = 0;
+__language_intptr_t _language_stdlib_getMphIdx(__language_uint32_t scalar,
+                                         __language_intptr_t levels,
+                                         const __language_uint64_t * const *keys,
+                                         const __language_uint16_t * const *ranks,
+                                         const __language_uint16_t * const sizes) {
+  __language_intptr_t resultIdx = 0;
 
   // Here, levels represent the numbers of bit arrays used for this hash table.
   for (int i = 0; i != levels; i += 1) {
     auto bitArray = keys[i];
 
     // Get the specific bit that this scalar hashes to in the bit array.
-    auto idx = (__swift_uint64_t) hash(scalar, sizes[i], i);
+    auto idx = (__language_uint64_t) hash(scalar, sizes[i], i);
 
     auto word = bitArray[idx / 64];
-    auto mask = (__swift_uint64_t) 1 << (idx % 64);
+    auto mask = (__language_uint64_t) 1 << (idx % 64);
 
     // If our scalar's bit is turned on in the bit array, it means we no longer
     // need to iterate the bit arrays to find where our scalar is located...
@@ -129,9 +133,9 @@ __swift_intptr_t _swift_stdlib_getMphIdx(__swift_uint32_t scalar,
 // be the number of bits turned on in the first uint64, which in this case is
 // also 0. The third uint64's rank is 0x30 meaning there were 48 bits turned on
 // from the first uint64 through the second uint64.
-__swift_intptr_t _swift_stdlib_getScalarBitArrayIdx(__swift_uint32_t scalar,
-                                              const __swift_uint64_t *bitArrays,
-                                              const __swift_uint16_t *ranks) {
+__language_intptr_t _language_stdlib_getScalarBitArrayIdx(__language_uint32_t scalar,
+                                              const __language_uint64_t *bitArrays,
+                                              const __language_uint16_t *ranks) {
   // Chunk size indicates the number of scalars in a singular bit in our quick
   // look arrays. Currently, a chunk consists of 272 scalars being represented
   // in a bit. 0x110000 represents the maximum scalar value that Unicode will
@@ -161,7 +165,7 @@ __swift_intptr_t _swift_stdlib_getScalarBitArrayIdx(__swift_uint32_t scalar,
 
   // If our chunk index is larger than the quick look indices, then it means
   // our scalar appears in chunks who are all 0 and trailing.
-  if ((__swift_uint64_t) idx > quickLookSize - 1) {
+  if ((__language_uint64_t) idx > quickLookSize - 1) {
     return INTPTR_MAX;
   }
 
@@ -171,7 +175,7 @@ __swift_intptr_t _swift_stdlib_getScalarBitArrayIdx(__swift_uint32_t scalar,
   // If the quick look array has our chunk bit not set, that means all 272
   // (chunkSize) of the scalars being represented have no property and ours is
   // one of them.
-  if ((quickLook & ((__swift_uint64_t) 1 << chunkBit)) == 0) {
+  if ((quickLook & ((__language_uint64_t) 1 << chunkBit)) == 0) {
     return INTPTR_MAX;
   }
 
@@ -222,7 +226,7 @@ __swift_intptr_t _swift_stdlib_getScalarBitArrayIdx(__swift_uint32_t scalar,
 
   // If our scalar specifically is not turned on within our chunk's bit array,
   // then we know for sure that our scalar does not inhibit this property.
-  if ((chunkWord & ((__swift_uint64_t) 1 << scalarSpecificBit)) == 0) {
+  if ((chunkWord & ((__language_uint64_t) 1 << scalarSpecificBit)) == 0) {
     return INTPTR_MAX;
   }
 

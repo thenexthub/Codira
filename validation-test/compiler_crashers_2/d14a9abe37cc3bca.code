@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::SolverTrail::~SolverTrail()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a< b { case c(}
+         fn d< b >(b->a< b >) d(a< e >.c immutable a

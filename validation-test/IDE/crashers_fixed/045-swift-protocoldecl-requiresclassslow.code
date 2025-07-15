@@ -1,0 +1,7 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+protocol A{
+extension{protocol c{
+fn a
+protocol e{protocol A{typealias e:a extension{protocol P{#^A^#
+fn b
+<H:o

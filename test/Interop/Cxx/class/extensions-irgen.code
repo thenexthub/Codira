@@ -1,0 +1,13 @@
+// RUN: %target-language-emit-ir %s -I %S/Inputs -enable-experimental-cxx-interop | %FileCheck %s
+
+import Extensions
+
+extension Outer.Space.Foo {
+  fn foo() {}
+}
+
+Outer.Space.Foo().foo()
+
+// CHECK: call languagecc void @"$sSo5OuterO5SpaceO3FooV4mainE3fooyyF"
+
+// CHECK: define hidden languagecc void @"$sSo5OuterO5SpaceO3FooV4mainE3fooyyF"

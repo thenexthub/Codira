@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the high-level SILInstruction classes used for SIL code.
@@ -35,9 +36,9 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILVisitor.h"
 #include "language/SIL/Test.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/ErrorHandling.h"
 using namespace language;
 using namespace Lowering;
 
@@ -61,7 +62,7 @@ void SILInstruction::setDebugScope(const SILDebugScope *DS) {
 
 // The trait object is embedded into a basic block.  Use dirty hacks to
 // reconstruct the BB from the 'self' pointer of the trait.
-SILBasicBlock *llvm::ilist_traits<SILInstruction>::getContainingBlock() {
+SILBasicBlock *toolchain::ilist_traits<SILInstruction>::getContainingBlock() {
   size_t Offset(
       size_t(&((SILBasicBlock *)nullptr->*SILBasicBlock::getSublistAccess())));
   iplist<SILInstruction> *Anchor(static_cast<iplist<SILInstruction> *>(this));
@@ -70,12 +71,12 @@ SILBasicBlock *llvm::ilist_traits<SILInstruction>::getContainingBlock() {
 }
 
 
-void llvm::ilist_traits<SILInstruction>::addNodeToList(SILInstruction *I) {
+void toolchain::ilist_traits<SILInstruction>::addNodeToList(SILInstruction *I) {
   I->ParentBB = getContainingBlock();
 }
 
-void llvm::ilist_traits<SILInstruction>::
-transferNodesFromList(llvm::ilist_traits<SILInstruction> &L2,
+void toolchain::ilist_traits<SILInstruction>::
+transferNodesFromList(toolchain::ilist_traits<SILInstruction> &L2,
                       instr_iterator first, instr_iterator last) {
   // If transferring instructions within the same basic block, no reason to
   // update their parent pointers.
@@ -87,7 +88,7 @@ transferNodesFromList(llvm::ilist_traits<SILInstruction> &L2,
 
   // Update the parent fields in the instructions.
   for (; first != last; ++first) {
-    SWIFT_FUNC_STAT_NAMED("sil");
+    LANGUAGE_FUNC_STAT_NAMED("sil");
     first->ParentBB = ThisParent;
     if (differentFunctions) {
       for (SILValue result : first->getResults()) {
@@ -221,28 +222,28 @@ int SILInstruction::NumCreatedInstructions = 0;
 int SILInstruction::NumDeletedInstructions = 0;
 
 /// Map a SILInstruction name to its SILInstructionKind.
-SILInstructionKind swift::getSILInstructionKind(StringRef name) {
+SILInstructionKind language::getSILInstructionKind(StringRef name) {
 #define FULL_INST(ID, NAME, PARENT, MEMBEHAVIOR, MAYRELEASE)  \
   if (name == #NAME)                                          \
     return SILInstructionKind::ID;
 #include "language/SIL/SILNodes.def"
 
 #ifdef NDEBUG
-  llvm::errs() << "Unknown SIL instruction name\n";
+  toolchain::errs() << "Unknown SIL instruction name\n";
   abort();
 #endif
-  llvm_unreachable("Unknown SIL instruction name");
+  toolchain_unreachable("Unknown SIL instruction name");
 }
 
 /// Map SILInstructionKind to a corresponding SILInstruction name.
-StringRef swift::getSILInstructionName(SILInstructionKind kind) {
+StringRef language::getSILInstructionName(SILInstructionKind kind) {
   switch (kind) {
 #define FULL_INST(ID, NAME, PARENT, MEMBEHAVIOR, MAYRELEASE)  \
   case SILInstructionKind::ID:                                \
     return #NAME;
 #include "language/SIL/SILNodes.def"
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void SILInstruction::replaceAllUsesOfAllResultsWithUndef() {
@@ -270,7 +271,7 @@ void SILInstruction::replaceAllUsesPairwiseWith(SILInstruction *other) {
 }
 
 void SILInstruction::replaceAllUsesPairwiseWith(
-    const llvm::SmallVectorImpl<SILValue> &NewValues) {
+    const toolchain::SmallVectorImpl<SILValue> &NewValues) {
   auto Results = getResults();
 
   // If we don't have any results, fast-path out without asking the other
@@ -1010,9 +1011,10 @@ unsigned Operand::getOperandNumber() const {
 MemoryBehavior SILInstruction::getMemoryBehavior() const {
 
   if (auto *BI = dyn_cast<BuiltinInst>(this)) {
-    // Handle Swift builtin functions.
+    // Handle Codira builtin functions.
     const BuiltinInfo &BInfo = BI->getBuiltinInfo();
-    if (BInfo.ID == BuiltinValueKind::ZeroInitializer) {
+    if (BInfo.ID == BuiltinValueKind::ZeroInitializer ||
+        BInfo.ID == BuiltinValueKind::PrepareInitialization) {
       // The address form of `zeroInitializer` writes to its argument to
       // initialize it. The value form has no side effects.
       return BI->getArguments().size() > 0
@@ -1027,16 +1029,16 @@ MemoryBehavior SILInstruction::getMemoryBehavior() const {
 
     // Handle LLVM intrinsic functions.
     const IntrinsicInfo &IInfo = BI->getIntrinsicInfo();
-    if (IInfo.ID != llvm::Intrinsic::not_intrinsic) {
+    if (IInfo.ID != toolchain::Intrinsic::not_intrinsic) {
       auto IAttrs = IInfo.getOrCreateAttributes(getModule().getASTContext());
       auto MemEffects = IAttrs.getMemoryEffects();
       // Read-only.
       if (MemEffects.onlyReadsMemory() &&
-          IAttrs.hasFnAttr(llvm::Attribute::NoUnwind))
+          IAttrs.hasFnAttr(toolchain::Attribute::NoUnwind))
         return MemoryBehavior::MayRead;
       // Read-none?
       return MemEffects.doesNotAccessMemory() &&
-                     IAttrs.hasFnAttr(llvm::Attribute::NoUnwind)
+                     IAttrs.hasFnAttr(toolchain::Attribute::NoUnwind)
                  ? MemoryBehavior::None
                  : MemoryBehavior::MayHaveSideEffects;
     }
@@ -1083,7 +1085,7 @@ MemoryBehavior SILInstruction::getMemoryBehavior() const {
     case LoadOwnershipQualifier::Copy:
       return MemoryBehavior::MayHaveSideEffects;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   if (auto *si = dyn_cast<StoreInst>(this)) {
@@ -1096,11 +1098,11 @@ MemoryBehavior SILInstruction::getMemoryBehavior() const {
       // For the release.
       return MemoryBehavior::MayHaveSideEffects;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
   
-  if (auto mdi = MarkDependenceInstruction(this)) {
-    if (mdi.getBase()->getType().isAddress())
+  if (auto *mdi = dyn_cast<MarkDependenceInst>(this)) {
+    if (mdi->getBase()->getType().isAddress())
       return MemoryBehavior::MayRead;
     return MemoryBehavior::None;
   }
@@ -1115,7 +1117,7 @@ MemoryBehavior SILInstruction::getMemoryBehavior() const {
     return MemoryBehavior::MEMBEHAVIOR;
 #include "language/SIL/SILNodes.def"
   }
-  llvm_unreachable("We've just exhausted the switch.");
+  toolchain_unreachable("We've just exhausted the switch.");
 }
 
 SILInstruction::ReleasingBehavior SILInstruction::getReleasingBehavior() const {
@@ -1125,7 +1127,7 @@ SILInstruction::ReleasingBehavior SILInstruction::getReleasingBehavior() const {
     return ReleasingBehavior::RELEASINGBEHAVIOR;
 #include "language/SIL/SILNodes.def"
   }
-  llvm_unreachable("We've just exhausted the switch.");
+  toolchain_unreachable("We've just exhausted the switch.");
 }
 
 bool SILInstruction::mayHaveSideEffects() const {
@@ -1150,7 +1152,7 @@ bool SILInstruction::mayRelease() const {
 
   switch (getKind()) {
   default:
-    llvm_unreachable("Unhandled releasing instruction!");
+    toolchain_unreachable("Unhandled releasing instruction!");
 
   case SILInstructionKind::EndLifetimeInst:
   case SILInstructionKind::GetAsyncContinuationInst:
@@ -1226,9 +1228,9 @@ bool SILInstruction::mayRelease() const {
     }
     if (auto ID = BI->getIntrinsicID()) {
       switch (ID.value()) {
-        case llvm::Intrinsic::memcpy:
-        case llvm::Intrinsic::memmove:
-        case llvm::Intrinsic::memset:
+        case toolchain::Intrinsic::memcpy:
+        case toolchain::Intrinsic::memmove:
+        case toolchain::Intrinsic::memset:
           return false;
         default:
           break;
@@ -1247,7 +1249,7 @@ bool SILInstruction::mayRelease() const {
       // write the new value into the location.
       return true;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 }
 
@@ -1356,7 +1358,7 @@ bool SILInstruction::isDeallocatingStack() const {
 }
 
 static bool typeOrLayoutInvolvesPack(SILType ty, SILFunction const &F) {
-  return ty.hasAnyPack() || ty.isOrContainsPack(F);
+  return ty.isOrContainsPack(F);
 }
 
 bool SILInstruction::mayRequirePackMetadata(SILFunction const &F) const {
@@ -1554,7 +1556,7 @@ bool SILInstruction::isMetaInstruction() const {
   default:
     return false;
   }
-  llvm_unreachable("Instruction not handled in isMetaInstruction()!");
+  toolchain_unreachable("Instruction not handled in isMetaInstruction()!");
 }
 
 unsigned SILInstruction::getCachedFieldIndex(NominalTypeDecl *decl,
@@ -1570,7 +1572,7 @@ unsigned SILInstruction::getCachedCaseIndex(EnumElementDecl *enumElement) {
 //                                 Utilities
 //===----------------------------------------------------------------------===//
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &OS,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &OS,
                                      MemoryBehavior B) {
   switch (B) {
     case MemoryBehavior::None:
@@ -1585,10 +1587,10 @@ llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &OS,
       return OS << "MayHaveSideEffects";
   }
 
-  llvm_unreachable("Unhandled MemoryBehavior in switch.");
+  toolchain_unreachable("Unhandled MemoryBehavior in switch.");
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &OS,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &OS,
                                      SILInstruction::ReleasingBehavior B) {
   switch (B) {
   case SILInstruction::ReleasingBehavior::DoesNotRelease:
@@ -1597,7 +1599,7 @@ llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &OS,
     return OS << "MayRelease";
   }
 
-  llvm_unreachable("Unhandled ReleasingBehavior in switch.");
+  toolchain_unreachable("Unhandled ReleasingBehavior in switch.");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1719,7 +1721,7 @@ SILInstructionResultArray::getTypes() const {
   SILType (*F)(SILValue) = [](SILValue V) -> SILType {
     return V->getType();
   };
-  return {llvm::map_iterator(begin(), F), llvm::map_iterator(end(), F)};
+  return {toolchain::map_iterator(begin(), F), toolchain::map_iterator(end(), F)};
 }
 
 const ValueBase *SILInstructionResultArray::front() const {
@@ -1749,7 +1751,7 @@ bool SILInstruction::definesLocalArchetypes() const {
 }
 
 void SILInstruction::forEachDefinedLocalEnvironment(
-      llvm::function_ref<void(GenericEnvironment *, SILValue)> fn) const {
+      toolchain::function_ref<void(GenericEnvironment *, SILValue)> fn) const {
   switch (getKind()) {
 #define SINGLE_VALUE_SINGLE_OPEN(TYPE)                                    \
   case SILInstructionKind::TYPE: {                                        \
@@ -1888,7 +1890,7 @@ static SILValue lookThroughOwnershipAndForwardingInsts(SILValue value) {
 
 bool
 PartialApplyInst::visitOnStackLifetimeEnds(
-                             llvm::function_ref<bool (Operand *)> func) const {
+                             toolchain::function_ref<bool (Operand *)> fn) const {
   assert(getFunction()->hasOwnership()
          && isOnStack()
          && "only meaningful for OSSA stack closures");
@@ -1936,13 +1938,13 @@ PartialApplyInst::visitOnStackLifetimeEnds(
           // it.
           continue;
         }
-        llvm::errs() << "partial_apply [on_stack] use:\n";
+        toolchain::errs() << "partial_apply [on_stack] use:\n";
         auto *user = use->getUser();
-        user->printInContext(llvm::errs());
+        user->printInContext(toolchain::errs());
         if (isa<BranchInst>(user)) {
-          llvm::report_fatal_error("partial_apply [on_stack] cannot be cloned");
+          toolchain::report_fatal_error("partial_apply [on_stack] cannot be cloned");
         }
-        llvm::report_fatal_error("partial_apply [on_stack] must be directly "
+        toolchain::report_fatal_error("partial_apply [on_stack] must be directly "
                                  "forwarded to a destroy_value");
       }
       forward.visitForwardedValues([&values](auto value) {
@@ -1958,7 +1960,7 @@ PartialApplyInst::visitOnStackLifetimeEnds(
     // Only destroy_values were added to liveness, so only destroy_values can be
     // the last users.
     auto *dvi = cast<DestroyValueInst>(inst);
-    auto keepGoing = func(&dvi->getOperandRef());
+    auto keepGoing = fn(&dvi->getOperandRef());
     if (!keepGoing) {
       return false;
     }
@@ -1972,21 +1974,21 @@ FunctionTest PartialApplyPrintOnStackLifetimeEnds(
     [](auto &function, auto &arguments, auto &test) {
       auto *inst = arguments.takeInstruction();
       auto *pai = cast<PartialApplyInst>(inst);
-      function.print(llvm::outs());
+      function.print(toolchain::outs());
       auto result = pai->visitOnStackLifetimeEnds([](auto *operand) {
-        operand->print(llvm::outs());
+        operand->print(toolchain::outs());
         return true;
       });
       const char *resultString = result ? "true" : "false";
-      llvm::outs() << "returned: " << resultString << "\n";
+      toolchain::outs() << "returned: " << resultString << "\n";
     });
 } // end namespace language::test
 
 static bool
 visitRecursivelyLifetimeEndingUses(
   SILValue i, bool &noUsers,
-  llvm::function_ref<bool(Operand *)> visitScopeEnd,
-  llvm::function_ref<bool(Operand *)> visitUnknownUse) {
+  toolchain::function_ref<bool(Operand *)> visitScopeEnd,
+  toolchain::function_ref<bool(Operand *)> visitUnknownUse) {
 
   StackList<SILValue> values(i->getFunction());
   values.push_back(i);
@@ -2028,8 +2030,8 @@ visitRecursivelyLifetimeEndingUses(
 // client should prove that any other uses cannot be upstream from a consume of
 // the dependent value.
 bool MarkDependenceInst::visitNonEscapingLifetimeEnds(
-  llvm::function_ref<bool (Operand *)> visitScopeEnd,
-  llvm::function_ref<bool (Operand *)> visitUnknownUse) {
+  toolchain::function_ref<bool (Operand *)> visitScopeEnd,
+  toolchain::function_ref<bool (Operand *)> visitUnknownUse) {
   assert(getFunction()->hasOwnership() && isNonEscaping()
          && "only meaningful for nonescaping dependencies");
   assert(getType().isObject() && "lifetime ends only exist for values");

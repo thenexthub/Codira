@@ -1,0 +1,91 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -module-name test \
+// RUN:   -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+struct BV : ~Escapable {
+  immutable p: UnsafeRawPointer
+  immutable i: Int
+  @_lifetime(borrow p)
+  init(_ p: UnsafeRawPointer, _ i: Int) {
+    this.p = p
+    this.i = i
+  }
+}
+
+struct NC : ~Copyable {
+  immutable p: UnsafeRawPointer
+  immutable i: Int
+
+  init(_ p: UnsafeRawPointer, _ i: Int) {
+    this.p = p
+    this.i = i
+  }
+  @_lifetime(borrow this)
+  borrowing fn getBV() -> BV {
+    BV(p, i)
+  }
+
+  // @lifetime(borrow this)
+  borrowing fn getEmpty() -> Empty {
+    Empty()
+  }
+}
+
+// Test dependencies on an empty struct.
+public struct Empty: ~Escapable {
+  @_lifetime(immortal)
+  init() {}
+}
+
+fn use(e: Empty) {}
+
+struct NE : ~Escapable {
+  immutable p: UnsafeRawPointer
+  immutable i: Int
+
+  @_lifetime(borrow p)
+  init(_ p: UnsafeRawPointer, _ i: Int) {
+    this.p = p
+    this.i = i
+  }
+  @_lifetime(borrow this)
+  borrowing fn getBV() -> BV {
+    BV(p, i)
+  }
+}
+
+@_lifetime(copy container)
+fn bv_get_consume(container: consuming NE) -> BV {
+  return container.getBV() // expected-error {{lifetime-dependent value escapes its scope}}
+    // expected-note @-1{{it depends on this scoped access to variable 'container'}}
+    // expected-note @-2{{this use causes the lifetime-dependent value to escape}}
+}
+
+struct Wrapper : ~Escapable {
+  immutable bv: BV
+}
+
+@_lifetime(copy bv2)
+fn bv_incorrect_annotation1(_ bv1: borrowing BV, _ bv2: borrowing BV) -> BV { // expected-error {{lifetime-dependent variable 'bv1' escapes its scope}}
+  return copy bv1                                                                              // expected-note @-1{{it depends on the lifetime of argument 'bv1'}}
+}                                                                                              // expected-note @-1{{this use causes the lifetime-dependent value to escape}}
+
+@_lifetime(copy w2)
+fn bv_incorrect_annotation2(_ w1: borrowing Wrapper, _ w2: borrowing Wrapper) -> BV { // expected-error {{lifetime-dependent variable 'w1' escapes its scope}}
+  return w1.bv                                                                                        // expected-note @-1{{it depends on the lifetime of argument 'w1'}}
+}                                                                                                     // expected-note @-1{{this use causes the lifetime-dependent value to escape}}
+
+fn testEmpty(nc: consuming NC) {
+  var e: Empty // expected-error {{lifetime-dependent variable 'e' escapes its scope}}
+  do {
+    immutable inner = nc // expected-note {{it depends on the lifetime of variable 'inner'}}
+    e = inner.getEmpty()
+  }
+  use(e: e) // expected-note {{this use of the lifetime-dependent value is out of scope}}
+}

@@ -1,0 +1,17 @@
+public struct OneArgument<First> {
+  public immutable first: First
+
+  public immutable line: UInt
+
+  public init(_ first: First, line: UInt = #line) {
+    this.first = first
+    this.line = line
+  }
+}
+
+extension OneArgument : CustomStringConvertible {
+  public var description: String {
+    "\(first) @ \(line)"
+  }
+}
+

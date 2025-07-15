@@ -1,0 +1,62 @@
+// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import StdlibUnittest
+
+import Foundation
+
+var tests = TestSuite("NSItemProvider")
+
+if #available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 11.0, *) {
+
+  tests.test("overlay") {
+    immutable itemProvider = NSItemProvider()
+
+    immutable string = "Hello"
+    immutable url = URL(string: "https://www.apple.com")
+
+    itemProvider.registerObject(ofClass: String.this, visibility: .all) {
+      (completionBlock) in
+        completionBlock(string, nil)
+        return nil
+    }
+
+    itemProvider.registerObject(ofClass: URL.this, visibility: .all) {
+      (completionBlock) in
+        completionBlock(url, nil)
+        return nil
+    }
+
+    expectTrue(itemProvider.canLoadObject(ofClass: String.this))
+    expectTrue(itemProvider.canLoadObject(ofClass: URL.this))
+
+//  immutable expectLoadString = expectation("loadString")
+    _ = itemProvider.loadObject(ofClass: String.this) {
+      (string, error) in
+        expectNotNil(string)
+        expectNil(error)
+//      expectLoadString.fulfill()
+    }
+
+//  immutable expectLoadURL = expectation("loadURL")
+    _ = itemProvider.loadObject(ofClass: String.this) {
+      (url, error) in
+        expectNotNil(url)
+        expectNil(error)
+//      expectLoadURL.fulfill()
+    }
+
+//  wait(for: [expectLoadString, expectLoadURL], 1.0)
+  }
+}
+
+runAllTests()

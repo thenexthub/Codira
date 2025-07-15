@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTPRINTER_H
-#define SWIFT_AST_ASTPRINTER_H
+#ifndef LANGUAGE_AST_ASTPRINTER_H
+#define LANGUAGE_AST_ASTPRINTER_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/QuotedString.h"
 #include "language/Basic/UUID.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Decl.h"
 #include "clang/AST/Decl.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "language/AST/PrintOptions.h"
 
 // Prefix to use when printing module names in module interfaces to avoid
@@ -56,7 +57,7 @@ enum class PrintNameContext {
   Normal,
   /// Keyword context, where no keywords are escaped.
   Keyword,
-  /// Keyword for introducing a declarations e.g. 'func', 'struct'.
+  /// Keyword for introducing a declarations e.g. 'fn', 'struct'.
   IntroducerKeyword,
   /// Type member context, e.g. properties or enum cases.
   TypeMember,
@@ -81,7 +82,7 @@ enum class PrintNameContext {
 /// handled by the printDeclPre/printDeclPost callbacks.
 /// E.g.
 /// \code
-///   func foo(<FunctionParameter>x: Int = 2</FunctionParameter>, ...)
+///   fn foo(<FunctionParameter>x: Int = 2</FunctionParameter>, ...)
 /// \endcode
 enum class PrintStructureKind {
   GenericParameter,
@@ -138,7 +139,7 @@ class ASTPrinter {
   unsigned CurrentIndentation = 0;
   unsigned PendingNewlines = 0;
   TypeOrExtensionDecl SynthesizeTarget;
-  llvm::SmallPtrSet<const clang::Decl *, 8> printedClangDecl;
+  toolchain::SmallPtrSet<const clang::Decl *, 8> printedClangDecl;
 
   void printTextImpl(StringRef Text);
 
@@ -316,7 +317,7 @@ public:
 
   void forceNewlines() {
     if (PendingNewlines > 0) {
-      llvm::SmallString<16> Str;
+      toolchain::SmallString<16> Str;
       for (unsigned i = 0; i != PendingNewlines; ++i)
         Str += '\n';
       PendingNewlines = 0;
@@ -420,7 +421,7 @@ bool printRequirementStub(ValueDecl *Requirement, DeclContext *Adopter,
                           bool withExplicitObjCAttr = false);
 
 /// Print a keyword or punctuator directly by its kind.
-llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, tok keyword);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS, tok keyword);
 
 /// Get the length of a keyword or punctuator by its kind.
 uint8_t getKeywordLen(tok keyword);
@@ -431,12 +432,12 @@ StringRef getCodePlaceholder();
 /// Given an array of enum element decls, print them as case statements with
 /// placeholders as contents.
 void printEnumElementsAsCases(
-    llvm::DenseSet<EnumElementDecl *> &UnhandledElements,
-    llvm::raw_ostream &OS);
+    toolchain::DenseSet<EnumElementDecl *> &UnhandledElements,
+    toolchain::raw_ostream &OS);
 
 void getInheritedForPrinting(
   const Decl *decl, const PrintOptions &options,
-  llvm::SmallVectorImpl<InheritedEntry> &Results);
+  toolchain::SmallVectorImpl<InheritedEntry> &Results);
 
 StringRef getAccessorKindString(AccessorKind value);
 
@@ -445,9 +446,9 @@ StringRef getAccessorKindString(AccessorKind value);
 /// may be called multiple times if the declaration uses suppressible
 /// features.
 void printWithCompatibilityFeatureChecks(ASTPrinter &printer,
-                                         PrintOptions &options,
+                                         const PrintOptions &options,
                                          Decl *decl,
-                                         llvm::function_ref<void()> printBody);
+                                         toolchain::function_ref<void()> printBody);
 
 /// Determine whether we need to escape the given name within the given
 /// context, by wrapping it in backticks.
@@ -456,4 +457,4 @@ bool escapeIdentifierInContext(Identifier name, PrintNameContext context,
 
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_ASTPRINTER_H
+#endif // TOOLCHAIN_LANGUAGE_AST_ASTPRINTER_H

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 #include "language/Runtime/Metadata.h"
 #include <dispatch/dispatch.h>
@@ -18,19 +19,19 @@
 
 // Allow this library to get force-loaded by autolinking
 __attribute__((weak, visibility("hidden"))) extern "C" char
-    _swift_FORCE_LOAD_$_swiftCompatibilityConcurrency = 0;
+    _language_FORCE_LOAD_$_languageCompatibilityConcurrency = 0;
 using namespace language;
 
 namespace language {
 
 // Entrypoint called by the compiler when back-deploying concurrency, which
 // switches between the real implementation of
-// swift_getFunctionTypeMetadataGlobalActor and
-// swift_getFunctionTypeMetadataGlobalActorStandalone depending on what system
+// language_getFunctionTypeMetadataGlobalActor and
+// language_getFunctionTypeMetadataGlobalActorStandalone depending on what system
 // it is running on.
-SWIFT_RUNTIME_STDLIB_INTERNAL
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadataGlobalActorBackDeploy(
+language_getFunctionTypeMetadataGlobalActorBackDeploy(
     FunctionTypeFlags flags, FunctionMetadataDifferentiabilityKind diffKind,
     const Metadata *const *parameters, const uint32_t *parameterFlags,
     const Metadata *result, const Metadata *globalActor);
@@ -38,7 +39,7 @@ swift_getFunctionTypeMetadataGlobalActorBackDeploy(
 } // end namespace language
 
 const FunctionTypeMetadata *
-swift::swift_getFunctionTypeMetadataGlobalActorBackDeploy(
+language::language_getFunctionTypeMetadataGlobalActorBackDeploy(
     FunctionTypeFlags flags, FunctionMetadataDifferentiabilityKind diffKind,
     const Metadata *const *parameters, const uint32_t *parameterFlags,
     const Metadata *result, const Metadata *globalActor) {
@@ -49,15 +50,15 @@ swift::swift_getFunctionTypeMetadataGlobalActorBackDeploy(
   static BuilderFn builderFn;
   static dispatch_once_t builderToken;
   dispatch_once(&builderToken, ^{
-      // Prefer the function from the Swift runtime if it is available.
+      // Prefer the function from the Codira runtime if it is available.
       builderFn = reinterpret_cast<BuilderFn>(
-        dlsym(RTLD_DEFAULT, "swift_getFunctionTypeMetadataGlobalActor"));
+        dlsym(RTLD_DEFAULT, "language_getFunctionTypeMetadataGlobalActor"));
       if (builderFn)
         return;
 
       builderFn = reinterpret_cast<BuilderFn>(
         dlsym(RTLD_DEFAULT,
-              "swift_getFunctionTypeMetadataGlobalActorStandalone"));
+              "language_getFunctionTypeMetadataGlobalActorStandalone"));
     });
 
   assert(builderFn && "No way to build global-actor-qualified function type");

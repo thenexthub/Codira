@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/generic-struct-in-cxx.code  -D KNOWN_LAYOUT -D INDIRECT_KNOWN_LAYOUT -module-name Generics -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/generics.h
+// RUN: %FileCheck %s < %t/generics.h
+// RUN: %check-interop-cxx-header-in-clang(%t/generics.h -Wno-reserved-identifier -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/generic-struct-in-cxx.code -D KNOWN_LAYOUT -D INDIRECT_KNOWN_LAYOUT -enable-library-evolution -module-name Generics -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/generics.h
+// RUN: %FileCheck %s < %t/generics.h
+// RUN: %check-interop-cxx-header-in-clang(%t/generics.h -Wno-reserved-identifier -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+// CHECK: LANGUAGE_EXTERN void $s8Generics11GenericPairV1yq_vg(LANGUAGE_INDIRECT_RESULT void * _Nonnull, void * _Nonnull , LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // _
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics11GenericPairV1yq_vs(const void * _Nonnull newValue, void * _Nonnull , LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // _
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics11GenericPairVyACyxq_Gx_Siq_tcfC(LANGUAGE_INDIRECT_RESULT void * _Nonnull, const void * _Nonnull x, ptrdiff_t i, const void * _Nonnull y, void * _Nonnull , void * _Nonnull ) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // init(_:_:_:)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics11GenericPairV6methodyyF(void * _Nonnull , LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // method()
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics11GenericPairV14mutatingMethodyyACyq_xGF(const void * _Nonnull other, void * _Nonnull , LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // mutatingMethod(_:)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics11GenericPairV13genericMethodyqd__qd___q_tlF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, const void * _Nonnull x, const void * _Nonnull y, void * _Nonnull , void * _Nonnull , LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // genericMethod(_:_:)
+
+
+// CHECK: LANGUAGE_EXTERN void $s8Generics17inoutConcretePairyys6UInt16V_AA07GenericD0VyA2DGztF(uint16_t x, void * _Nonnull y) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // inoutConcretePair(_:_:)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics16inoutGenericPairyyAA0cD0Vyxq_Gz_xtr0_lF(void * _Nonnull x, const void * _Nonnull y, void * _Nonnull , void * _Nonnull ) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // inoutGenericPair(_:_:)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics16makeConcretePairyAA07GenericD0Vys6UInt16VAFGAF_AFtF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, uint16_t x, uint16_t y) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // makeConcretePair(_:_:)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s8Generics15makeGenericPairyAA0cD0Vyxq_Gx_q_tr0_lF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, const void * _Nonnull x, const void * _Nonnull y, void * _Nonnull , void * _Nonnull ) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // makeGenericPair(_:_:)

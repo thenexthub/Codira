@@ -1,0 +1,31 @@
+public class BeforeAndAfterOther {
+  @available(language, obsoleted: 5.0)
+  public init(foo: ()) {}
+
+  @available(language 5.0)
+  public init?(foo: ()) {}
+
+  @available(language, obsoleted: 5.0)
+  public init() {}
+
+  @available(language 5.0)
+  public init() throws {}
+
+  @available(language, obsoleted: 5.0)
+  public static fn foo() {}
+
+  @available(language 5.0)
+  public static fn foo() throws {}
+
+  @available(language 5.0)
+  public var computed: Int16 { get { return 0 } set { } }
+
+  @available(language, obsoleted: 5.0)
+  public var computed: Int8 { get { return 0 } set { } }
+
+  @available(language 5.0)
+  public static var computed: Int16 { get { return 0 } set { } }
+
+  @available(language, obsoleted: 5.0)
+  public static var computed: Int8 { get { return 0 } set { } }
+}

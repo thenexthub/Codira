@@ -1,0 +1,31 @@
+// RUN: %batch-code-completion
+
+// https://github.com/languagelang/language/issues/77305
+
+struct S {
+  var x: Int
+}
+
+fn withFoo(_ x: (S) -> Void) {}
+
+withFoo { foo in
+  fn bar() {
+    foo.#^FN_IN_CLOSURE^#
+    // FN_IN_CLOSURE: Decl[InstanceVar]/CurrNominal: x[#Int#]; name=x
+  }
+}
+
+withFoo { x in
+  _ = { y in
+    fn bar() {
+      _ = { z in
+        fn baz() {
+          fn qux() {
+            z.#^VERY_NESTED_FN_IN_CLOSURE^#
+            // VERY_NESTED_FN_IN_CLOSURE: Decl[InstanceVar]/CurrNominal: x[#Int#]; name=x
+          }
+        }
+      }(y)
+    }
+  }(x)
+}

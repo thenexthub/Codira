@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "condbranch-forwarding"
@@ -111,7 +112,7 @@ private:
 
     SILFunction *F = getFunction();
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "** ConditionForwarding on " << F->getName() << " **\n");
 
     for (SILBasicBlock &BB : *F) {
@@ -164,8 +165,8 @@ static bool hasNoRelevantSideEffects(SILBasicBlock *BB, EnumInst *enumInst) {
         return false;
       continue;
     }
-    LLVM_DEBUG(llvm::dbgs() << "Bailing out, found inst with side-effects ");
-    LLVM_DEBUG(I.dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Bailing out, found inst with side-effects ");
+    TOOLCHAIN_DEBUG(I.dump());
     return false;
   }
   return true;
@@ -206,7 +207,7 @@ bool ConditionForwarding::tryOptimize(SwitchEnumInst *SEI) {
   if (BB->getNumArguments() != 1)
     return false;
 
-  llvm::SmallVector<SILBasicBlock *, 4> PredBlocks;
+  toolchain::SmallVector<SILBasicBlock *, 4> PredBlocks;
 
   // Check if all predecessors of the merging block pass an Enum to its argument
   // and have a single predecessor - the block of the condition.
@@ -304,7 +305,7 @@ bool ConditionForwarding::tryOptimize(SwitchEnumInst *SEI) {
 
     SILBasicBlock *SEDest = SEI->getCaseDestination(EI->getElement());
     SILBuilder B(BI);
-    llvm::SmallVector<SILValue, 2> BranchArgs;
+    toolchain::SmallVector<SILValue, 2> BranchArgs;
     unsigned HasEnumArg = NeedEnumArg.contains(SEDest);
     if (SEDest->getNumArguments() == 1 + HasEnumArg) {
       if (SEI->hasDefault() && SEDest == SEI->getDefaultBB()) {
@@ -356,6 +357,6 @@ bool ConditionForwarding::tryOptimize(SwitchEnumInst *SEI) {
 
 } // end anonymous namespace
 
-SILTransform *swift::createConditionForwarding() {
+SILTransform *language::createConditionForwarding() {
   return new ConditionForwarding();
 }

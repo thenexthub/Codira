@@ -7,7 +7,7 @@
 \index{opaque parameter}
 \lettrine{G}{eneric signatures} are semantic objects that describe the type checking behavior of \index{generic declaration}generic declarations. Declarations can nest, and outer generic parameters are visible inside inner declarations, so a \IndexDefinition{generic signature}generic signature is a ``flat'' representation that collects all \emph{generic parameter types} and \emph{requirements} that apply in the declaration's scope. This abstracts away the concrete syntax described in the previous chapter:
 \begin{itemize}
-\item The list of generic parameter types begins with all outer generic parameters, which are followed by generic parameters from the explicit generic parameter list \texttt{<...>}, together with any generic parameter types implicitly introduced by opaque parameter declarations, like the ``\texttt{some P}'' in ``\verb|func f(_: some P)|''.
+\item The list of generic parameter types begins with all outer generic parameters, which are followed by generic parameters from the explicit generic parameter list \texttt{<...>}, together with any generic parameter types implicitly introduced by opaque parameter declarations, like the ``\texttt{some P}'' in ``\verb|fn f(_: some P)|''.
 \item The list of requirements in a generic signature includes the requirements stated by outer generic declarations, as well as any requirements from generic parameter \index{inheritance clause!generic parameter declaration}inheritance clauses, the trailing \Index{where clause@\texttt{where} clause}\texttt{where} clause, and opaque parameters. A fourth mechanism, called requirement inference, will be described in \SecRef{requirementinference}.
 \end{itemize}
 
@@ -24,7 +24,7 @@ After some preliminaries, we will go on to introduce a formal system for reasoni
 \begin{Verbatim}
 struct Outer<T: Sequence> {
   struct Inner<U> {
-    func transform() where T.Element == U {
+    fn transform() where T.Element == U {
       ...
     }
   }
@@ -32,25 +32,25 @@ struct Outer<T: Sequence> {
 \end{Verbatim}
 If we run the compiler with this flag, we see that the generic signature at each level of nesting incorporates all information from the outer declaration's generic signature:
 \begin{Verbatim}
-debug.(file).Outer@debug.swift:1:8
+debug.(file).Outer@debug.code:1:8
 Generic signature: <T where T : Sequence>
 
-debug.(file).Outer.Inner@debug.swift:2:10
+debug.(file).Outer.Inner@debug.code:2:10
 Generic signature: <T, U where T : Sequence>
 
-debug.(file).Outer.Inner.transform()@debug.swift:3:10
+debug.(file).Outer.Inner.transform()@debug.code:3:10
 Generic signature: <T, U where T : Sequence, U == T.[Sequence]Element>
 \end{Verbatim}
 
 This flag also allows us to observe \index{requirement minimization}\emph{requirement minimization}. Here are three functions, each one generic over a pair of types conforming to \texttt{Sequence}:
 \begin{Verbatim}
-func sameElt<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn sameElt<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Element == S2.Element {...}
 
-func sameIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn sameIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Iterator == S2.Iterator {...}
 
-func sameEltAndIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn sameEltAndIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Element == S2.Element,
           S1.Iterator == S2.Iterator {...}
 \end{Verbatim}
@@ -124,7 +124,7 @@ We recall that the \texttt{Sequence} protocol states two associated requirements
 \end{gather*}
 To motivate the formal system we will introduce in the next section, we consider how the associated requirements of a protocol can be observed from inside a generic declaration that states a conformance requirement to this protocol. Here is a generic function that states a conformance requirement to \texttt{Sequence}---two, in fact:
 \begin{Verbatim}
-func firstTwoEqual<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn firstTwoEqual<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Element == S2.Element, S1.Element: Equatable {
   var iter1 = s1.makeIterator()
   var iter2 = s2.makeIterator()
@@ -482,7 +482,7 @@ To prove that \texttt{\rT.Iterator.Element} conforms to \texttt{Equatable}, we n
 \end{example}
 
 \paragraph{Compatibility.}
-Our equivalence relation on fractions had an interesting property: if we pick any two fractions from a pair of equivalence classes and add them together (or multiply, etc), the equivalence class of the result does not depend on our choice of representatives. In Swift generics, we have an analogous goal: any observable behavior of a type parameter, be it conforming to a protocol, having a superclass bound, being fixed to a concrete type, or having a dependent member type with a given name, should only depend on its equivalence class, and not on the ``spelling.''
+Our equivalence relation on fractions had an interesting property: if we pick any two fractions from a pair of equivalence classes and add them together (or multiply, etc), the equivalence class of the result does not depend on our choice of representatives. In Codira generics, we have an analogous goal: any observable behavior of a type parameter, be it conforming to a protocol, having a superclass bound, being fixed to a concrete type, or having a dependent member type with a given name, should only depend on its equivalence class, and not on the ``spelling.''
 
 Once again, we wave our magic wand, and decree that reduced type equality is to have this property, by adding new \index{inference rule}inference rules. These rules relate \index{same-type requirement!inference rule}same-type requirements with the other requirement kinds by replacing the other requirement's subject type. That is, if we can derive a same-type requirement $\TU$ and a conformance requirement $\ConfReq{U}{P}$, we can \IndexStepDefinition{SameConf}derive $\TP$:
 \begin{gather*}
@@ -811,7 +811,7 @@ So far, we've only used our formal system to derive concrete statements \emph{in
 \begin{itemize}
 \item In \ChapRef{building generic signatures}, we describe how we diagnose invalid requirements, and show that if no diagnostics are emitted, our formal system has a particularly nice theory.
 \item In \ChapRef{conformance paths}, we take a closer look at derived conformance requirements, to describe substitution of dependent member types; in particular, we prove that a certain algorithm must terminate.
-\item In \ChapRef{monoids}, we use derived requirements to show that a Swift protocol can encode an arbitrary finitely-presented monoid, which demonstrates that a generic signature can have an undecidable theory.
+\item In \ChapRef{monoids}, we use derived requirements to show that a Codira protocol can encode an arbitrary finitely-presented monoid, which demonstrates that a generic signature can have an undecidable theory.
 \item In \ChapRef{symbols terms rules}, we will translate the explicit requirements of a generic signature into rewrite rules, and then show that derived requirements correspond to \emph{rewrite paths} under this mapping. This provides a correctness proof for the implementation.
 \end{itemize}
 
@@ -896,7 +896,7 @@ To order dependent member types, we must order associated type declarations, and
 \end{enumerate}
 \end{algorithm}
 
-Suppose the \texttt{Barn} module declares a \index{horse}\texttt{Horse} protocol, and the \texttt{Swift} module declares \texttt{Collection}. Then \texttt{Horse} precedes \texttt{Collection}, because they are declared in different modules, and $\texttt{Barn}<\texttt{Swift}$. If the \texttt{Barn} module also declares a \texttt{Saddle} protocol, then $\texttt{Horse}<\texttt{Saddle}$, because both are from the same module, so we compare their protocol names.
+Suppose the \texttt{Barn} module declares a \index{horse}\texttt{Horse} protocol, and the \texttt{Codira} module declares \texttt{Collection}. Then \texttt{Horse} precedes \texttt{Collection}, because they are declared in different modules, and $\texttt{Barn}<\texttt{Codira}$. If the \texttt{Barn} module also declares a \texttt{Saddle} protocol, then $\texttt{Horse}<\texttt{Saddle}$, because both are from the same module, so we compare their protocol names.
 
 In the previous section, we showed that re-stating an inherited associated type has no effect in our formal system. We also want this to have no effect on reduced types, so our type parameter order must prefer certain associated type declarations over others:
 
@@ -978,9 +978,9 @@ On the other hand, a set of type parameters of fixed length must be finite. If o
 Thus, the finite set~$S_n$ contains a minimum element, and so does~$S$, and since~$S$ was chosen arbitrarily, we conclude that the type parameter order is well-founded.
 \end{proof}
 
-The type parameter order plays an important role in the Swift \index{ABI}ABI. For example, the \index{mangling}mangled symbol name of a generic function incorporates the function's parameter types and return type, and the mangler takes reduced types to ensure that cosmetic changes to the declaration have no effect on binary compatibility.
+The type parameter order plays an important role in the Codira \index{ABI}ABI. For example, the \index{mangling}mangled symbol name of a generic function incorporates the function's parameter types and return type, and the mangler takes reduced types to ensure that cosmetic changes to the declaration have no effect on binary compatibility.
 
-To define reduced type parameters, we compared elements in a \emph{single} equivalence class. We also use the type parameter order to establish an order relation \emph{between} equivalence classes, by comparing their reduced types. We will extend this to a partial order on \emph{requirements} in \AlgRef{requirement order}. This requirement order surfaces in the Swift ABI:
+To define reduced type parameters, we compared elements in a \emph{single} equivalence class. We also use the type parameter order to establish an order relation \emph{between} equivalence classes, by comparing their reduced types. We will extend this to a partial order on \emph{requirements} in \AlgRef{requirement order}. This requirement order surfaces in the Codira ABI:
 \begin{enumerate}
 \item The \index{calling convention}calling convention for a generic function passes a witness table for each explicit \index{conformance requirement!witness table}conformance requirement in the function's \index{generic signature!calling convention}generic signature, sorted in this order.
 \item The in-memory layout of a \index{witness table}witness table stores an associated witness table for each associated conformance requirement in the protocol's \index{requirement signature!witness table}requirement signature, sorted in this order.
@@ -1192,9 +1192,9 @@ Thus, \rT\ and \rU\ are equivalent as interface types, but not as type parameter
 {some layout constraint \texttt{L} such that $\tT\vdash\ConfReq{T}{L}$.}
 {Output the \index{layout requirement!generic signature query}layout constraint, if the type parameter has one.}
 
-The \Index{AnyObject@\texttt{AnyObject}}\texttt{AnyObject} layout constraint is the only one that can be explicitly written in source. A second kind of layout constraint, \verb|_NativeClass|, is implied by a superclass bound being a native Swift class, meaning a class not inheriting from \texttt{NSObject}. The \verb|_NativeClass| layout constraint in turn implies the \texttt{AnyObject} layout constraint.
+The \Index{AnyObject@\texttt{AnyObject}}\texttt{AnyObject} layout constraint is the only one that can be explicitly written in source. A second kind of layout constraint, \verb|_NativeClass|, is implied by a superclass bound being a native Codira class, meaning a class not inheriting from \texttt{NSObject}. The \verb|_NativeClass| layout constraint in turn implies the \texttt{AnyObject} layout constraint.
 
-The two differ in how reference counting operations are lowered in \index{IRGen}IRGen. Classes of unknown ancestry use the \index{Objective-C}Objective-C runtime entry points, whereas native class instances use different entry points in the Swift runtime.
+The two differ in how reference counting operations are lowered in \index{IRGen}IRGen. Classes of unknown ancestry use the \index{Objective-C}Objective-C runtime entry points, whereas native class instances use different entry points in the Codira runtime.
 \end{itemize}
 
 \begin{example}
@@ -1256,15 +1256,15 @@ However, we cannot write down a derivation of $\Query{requiresClass}{G,\,\texttt
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/GenericSignature.h}
-\item \SourceFile{include/swift/AST/Requirement.h}
-\item \SourceFile{include/swift/AST/RequirementSignature.h}
+\item \SourceFile{include/language/AST/GenericSignature.h}
+\item \SourceFile{include/language/AST/Requirement.h}
+\item \SourceFile{include/language/AST/RequirementSignature.h}
 \item \SourceFile{lib/AST/GenericSignature.cpp}
 \end{itemize}
 Other source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/Decl.h}
-\item \SourceFile{include/swift/AST/DeclContext.h}
+\item \SourceFile{include/language/AST/Decl.h}
+\item \SourceFile{include/language/AST/DeclContext.h}
 \item \SourceFile{lib/AST/Decl.cpp}
 \item \SourceFile{lib/AST/DeclContext.cpp}
 \end{itemize}

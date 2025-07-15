@@ -1,11 +1,11 @@
 :orphan:
 
-Eventually, we would like to write Swift modules which define pure-C entry
+Eventually, we would like to write Codira modules which define pure-C entry
 points for top-level functions, and be able to export more data types to
 C code.
 
 This will be important for the Linux port, but also perhaps for system
-frameworks that want to transition to Swift.
+frameworks that want to transition to Codira.
 
 The radars tracking this work are:
 
@@ -37,7 +37,7 @@ we will prohibit overloading ``@c`` functions (unless we use Clang-style
 mangling and ``__attribute__((overloadable))``).
 
 However, we might want to prefix the default @asmname of a @c symbol
-with the Swift module name followed by an underscore, instead of using
+with the Codira module name followed by an underscore, instead of using
 the unqualified name.
 
 Type bridging
@@ -74,7 +74,7 @@ Bridging header output
 ======================
 
 We can reuse most of ``PrintAsObjC`` to allow generating pure-C headers
-for Swift modules which use @c but not @objc.
+for Codira modules which use @c but not @objc.
 
 Exporting functions to C
 ========================
@@ -101,9 +101,9 @@ changing some tests.
 As stated above, all the fields of a ``@c`` struct must themselves be POD.
 
 Structs declared as ``@c`` need to be laid out with C size and alignment
-conventions. We already do that for Swift structs imported from Clang by
+conventions. We already do that for Codira structs imported from Clang by
 asking Clang to do the layout on Clang AST, so perhaps for ``@c`` structs
-declared in Swift, we can go in the other direction by constructing Clang
+declared in Codira, we can go in the other direction by constructing Clang
 AST for the struct.
 
 Accessibility and linkage for @c declarations
@@ -151,8 +151,8 @@ several places:
 
 - ASTContext::getBridgedToObjC()
 - TypeChecker::isRepresentableInObjC() (various overloads)
-- include/swift/ClangImporter/BuiltinMappedTypes.def
-- include/swift/SIL/BridgedTypes.def
+- include/language/ClangImporter/BuiltinMappedTypes.def
+- include/language/SIL/BridgedTypes.def
 - TypeConverter::getLoweredCBridgedType()
 - ClangImporter::VisitObjCObjectPointerType() and other places in ImportType.cpp
 - PrintAsObjC::printIfKnownGenericStruct()

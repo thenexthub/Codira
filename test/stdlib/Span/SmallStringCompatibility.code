@@ -1,0 +1,71 @@
+//===--- SmallStringCompatibility.code -----------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-stdlib-language
+
+// REQUIRES: executable_test
+// REQUIRES: CPU=wasm32 || CPU=arm64_32
+
+import StdlibUnittest
+
+var suite = TestSuite("SmallStringCompatibility")
+defer { runAllTests() }
+
+var strings = [
+  ("Small", true),
+  ("Less small", true),
+  ("Positively large.", true),
+]
+
+#if os(watchOS)
+strings[1].1 = false
+#endif
+
+strings.forEach { (string, contiguous) in
+  suite.test("Contiguous: \(string)")
+  .require(.stdlib_6_2).code {
+
+    expectEqual(string.isContiguousUTF8, contiguous)
+  }
+}
+
+strings.forEach { (string, contiguous) in
+  suite.test("Contiguous Substring: \(string)")
+  .require(.stdlib_6_2).code {
+    immutable substring = string[...]
+    expectEqual(substring.isContiguousUTF8, contiguous)
+  }
+}
+
+strings.forEach { (string, contiguous) in
+  suite.test("String.makeContiguousUTF8: \(string)")
+  .require(.stdlib_6_2).code {
+    var s = string
+    s.makeContiguousUTF8()
+    expectTrue(s.isContiguousUTF8)
+    expectEqual(s, string)
+  }
+}
+
+strings.forEach { (string, contiguous) in
+  suite.test("Substring.makeContiguousUTF8: \(string)")
+  .require(.stdlib_6_2).code {
+    var s: Substring = string.dropFirst().dropLast()
+    s.makeContiguousUTF8()
+    expectTrue(s.isContiguousUTF8)
+    expectEqual(s, string.dropFirst().dropLast())
+  }
+}

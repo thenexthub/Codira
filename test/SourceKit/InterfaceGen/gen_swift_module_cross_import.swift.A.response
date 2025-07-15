@@ -1,0 +1,295 @@
+public fn fromA()
+
+
+// MARK: - B Additions
+
+import B
+
+// Available when B is imported with A
+public struct From_ABAdditionsType {
+}
+
+// Available when B is imported with A
+public fn from_ABAdditions()
+
+
+// MARK: - B and C Additions
+
+import C
+
+// Available when B and C are imported with A
+public fn from__ABAdditionsCAdditions()
+
+// Available when B and C are imported with A
+public fn other(x: A.From_ABAdditionsType)
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 12,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 22,
+    key.length: 23
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 25,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 46,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 53,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 56,
+    key.length: 39
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 95,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 102,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 109,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 135,
+    key.length: 39
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 174,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 181,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 186,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 207,
+    key.length: 29
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 210,
+    key.length: 25
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 237,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 244,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 247,
+    key.length: 46
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 293,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 300,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 305,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 336,
+    key.length: 46
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 382,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 389,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 394,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 400,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 403,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 405,
+    key.length: 20
+  }
+]
+[
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 53,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 244,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 403,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 405,
+    key.length: 20
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromA()",
+    key.offset: 7,
+    key.length: 12,
+    key.nameoffset: 12,
+    key.namelength: 7,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "From_ABAdditionsType",
+    key.offset: 102,
+    key.length: 31,
+    key.nameoffset: 109,
+    key.namelength: 20,
+    key.bodyoffset: 131,
+    key.bodylength: 1,
+    key.attributes: [
+      {
+        key.offset: 95,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "from_ABAdditions()",
+    key.offset: 181,
+    key.length: 23,
+    key.nameoffset: 186,
+    key.namelength: 18,
+    key.attributes: [
+      {
+        key.offset: 174,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "from__ABAdditionsCAdditions()",
+    key.offset: 300,
+    key.length: 34,
+    key.nameoffset: 305,
+    key.namelength: 29,
+    key.attributes: [
+      {
+        key.offset: 293,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "other(x:)",
+    key.offset: 389,
+    key.length: 37,
+    key.nameoffset: 394,
+    key.namelength: 32,
+    key.attributes: [
+      {
+        key.offset: 382,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "x",
+        key.offset: 400,
+        key.length: 25,
+        key.typename: "A.From_ABAdditionsType",
+        key.nameoffset: 400,
+        key.namelength: 1
+      }
+    ]
+  }
+]

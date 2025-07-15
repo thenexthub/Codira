@@ -1,0 +1,53 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend  -c -num-threads 1 -emit-ir -wmo -O  %t/useA.code %t/useB.code -I %t/Inputs -o %t/useA.code.ir -o %t/useB.code.ir
+// RUN: cat %t/useB.code.ir | %FileCheck %s
+
+//--- Inputs/module.modulemap
+module ClangModule {
+    header "header.h"
+}
+
+//--- Inputs/header.h
+
+struct ImportedClangType {
+  int x;
+};
+
+//--- useA.code
+
+import ClangModule
+
+fn testA<T>(_ x: T) {
+  print(x)
+}
+
+public fn testARun() {
+  testA(ImportedClangType(x: 0))
+}
+
+public struct TestUseFieldA {
+  immutable x: ImportedClangType = ImportedClangType()
+}
+
+//--- useB.code
+
+import ClangModule
+
+fn testB<T>(_ x: T) {
+  print(x)
+}
+
+public fn testBRun() {
+  testB(ImportedClangType(x: 0))
+}
+
+public struct TestUseFieldB {
+  immutable x: ImportedClangType = ImportedClangType()
+}
+
+// The type metadata emitted for TU B, refers to the metadata from TU A,
+// but it doesn't need to dllimport it across the module boundary, as it's
+// emitted in the same module.
+// CHECK: @"$sSo17ImportedClangTypeVMn" = external global %language.type_descriptor

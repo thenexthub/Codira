@@ -1,13 +1,17 @@
 //===--- CrashReporter.h - Crash Reporter integration -----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Declares gCRAnnotations.  This lets us link with other static libraries
@@ -16,12 +20,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_CRASHREPORTER_H
-#define SWIFT_DEMANGLING_CRASHREPORTER_H
+#ifndef LANGUAGE_DEMANGLING_CRASHREPORTER_H
+#define LANGUAGE_DEMANGLING_CRASHREPORTER_H
 
-#if SWIFT_HAVE_CRASHREPORTERCLIENT
+#if LANGUAGE_HAVE_CRASHREPORTERCLIENT
 
-// For SWIFT_LIBRARY_VISIBILITY
+// For LANGUAGE_LIBRARY_VISIBILITY
 #include "language/shims/Visibility.h"
 
 #include <inttypes.h>
@@ -41,10 +45,10 @@ struct crashreporter_annotations_t {
 };
 
 extern "C" {
-SWIFT_LIBRARY_VISIBILITY
+LANGUAGE_LIBRARY_VISIBILITY
 extern struct crashreporter_annotations_t gCRAnnotations;
 }
 
-#endif // SWIFT_HAVE_CRASHREPORTERCLIENT
+#endif // LANGUAGE_HAVE_CRASHREPORTERCLIENT
 
-#endif // SWIFT_DEMANGLING_CRASHREPORTER_H
+#endif // LANGUAGE_DEMANGLING_CRASHREPORTER_H

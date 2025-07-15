@@ -1,0 +1,3 @@
+fn callee(file: String = #file) {} // expected-note {{'file' declared here}}
+fn callee(optFile: String? = #file) {} // expected-note {{'optFile' declared here}}
+fn callee(arbitrary: String) {}

@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t/DISTINCTIVE-WINDOWS-PATH/usr/bin)
+// RUN: %empty-directory(%t/DISTINCTIVE-WINDOWS-PATH/usr/lib)
+// RUN: %hardlink-or-copy(from: %language_frontend_plain, to: %t/DISTINCTIVE-WINDOWS-PATH/usr/bin/languagec)
+// RUN: env PATH= %t/DISTINCTIVE-WINDOWS-PATH/usr/bin/languagec -target x86_64-unknown-windows-msvc -### -module-name link -emit-library %s 2>&1 | %FileCheck %s
+
+// language-frontend cannot be copied to another location with bootstrapping because
+// it will not find the liblanguageCore library with its relative RPATH.
+// UNSUPPORTED: language_in_compiler
+// UNSUPPORTED: language_language_parser
+
+// CHECK: {{^}}clang

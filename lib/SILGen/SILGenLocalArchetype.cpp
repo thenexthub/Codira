@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the transformation which rewrites captured local
@@ -59,7 +60,7 @@ public:
     auto &F = getBuilder().getFunction();
 
     // Collect the old basic blocks that we're going to delete.
-    llvm::SmallVector<SILBasicBlock *, 4> bbs;
+    toolchain::SmallVector<SILBasicBlock *, 4> bbs;
     for (auto &bb : F)
       bbs.push_back(&bb);
 

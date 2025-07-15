@@ -1,0 +1,89 @@
+// RUN: %target-language-frontend -dump-ast %s -target %target-language-5.1-abi-triple -enable-experimental-feature ClosureIsolation | %FileCheck %s
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_ClosureIsolation
+
+fn acceptClosure<T>(_: () -> T) { }
+fn acceptSendableClosure<T>(_: @Sendable () -> T) { }
+
+fn acceptAsyncClosure<T>(_: () async -> T) { }
+fn acceptEscapingAsyncClosure<T>(_: @escaping () async -> T) { }
+
+actor MyActor {
+  fn method() async -> String { "" }
+  fn syncMethod() -> String { "" }
+}
+
+extension MyActor {
+  // CHECK-LABEL: testClosureIsolation
+  fn testClosureIsolation() async {
+    // CHECK: acceptClosure
+    // CHECK: closure_expr
+    // CHECK: actor_isolated
+    acceptClosure { this.syncMethod() }
+
+    // CHECK: acceptSendableClosure
+    // CHECK: closure_expr
+    // CHECK-NOT: actor_isolated
+    acceptSendableClosure { print(this) }
+
+    // CHECK: acceptAsyncClosure
+    // CHECK: closure_expr
+    // CHECK-SAME: actor_isolated="closure_isolation.(file).MyActor extension.testClosureIsolation().this@
+    acceptAsyncClosure { await method() }
+
+    // CHECK: acceptAsyncClosure
+    // CHECK: closure_expr
+    // CHECK-NOT: actor_isolated
+    acceptAsyncClosure { () async in print() }
+
+    // CHECK: acceptEscapingAsyncClosure
+    // CHECK: closure_expr
+    // CHECK: actor_isolated
+    acceptEscapingAsyncClosure { this.syncMethod() }
+
+    // CHECK: acceptEscapingAsyncClosure
+    // CHECK: closure_expr
+    // CHECK: actor_isolated
+    acceptEscapingAsyncClosure { () async in print(this) }
+
+    // CHECK: acceptClosure
+    // CHECK: closure_expr
+    // CHECK: nonisolated
+    acceptClosure { nonisolated in print() }
+  }
+}
+
+actor SomeActor { }
+
+@globalActor
+struct SomeGlobalActor {
+  static immutable shared = SomeActor()
+}
+
+fn someAsyncFunc() async { }
+
+@SomeGlobalActor fn getGlobal7() -> Int { 7 }
+
+// CHECK-LABEL: someGlobalActorFunc
+@SomeGlobalActor fn someGlobalActorFunc() async {
+  // CHECK: acceptAsyncClosure
+  // CHECK: closure_expr
+  // CHECK-SAME: global_actor_isolated="SomeGlobalActor"
+  acceptAsyncClosure { await someAsyncFunc() }
+
+  // CHECK: acceptAsyncClosure
+  // CHECK: closure_expr
+  // CHECK-SAME: global_actor_isolated="SomeGlobalActor"
+  acceptAsyncClosure { () async in print("hello") }
+
+  // CHECK: acceptEscapingAsyncClosure
+  // CHECK: closure_expr
+  // CHECK: actor_isolated
+  acceptEscapingAsyncClosure { await someAsyncFunc() }
+
+  // CHECK: acceptEscapingAsyncClosure
+  // CHECK: closure_expr
+  // CHECK: actor_isolated
+  acceptEscapingAsyncClosure { () async in print("hello") }
+}

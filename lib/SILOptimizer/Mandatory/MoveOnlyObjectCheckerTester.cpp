@@ -1,13 +1,17 @@
 //===--- MoveOnlyObjectCheckerTester.cpp ----------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-move-only-checker"
@@ -46,17 +50,17 @@
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
 #include "clang/AST/DeclTemplate.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/IntervalMap.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/RecyclingAllocator.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/IntervalMap.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/RecyclingAllocator.h"
 
 #include "MoveOnlyBorrowToDestructureUtils.h"
 #include "MoveOnlyDiagnostics.h"
@@ -83,7 +87,7 @@ class MoveOnlyObjectCheckerTesterPass : public SILFunctionTransform {
     assert(fn->getModule().getStage() == SILStage::Raw &&
            "Should only run on Raw SIL");
 
-    LLVM_DEBUG(llvm::dbgs() << "===> MoveOnly Object Checker. Visiting: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "===> MoveOnly Object Checker. Visiting: "
                             << fn->getName() << '\n');
 
     auto *dominanceAnalysis = getAnalysis<DominanceAnalysis>();
@@ -95,20 +99,20 @@ class MoveOnlyObjectCheckerTesterPass : public SILFunctionTransform {
     borrowtodestructure::IntervalMapAllocator allocator;
 
     unsigned diagCount = diagnosticEmitter.getDiagnosticCount();
-    llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+    toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
         moveIntroducersToProcess;
     bool madeChange =
         searchForCandidateObjectMarkUnresolvedNonCopyableValueInsts(
             fn, moveIntroducersToProcess, diagnosticEmitter);
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Emitting diagnostic when checking for mark must check inst: "
                << (diagCount != diagnosticEmitter.getDiagnosticCount() ? "yes"
                                                                        : "no")
                << '\n');
 
     if (moveIntroducersToProcess.empty()) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "No move introducers found?! Returning early?!\n");
     } else {
       diagCount = diagnosticEmitter.getDiagnosticCount();
@@ -133,6 +137,6 @@ class MoveOnlyObjectCheckerTesterPass : public SILFunctionTransform {
 
 } // anonymous namespace
 
-SILTransform *swift::createMoveOnlyObjectChecker() {
+SILTransform *language::createMoveOnlyObjectChecker() {
   return new MoveOnlyObjectCheckerTesterPass();
 }

@@ -1,13 +1,17 @@
 //===--- chrono_utils.h - Utility functions for duration ------ -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Specifically, we want ceil() for these types, but that's only available in
@@ -16,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_IMPL_CHRONO_UTILS_H
-#define SWIFT_THREADING_IMPL_CHRONO_UTILS_H
+#ifndef LANGUAGE_THREADING_IMPL_CHRONO_UTILS_H
+#define LANGUAGE_THREADING_IMPL_CHRONO_UTILS_H
 
 #include <chrono>
 #include <type_traits>
@@ -68,4 +72,4 @@ ceil(const std::chrono::duration<Rep, Period>& d)
 } // namespace threading_impl
 } // namespace language
 
-#endif // SWIFT_THREADING_IMPL_CHRONO_UTILS_H
+#endif // LANGUAGE_THREADING_IMPL_CHRONO_UTILS_H

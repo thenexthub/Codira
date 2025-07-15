@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "globalpropertyopt"
@@ -24,11 +25,11 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -62,7 +63,7 @@ class GlobalPropertyOpt {
     /// Non-null if the entry represents a struct or class field.
     VarDecl *Field;
     
-    /// The property which we want to track: is the value/field a native swift
+    /// The property which we want to track: is the value/field a native language
     /// array which doesn't need deferred type check.
     bool isNativeTypeChecked;
     
@@ -91,12 +92,12 @@ class GlobalPropertyOpt {
   NominalTypeDecl *ArrayType;
   
   /// All entries of the dependency graph, which represent values or AllocStack.
-  llvm::DenseMap<SILValue, Entry *> ValueEntries;
+  toolchain::DenseMap<SILValue, Entry *> ValueEntries;
   
   /// All entries of the dependency graph, which represent fields.
-  llvm::DenseMap<VarDecl *, Entry *> FieldEntries;
+  toolchain::DenseMap<VarDecl *, Entry *> FieldEntries;
   
-  llvm::SpecificBumpPtrAllocator<Entry> EntryAllocator;
+  toolchain::SpecificBumpPtrAllocator<Entry> EntryAllocator;
   
   /// Represents an address of an unknown array.
   Entry unknownAddressEntry = Entry(SILValue(), nullptr);
@@ -104,11 +105,11 @@ class GlobalPropertyOpt {
   /// All found calls to get-property semantic functions.
   std::vector<ApplyInst *> propertyCalls;
 
-  llvm::SetVector<SILFunction *> ChangedFunctions;
+  toolchain::SetVector<SILFunction *> ChangedFunctions;
 
   /// Contains entries with a false property value, which must be propagated
   /// to their dependencies.
-  llvm::SmallVector<Entry *, 32> WorkList;
+  toolchain::SmallVector<Entry *, 32> WorkList;
   
   bool isArrayType(SILType type) {
     return type.getNominalOrBoundGenericNominal() == ArrayType &&
@@ -181,25 +182,25 @@ class GlobalPropertyOpt {
   }
   
   void setAddressEscapes(Entry *entry) {
-    LLVM_DEBUG(llvm::dbgs() << "     address escapes: " << *entry);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "     address escapes: " << *entry);
     setNotNative(entry);
   }
   
   void setNotNative(Entry *entry) {
     if (entry->isNativeTypeChecked) {
-      LLVM_DEBUG(llvm::dbgs() << "      set not-native: " << *entry);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "      set not-native: " << *entry);
       entry->isNativeTypeChecked = false;
       WorkList.push_back(entry);
     }
   }
   
   void addDependency(Entry *from, Entry *to) {
-    LLVM_DEBUG(llvm::dbgs() << "    add dependency from: " << *from
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    add dependency from: " << *from
                             << "      to: " << *to);
     from->Dependencies.push_back(to);
   }
   
-  void scanInstruction(swift::SILInstruction *Inst);
+  void scanInstruction(language::SILInstruction *Inst);
   
   void scanInstructions();
   
@@ -269,7 +270,7 @@ bool GlobalPropertyOpt::canAddressEscape(SILValue V, bool acceptStore) {
 }
 
 /// Scan an instruction and build dependencies for it.
-void GlobalPropertyOpt::scanInstruction(swift::SILInstruction *Inst) {
+void GlobalPropertyOpt::scanInstruction(language::SILInstruction *Inst) {
   if (auto *AI = dyn_cast<ApplyInst>(Inst)) {
     ArraySemanticsCall semCall(AI);
     switch (semCall.getKind()) {
@@ -279,12 +280,12 @@ void GlobalPropertyOpt::scanInstruction(swift::SILInstruction *Inst) {
       case ArrayCallKind::kMutateUnknown:
       case ArrayCallKind::kMakeMutable:
         // The return value of those calls (if any) do not return a non-native
-        // swift array.
-        LLVM_DEBUG(llvm::dbgs() << "      array semantics call: " << *AI);
+        // language array.
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "      array semantics call: " << *AI);
         return;
       case ArrayCallKind::kArrayPropsIsNativeTypeChecked:
         // Remember the property-calls for later.
-        LLVM_DEBUG(llvm::dbgs() << "      property check: " << *AI);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "      property check: " << *AI);
         propertyCalls.push_back(AI);
         break;
       default:
@@ -315,7 +316,7 @@ void GlobalPropertyOpt::scanInstruction(swift::SILInstruction *Inst) {
       // If the address of an array-field escapes, we give up for that field.
       if (canAddressEscape(projection, true)) {
         setAddressEscapes(getAddrEntry(projection));
-        LLVM_DEBUG(llvm::dbgs() << "      field address escapes: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "      field address escapes: "
                                 << *projection);
       }
       return;
@@ -358,7 +359,7 @@ void GlobalPropertyOpt::scanInstruction(swift::SILInstruction *Inst) {
       }
     }
   } else if (isa<AllocStackInst>(Inst)) {
-    // An alloc_stack itself does not introduce any non-native swift arrays.
+    // An alloc_stack itself does not introduce any non-native language arrays.
     return;
   }
   // TODO: handle enums with array data.
@@ -368,7 +369,7 @@ void GlobalPropertyOpt::scanInstruction(swift::SILInstruction *Inst) {
   for (auto result : Inst->getResults()) {
     SILType Type = result->getType();
     if (isArrayType(Type) || isTupleWithArray(Type.getASTType())) {
-      LLVM_DEBUG(llvm::dbgs() << "      value could be non-native array: "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "      value could be non-native array: "
                               << *result);
       setNotNative(getValueEntry(result));
     }
@@ -378,9 +379,9 @@ void GlobalPropertyOpt::scanInstruction(swift::SILInstruction *Inst) {
 /// Scans all instructions of the module and builds the dependency graph.
 void GlobalPropertyOpt::scanInstructions() {
   for (auto &F : M) {
-    LLVM_DEBUG(llvm::dbgs() << "  scan function " << F.getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  scan function " << F.getName() << "\n");
     for (auto &BB : F) {
-      LLVM_DEBUG(llvm::dbgs() << "    scan basic block " << BB.getDebugID()
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    scan basic block " << BB.getDebugID()
                               << "\n");
 
       // Add dependencies from predecessor's terminator operands to the block
@@ -410,7 +411,7 @@ void GlobalPropertyOpt::scanInstructions() {
           if (!hasPreds) {
             // This is the case for the function entry block.
             setNotNative(getValueEntry(BBArg));
-            LLVM_DEBUG(llvm::dbgs() << "    unknown entry argument " << *BBArg);
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "    unknown entry argument " << *BBArg);
           }
         }
         ++argIdx;
@@ -425,13 +426,13 @@ void GlobalPropertyOpt::scanInstructions() {
 
 /// Propagates the properties through the graph.
 void GlobalPropertyOpt::propagatePropertiesInGraph() {
-  LLVM_DEBUG(llvm::dbgs() << "  propagate properties\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  propagate properties\n");
 
   setAddressEscapes(&unknownAddressEntry);
   
   while (!WorkList.empty()) {
     Entry *entry = WorkList.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "    handle non-native entry: " << *entry);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    handle non-native entry: " << *entry);
     assert(!entry->isNativeTypeChecked);
     
     // Propagate the false-value to the dependent entries.
@@ -454,7 +455,7 @@ void GlobalPropertyOpt::replacePropertyCalls() {
 
     SILValue array = AI->getArgument(0);
     
-    // Is the argument a native swift array?
+    // Is the argument a native language array?
     if (ValueEntries.count(array) != 0 &&
         getValueEntry(array)->isNativeTypeChecked) {
       
@@ -463,7 +464,7 @@ void GlobalPropertyOpt::replacePropertyCalls() {
         (semCall.getKind() == ArrayCallKind::kArrayPropsIsNativeTypeChecked) &&
              "invalid semantics type");
   
-      LLVM_DEBUG(llvm::dbgs() << "  remove property check in function "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  remove property check in function "
                               << AI->getParent()->getParent()->getName()
                               << ": " << *AI);
       SILBuilder B(AI);
@@ -507,7 +508,7 @@ class GlobalPropertyOptPass : public SILModuleTransform {
   void run() override {
     SILModule *M = getModule();
     
-    LLVM_DEBUG(llvm::dbgs() << "** GlobalPropertyOpt **\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "** GlobalPropertyOpt **\n");
     
     GlobalPropertyOpt(*M).run(this);
   }
@@ -516,6 +517,6 @@ class GlobalPropertyOptPass : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createGlobalPropertyOpt() {
+SILTransform *language::createGlobalPropertyOpt() {
   return new GlobalPropertyOptPass();
 }

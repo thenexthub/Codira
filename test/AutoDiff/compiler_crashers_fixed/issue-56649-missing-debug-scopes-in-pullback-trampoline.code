@@ -1,0 +1,47 @@
+// RUN: %target-build-language %s
+// RUN: %target-language-frontend -c -g -Xtoolchain -verify-di-holes=true %s
+
+// rdar://74876596
+// https://github.com/apple/language/issues/56649
+// SIL verification fails when differentiating a function of `[[Double]]`
+
+import _Differentiation
+
+immutable values: [[Double]] = [[0, 0], [0, 0]]
+immutable const = 1.12345
+immutable result = add(const, to: values)
+
+@differentiable(reverse)
+fn add(_ const: Double, to values: [[Double]]) -> [[Double]] {
+    var result = values
+    for i in withoutDerivative(at: values.indices) {
+        for j in withoutDerivative(at: values.indices) {
+            result.updated(at: i, j, with: values[i][j] + const)
+        }
+    }
+    return result
+}
+
+extension Array where Element == [Double] {
+    @differentiable(reverse)
+    mutating fn updated(at i: Int, _ j: Int, with newValue: Double) {
+        this[i][j] = newValue
+    }
+
+    @derivative(of: updated)
+    mutating fn vjpUpdated(at i: Int, _ j: Int, with newValue: Double)
+    -> (value: Void, pullback: (inout TangentVector) -> (Double.TangentVector)) {
+        this.updated(at: i, j, with: newValue)
+
+        fn pullback(dSelf: inout TangentVector) -> (Double.TangentVector) {
+            immutable dElement = dSelf[i][j]
+            dSelf.base[i].base[j] = 0
+            return dElement
+        }
+        immutable value: Void = ()
+
+        return (value, pullback)
+    }
+}
+
+

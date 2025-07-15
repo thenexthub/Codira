@@ -1,7 +1,7 @@
 :orphan:
 
 ===============================
-Swift Language Reference Manual
+Codira Language Reference Manual
 ===============================
 
 .. contents::
@@ -18,7 +18,7 @@ Introduction
   discussion is placed in boxes like this one to clarify what is normative and
   what is discussion.
 
-This is the language reference manual for the Swift language, which is highly
+This is the language reference manual for the Codira language, which is highly
 volatile and constantly under development.  As the prototype evolves, this
 document should be kept up to date with what is actually implemented.
 
@@ -31,7 +31,7 @@ Basic Goals
 
 .. admonition:: Commentary
 
-  A non-goal of the Swift project in general is to become some amazing research
+  A non-goal of the Codira project in general is to become some amazing research
   project.  We really want to focus on delivering a real product, and having
   the design and spec co-evolve.
 
@@ -44,19 +44,19 @@ In no particular order, and not explained well:
 * Through our support for building great APIs, we aim to provide an expressive
   and productive language that is fun to program in.
 * Support low-level system programming.  We should want to write compilers,
-  operating system kernels, and media codecs in Swift.  This means that being
+  operating system kernels, and media codecs in Codira.  This means that being
   able to obtain high performance is really quite important.
 * Provide really great tools, like an IDE, debugger, profiling, etc.
 * Where possible, steal great ideas instead of innovating new things that will
   work out in unpredictable ways.  It turns out that there are a lot of good
   ideas already out there.
 * Memory safe by default: array overrun errors, uninitialized values, and other
-  problems endemic to C should not occur in Swift, even if it means some amount
+  problems endemic to C should not occur in Codira, even if it means some amount
   of runtime overhead.  Eventually these checks will be disableable for people
   who want ultimate performance in production builds.
 * Efficiently implementable with a static compiler: runtime compilation is
-  great technology and Swift may eventually get a runtime optimizer, but it is
-  a strong goal to be able to implement swift with just a static compiler.
+  great technology and Codira may eventually get a runtime optimizer, but it is
+  a strong goal to be able to implement language with just a static compiler.
 * Interoperate as transparently as possible with C, Objective-C, and C++
   without having to write an equivalent of "extern C" for every referenced
   definition.
@@ -66,7 +66,7 @@ In no particular order, and not explained well:
   provides a significant win (e.g. eliminate declarator syntax).
 * Lots of other stuff too.
 
-A smaller wishlist goal is to support embedded sub-languages in swift, so that
+A smaller wishlist goal is to support embedded sub-languages in language, so that
 we don't get the OpenCL-is-like-C-but-very-different-in-many-details
 problem.
 
@@ -82,7 +82,7 @@ Basic Approach
   build a lot of other great libraries, hopefully many we can't even anticipate
   at this point.
 
-The basic approach in designing and implementing the Swift prototype was to
+The basic approach in designing and implementing the Codira prototype was to
 start at the very bottom of the stack (simple expressions and the trivial bits
 of the type system) and incrementally build things up one brick at a time.
 There is a big focus on making things as simple as possible and having a clean
@@ -100,11 +100,11 @@ Phases of Translation
 
 .. admonition:: Commentary
 
-  Because Swift doesn't rely on a C-style "lexer hack" to know what is a type
+  Because Codira doesn't rely on a C-style "lexer hack" to know what is a type
   and what is a value, it is possible to fully parse a file without resolving
   import declarations.
 
-Swift has a strict separation between its phases of translation, and the
+Codira has a strict separation between its phases of translation, and the
 compiler follows a conceptually simple design.  The phases of translation
 are:
 
@@ -132,7 +132,7 @@ are:
 
 * Linking: runtime libraries and referenced modules are linked in.
 
-FIXME: "import Swift" implicitly added as the last import in a source file.
+FIXME: "import Codira" implicitly added as the last import in a source file.
 
 .. _langref.lexical:
 
@@ -143,9 +143,9 @@ Lexical Structure
 
   Not all characters are "taken" in the language, this is because it is still
   growing.  As there becomes a reason to assign things into the identifier or
-  punctuation bucket, we will do so as swift evolves.
+  punctuation bucket, we will do so as language evolves.
 
-The lexical structure of a Swift file is very simple: the files are tokenized
+The lexical structure of a Codira file is very simple: the files are tokenized
 according to the following productions and categories.  As is usual with most
 languages, tokenization uses the maximal munch rule and whitespace separates
 tokens.  This means that "``a b``" and "``ab``" lex into different token
@@ -232,7 +232,7 @@ Reserved Keywords
   keyword ::= 'extension'
   keyword ::= 'import'
   keyword ::= 'init'
-  keyword ::= 'func'
+  keyword ::= 'fn'
   keyword ::= 'enum'
   keyword ::= 'protocol'
   keyword ::= 'struct'
@@ -276,7 +276,7 @@ These are the builtin keywords. Keywords can still be used as names via
 Contextual Keywords
 -------------------
 
-Swift uses several contextual keywords at various parts of the language.
+Codira uses several contextual keywords at various parts of the language.
 Contextual keywords are not reserved words, meaning that they can be used as
 identifiers.  However, in certain contexts, they act as keywords, and are
 represented as such in the grammar below.  The following identifiers act as
@@ -423,7 +423,7 @@ expression may not contain a double quote ["], newline [\n], or carriage return
 [\r].  All parentheses must be balanced.
 
 In addition to these lexical rules, an interpolated expression must satisfy the
-:ref:`expr <langref.expr>` production of the general swift grammar.  This
+:ref:`expr <langref.expr>` production of the general language grammar.  This
 expression is evaluated, and passed to the constructor for the inferred type of
 the string literal.  It is concatenated onto any fixed portions of the string
 literal with a global "``+``" operator that is found through normal name
@@ -488,7 +488,7 @@ mathematical symbols, arrows, line and box drawing characters, and private-use
 and invalid code points.  An identifier cannot begin with one of the ASCII
 digits '0' through '9' or with a combining character.
 
-The Swift compiler does not normalize Unicode source code, and matches
+The Codira compiler does not normalize Unicode source code, and matches
 identifiers by code points only.  Source code must be normalized to a consistent
 normalization form before being submitted to the compiler.
 
@@ -497,7 +497,7 @@ normalization form before being submitted to the compiler.
   // Valid identifiers
   foo
   _0
-  swift
+  language
   vernissé
   闪亮
   מבריק
@@ -581,7 +581,7 @@ Escaped Identifiers
 An identifier that would normally be a `keyword <langref.lexical.keyword>` may
 be used as an identifier by wrapping it in backticks '``\```', for example::
 
-  func `class`() { /* ... */ }
+  fn `class`() { /* ... */ }
   let `type` = 0.type
 
 Any identifier may be escaped, though only identifiers that would normally be
@@ -658,7 +658,7 @@ Import Declarations
   get-set-kw     ::= get-kw set-kw?
   get-set-kw     ::= set-kw get-kw
 
-``var`` declarations form the backbone of value declarations in Swift.  A
+``var`` declarations form the backbone of value declarations in Codira.  A
 ``var`` declaration takes a pattern and an optional initializer, and declares
 all the pattern-identifiers in the pattern as variables.  If there is an
 initializer and the pattern is :ref:`fully-typed <langref.types.fully_typed>`,
@@ -741,7 +741,7 @@ protocols.
   ::
 
     class A {
-      func get(_: () -> Int) {}
+      fn get(_: () -> Int) {}
       var a: Int {
         get { return 0 } // Getter declaration or call to 'get' with a trailing closure?
       }
@@ -771,7 +771,7 @@ protocols.
 
   ::
 
-    func takeClosure(_: () -> Int) {}
+    fn takeClosure(_: () -> Int) {}
     struct A {
       var willSet: Int
       var a: Int = takeClosure {
@@ -790,19 +790,19 @@ protocols.
   In ambiguous cases users can always opt-out of the trailing closure syntax by
   using explicit parentheses in the function call.
 
-.. _langref.decl.func:
+.. _langref.decl.fn:
 
-``func`` Declarations
+``fn`` Declarations
 ---------------------
 
 .. code-block:: none
 
   // Keywords can be specified in any order.
-  decl-func-head-kw ::= ( 'static' | 'class' )? 'override'? ( 'mutating' | 'nonmutating' )?
+  decl-fn-head-kw ::= ( 'static' | 'class' )? 'override'? ( 'mutating' | 'nonmutating' )?
 
-  decl-func        ::= attribute-list decl-func-head-kw? 'func' any-identifier generic-params? func-signature brace-item-list?
+  decl-fn        ::= attribute-list decl-fn-head-kw? 'fn' any-identifier generic-params? fn-signature brace-item-list?
 
-``func`` is a declaration for a function.  The argument list and optional
+``fn`` is a declaration for a function.  The argument list and optional
 return value are specified by the type production of the function, and the body
 is either a brace expression or elided.  Like all other declarations, functions
 are can have attributes.
@@ -833,7 +833,7 @@ attribute immutable when it exists.
 TODO: Incoming arguments should be readonly, result should be implicitly
 writeonly when we have these attributes.
 
-.. _langref.decl.func.signature:
+.. _langref.decl.fn.signature:
 
 Function signatures
 ^^^^^^^^^^^^^^^^^^^
@@ -971,7 +971,7 @@ A pattern represents the structure of a composite value.  Parts of a value can
 be extracted and bound to variables or compared against other values by
 *pattern matching*. Among other places, pattern matching occurs on the
 left-hand side of :ref:`var bindings <langref.decl.var>`, in the arguments of
-:ref:`func declarations <langref.decl.func>`, and in the <tt>case</tt> labels
+:ref:`fn declarations <langref.decl.fn>`, and in the <tt>case</tt> labels
 of :ref:`switch statements <langref.stmt.switch>`.  Some examples::
 
     var point = (1, 0, 0)
@@ -999,7 +999,7 @@ of :ref:`switch statements <langref.stmt.switch>`.  Some examples::
 
 A pattern may be "irrefutable", meaning informally that it matches all values
 of its type.  Patterns in declarations, such as :ref:`var <langref.decl.var>`
-and :ref:`func <langref.decl.func>`, are required to be irrefutable.  Patterns
+and :ref:`fn <langref.decl.fn>`, are required to be irrefutable.  Patterns
 in the ``case`` labels of :ref:`switch statements <langref.stmt.switch>`,
 however, are not.
 
@@ -1007,7 +1007,7 @@ The basic pattern grammar is a literal "atom" followed by an optional type
 annotation.  Type annotations are useful for documentation, as well as for
 coercing a matched expression to a particular kind.  They are also required
 when patterns are used in a :ref:`function signature
-<langref.decl.func.signature>`.  Type annotations are currently not allowed in
+<langref.decl.fn.signature>`.  Type annotations are currently not allowed in
 switch statements.
 
 A pattern has a type.  A pattern may be "fully-typed", meaning informally that
@@ -1088,13 +1088,13 @@ pattern <langref.pattern.expr>` referencing an existing definition.
     }
 
 The left-hand pattern of a :ref:`var declaration <langref.decl.var>` and the
-argument pattern of a :ref:`func declaration <langref.decl.func>` are
+argument pattern of a :ref:`fn declaration <langref.decl.fn>` are
 implicitly inside a ``var`` pattern; identifiers in their patterns always bind
 variables.  Variable bindings are irrefutable.
 
 The type of a bound variable must be :ref:`materializable
-<langref.types.materializable>` unless it appears in a :ref:`func-signature
-<langref.decl.func.signature>` and is directly of a ``inout``\ -annotated type.
+<langref.types.materializable>` unless it appears in a :ref:`fn-signature
+<langref.decl.fn.signature>` and is directly of a ``inout``\ -annotated type.
 
 .. _langref.pattern.tuple:
 
@@ -1108,7 +1108,7 @@ Tuple Patterns
   pattern-tuple-element ::= pattern
 
 A tuple pattern is a list of zero or more patterns.  Within a :ref:`function
-signature <langref.decl.func.signature>`, patterns may also be given a
+signature <langref.decl.fn.signature>`, patterns may also be given a
 default-value expression.
 
 A tuple pattern is irrefutable if all its sub-patterns are irrefutable.
@@ -1224,7 +1224,7 @@ operator may be overloaded like any function.
   }
 
   // Define pattern matching of an integer value to a string expression.
-  func ~=(pattern:String, value:Int) -&gt; Bool {
+  fn ~=(pattern:String, value:Int) -&gt; Bool {
     return pattern == "\(value)"
   }
 
@@ -1346,7 +1346,7 @@ otherwise empty cases in switch statements.
 
 ::
 
-  func classifyPoint(_ point: (Int, Int)) {
+  fn classifyPoint(_ point: (Int, Int)) {
     switch point {
     case (0, 0):
       print("origin")
@@ -1398,17 +1398,17 @@ Standard Library
 
 .. admonition:: Commentary
 
-  It would be really great to have literate swift code someday, that way this
+  It would be really great to have literate language code someday, that way this
   could be generated directly from the code.  This would also be powerful for
-  Swift library developers to be able to depend on being available and
+  Codira library developers to be able to depend on being available and
   standardized.
 
-This describes some of the standard swift code as it is being built up.  Since
-Swift is designed to give power to the library developers, much of what is
+This describes some of the standard language code as it is being built up.  Since
+Codira is designed to give power to the library developers, much of what is
 normally considered the "language" is actually just implemented in the
 library.
 
-All of this code is published by the '``swift``' module, which is implicitly
+All of this code is published by the '``language``' module, which is implicitly
 imported into each source file, unless some sort of pragma in the code
 (attribute on an import?) is used to change or disable this behavior.
 
@@ -1417,15 +1417,15 @@ imported into each source file, unless some sort of pragma in the code
 Builtin Module
 ==============
 
-In the initial Swift implementation, a module named ``Builtin`` is imported
+In the initial Codira implementation, a module named ``Builtin`` is imported
 into every file.  Its declarations can only be found by <a href="#expr-dot">dot
 syntax</a>.  It provides access to a small number of primitive representation
 types and operations defined over them that map directly to LLVM IR.
 
 The existence of and details of this module are a private implementation detail
-used by our implementation of the standard library.  Swift code outside the
+used by our implementation of the standard library.  Codira code outside the
 standard library should not be aware of this library, and an independent
-implementation of the swift standard library should be allowed to be
+implementation of the language standard library should be allowed to be
 implemented without the builtin library if it desires.
 
 For reference below, the description of the standard library uses the
@@ -1453,7 +1453,7 @@ Int, Int8, Int16, Int32, Int64
 .. admonition:: Commentary
 
   Having a single standardized integer type that can be used by default
-  everywhere is important.  One advantage Swift has is that by the time it is
+  everywhere is important.  One advantage Codira has is that by the time it is
   in widespread use, 64-bit architectures will be pervasive, and the LLVM
   optimizer should grow to be good at shrinking 64-bit integers to 32-bit in
   many cases for those 32-bit architectures that persist.
@@ -1508,11 +1508,11 @@ Arithmetic Operators
 
 ::
 
-  func * (lhs: Int, rhs: Int) -> Int
-  func / (lhs: Int, rhs: Int) -> Int
-  func % (lhs: Int, rhs: Int) -> Int
-  func + (lhs: Int, rhs: Int) -> Int
-  func - (lhs: Int, rhs: Int) -> Int
+  fn * (lhs: Int, rhs: Int) -> Int
+  fn / (lhs: Int, rhs: Int) -> Int
+  fn % (lhs: Int, rhs: Int) -> Int
+  fn + (lhs: Int, rhs: Int) -> Int
+  fn - (lhs: Int, rhs: Int) -> Int
 
 .. _langref.stdlib.oper.comparison:
 
@@ -1521,12 +1521,12 @@ Relational and Equality Operators
 
 ::
 
-  func <  (lhs : Int, rhs : Int) -> Bool
-  func >  (lhs : Int, rhs : Int) -> Bool
-  func <= (lhs : Int, rhs : Int) -> Bool
-  func >= (lhs : Int, rhs : Int) -> Bool
-  func == (lhs : Int, rhs : Int) -> Bool
-  func != (lhs : Int, rhs : Int) -> Bool
+  fn <  (lhs : Int, rhs : Int) -> Bool
+  fn >  (lhs : Int, rhs : Int) -> Bool
+  fn <= (lhs : Int, rhs : Int) -> Bool
+  fn >= (lhs : Int, rhs : Int) -> Bool
+  fn == (lhs : Int, rhs : Int) -> Bool
+  fn != (lhs : Int, rhs : Int) -> Bool
 
 .. _langref.stdlib.oper.short-circuit-logical:
 
@@ -1535,10 +1535,10 @@ Short Circuiting Logical Operators
 
 ::
 
-  func && (lhs: Bool, rhs: () -> Bool) -> Bool
-  func || (lhs: Bool, rhs: () -> Bool) -> Bool
+  fn && (lhs: Bool, rhs: () -> Bool) -> Bool
+  fn || (lhs: Bool, rhs: () -> Bool) -> Bool
 
-Swift has a simplified precedence levels when compared with C.  From highest to
+Codira has a simplified precedence levels when compared with C.  From highest to
 lowest:
 
 ::

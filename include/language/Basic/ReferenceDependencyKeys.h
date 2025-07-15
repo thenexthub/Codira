@@ -1,4 +1,4 @@
-//===--- ReferenceDependencyKeys.h - Keys for swiftdeps files ---*- C++ -*-===//
+//===--- ReferenceDependencyKeys.h - Keys for languagedeps files ---*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_REFERENCEDEPENDENCYKEYS_H
-#define SWIFT_BASIC_REFERENCEDEPENDENCYKEYS_H
+#ifndef LANGUAGE_BASIC_REFERENCEDEPENDENCYKEYS_H
+#define LANGUAGE_BASIC_REFERENCEDEPENDENCYKEYS_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
-/// Define these string constants for reference dependencies (a.k.a. swiftdeps)
+/// Define these string constants for reference dependencies (a.k.a. languagedeps)
 /// in one place to ensure consistency.
 namespace reference_dependency_keys {
 static constexpr StringLiteral providesTopLevel("provides-top-level");

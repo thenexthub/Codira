@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -module-name LibBinary -language-version 5 -I %t \
+// RUN:   -package-name libPkg \
+// RUN:   -emit-module-path %t/LibBinary.codemodule
+
+// RUN: %target-language-frontend -typecheck %t/ClientLoadBinary.code -package-name libPkg -I %t -verify
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -module-name LibInterface -language-version 5 -I %t \
+// RUN:   -package-name libPkg \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/LibBinary.codemodule \
+// RUN:   -emit-module-interface-path %t/LibInterface.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/LibInterface.private.codeinterface
+
+// RUN: %target-language-typecheck-module-from-interface(%t/LibInterface.codeinterface) -I %t
+// RUN: %FileCheck %s --check-prefix=CHECK-PUBLIC < %t/LibInterface.codeinterface
+// CHECK-PUBLIC: -module-name LibInterface
+// CHECK-PUBLIC: -package-name
+
+// RUN: %target-language-typecheck-module-from-interface(%t/LibInterface.private.codeinterface) -module-name LibInterface -I %t
+// RUN: %FileCheck %s --check-prefix=CHECK-PRIVATE < %t/LibInterface.private.codeinterface
+// CHECK-PRIVATE: -package-name libPkg
+
+// RUN: not %target-language-frontend -typecheck %t/ClientLoadInterface.code -package-name otherPkg -I %t 2> %t/resultX.output
+// RUN: %FileCheck %s -check-prefix CHECK-X < %t/resultX.output
+// CHECK-X: error: cannot find 'packageLog' in scope
+
+// RUN: not %target-language-frontend -typecheck %t/ClientLoadInterface.code -package-name libPkg -I %t 2> %t/resultY.output
+// RUN: %FileCheck %s -check-prefix CHECK-Y < %t/resultY.output
+// CHECK-Y: error: module 'LibInterface' is in package 'libPkg' but was built from a non-package interface; modules of the same package can only be loaded if built from source or package interface: {{.*}}LibInterface.private.codeinterface
+
+
+//--- Lib.code
+public fn publicLog(_ level: Int) {}
+package fn packageLog(_ level: Int) {}
+fn internalLog(_ level: Int) {}
+
+
+//--- ClientLoadInterface.code
+import LibInterface
+
+fn someFunc() {
+  publicLog(1)
+  packageLog(2)
+}
+
+//--- ClientLoadBinary.code
+import LibBinary
+
+fn someFunc() {
+  publicLog(1)
+  packageLog(2)
+}

@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ForeignInfo structure, which includes
 // structural information about how a foreign API's physical type
-// maps into the Swift type system.
+// maps into the Codira type system.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FOREIGN_INFO_H
-#define SWIFT_FOREIGN_INFO_H
+#ifndef LANGUAGE_FOREIGN_INFO_H
+#define LANGUAGE_FOREIGN_INFO_H
 
 #include "language/AST/ForeignAsyncConvention.h"
 #include "language/AST/ForeignErrorConvention.h"

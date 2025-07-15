@@ -1,4 +1,4 @@
-//===--- IRGenFunction.h - IR Generation for Swift Functions ----*- C++ -*-===//
+//===--- IRGenFunction.h - IR Generation for Codira Functions ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the structure used to generate the IR body of a
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRGENFUNCTION_H
-#define SWIFT_IRGEN_IRGENFUNCTION_H
+#ifndef LANGUAGE_IRGEN_IRGENFUNCTION_H
+#define LANGUAGE_IRGEN_IRGENFUNCTION_H
 
 #include "DominancePoint.h"
 #include "GenPack.h"
@@ -27,14 +28,14 @@
 #include "LocalTypeDataKind.h"
 #include "language/AST/ReferenceCounting.h"
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/IR/CallingConv.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/IR/CallingConv.h"
 
-namespace llvm {
+namespace toolchain {
   class AllocaInst;
   class CallSite;
   class Constant;
@@ -81,13 +82,16 @@ public:
   OptimizationMode OptMode;
   bool isPerformanceConstraint;
 
-  llvm::Function *const CurFn;
-  ModuleDecl *getSwiftModule() const;
+  // Destination basic blocks for condfail traps.
+  toolchain::SmallVector<toolchain::BasicBlock *, 8> FailBBs;
+
+  toolchain::Function *const CurFn;
+  ModuleDecl *getCodiraModule() const;
   SILModule &getSILModule() const;
   Lowering::TypeConverter &getSILTypes() const;
   const IRGenOptions &getOptions() const;
 
-  IRGenFunction(IRGenModule &IGM, llvm::Function *fn,
+  IRGenFunction(IRGenModule &IGM, toolchain::Function *fn,
                 bool isPerformanceConstraint = false,
                 OptimizationMode Mode = OptimizationMode::NotSet,
                 const SILDebugScope *DbgScope = nullptr,
@@ -98,39 +102,39 @@ public:
 
   friend class Scope;
 
-  Address createErrorResultSlot(SILType errorType, bool isAsync, bool setSwiftErrorFlag = true, bool isTypedError = false);
+  Address createErrorResultSlot(SILType errorType, bool isAsync, bool setCodiraErrorFlag = true, bool isTypedError = false);
 
   //--- Function prologue and epilogue
   //-------------------------------------------
 public:
   Explosion collectParameters();
   void emitScalarReturn(SILType returnResultType, SILType funcResultType,
-                        Explosion &scalars, bool isSwiftCCReturn,
+                        Explosion &scalars, bool isCodiraCCReturn,
                         bool isOutlined, bool mayPeepholeLoad = false,
                         SILType errorType = {});
-  void emitScalarReturn(llvm::Type *resultTy, Explosion &scalars);
+  void emitScalarReturn(toolchain::Type *resultTy, Explosion &scalars);
   
   void emitBBForReturn();
   bool emitBranchToReturnBB();
 
-  llvm::BasicBlock *createExceptionUnwindBlock();
+  toolchain::BasicBlock *createExceptionUnwindBlock();
 
   void setCallsThunksWithForeignExceptionTraps() {
     callsAnyAlwaysInlineThunksWithForeignExceptionTraps = true;
   }
 
   void createExceptionTrapScope(
-      llvm::function_ref<void(llvm::BasicBlock *, llvm::BasicBlock *)>
+      toolchain::function_ref<void(toolchain::BasicBlock *, toolchain::BasicBlock *)>
           invokeEmitter);
 
-  void emitAllExtractValues(llvm::Value *aggValue, llvm::StructType *type,
+  void emitAllExtractValues(toolchain::Value *aggValue, toolchain::StructType *type,
                             Explosion &out);
 
   /// Return the error result slot to be passed to the callee, given an error
   /// type.  There's always only one error type.
   ///
   /// For async functions, this is different from the caller result slot because
-  /// that is a gep into the %swift.context.
+  /// that is a gep into the %language.context.
   Address getCalleeErrorResultSlot(SILType errorType,
                                    bool isTypedError);
 
@@ -146,29 +150,29 @@ public:
   Address getCalleeTypedErrorResultSlot(SILType errorType);
   void setCalleeTypedErrorResultSlot(Address addr);
 
-  llvm::ConstantInt* getMallocTypeId();
+  toolchain::ConstantInt* getMallocTypeId();
 
   /// Are we currently emitting a coroutine?
   bool isCoroutine() {
     return CoroutineHandle != nullptr;
   }
-  llvm::Value *getCoroutineHandle() {
+  toolchain::Value *getCoroutineHandle() {
     assert(isCoroutine());
     return CoroutineHandle;
   }
   bool isCalleeAllocatedCoroutine() { return CoroutineAllocator != nullptr; }
-  llvm::Value *getCoroutineAllocator() {
+  toolchain::Value *getCoroutineAllocator() {
     assert(isCoroutine());
     return CoroutineAllocator;
   }
 
-  void setCoroutineHandle(llvm::Value *handle) {
+  void setCoroutineHandle(toolchain::Value *handle) {
     assert(CoroutineHandle == nullptr && "already set handle");
     assert(handle != nullptr && "setting a null handle");
     CoroutineHandle = handle;
   }
 
-  void setCoroutineAllocator(llvm::Value *allocator) {
+  void setCoroutineAllocator(toolchain::Value *allocator) {
     assert(CoroutineAllocator == nullptr && "already set allocator");
     assert(allocator != nullptr && "setting a null allocator");
     CoroutineAllocator = allocator;
@@ -176,34 +180,34 @@ public:
 
   std::optional<CoroAllocatorKind> getDefaultCoroutineAllocatorKind();
 
-  llvm::BasicBlock *getCoroutineExitBlock() const {
+  toolchain::BasicBlock *getCoroutineExitBlock() const {
     return CoroutineExitBlock;
   }
 
-  SmallVector<llvm::Value *, 1> coroutineResults;
+  SmallVector<toolchain::Value *, 1> coroutineResults;
   
-  void setCoroutineExitBlock(llvm::BasicBlock *block) {
+  void setCoroutineExitBlock(toolchain::BasicBlock *block) {
     assert(CoroutineExitBlock == nullptr && "already set exit BB");
     assert(block != nullptr && "setting a null exit BB");
     CoroutineExitBlock = block;
   }
 
-  llvm::Value *getAsyncTask();
-  llvm::Value *getAsyncContext();
-  void storeCurrentAsyncContext(llvm::Value *context);
+  toolchain::Value *getAsyncTask();
+  toolchain::Value *getAsyncContext();
+  void storeCurrentAsyncContext(toolchain::Value *context);
 
-  llvm::CallInst *emitSuspendAsyncCall(unsigned swiftAsyncContextIndex,
-                                       llvm::StructType *resultTy,
-                                       ArrayRef<llvm::Value *> args,
+  toolchain::CallInst *emitSuspendAsyncCall(unsigned languageAsyncContextIndex,
+                                       toolchain::StructType *resultTy,
+                                       ArrayRef<toolchain::Value *> args,
                                        bool restoreCurrentContext = true);
 
-  llvm::Value *emitAsyncResumeProjectContext(llvm::Value *callerContextAddr);
-  llvm::Function *getOrCreateResumePrjFn();
-  llvm::Value *popAsyncContext(llvm::Value *calleeContext);
-  llvm::Function *createAsyncDispatchFn(const FunctionPointer &fnPtr,
-                                        ArrayRef<llvm::Value *> args);
-  llvm::Function *createAsyncDispatchFn(const FunctionPointer &fnPtr,
-                                        ArrayRef<llvm::Type *> argTypes);
+  toolchain::Value *emitAsyncResumeProjectContext(toolchain::Value *callerContextAddr);
+  toolchain::Function *getOrCreateResumePrjFn();
+  toolchain::Value *popAsyncContext(toolchain::Value *calleeContext);
+  toolchain::Function *createAsyncDispatchFn(const FunctionPointer &fnPtr,
+                                        ArrayRef<toolchain::Value *> args);
+  toolchain::Function *createAsyncDispatchFn(const FunctionPointer &fnPtr,
+                                        ArrayRef<toolchain::Type *> argTypes);
 
   void emitGetAsyncContinuation(SILType resumeTy,
                                 StackAddress optionalResultAddr,
@@ -213,42 +217,42 @@ public:
   void emitAwaitAsyncContinuation(SILType resumeTy,
                                   bool isIndirectResult,
                                   Explosion &outDirectResult,
-                                  llvm::BasicBlock *&normalBB,
-                                  llvm::PHINode *&optionalErrorPhi,
-                                  llvm::BasicBlock *&optionalErrorBB);
+                                  toolchain::BasicBlock *&normalBB,
+                                  toolchain::PHINode *&optionalErrorPhi,
+                                  toolchain::BasicBlock *&optionalErrorBB);
 
-  void emitResumeAsyncContinuationReturning(llvm::Value *continuation,
-                                            llvm::Value *srcPtr,
+  void emitResumeAsyncContinuationReturning(toolchain::Value *continuation,
+                                            toolchain::Value *srcPtr,
                                             SILType valueTy,
                                             bool throwing);
 
-  void emitResumeAsyncContinuationThrowing(llvm::Value *continuation,
-                                           llvm::Value *error);
+  void emitResumeAsyncContinuationThrowing(toolchain::Value *continuation,
+                                           toolchain::Value *error);
 
-  void emitClearSensitive(Address address, llvm::Value *size);
+  void emitClearSensitive(Address address, toolchain::Value *size);
 
   FunctionPointer
-  getFunctionPointerForResumeIntrinsic(llvm::Value *resumeIntrinsic);
+  getFunctionPointerForResumeIntrinsic(toolchain::Value *resumeIntrinsic);
 
-  void emitSuspensionPoint(Explosion &executor, llvm::Value *asyncResume);
-  llvm::Function *getOrCreateResumeFromSuspensionFn();
-  llvm::Function *createAsyncSuspendFn();
+  void emitSuspensionPoint(Explosion &executor, toolchain::Value *asyncResume);
+  toolchain::Function *getOrCreateResumeFromSuspensionFn();
+  toolchain::Function *createAsyncSuspendFn();
 
 private:
   void emitPrologue();
   void emitEpilogue();
 
   Address ReturnSlot;
-  llvm::BasicBlock *ReturnBB;
+  toolchain::BasicBlock *ReturnBB;
   Address CalleeErrorResultSlot;
   Address AsyncCalleeErrorResultSlot;
   Address CallerErrorResultSlot;
   Address CallerTypedErrorResultSlot;
   Address CalleeTypedErrorResultSlot;
-  llvm::Value *CoroutineHandle = nullptr;
-  llvm::Value *CoroutineAllocator = nullptr;
-  llvm::Value *AsyncCoroutineCurrentResume = nullptr;
-  llvm::Value *AsyncCoroutineCurrentContinuationContext = nullptr;
+  toolchain::Value *CoroutineHandle = nullptr;
+  toolchain::Value *CoroutineAllocator = nullptr;
+  toolchain::Value *AsyncCoroutineCurrentResume = nullptr;
+  toolchain::Value *AsyncCoroutineCurrentContinuationContext = nullptr;
 
 protected:
   // Whether pack metadata stack promotion is disabled for this function in
@@ -256,17 +260,17 @@ protected:
   bool packMetadataStackPromotionDisabled = false;
 
   /// The on-stack pack metadata allocations emitted so far awaiting cleanup.
-  llvm::SmallSetVector<StackPackAlloc, 2> OutstandingStackPackAllocs;
+  toolchain::SmallSetVector<StackPackAlloc, 2> OutstandingStackPackAllocs;
 
 private:
   Address asyncContextLocation;
 
-  /// The unique block that calls @llvm.coro.end.
-  llvm::BasicBlock *CoroutineExitBlock = nullptr;
+  /// The unique block that calls @toolchain.coro.end.
+  toolchain::BasicBlock *CoroutineExitBlock = nullptr;
 
   /// The blocks that handle thrown exceptions from all throwing foreign calls
   /// in this function.
-  llvm::SmallVector<llvm::BasicBlock *, 4> ExceptionUnwindBlocks;
+  toolchain::SmallVector<toolchain::BasicBlock *, 4> ExceptionUnwindBlocks;
 
   /// True if this function calls any always inline thunks that have a foreign
   /// exception trap.
@@ -296,108 +300,108 @@ public:
   void setupAsync(unsigned asyncContextIndex);
   bool isAsync() const { return asyncContextLocation.isValid(); }
 
-  Address createAlloca(llvm::Type *ty, Alignment align,
-                       const llvm::Twine &name = "");
-  Address createAlloca(llvm::Type *ty, llvm::Value *arraySize, Alignment align,
-                       const llvm::Twine &name = "");
+  Address createAlloca(toolchain::Type *ty, Alignment align,
+                       const toolchain::Twine &name = "");
+  Address createAlloca(toolchain::Type *ty, toolchain::Value *arraySize, Alignment align,
+                       const toolchain::Twine &name = "");
 
-  StackAddress emitDynamicAlloca(SILType type, const llvm::Twine &name = "");
-  StackAddress emitDynamicAlloca(llvm::Type *eltTy, llvm::Value *arraySize,
+  StackAddress emitDynamicAlloca(SILType type, const toolchain::Twine &name = "");
+  StackAddress emitDynamicAlloca(toolchain::Type *eltTy, toolchain::Value *arraySize,
                                  Alignment align, bool allowTaskAlloc = true,
-                                 const llvm::Twine &name = "");
+                                 const toolchain::Twine &name = "");
   void emitDeallocateDynamicAlloca(StackAddress address,
                                    bool allowTaskDealloc = true,
                                    bool useTaskDeallocThrough = false);
 
-  llvm::BasicBlock *createBasicBlock(const llvm::Twine &Name);
+  toolchain::BasicBlock *createBasicBlock(const toolchain::Twine &Name);
   const TypeInfo &getTypeInfoForUnlowered(Type subst);
   const TypeInfo &getTypeInfoForUnlowered(AbstractionPattern orig, Type subst);
   const TypeInfo &getTypeInfoForUnlowered(AbstractionPattern orig,
                                           CanType subst);
   const TypeInfo &getTypeInfoForLowered(CanType T);
   const TypeInfo &getTypeInfo(SILType T);
-  void emitMemCpy(llvm::Value *dest, llvm::Value *src,
+  void emitMemCpy(toolchain::Value *dest, toolchain::Value *src,
                   Size size, Alignment align);
-  void emitMemCpy(llvm::Value *dest, llvm::Value *src,
-                  llvm::Value *size, Alignment align);
+  void emitMemCpy(toolchain::Value *dest, toolchain::Value *src,
+                  toolchain::Value *size, Alignment align);
   void emitMemCpy(Address dest, Address src, Size size);
-  void emitMemCpy(Address dest, Address src, llvm::Value *size);
+  void emitMemCpy(Address dest, Address src, toolchain::Value *size);
 
-  llvm::Value *emitByteOffsetGEP(llvm::Value *base, llvm::Value *offset,
-                                 llvm::Type *objectType,
-                                 const llvm::Twine &name = "");
-  Address emitByteOffsetGEP(llvm::Value *base, llvm::Value *offset,
+  toolchain::Value *emitByteOffsetGEP(toolchain::Value *base, toolchain::Value *offset,
+                                 toolchain::Type *objectType,
+                                 const toolchain::Twine &name = "");
+  Address emitByteOffsetGEP(toolchain::Value *base, toolchain::Value *offset,
                             const TypeInfo &type,
-                            const llvm::Twine &name = "");
-  Address emitAddressAtOffset(llvm::Value *base, Offset offset,
-                              llvm::Type *objectType,
+                            const toolchain::Twine &name = "");
+  Address emitAddressAtOffset(toolchain::Value *base, Offset offset,
+                              toolchain::Type *objectType,
                               Alignment objectAlignment,
-                              const llvm::Twine &name = "");
+                              const toolchain::Twine &name = "");
 
-  llvm::Value *emitInvariantLoad(Address address,
-                                 const llvm::Twine &name = "");
+  toolchain::Value *emitInvariantLoad(Address address,
+                                 const toolchain::Twine &name = "");
 
-  void emitStoreOfRelativeIndirectablePointer(llvm::Value *value,
+  void emitStoreOfRelativeIndirectablePointer(toolchain::Value *value,
                                               Address addr,
                                               bool isFar);
 
-  llvm::Value *emitLoadOfRelativePointer(Address addr, bool isFar,
-                                         llvm::Type *expectedPointedToType,
-                                         const llvm::Twine &name = "");
-  llvm::Value *
+  toolchain::Value *emitLoadOfRelativePointer(Address addr, bool isFar,
+                                         toolchain::Type *expectedPointedToType,
+                                         const toolchain::Twine &name = "");
+  toolchain::Value *
   emitLoadOfCompactFunctionPointer(Address addr, bool isFar,
-                                   llvm::Type *expectedPointedToType,
-                                   const llvm::Twine &name = "");
+                                   toolchain::Type *expectedPointedToType,
+                                   const toolchain::Twine &name = "");
 
-  llvm::Value *emitAllocObjectCall(llvm::Value *metadata, llvm::Value *size,
-                                   llvm::Value *alignMask,
-                                   const llvm::Twine &name = "");
-  llvm::Value *emitInitStackObjectCall(llvm::Value *metadata,
-                                       llvm::Value *object,
-                                       const llvm::Twine &name = "");
-  llvm::Value *emitInitStaticObjectCall(llvm::Value *metadata,
-                                        llvm::Value *object,
-                                        const llvm::Twine &name = "");
-  llvm::Value *emitVerifyEndOfLifetimeCall(llvm::Value *object,
-                                           const llvm::Twine &name = "");
-  llvm::Value *emitAllocRawCall(llvm::Value *size, llvm::Value *alignMask,
-                                const llvm::Twine &name ="");
-  void emitDeallocRawCall(llvm::Value *pointer, llvm::Value *size,
-                          llvm::Value *alignMask);
+  toolchain::Value *emitAllocObjectCall(toolchain::Value *metadata, toolchain::Value *size,
+                                   toolchain::Value *alignMask,
+                                   const toolchain::Twine &name = "");
+  toolchain::Value *emitInitStackObjectCall(toolchain::Value *metadata,
+                                       toolchain::Value *object,
+                                       const toolchain::Twine &name = "");
+  toolchain::Value *emitInitStaticObjectCall(toolchain::Value *metadata,
+                                        toolchain::Value *object,
+                                        const toolchain::Twine &name = "");
+  toolchain::Value *emitVerifyEndOfLifetimeCall(toolchain::Value *object,
+                                           const toolchain::Twine &name = "");
+  toolchain::Value *emitAllocRawCall(toolchain::Value *size, toolchain::Value *alignMask,
+                                const toolchain::Twine &name ="");
+  void emitDeallocRawCall(toolchain::Value *pointer, toolchain::Value *size,
+                          toolchain::Value *alignMask);
   
-  void emitAllocBoxCall(llvm::Value *typeMetadata,
-                         llvm::Value *&box,
-                         llvm::Value *&valueAddress);
+  void emitAllocBoxCall(toolchain::Value *typeMetadata,
+                         toolchain::Value *&box,
+                         toolchain::Value *&valueAddress);
 
-  void emitMakeBoxUniqueCall(llvm::Value *box, llvm::Value *typeMetadata,
-                             llvm::Value *alignMask, llvm::Value *&outBox,
-                             llvm::Value *&outValueAddress);
+  void emitMakeBoxUniqueCall(toolchain::Value *box, toolchain::Value *typeMetadata,
+                             toolchain::Value *alignMask, toolchain::Value *&outBox,
+                             toolchain::Value *&outValueAddress);
 
-  void emitDeallocBoxCall(llvm::Value *box, llvm::Value *typeMetadata);
+  void emitDeallocBoxCall(toolchain::Value *box, toolchain::Value *typeMetadata);
 
-  void emitTSanInoutAccessCall(llvm::Value *address);
+  void emitTSanInoutAccessCall(toolchain::Value *address);
 
-  llvm::Value *emitTargetOSVersionAtLeastCall(llvm::Value *major,
-                                              llvm::Value *minor,
-                                              llvm::Value *patch);
+  toolchain::Value *emitTargetOSVersionAtLeastCall(toolchain::Value *major,
+                                              toolchain::Value *minor,
+                                              toolchain::Value *patch);
 
-  llvm::Value *emitTargetVariantOSVersionAtLeastCall(llvm::Value *major,
-                                                     llvm::Value *minor,
-                                                     llvm::Value *patch);
+  toolchain::Value *emitTargetVariantOSVersionAtLeastCall(toolchain::Value *major,
+                                                     toolchain::Value *minor,
+                                                     toolchain::Value *patch);
 
-  llvm::Value *emitTargetOSVersionOrVariantOSVersionAtLeastCall(
-      llvm::Value *major, llvm::Value *minor, llvm::Value *patch,
-      llvm::Value *variantMajor, llvm::Value *variantMinor,
-      llvm::Value *variantPatch);
+  toolchain::Value *emitTargetOSVersionOrVariantOSVersionAtLeastCall(
+      toolchain::Value *major, toolchain::Value *minor, toolchain::Value *patch,
+      toolchain::Value *variantMajor, toolchain::Value *variantMinor,
+      toolchain::Value *variantPatch);
 
-  llvm::Value *emitProjectBoxCall(llvm::Value *box, llvm::Value *typeMetadata);
+  toolchain::Value *emitProjectBoxCall(toolchain::Value *box, toolchain::Value *typeMetadata);
 
-  llvm::Value *emitAllocEmptyBoxCall();
+  toolchain::Value *emitAllocEmptyBoxCall();
 
   // Emit a call to the given generic type metadata access function.
   MetadataResponse emitGenericTypeMetadataAccessFunctionCall(
-                                          llvm::Function *accessFunction,
-                                          ArrayRef<llvm::Value *> args,
+                                          toolchain::Function *accessFunction,
+                                          ArrayRef<toolchain::Value *> args,
                                           DynamicMetadataRequest request);
 
   // Emit a reference to the canonical type metadata record for the given AST
@@ -405,12 +409,12 @@ public:
   // abstraction difference, the metadata contains the layout information for
   // values in the maximally-abstracted representation of the type; this is
   // correct for all uses of reabstractable values in opaque contexts.
-  llvm::Value *emitTypeMetadataRef(CanType type);
+  toolchain::Value *emitTypeMetadataRef(CanType type);
 
   /// Emit a reference to the canonical type metadata record for the given
   /// formal type.  The metadata is only required to be abstract; that is,
   /// you cannot use the result for layout.
-  llvm::Value *emitAbstractTypeMetadataRef(CanType type);
+  toolchain::Value *emitAbstractTypeMetadataRef(CanType type);
 
   MetadataResponse emitTypeMetadataRef(CanType type,
                                        DynamicMetadataRequest request);
@@ -424,59 +428,62 @@ public:
   // TODO: It might be better to return just a value witness table reference
   // here, since for some types it's easier to get a shared reference to one
   // than a metadata reference, and it would be more type-safe.
-  llvm::Value *emitTypeMetadataRefForLayout(SILType type);
-  llvm::Value *emitTypeMetadataRefForLayout(SILType type,
+  toolchain::Value *emitTypeMetadataRefForLayout(SILType type);
+  toolchain::Value *emitTypeMetadataRefForLayout(SILType type,
                                             DynamicMetadataRequest request);
 
-  llvm::Value *emitValueGenericRef(CanType type);
+  toolchain::Value *emitValueGenericRef(CanType type);
 
-  llvm::Value *emitValueWitnessTableRef(SILType type,
-                                        llvm::Value **metadataSlot = nullptr);
-  llvm::Value *emitValueWitnessTableRef(SILType type,
+  toolchain::Value *emitValueWitnessTableRef(SILType type,
+                                        toolchain::Value **metadataSlot = nullptr);
+  toolchain::Value *emitValueWitnessTableRef(SILType type,
                                         DynamicMetadataRequest request,
-                                        llvm::Value **metadataSlot = nullptr);
-  llvm::Value *emitValueWitnessTableRefForMetadata(llvm::Value *metadata);
+                                        toolchain::Value **metadataSlot = nullptr);
+  toolchain::Value *emitValueWitnessTableRefForMetadata(toolchain::Value *metadata);
   
-  llvm::Value *emitValueWitnessValue(SILType type, ValueWitness index);
+  toolchain::Value *emitValueWitnessValue(SILType type, ValueWitness index);
   FunctionPointer emitValueWitnessFunctionRef(SILType type,
-                                              llvm::Value *&metadataSlot,
+                                              toolchain::Value *&metadataSlot,
                                               ValueWitness index);
 
   void emitInitializeFieldOffsetVector(SILType T,
-                                       llvm::Value *metadata,
+                                       toolchain::Value *metadata,
                                        bool isVWTMutable,
                                        MetadataDependencyCollector *collector);
 
 
-  llvm::Value *optionallyLoadFromConditionalProtocolWitnessTable(
-    llvm::Value *wtable);
+  toolchain::Value *optionallyLoadFromConditionalProtocolWitnessTable(
+    toolchain::Value *wtable);
 
-  llvm::Value *emitPackShapeExpression(CanType type);
+  toolchain::Value *emitPackShapeExpression(CanType type);
 
-  void recordStackPackMetadataAlloc(StackAddress addr, llvm::Value *shape);
-  void eraseStackPackMetadataAlloc(StackAddress addr, llvm::Value *shape);
+  void recordStackPackMetadataAlloc(StackAddress addr, toolchain::Value *shape);
+  void eraseStackPackMetadataAlloc(StackAddress addr, toolchain::Value *shape);
 
-  void recordStackPackWitnessTableAlloc(StackAddress addr, llvm::Value *shape);
-  void eraseStackPackWitnessTableAlloc(StackAddress addr, llvm::Value *shape);
+  void recordStackPackWitnessTableAlloc(StackAddress addr, toolchain::Value *shape);
+  void eraseStackPackWitnessTableAlloc(StackAddress addr, toolchain::Value *shape);
 
-  void withLocalStackPackAllocs(llvm::function_ref<void()> fn);
+  void withLocalStackPackAllocs(toolchain::function_ref<void()> fn);
 
   /// Emit a load of a reference to the given Objective-C selector.
-  llvm::Value *emitObjCSelectorRefLoad(StringRef selector);
+  toolchain::Value *emitObjCSelectorRefLoad(StringRef selector);
 
   /// Return the SILDebugScope for this function.
   const SILDebugScope *getDebugScope() const { return DbgScope; }
-  llvm::Value *coerceValue(llvm::Value *value, llvm::Type *toTy,
-                           const llvm::DataLayout &);
+  toolchain::Value *coerceValue(toolchain::Value *value, toolchain::Type *toTy,
+                           const toolchain::DataLayout &);
   Explosion coerceValueTo(SILType fromTy, Explosion &from, SILType toTy);
 
   /// Mark a load as invariant.
-  void setInvariantLoad(llvm::LoadInst *load);
+  void setInvariantLoad(toolchain::LoadInst *load);
   /// Mark a load as dereferenceable to `size` bytes.
-  void setDereferenceableLoad(llvm::LoadInst *load, unsigned size);
+  void setDereferenceableLoad(toolchain::LoadInst *load, unsigned size);
 
   /// Emit a non-mergeable trap call, optionally followed by a terminator.
   void emitTrap(StringRef failureMessage, bool EmitUnreachable);
+
+  void emitConditionalTrap(toolchain::Value *condition, StringRef failureMessage,
+                           const SILDebugScope *debugScope = nullptr);
 
   /// Given at least a src address to a list of elements, runs body over each
   /// element passing its address. An optional destination address can be
@@ -488,19 +495,19 @@ public:
                           std::function<void (Address dest, Address src)> body);
 
 private:
-  llvm::Instruction *AllocaIP;
+  toolchain::Instruction *AllocaIP;
   const SILDebugScope *DbgScope;
   /// The insertion point where we should but instructions we would normally put
   /// at the beginning of the function. LLVM's coroutine lowering really does
   /// not like it if we put instructions with side-effectrs before the
   /// coro.begin.
-  llvm::Instruction *EarliestIP;
+  toolchain::Instruction *EarliestIP;
 
 public:
-  void setEarliestInsertionPoint(llvm::Instruction *inst) { EarliestIP = inst; }
+  void setEarliestInsertionPoint(toolchain::Instruction *inst) { EarliestIP = inst; }
   /// Returns the first insertion point before which we should insert
   /// instructions which have side-effects.
-  llvm::Instruction *getEarliestInsertionPoint() const { return EarliestIP; }
+  toolchain::Instruction *getEarliestInsertionPoint() const { return EarliestIP; }
 
   //--- Reference-counting methods
   //-----------------------------------------------
@@ -508,53 +515,53 @@ public:
   // Returns the default atomicity of the module.
   Atomicity getDefaultAtomicity();
 
-  llvm::Value *emitUnmanagedAlloc(const HeapLayout &layout,
-                                  const llvm::Twine &name,
-                                  llvm::Constant *captureDescriptor,
+  toolchain::Value *emitUnmanagedAlloc(const HeapLayout &layout,
+                                  const toolchain::Twine &name,
+                                  toolchain::Constant *captureDescriptor,
                                   const HeapNonFixedOffsets *offsets = 0);
 
   // Functions that don't care about the reference-counting style.
-  void emitFixLifetime(llvm::Value *value);
+  void emitFixLifetime(toolchain::Value *value);
 
   // Routines that are generic over the reference-counting style:
   //   - strong references
-  void emitStrongRetain(llvm::Value *value, ReferenceCounting refcounting,
+  void emitStrongRetain(toolchain::Value *value, ReferenceCounting refcounting,
                         Atomicity atomicity);
-  void emitStrongRelease(llvm::Value *value, ReferenceCounting refcounting,
+  void emitStrongRelease(toolchain::Value *value, ReferenceCounting refcounting,
                          Atomicity atomicity);
-  llvm::Value *emitLoadRefcountedPtr(Address addr, ReferenceCounting style);
+  toolchain::Value *emitLoadRefcountedPtr(Address addr, ReferenceCounting style);
 
-  llvm::Value *getReferenceStorageExtraInhabitantIndex(Address src,
+  toolchain::Value *getReferenceStorageExtraInhabitantIndex(Address src,
                                                    ReferenceOwnership ownership,
                                                    ReferenceCounting style);
-  void storeReferenceStorageExtraInhabitant(llvm::Value *index,
+  void storeReferenceStorageExtraInhabitant(toolchain::Value *index,
                                             Address dest,
                                             ReferenceOwnership ownership,
                                             ReferenceCounting style);
 
 #define NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Kind) \
-  void emit##Kind##Name##Init(llvm::Value *val, Address dest); \
-  void emit##Kind##Name##Assign(llvm::Value *value, Address dest); \
+  void emit##Kind##Name##Init(toolchain::Value *val, Address dest); \
+  void emit##Kind##Name##Assign(toolchain::Value *value, Address dest); \
   void emit##Kind##Name##CopyInit(Address destAddr, Address srcAddr); \
   void emit##Kind##Name##TakeInit(Address destAddr, Address srcAddr); \
   void emit##Kind##Name##CopyAssign(Address destAddr, Address srcAddr); \
   void emit##Kind##Name##TakeAssign(Address destAddr, Address srcAddr); \
-  llvm::Value *emit##Kind##Name##LoadStrong(Address src, \
-                                            llvm::Type *resultType); \
-  llvm::Value *emit##Kind##Name##TakeStrong(Address src, \
-                                            llvm::Type *resultType); \
+  toolchain::Value *emit##Kind##Name##LoadStrong(Address src, \
+                                            toolchain::Type *resultType); \
+  toolchain::Value *emit##Kind##Name##TakeStrong(Address src, \
+                                            toolchain::Type *resultType); \
   void emit##Kind##Name##Destroy(Address addr);
 #define ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Kind) \
-  void emit##Kind##Name##Retain(llvm::Value *value, Atomicity atomicity); \
-  void emit##Kind##Name##Release(llvm::Value *value, Atomicity atomicity); \
-  void emit##Kind##StrongRetain##Name(llvm::Value *value, Atomicity atomicity);\
-  void emit##Kind##StrongRetainAnd##Name##Release(llvm::Value *value, \
+  void emit##Kind##Name##Retain(toolchain::Value *value, Atomicity atomicity); \
+  void emit##Kind##Name##Release(toolchain::Value *value, Atomicity atomicity); \
+  void emit##Kind##StrongRetain##Name(toolchain::Value *value, Atomicity atomicity);\
+  void emit##Kind##StrongRetainAnd##Name##Release(toolchain::Value *value, \
                                                   Atomicity atomicity);
 #define NEVER_LOADABLE_CHECKED_REF_STORAGE(Name, ...) \
   NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Native) \
   NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Unknown) \
-  void emit##Name##Init(llvm::Value *val, Address dest, ReferenceCounting style); \
-  void emit##Name##Assign(llvm::Value *value, Address dest, \
+  void emit##Name##Init(toolchain::Value *val, Address dest, ReferenceCounting style); \
+  void emit##Name##Assign(toolchain::Value *value, Address dest, \
                           ReferenceCounting style); \
   void emit##Name##CopyInit(Address destAddr, Address srcAddr, \
                             ReferenceCounting style); \
@@ -564,42 +571,42 @@ public:
                               ReferenceCounting style); \
   void emit##Name##TakeAssign(Address destAddr, Address srcAddr, \
                               ReferenceCounting style); \
-  llvm::Value *emit##Name##LoadStrong(Address src, llvm::Type *resultType, \
+  toolchain::Value *emit##Name##LoadStrong(Address src, toolchain::Type *resultType, \
                                       ReferenceCounting style); \
-  llvm::Value *emit##Name##TakeStrong(Address src, llvm::Type *resultType, \
+  toolchain::Value *emit##Name##TakeStrong(Address src, toolchain::Type *resultType, \
                                       ReferenceCounting style); \
   void emit##Name##Destroy(Address addr, ReferenceCounting style);
 #define SOMETIMES_LOADABLE_CHECKED_REF_STORAGE(Name, ...) \
   NEVER_LOADABLE_CHECKED_REF_STORAGE(Name, "...") \
   ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Native) \
   ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Unknown) \
-  void emit##Name##Retain(llvm::Value *value, ReferenceCounting style, \
+  void emit##Name##Retain(toolchain::Value *value, ReferenceCounting style, \
                          Atomicity atomicity); \
-  void emit##Name##Release(llvm::Value *value, ReferenceCounting style, \
+  void emit##Name##Release(toolchain::Value *value, ReferenceCounting style, \
                           Atomicity atomicity); \
-  void emitStrongRetain##Name(llvm::Value *value, ReferenceCounting style, \
+  void emitStrongRetain##Name(toolchain::Value *value, ReferenceCounting style, \
                               Atomicity atomicity); \
-  void emitStrongRetainAnd##Name##Release(llvm::Value *value, \
+  void emitStrongRetainAnd##Name##Release(toolchain::Value *value, \
                                           ReferenceCounting style, \
                                           Atomicity atomicity);
 #define ALWAYS_LOADABLE_CHECKED_REF_STORAGE(Name, ...) \
   ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Native) \
-  void emit##Name##Retain(llvm::Value *value, ReferenceCounting style, \
+  void emit##Name##Retain(toolchain::Value *value, ReferenceCounting style, \
                          Atomicity atomicity) { \
     assert(style == ReferenceCounting::Native); \
     emitNative##Name##Retain(value, atomicity); \
   } \
-  void emit##Name##Release(llvm::Value *value, ReferenceCounting style, \
+  void emit##Name##Release(toolchain::Value *value, ReferenceCounting style, \
                           Atomicity atomicity) { \
     assert(style == ReferenceCounting::Native); \
     emitNative##Name##Release(value, atomicity); \
   } \
-  void emitStrongRetain##Name(llvm::Value *value, ReferenceCounting style, \
+  void emitStrongRetain##Name(toolchain::Value *value, ReferenceCounting style, \
                               Atomicity atomicity) { \
     assert(style == ReferenceCounting::Native); \
     emitNativeStrongRetain##Name(value, atomicity); \
   } \
-  void emitStrongRetainAnd##Name##Release(llvm::Value *value, \
+  void emitStrongRetainAnd##Name##Release(toolchain::Value *value, \
                                           ReferenceCounting style, \
                                           Atomicity atomicity) { \
     assert(style == ReferenceCounting::Native); \
@@ -609,53 +616,53 @@ public:
 #undef NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER
 #undef ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE_HELPER
 
-  // Routines for the Swift native reference-counting style.
+  // Routines for the Codira native reference-counting style.
   //   - strong references
-  void emitNativeStrongAssign(llvm::Value *value, Address addr);
-  void emitNativeStrongInit(llvm::Value *value, Address addr);
-  void emitNativeStrongRetain(llvm::Value *value, Atomicity atomicity);
-  void emitNativeStrongRelease(llvm::Value *value, Atomicity atomicity);
-  void emitNativeSetDeallocating(llvm::Value *value);
+  void emitNativeStrongAssign(toolchain::Value *value, Address addr);
+  void emitNativeStrongInit(toolchain::Value *value, Address addr);
+  void emitNativeStrongRetain(toolchain::Value *value, Atomicity atomicity);
+  void emitNativeStrongRelease(toolchain::Value *value, Atomicity atomicity);
+  void emitNativeSetDeallocating(toolchain::Value *value);
 
   // Routines for the ObjC reference-counting style.
-  void emitObjCStrongRetain(llvm::Value *value);
-  llvm::Value *emitObjCRetainCall(llvm::Value *value);
-  llvm::Value *emitObjCAutoreleaseCall(llvm::Value *value);
-  void emitObjCStrongRelease(llvm::Value *value);
+  void emitObjCStrongRetain(toolchain::Value *value);
+  toolchain::Value *emitObjCRetainCall(toolchain::Value *value);
+  toolchain::Value *emitObjCAutoreleaseCall(toolchain::Value *value);
+  void emitObjCStrongRelease(toolchain::Value *value);
 
-  llvm::Value *emitBlockCopyCall(llvm::Value *value);
-  void emitBlockRelease(llvm::Value *value);
+  toolchain::Value *emitBlockCopyCall(toolchain::Value *value);
+  void emitBlockRelease(toolchain::Value *value);
 
   void emitForeignReferenceTypeLifetimeOperation(ValueDecl *fn,
-                                                 llvm::Value *value,
+                                                 toolchain::Value *value,
                                                  bool needsNullCheck = false);
 
   // Routines for an unknown reference-counting style (meaning,
-  // dynamically something compatible with either the ObjC or Swift styles).
+  // dynamically something compatible with either the ObjC or Codira styles).
   //   - strong references
-  void emitUnknownStrongRetain(llvm::Value *value, Atomicity atomicity);
-  void emitUnknownStrongRelease(llvm::Value *value, Atomicity atomicity);
+  void emitUnknownStrongRetain(toolchain::Value *value, Atomicity atomicity);
+  void emitUnknownStrongRelease(toolchain::Value *value, Atomicity atomicity);
 
   // Routines for the Builtin.NativeObject reference-counting style.
-  void emitBridgeStrongRetain(llvm::Value *value, Atomicity atomicity);
-  void emitBridgeStrongRelease(llvm::Value *value, Atomicity atomicity);
+  void emitBridgeStrongRetain(toolchain::Value *value, Atomicity atomicity);
+  void emitBridgeStrongRelease(toolchain::Value *value, Atomicity atomicity);
 
   // Routines for the ErrorType reference-counting style.
-  void emitErrorStrongRetain(llvm::Value *value);
-  void emitErrorStrongRelease(llvm::Value *value);
+  void emitErrorStrongRetain(toolchain::Value *value);
+  void emitErrorStrongRelease(toolchain::Value *value);
 
-  llvm::Value *emitIsUniqueCall(llvm::Value *value, ReferenceCounting style,
+  toolchain::Value *emitIsUniqueCall(toolchain::Value *value, ReferenceCounting style,
                                 SourceLoc loc, bool isNonNull);
 
-  llvm::Value *emitIsEscapingClosureCall(llvm::Value *value, SourceLoc loc,
+  toolchain::Value *emitIsEscapingClosureCall(toolchain::Value *value, SourceLoc loc,
                                          unsigned verificationType);
 
-  Address emitTaskAlloc(llvm::Value *size,
+  Address emitTaskAlloc(toolchain::Value *size,
                         Alignment alignment);
   void emitTaskDealloc(Address address);
   void emitTaskDeallocThrough(Address address);
 
-  llvm::Value *alignUpToMaximumAlignment(llvm::Type *sizeTy, llvm::Value *val);
+  toolchain::Value *alignUpToMaximumAlignment(toolchain::Type *sizeTy, toolchain::Value *val);
 
   //--- Expression emission
   //------------------------------------------------------
@@ -679,7 +686,7 @@ public:
   ///
   /// The data kind cannot be for type metadata; use tryGetLocalTypeMetadata
   /// for that.
-  llvm::Value *tryGetLocalTypeData(CanType type, LocalTypeDataKind kind);
+  toolchain::Value *tryGetLocalTypeData(CanType type, LocalTypeDataKind kind);
 
   /// The same as tryGetLocalTypeMetadata, but for representation-compatible
   /// "layout" metadata.  The returned metadata may not be for a type that
@@ -699,7 +706,7 @@ public:
   ///
   /// The data kind cannot be for type metadata; use
   /// tryGetLocalTypeMetadataForLayout for that.
-  llvm::Value *tryGetLocalTypeDataForLayout(SILType type,
+  toolchain::Value *tryGetLocalTypeDataForLayout(SILType type,
                                             LocalTypeDataKind kind);
 
   /// Add a local type metadata reference at a point which definitely
@@ -713,7 +720,7 @@ public:
   /// The data kind cannot be for type metadata; use
   /// setUnscopedLocalTypeMetadata for that.
   void setUnscopedLocalTypeData(CanType type, LocalTypeDataKind kind,
-                                llvm::Value *data);
+                                toolchain::Value *data);
 
   /// Add a local type metadata reference that is valid at the current
   /// insertion point.
@@ -725,7 +732,7 @@ public:
   /// The data kind cannot be for type metadata; use setScopedLocalTypeMetadata
   /// for that.
   void setScopedLocalTypeData(CanType type, LocalTypeDataKind kind,
-                              llvm::Value *data);
+                              toolchain::Value *data);
 
   /// The same as setScopedLocalTypeMetadata, but for representation-compatible
   /// "layout" metadata.  See the comment on tryGetLocalTypeMetadataForLayout.
@@ -737,12 +744,12 @@ public:
   /// The data kind cannot be for type metadata; use
   /// setScopedLocalTypeMetadataForLayout for that.
   void setScopedLocalTypeDataForLayout(SILType type, LocalTypeDataKind kind,
-                                       llvm::Value *data);
+                                       toolchain::Value *data);
 
   // These are for the private use of the LocalTypeData subsystem.
   MetadataResponse tryGetLocalTypeMetadata(LocalTypeDataKey key,
                                            DynamicMetadataRequest request);
-  llvm::Value *tryGetLocalTypeData(LocalTypeDataKey key);
+  toolchain::Value *tryGetLocalTypeData(LocalTypeDataKey key);
   MetadataResponse tryGetConcreteLocalTypeData(LocalTypeDataKey key,
                                                DynamicMetadataRequest request);
   void setUnscopedLocalTypeData(LocalTypeDataKey key, MetadataResponse value);
@@ -752,15 +759,15 @@ public:
   /// Given a concrete type metadata node, add all the local type data
   /// that we can reach from it.
   void bindLocalTypeDataFromTypeMetadata(CanType type, IsExact_t isExact,
-                                         llvm::Value *metadata,
+                                         toolchain::Value *metadata,
                                          MetadataState metadataState);
 
   /// Given the witness table parameter, bind local type data for
   /// the witness table itself and any conditional requirements.
   void bindLocalTypeDataFromSelfWitnessTable(
                 const ProtocolConformance *conformance,
-                llvm::Value *selfTable,
-                llvm::function_ref<CanType (CanType)> mapTypeIntoContext);
+                toolchain::Value *selfTable,
+                toolchain::function_ref<CanType (CanType)> mapTypeIntoContext);
 
   void setDominanceResolver(DominanceResolverFunction resolver) {
     assert(DominanceResolver == nullptr);
@@ -851,15 +858,15 @@ public:
   enum DynamicSelfKind {
     /// An object reference.
     ObjectReference,
-    /// A Swift metatype.
-    SwiftMetatype,
+    /// A Codira metatype.
+    CodiraMetatype,
     /// An ObjC metatype.
     ObjCMetatype,
   };
 
-  llvm::Value *getDynamicSelfMetadata();
+  toolchain::Value *getDynamicSelfMetadata();
   void setDynamicSelfMetadata(CanType selfBaseTy, bool selfIsExact,
-                              llvm::Value *value, DynamicSelfKind kind);
+                              toolchain::Value *value, DynamicSelfKind kind);
 #ifndef NDEBUG
   LocalTypeDataCache const *getLocalTypeData() { return LocalTypeData; }
 #endif
@@ -892,13 +899,13 @@ private:
   ConditionalDominanceScope *ConditionalDominance = nullptr;
   
   /// The value that satisfies metadata lookups for DynamicSelfType.
-  llvm::Value *SelfValue = nullptr;
+  toolchain::Value *SelfValue = nullptr;
   /// If set, the dynamic Self type is assumed to be equivalent to this exact class.
   CanType SelfType;
   bool SelfTypeIsExact = false;
   DynamicSelfKind SelfKind;
 
-  llvm::SmallSetVector<unsigned, 16> forwardableArguments;
+  toolchain::SmallSetVector<unsigned, 16> forwardableArguments;
 };
 
 using ConditionalDominanceScope = IRGenFunction::ConditionalDominanceScope;

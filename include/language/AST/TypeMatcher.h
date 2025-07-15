@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines TypeMatcher, which performs a structural match between
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPE_MATCHER_H
-#define SWIFT_AST_TYPE_MATCHER_H
+#ifndef LANGUAGE_AST_TYPE_MATCHER_H
+#define LANGUAGE_AST_TYPE_MATCHER_H
 
 #include "language/AST/CanTypeVisitor.h"
 
@@ -86,7 +87,7 @@ private:
 #include "language/AST/TypeNodes.def"
       }
 
-      llvm_unreachable("Unhandled TypeKind in switch.");
+      toolchain_unreachable("Unhandled TypeKind in switch.");
     }
 
     /// Honeypot to catch cases where we should redispatch the second type, but
@@ -578,4 +579,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_AST_TYPE_MATCHER_H
+#endif // LANGUAGE_AST_TYPE_MATCHER_H

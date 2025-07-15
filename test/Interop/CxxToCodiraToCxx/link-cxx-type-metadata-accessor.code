@@ -1,0 +1,59 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend %t/use-cxx-types.code -module-name UseCxx -typecheck -verify -emit-clang-header-path %t/UseCxx.h -I %t -enable-experimental-cxx-interop -clang-header-expose-decls=all-public
+
+// Use the 'DEBUG' flug to force toolchain used
+// RUN: %target-interop-build-clangxx -std=c++20 -c %t/use-language-cxx-types.cpp -I %t -o %t/language-cxx-execution.o -DDEBUG
+// RUN: %target-interop-build-language %t/use-cxx-types.code -o %t/language-cxx-execution -Xlinker %t/language-cxx-execution.o -module-name UseCxx -Xfrontend -entry-point-function-name -Xfrontend languageMain -I %t
+
+//--- header.h
+
+struct CxxStruct {
+    inline CxxStruct(int x) : x(x) {}
+    inline CxxStruct(const CxxStruct &other) : x(other.x) {}
+    inline ~CxxStruct() {}
+
+    int x;
+};
+
+struct CxxStruct2 {
+    inline CxxStruct2(int x) : x(x) {}
+    inline CxxStruct2(const CxxStruct &other) : x(other.x) {}
+    inline ~CxxStruct2() {}
+
+    int x;
+};
+
+//--- module.modulemap
+module CxxTest {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- use-cxx-types.code
+import CxxTest
+
+public fn retCxxStruct() -> CxxStruct {
+    return CxxStruct(2)
+}
+
+#if !os(Windows)
+public fn retCxxStruct2() -> CxxStruct2? {
+    return CxxStruct2(2)
+}
+#endif
+
+//--- use-language-cxx-types.cpp
+
+#include "header.h"
+#include "UseCxx.h"
+#include <assert.h>
+
+int main() {
+  auto x = UseCxx::retCxxStruct();
+#ifndef _WIN32
+  auto y = UseCxx::retCxxStruct2();
+#endif
+  return 0;
+}

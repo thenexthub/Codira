@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This is a snapshot of the `ConcurrentMap` and `ConcurrentReadableArray`
-// structures from the Swift runtime, adapted to be independent of runtime
+// structures from the Codira runtime, adapted to be independent of runtime
 // dependencies on the C++ runtime and LLVM support libraries to make it
 // suitable for use in back-deployment compatibility libraries.
 
-#ifndef SWIFT_OVERRIDE_CONCURRENTUTILS_H
-#define SWIFT_OVERRIDE_CONCURRENTUTILS_H
+#ifndef LANGUAGE_OVERRIDE_CONCURRENTUTILS_H
+#define LANGUAGE_OVERRIDE_CONCURRENTUTILS_H
 #include <iterator>
 #include <algorithm>
 #include <atomic>
@@ -429,7 +430,7 @@ public:
   
   void push_back(const ElemTy &elem) {
     pthread_mutex_lock(&WriterMutex);
-    SWIFT_DEFER { pthread_mutex_unlock(&WriterMutex); };
+    LANGUAGE_DEFER { pthread_mutex_unlock(&WriterMutex); };
     
     auto *storage = Elements.load(std::memory_order_relaxed);
     auto count = storage ? storage->Count.load(std::memory_order_relaxed) : 0;
@@ -456,7 +457,7 @@ public:
   
   Snapshot snapshot() {
     incrementReaders();
-    auto *storage = Elements.load(SWIFT_MEMORY_ORDER_CONSUME);
+    auto *storage = Elements.load(LANGUAGE_MEMORY_ORDER_CONSUME);
     if (storage == nullptr) {
       return Snapshot(this, nullptr, 0);
     }
@@ -469,4 +470,4 @@ public:
 
 }} // end namespace language::overrides
 
-#endif // SWIFT_RUNTIME_CONCURRENTUTILS_H
+#endif // LANGUAGE_RUNTIME_CONCURRENTUTILS_H

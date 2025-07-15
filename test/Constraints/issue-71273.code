@@ -1,0 +1,21 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/71273
+
+fn bar<R>(_ fn: () -> R) {}
+
+// Make sure we don't error here.
+fn testLocalFn() {
+  bar() {
+    fn foo() -> Int { return 0 }
+    return ()
+  }
+}
+
+fn testLocalBinding() {
+  bar() {
+    immutable _ = if .random() { return () } else { 0 }
+    // expected-error@-1 {{cannot use 'return' to transfer control out of 'if' expression}}
+    return ()
+  }
+}

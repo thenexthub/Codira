@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/comments.framework/Modules/comments.codemodule)
+// RUN: %empty-directory(%t/comments.framework/Modules/comments.codemodule/Project)
+
+// RUN: %target-language-frontend -module-name comments -emit-module -emit-module-path %t/comments.framework/Modules/comments.codemodule/%target-languagemodule-name -emit-module-doc-path %t/comments.framework/Modules/comments.codemodule/%target-languagedoc-name -emit-module-source-info-path %t/comments.framework/Modules/comments.codemodule/Project/%target-languagesourceinfo-name %s
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=comments -enable-languagesourceinfo -source-filename %s -F %t | %FileCheck %s
+
+// RUN: cp -r %t/comments.framework/Modules/comments.codemodule %t/comments.codemodule
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=comments -enable-languagesourceinfo -source-filename %s -I %t | %FileCheck %s
+
+/// first_decl_class_1 Aaa.
+public class first_decl_class_1 {
+
+  /// decl_func_1 Aaa.
+  public fn decl_func_1() {}
+
+  /**
+   * decl_func_3 Aaa.
+   */
+  public fn decl_func_2() {}
+
+  /// decl_func_3 Aaa.
+  /** Bbb. */
+  public fn decl_func_3() {}
+}
+
+// CHECK: comments-framework.code:12:14: Class/first_decl_class_1 RawComment=[/// first_decl_class_1 Aaa.\n]
+// CHECK: comments-framework.code:15:15: Func/first_decl_class_1.decl_func_1 RawComment=[/// decl_func_1 Aaa.\n]
+// CHECK: comments-framework.code:20:15: Func/first_decl_class_1.decl_func_2 RawComment=[/**\n   * decl_func_3 Aaa.\n   */]
+// CHECK: comments-framework.code:24:15: Func/first_decl_class_1.decl_func_3 RawComment=[/// decl_func_3 Aaa.\n/** Bbb. */]
+

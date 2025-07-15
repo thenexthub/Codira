@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/ModuleA.codemodule %S/Inputs/where_clause_across_module_boundaries_module.code
+// RUN: %target-typecheck-verify-language -I %t
+
+// https://github.com/apple/language/issues/58084
+// Associated Type Inference fails across module boundaries
+// Self bounds from where clause cannot be accessed across modules.
+// This test is intended to test whether it can use generic signature to get this bounds.
+import ModuleA
+
+struct ModuleBFoo: Codable, DefaultsSerializable {
+}
+
+enum ModuleBBar: Int, Codable, DefaultsSerializable { // expected-error {{type 'ModuleBBar' does not conform to protocol 'DefaultsSerializable'}}
+  case foo, bar
+}
+
+fn foo() {
+  _ = AliasTest<Int>.A.this // expected-error {{type 'Int' does not conform to protocol 'Collection'}}
+  _ = AliasTest<Int>.B.this // expected-error {{type 'Int' does not conform to protocol 'Collection'}}
+  _ = AliasTest<String>.A.this
+  _ = AliasTest<String>.B.this
+}

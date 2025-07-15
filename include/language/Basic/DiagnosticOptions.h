@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_DIAGNOSTICOPTIONS_H
-#define SWIFT_BASIC_DIAGNOSTICOPTIONS_H
+#ifndef LANGUAGE_BASIC_DIAGNOSTICOPTIONS_H
+#define LANGUAGE_BASIC_DIAGNOSTICOPTIONS_H
 
 #include "language/Basic/PrintDiagnosticNamesMode.h"
 #include "language/Basic/WarningAsErrorRule.h"
-#include "llvm/ADT/Hashing.h"
+#include "toolchain/ADT/Hashing.h"
 #include <vector>
 
 namespace language {
@@ -38,7 +39,7 @@ public:
     VerifyAndApplyFixes
   } VerifyMode = NoVerify;
 
-  enum FormattingStyle { LLVM, Swift };
+  enum FormattingStyle { LLVM, Codira };
 
   /// Indicates whether to allow diagnostics for \c <unknown> locations if
   /// \c VerifyMode is not \c NoVerify.
@@ -73,8 +74,8 @@ public:
       PrintDiagnosticNamesMode::None;
 
   /// Whether to emit diagnostics in the terse LLVM style or in a more
-  /// descriptive style that's specific to Swift.
-  FormattingStyle PrintedFormattingStyle = FormattingStyle::Swift;
+  /// descriptive style that's specific to Codira.
+  FormattingStyle PrintedFormattingStyle = FormattingStyle::Codira;
 
   /// Whether to emit macro expansion buffers into separate, temporary files.
   bool EmitMacroExpansionFiles = true;
@@ -95,19 +96,19 @@ public:
   std::vector<std::string> AdditionalDiagnosticVerifierPrefixes;
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Bridging PCH hash.
-  llvm::hash_code getPCHHashComponents() const {
+  /// contribute to a Codira Bridging PCH hash.
+  toolchain::hash_code getPCHHashComponents() const {
     // Nothing here that contributes anything significant when emitting the PCH.
-    return llvm::hash_value(0);
+    return toolchain::hash_value(0);
   }
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Dependency Scanning hash.
-  llvm::hash_code getModuleScanningHashComponents() const {
-    return llvm::hash_value(0);
+  /// contribute to a Codira Dependency Scanning hash.
+  toolchain::hash_code getModuleScanningHashComponents() const {
+    return toolchain::hash_value(0);
   }
 };
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_DIAGNOSTICOPTIONS_H
+#endif // LANGUAGE_BASIC_DIAGNOSTICOPTIONS_H

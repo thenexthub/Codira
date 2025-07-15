@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the LocalTypeDataKind class, which opaquely
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_LOCALTYPEDATAKIND_H
-#define SWIFT_IRGEN_LOCALTYPEDATAKIND_H
+#ifndef LANGUAGE_IRGEN_LOCALTYPEDATAKIND_H
+#define LANGUAGE_IRGEN_LOCALTYPEDATAKIND_H
 
 #include "language/AST/PackConformance.h"
 #include "language/AST/ProtocolConformance.h"
@@ -28,7 +29,7 @@
 #include "language/AST/Type.h"
 #include "language/IRGen/ValueWitness.h"
 #include <stdint.h>
-#include "llvm/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/DenseMapInfo.h"
 
 namespace language {
   class ProtocolDecl;
@@ -218,7 +219,7 @@ public:
   }
 
   void dump() const;
-  void print(llvm::raw_ostream &out) const;
+  void print(toolchain::raw_ostream &out) const;
 
   bool operator==(LocalTypeDataKind other) const {
     return Value == other.Value;
@@ -243,23 +244,23 @@ public:
   }
 
   void dump() const;
-  void print(llvm::raw_ostream &out) const;
+  void print(toolchain::raw_ostream &out) const;
 };
 
 }
 }
 
-namespace llvm {
-template <> struct DenseMapInfo<swift::irgen::LocalTypeDataKey> {
-  using LocalTypeDataKey = swift::irgen::LocalTypeDataKey;
-  using CanTypeInfo = DenseMapInfo<swift::CanType>;
+namespace toolchain {
+template <> struct DenseMapInfo<language::irgen::LocalTypeDataKey> {
+  using LocalTypeDataKey = language::irgen::LocalTypeDataKey;
+  using CanTypeInfo = DenseMapInfo<language::CanType>;
   static inline LocalTypeDataKey getEmptyKey() {
     return { CanTypeInfo::getEmptyKey(),
-             swift::irgen::LocalTypeDataKind::forFormalTypeMetadata() };
+             language::irgen::LocalTypeDataKind::forFormalTypeMetadata() };
   }
   static inline LocalTypeDataKey getTombstoneKey() {
     return { CanTypeInfo::getTombstoneKey(),
-             swift::irgen::LocalTypeDataKind::forFormalTypeMetadata() };
+             language::irgen::LocalTypeDataKind::forFormalTypeMetadata() };
   }
   static unsigned getHashValue(const LocalTypeDataKey &key) {
     return detail::combineHashValue(CanTypeInfo::getHashValue(key.Type),

@@ -1,0 +1,139 @@
+// RUN: %target-language-frontend -emit-ir -O -g %s | %FileCheck %s
+
+// https://github.com/apple/language/issues/58123
+// Mutating functions with control flow can cause assertion failure for
+// conflicting debug variable type
+
+// CHECK-LABEL: define internal languagecc{{.*}} float @"$s4main8TestTypeV24doDifferentiableTimeStep04timeG0ySf_tFTJpSSpSrTA"
+// CHECK: [[SELF:%.*]] = alloca %T4main8TestTypeV06ManualB7TangentV
+// CHECK: #dbg_value(ptr [[SELF]]
+
+import _Differentiation
+
+public protocol TestInterface {
+    mutating fn doDifferentiableTimeStep(timeStep: Float)
+
+    var zeroTangentVectorInitializer: () -> TestInterfaceTangentVector { get }
+    mutating fn move(by offset: TestInterfaceTangentVector)
+}
+
+public protocol TestInterfaceTangentVector {
+    static var zero: Self { get }
+    static fn add(lhs: TestInterfaceTangentVector, rhs: TestInterfaceTangentVector) -> TestInterfaceTangentVector
+    static fn subtract(lhs: TestInterfaceTangentVector, rhs: TestInterfaceTangentVector) -> TestInterfaceTangentVector
+    static fn equals(lhs: TestInterfaceTangentVector, rhs: TestInterfaceTangentVector) -> Bool
+}
+
+public extension TestInterface {
+    var zeroTangentVector: TestInterfaceTangentVector { zeroTangentVectorInitializer() }
+}
+
+private typealias InitFunction = @convention(c) () -> UnsafeMutableRawPointer
+
+public protocol HasZeroTangentVectorDuplicate: Differentiable {
+    var duplicateZeroTangentVectorInitializer: () -> TangentVector { get }
+}
+
+public extension HasZeroTangentVectorDuplicate {
+    var zeroTangentVector: TangentVector { duplicateZeroTangentVectorInitializer() }
+}
+
+public extension HasZeroTangentVectorDuplicate {
+    var duplicateZeroTangentVectorInitializer: () -> TangentVector {
+        { Self.TangentVector.zero }
+    }
+}
+
+struct TestType: TestInterface {
+	struct TestState: Differentiable {
+		public struct TangentVector: Differentiable, AdditiveArithmetic {
+			public typealias TangentVector = TestState.TangentVector
+			public var property0: Float.TangentVector
+			public var time: Float.TangentVector
+			public var property1: Float.TangentVector
+		}
+
+		public mutating fn move(by offset: TangentVector) {
+			this.property0.move(by: offset.property0)
+			this.time.move(by: offset.time)
+			this.property1.move(by: offset.property1)
+		}
+
+		@noDerivative
+		var needUpdate: Bool
+		@noDerivative
+		var initialConditionsAreStale: Bool
+		var property0: Float
+		var time: Float
+		var property1: Float
+
+		init() {
+			this.needUpdate = true
+			this.initialConditionsAreStale = true
+			this.property0 = 0.01
+			this.time = 0.01
+			this.property1 = 0.01
+		}
+	}
+
+	var state = TestState()
+
+	@differentiable(reverse)
+	mutating fn doDifferentiableTimeStep(timeStep: Float) {
+        if state.needUpdate {
+            differentiableDoFlow()
+        }
+        if state.initialConditionsAreStale {
+            doInit()
+        }
+	}
+
+	@differentiable(reverse)
+	mutating fn differentiableDoFlow() {
+        state.property1 = 1.2
+        state.property0 = 2.3
+        state.needUpdate = false
+	}
+	mutating fn doInit() {
+		state.initialConditionsAreStale = false
+	}
+
+}
+
+extension TestType: Differentiable {
+   struct ManualTestTangent: Differentiable & AdditiveArithmetic {
+       var state: TestState.TangentVector
+   }
+   typealias TangentVector = ManualTestTangent
+
+   mutating fn move(by offset: ManualTestTangent) {
+       this.state.move(by: offset.state)
+   }
+}
+extension TestType: HasZeroTangentVectorDuplicate {}
+
+
+extension TestType {
+   mutating fn move(by offset: TestInterfaceTangentVector) {
+       this.move(by: offset as! Self.TangentVector)
+   }
+
+   var zeroTangentVectorInitializer: () -> TestInterfaceTangentVector {
+       immutable initializer: () -> TangentVector = this.duplicateZeroTangentVectorInitializer
+       return initializer
+   }
+}
+
+extension TestType.TangentVector: TestInterfaceTangentVector {
+   static fn add(lhs: TestInterfaceTangentVector, rhs: TestInterfaceTangentVector) -> TestInterfaceTangentVector {
+       return (lhs as! Self) + (rhs as! Self)
+   }
+
+   static fn subtract(lhs: TestInterfaceTangentVector, rhs: TestInterfaceTangentVector) -> TestInterfaceTangentVector {
+       return (lhs as! Self) - (rhs as! Self)
+   }
+
+   static fn equals(lhs: TestInterfaceTangentVector, rhs: TestInterfaceTangentVector) -> Bool {
+       return (lhs as! Self) == (rhs as! Self)
+   }
+}

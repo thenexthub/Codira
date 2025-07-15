@@ -1,4 +1,4 @@
-//===--- ImportName.h - Imported Swift names for Clang decls ----*- C++ -*-===//
+//===--- ImportName.h - Imported Codira names for Clang decls ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides class definitions for naming-related concerns in the
 // ClangImporter.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_IMPORT_NAME_H
-#define SWIFT_IMPORT_NAME_H
+#ifndef LANGUAGE_IMPORT_NAME_H
+#define LANGUAGE_IMPORT_NAME_H
 
 #include "ImportEnumInfo.h"
-#include "languageLookupTable.h"
+#include "CodiraLookupTable.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
 #include "language/AST/ForeignAsyncConvention.h"
@@ -52,7 +53,7 @@ class ImportNameVersion : public RelationalOperationsBase<ImportNameVersion> {
   unsigned rawValue : 31;
   unsigned concurrency : 1;
 
-  friend llvm::DenseMapInfo<ImportNameVersion>;
+  friend toolchain::DenseMapInfo<ImportNameVersion>;
 
   enum AsConstExpr_t { AsConstExpr };
 
@@ -61,7 +62,7 @@ class ImportNameVersion : public RelationalOperationsBase<ImportNameVersion> {
       : rawValue(version), concurrency(false) {}
   explicit ImportNameVersion(unsigned version, bool concurrency = false)
       : rawValue(version), concurrency(concurrency) {
-    assert(version >= 2 && "only Swift 2 and later are supported");
+    assert(version >= 2 && "only Codira 2 and later are supported");
   }
 public:
   /// Map a language version into an import name version.
@@ -74,7 +75,7 @@ public:
     // If the effective version is 4.x, where x >= 2, the import version
     // is 4.2.
     if (version.size() > 1 && version[0] == 4 && version[1] >= 2) {
-      return ImportNameVersion::swift4_2();
+      return ImportNameVersion::language4_2();
     }
     unsigned major = version[0];
     return ImportNameVersion(major >= 5 ? major + 1 : major, false);
@@ -82,21 +83,21 @@ public:
 
   unsigned majorVersionNumber() const {
     assert(*this != ImportNameVersion::raw());
-    if (*this == ImportNameVersion::swift4_2())
+    if (*this == ImportNameVersion::language4_2())
       return 4;
     return rawValue < 5 ? rawValue : rawValue - 1;
   }
 
   unsigned minorVersionNumber() const {
     assert(*this != ImportNameVersion::raw());
-    if (*this == ImportNameVersion::swift4_2())
+    if (*this == ImportNameVersion::language4_2())
       return 2;
     return 0;
   }
 
-  llvm::VersionTuple asClangVersionTuple() const {
+  toolchain::VersionTuple asClangVersionTuple() const {
     assert(*this != ImportNameVersion::raw());
-    return llvm::VersionTuple(majorVersionNumber(), minorVersionNumber());
+    return toolchain::VersionTuple(majorVersionNumber(), minorVersionNumber());
   }
 
   /// Whether to consider importing functions as 'async'.
@@ -122,8 +123,8 @@ public:
   ///
   /// This is the most useful order for importing compatibility stubs.
   void forEachOtherImportNameVersion(
-      llvm::function_ref<void(ImportNameVersion)> action) const {
-    assert(*this >= ImportNameVersion::swift2());
+      toolchain::function_ref<void(ImportNameVersion)> action) const {
+    assert(*this >= ImportNameVersion::language2());
 
     ImportNameVersion nameVersion = *this;
     assert(!nameVersion.supportsConcurrency());
@@ -131,7 +132,7 @@ public:
     // Consider concurrency imports.
     action(nameVersion.withConcurrency(true));
 
-    while (nameVersion > ImportNameVersion::swift2()) {
+    while (nameVersion > ImportNameVersion::language2()) {
       --nameVersion.rawValue;
       action(nameVersion);
     }
@@ -150,13 +151,13 @@ public:
     return ImportNameVersion{};
   }
 
-  /// Names as they appeared in Swift 2 family.
-  static constexpr inline ImportNameVersion swift2() {
+  /// Names as they appeared in Codira 2 family.
+  static constexpr inline ImportNameVersion language2() {
     return ImportNameVersion{2, AsConstExpr};
   }
 
-  /// Names as they appeared in Swift 4.2 family.
-  static constexpr inline ImportNameVersion swift4_2() {
+  /// Names as they appeared in Codira 4.2 family.
+  static constexpr inline ImportNameVersion language4_2() {
     return ImportNameVersion{5, AsConstExpr};
   }
 
@@ -191,17 +192,17 @@ class ImportedName {
   /// matches a Clang declaration context (the common case), the
   /// result will be expressed as a declaration context. Otherwise,
   /// if the Clang type is not itself a declaration context (for
-  /// example, a typedef that comes into Swift as a strong type),
+  /// example, a typedef that comes into Codira as a strong type),
   /// the type declaration will be provided.
   EffectiveClangContext effectiveContext;
 
   struct Info {
     /// For names that map Objective-C error handling conventions into
-    /// throwing Swift methods, describes how the mapping is performed.
+    /// throwing Codira methods, describes how the mapping is performed.
     ForeignErrorConvention::Info errorInfo;
 
     /// For names that map Objective-C completion handlers into async
-    /// Swift methods, describes how the mapping is performed.
+    /// Codira methods, describes how the mapping is performed.
     ForeignAsyncConvention::Info asyncInfo;
 
     /// For a declaration name that makes the declaration into an
@@ -215,7 +216,7 @@ class ImportedName {
     ImportedAccessorKind accessorKind : NumImportedAccessorKindBits;
 
     /// Whether this name was explicitly specified via a Clang
-    /// swift_name attribute.
+    /// language_name attribute.
     unsigned hasCustomName : 1;
 
     /// Whether this was one of a special class of Objective-C
@@ -270,7 +271,7 @@ public:
   ImportedAccessorKind getAccessorKind() const { return info.accessorKind; }
 
   /// For names that map Objective-C error handling conventions into
-  /// throwing Swift methods, describes how the mapping is performed.
+  /// throwing Codira methods, describes how the mapping is performed.
   std::optional<ForeignErrorConvention::Info> getErrorInfo() const {
     if (info.hasErrorInfo)
       return info.errorInfo;
@@ -278,7 +279,7 @@ public:
   }
 
   /// For names that map Objective-C methods with completion handlers into
-  /// async Swift methods, describes how the mapping is performed.
+  /// async Codira methods, describes how the mapping is performed.
   std::optional<ForeignAsyncConvention::Info> getAsyncInfo() const {
     if (info.hasAsyncInfo) {
       assert(!info.hasAsyncAlternateInfo
@@ -289,7 +290,7 @@ public:
   }
 
   /// For names with a variant that maps Objective-C methods with completion
-  /// handlers into async Swift methods, describes how the mapping is performed.
+  /// handlers into async Codira methods, describes how the mapping is performed.
   ///
   /// That is, if the method imports as both an async method and a completion
   /// handler method, this value is set on the completion handler method's name
@@ -317,7 +318,7 @@ public:
   Identifier getBaseIdentifier(ASTContext &ctx) const;
 
   /// Whether this name was explicitly specified via a Clang
-  /// swift_name attribute.
+  /// language_name attribute.
   bool hasCustomName() const { return info.hasCustomName; }
   void setHasCustomName() { info.hasCustomName = true; }
 
@@ -367,7 +368,7 @@ public:
       return true;
     }
 
-    llvm_unreachable("Invalid ImportedAccessorKind.");
+    toolchain_unreachable("Invalid ImportedAccessorKind.");
   }
 
   bool isDereferenceAccessor() const {
@@ -384,7 +385,7 @@ public:
       return true;
     }
 
-    llvm_unreachable("Invalid ImportedAccessorKind.");
+    toolchain_unreachable("Invalid ImportedAccessorKind.");
   }
 };
 
@@ -396,18 +397,18 @@ StringRef stripNotification(StringRef name);
 enum class CustomAsyncName {
   /// No custom name was provided.
   None,
-  /// A custom swift_name (but not swift_async_name) was provided.
-  SwiftName,
-  /// A custom swift_async_name was provided, which won't have a completion
+  /// A custom language_name (but not language_async_name) was provided.
+  CodiraName,
+  /// A custom language_async_name was provided, which won't have a completion
   /// handler argument label.
-  SwiftAsyncName,
+  CodiraAsyncName,
 };
 
-/// Class to determine the Swift name of foreign entities. Currently fairly
+/// Class to determine the Codira name of foreign entities. Currently fairly
 /// stateless and borrows from the ClangImporter::Implementation, but in the
 /// future will be more self-contained and encapsulated.
 class NameImporter {
-  ASTContext &swiftCtx;
+  ASTContext &languageCtx;
   const PlatformAvailability &availability;
 
   clang::Sema &clangSema;
@@ -419,27 +420,23 @@ class NameImporter {
       std::pair<const clang::NamedDecl *, ImportNameVersion>;
 
   /// Cache for repeated calls
-  llvm::DenseMap<CacheKeyType, ImportedName> importNameCache;
+  toolchain::DenseMap<CacheKeyType, ImportedName> importNameCache;
 
   /// The set of property names that show up in the defining module of
   /// an Objective-C class.
-  llvm::DenseMap<std::pair<const clang::ObjCInterfaceDecl *, char>,
+  toolchain::DenseMap<std::pair<const clang::ObjCInterfaceDecl *, char>,
                  std::unique_ptr<InheritedNameSet>> allProperties;
-
-  bool importSymbolicCXXDecls;
 
   ClangImporter::Implementation *importerImpl;
 
 public:
   NameImporter(ASTContext &ctx, const PlatformAvailability &avail,
                clang::Sema &cSema, ClangImporter::Implementation *importerImpl)
-      : swiftCtx(ctx), availability(avail), clangSema(cSema),
+      : languageCtx(ctx), availability(avail), clangSema(cSema),
         enumInfos(clangSema.getPreprocessor()),
-        importSymbolicCXXDecls(
-            ctx.LangOpts.hasFeature(Feature::ImportSymbolicCXXDecls)),
         importerImpl(importerImpl) {}
 
-  /// Determine the Swift name for a Clang decl
+  /// Determine the Codira name for a Clang decl
   ImportedName importName(const clang::NamedDecl *decl,
                           ImportNameVersion version,
                           clang::DeclarationName preferredName =
@@ -465,18 +462,18 @@ public:
   /// Returns \c true if it fails to import name for the active version.
   bool forEachDistinctImportName(
       const clang::NamedDecl *decl, ImportNameVersion activeVersion,
-      llvm::function_ref<bool(ImportedName, ImportNameVersion)> action);
+      toolchain::function_ref<bool(ImportedName, ImportNameVersion)> action);
 
-  /// Imports the name of the given Clang macro into Swift.
+  /// Imports the name of the given Clang macro into Codira.
   Identifier importMacroName(const clang::IdentifierInfo *clangIdentifier,
                              const clang::MacroInfo *macro);
 
-  ASTContext &getContext() { return swiftCtx; }
-  const LangOptions &getLangOpts() const { return swiftCtx.LangOpts; }
+  ASTContext &getContext() { return languageCtx; }
+  const LangOptions &getLangOpts() const { return languageCtx.LangOpts; }
   ClangImporter::Implementation *getImporterImpl() { return importerImpl; }
 
   Identifier getIdentifier(StringRef name) {
-    return swiftCtx.getIdentifier(name);
+    return languageCtx.getIdentifier(name);
   }
 
   StringScratchSpace &getScratch() { return scratch; }
@@ -501,16 +498,12 @@ public:
                             clang::ObjCInterfaceDecl *classDecl,
                             bool forInstance);
 
-  inline void enableSymbolicImportFeature(bool isEnabled) {
-    importSymbolicCXXDecls = isEnabled;
-  }
-
   /// Retrieve a purported custom name even if it is invalid.
   static std::optional<StringRef>
   findCustomName(const clang::Decl *decl, ImportNameVersion version);
 
 private:
-  bool enableObjCInterop() const { return swiftCtx.LangOpts.EnableObjCInterop; }
+  bool enableObjCInterop() const { return languageCtx.LangOpts.EnableObjCInterop; }
 
   /// Look for a method that will import to have the same name as the
   /// given method after importing the Nth parameter as an elided error
@@ -554,10 +547,10 @@ private:
 }
 }
 
-namespace llvm {
+namespace toolchain {
 // Provide DenseMapInfo for ImportNameVersion.
-template <> struct DenseMapInfo<swift::importer::ImportNameVersion> {
-  using ImportNameVersion = swift::importer::ImportNameVersion;
+template <> struct DenseMapInfo<language::importer::ImportNameVersion> {
+  using ImportNameVersion = language::importer::ImportNameVersion;
   using DMIU = DenseMapInfo<unsigned>;
   static inline ImportNameVersion getEmptyKey() {
     return (ImportNameVersion)DMIU::getEmptyKey();

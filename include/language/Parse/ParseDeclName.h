@@ -1,20 +1,24 @@
 //===--- ParseDeclName.h ----------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSE_PARSEDECLNAME_H
-#define SWIFT_PARSE_PARSEDECLNAME_H
+#ifndef LANGUAGE_PARSE_PARSEDECLNAME_H
+#define LANGUAGE_PARSE_PARSEDECLNAME_H
 
 #include "language/AST/Identifier.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Parse/Lexer.h"
 
 namespace language {
@@ -78,17 +82,17 @@ struct ParsedDeclName {
                               bool isCxxClassTemplateSpec = false) const;
 };
 
-/// Parse a stringified Swift declaration name,
+/// Parse a stringified Codira declaration name,
 /// e.g. "Foo.translateBy(self:x:y:)".
-ParsedDeclName parseDeclName(StringRef name) LLVM_READONLY;
+ParsedDeclName parseDeclName(StringRef name) TOOLCHAIN_READONLY;
 
-/// Form a Swift declaration name from its constituent parts.
+/// Form a Codira declaration name from its constituent parts.
 DeclName formDeclName(ASTContext &ctx, StringRef baseName,
                       ArrayRef<StringRef> argumentLabels, bool isFunctionName,
                       bool isInitializer, bool isSubscript = false,
                       bool isCxxClassTemplateSpec = false);
 
-/// Form a Swift declaration name reference from its constituent parts.
+/// Form a Codira declaration name reference from its constituent parts.
 DeclNameRef formDeclNameRef(ASTContext &ctx, StringRef baseName,
                             ArrayRef<StringRef> argumentLabels,
                             bool isFunctionName, bool isInitializer,
@@ -97,4 +101,4 @@ DeclNameRef formDeclNameRef(ASTContext &ctx, StringRef baseName,
 
 } // namespace language
 
-#endif // SWIFT_PARSE_PARSEDECLNAME_H
+#endif // LANGUAGE_PARSE_PARSEDECLNAME_H

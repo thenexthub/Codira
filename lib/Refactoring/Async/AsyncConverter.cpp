@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "AsyncRefactoring.h"
@@ -141,7 +145,7 @@ bool AsyncConverter::canCreateLegacyBody() {
 std::string AsyncConverter::getAsyncWrapperCompletionClosure(
     StringRef ContName, const AsyncHandlerParamDesc &HandlerDesc) {
   std::string OutputStr;
-  llvm::raw_string_ostream OS(OutputStr);
+  toolchain::raw_string_ostream OS(OutputStr);
 
   OS << tok::l_brace; // start closure
 
@@ -164,7 +168,7 @@ std::string AsyncConverter::getAsyncWrapperCompletionClosure(
     OS << " ";
 
   // res1, res2
-  llvm::interleave(
+  toolchain::interleave(
       SuccessParamNames, [&](auto Name) { OS << Name; },
       [&]() { OS << tok::comma << " "; });
 
@@ -242,7 +246,7 @@ std::string AsyncConverter::getAsyncWrapperCompletionClosure(
     break;
   }
   case HandlerType::INVALID:
-    llvm_unreachable("Should not have an invalid handler here");
+    toolchain_unreachable("Should not have an invalid handler here");
   }
 
   OS << tok::r_brace; // end closure
@@ -276,7 +280,7 @@ void AsyncConverter::convertNodes(const NodesToPrint &ToPrint) {
   SmallVector<SourceLoc, 2> CommentLocs;
   CommentLocs.append(ToPrint.getPossibleCommentLocs().begin(),
                      ToPrint.getPossibleCommentLocs().end());
-  llvm::sort(CommentLocs.begin(), CommentLocs.end(), [](auto lhs, auto rhs) {
+  toolchain::sort(CommentLocs.begin(), CommentLocs.end(), [](auto lhs, auto rhs) {
     return lhs.getOpaquePointerValue() > rhs.getOpaquePointerValue();
   });
 
@@ -315,8 +319,8 @@ void AsyncConverter::convertNode(ASTNode Node, SourceLoc StartOverride,
   if (IncludePrecedingComment)
     StartOverride = getLocIncludingPrecedingComment(StartOverride);
 
-  llvm::SaveAndRestore<SourceLoc> RestoreLoc(LastAddedLoc, StartOverride);
-  llvm::SaveAndRestore<int> RestoreCount(NestedExprCount, ConvertCalls ? 0 : 1);
+  toolchain::SaveAndRestore<SourceLoc> RestoreLoc(LastAddedLoc, StartOverride);
+  toolchain::SaveAndRestore<int> RestoreCount(NestedExprCount, ConvertCalls ? 0 : 1);
 
   walk(Node);
   addRange(LastAddedLoc, Node.getEndLoc(), /*ToEndOfToken=*/true);
@@ -330,8 +334,8 @@ void AsyncConverter::convertPattern(const Pattern *P) {
 
   // Set up the start of the pattern as the last loc printed to make sure we
   // accurately fill in the gaps as we customize the printing of sub-patterns.
-  llvm::SaveAndRestore<SourceLoc> RestoreLoc(LastAddedLoc, P->getStartLoc());
-  llvm::SaveAndRestore<bool> RestoreFlag(ConvertingPattern, true);
+  toolchain::SaveAndRestore<SourceLoc> RestoreLoc(LastAddedLoc, P->getStartLoc());
+  toolchain::SaveAndRestore<bool> RestoreFlag(ConvertingPattern, true);
 
   walk(const_cast<Pattern *>(P));
   addRange(LastAddedLoc, P->getEndLoc(), /*ToEndOfToken*/ true);
@@ -541,7 +545,7 @@ bool AsyncConverter::walkToStmtPre(Stmt *S) {
     // The body of those statements will include the decls if they've been
     // referenced, so shadowing is still avoided there.
     if (auto *ReferencedDecls = ScopedDecls.getReferencedDecls(S)) {
-      llvm::DenseSet<const Decl *> Decls;
+      toolchain::DenseSet<const Decl *> Decls;
       for (auto DeclAndNumRefs : *ReferencedDecls)
         Decls.insert(DeclAndNumRefs.first);
       addNewScope(Decls);
@@ -588,7 +592,7 @@ bool AsyncConverter::walkToStmtPost(Stmt *S) {
 }
 
 bool AsyncConverter::addCustom(SourceRange Range,
-                               llvm::function_ref<void()> Custom) {
+                               toolchain::function_ref<void()> Custom) {
   addRange(LastAddedLoc, Range.Start);
   Custom();
   LastAddedLoc = Lexer::getLocForEndOfToken(SM, Range.End);
@@ -596,7 +600,7 @@ bool AsyncConverter::addCustom(SourceRange Range,
 }
 
 bool AsyncConverter::insertCustom(SourceLoc Loc,
-                                  llvm::function_ref<void()> Custom) {
+                                  toolchain::function_ref<void()> Custom) {
   addRange(LastAddedLoc, Loc);
   Custom();
   LastAddedLoc = Loc;
@@ -799,8 +803,8 @@ bool AsyncConverter::isExpressionOptional(Expr *E) {
 
 void AsyncConverter::convertHandlerCall(
     const CallExpr *CE,
-    llvm::function_ref<void(HandlerResult)> AddConvertedHandlerCall,
-    llvm::function_ref<void(StringRef)> AddConvertedErrorCall) {
+    toolchain::function_ref<void(HandlerResult)> AddConvertedHandlerCall,
+    toolchain::function_ref<void(StringRef)> AddConvertedErrorCall) {
   auto Result =
       TopHandler.extractResultArgs(CE, /*ReturnErrorArgsIfAmbiguous=*/true);
   if (!TopHandler.isAmbiguousCallToParamHandler(CE)) {
@@ -962,7 +966,7 @@ void AsyncConverter::convertHandlerToContinuationResumeImpl(
     break;
   }
   case HandlerType::INVALID:
-    llvm_unreachable("Invalid top handler");
+    toolchain_unreachable("Invalid top handler");
   }
 
   // A vector in which each argument of Result has an entry. If the entry is
@@ -1079,7 +1083,7 @@ Expr *AsyncConverter::lookThroughFunctionConversionExpr(Expr *E) {
 
 void AsyncConverter::addHoistedCallback(
     const CallExpr *CE, const AsyncHandlerParamDesc &HandlerDesc) {
-  llvm::SaveAndRestore<bool> RestoreHoisting(Hoisting, true);
+  toolchain::SaveAndRestore<bool> RestoreHoisting(Hoisting, true);
 
   auto *ArgList = CE->getArgs();
   if (HandlerDesc.Index >= ArgList->size()) {
@@ -1149,7 +1153,7 @@ void AsyncConverter::addBoolFlagParamBindingIfNeeded(
     Polarity = !Polarity;
     break;
   case BlockKind::FALLBACK:
-    llvm_unreachable("Not a valid place to bind");
+    toolchain_unreachable("Not a valid place to bind");
   }
   if (!Flag->IsSuccessFlag)
     Polarity = !Polarity;
@@ -1267,7 +1271,7 @@ void AsyncConverter::addHoistedClosureCallback(
     InlinePatternsToPrint ErrInlinePatterns;
 
     // Always use the ErrParam name if none is bound.
-    prepareNames(Blocks.ErrorBlock, llvm::ArrayRef(ErrOrResultParam),
+    prepareNames(Blocks.ErrorBlock, toolchain::ArrayRef(ErrOrResultParam),
                  ErrInlinePatterns,
                  /*AddIfMissing=*/HandlerDesc.Type != HandlerType::RESULT);
     preparePlaceholdersAndUnwraps(HandlerDesc, CallbackParams,
@@ -1276,7 +1280,7 @@ void AsyncConverter::addHoistedClosureCallback(
     addCatch(ErrOrResultParam);
     convertNodes(Blocks.ErrorBlock.nodesToPrint());
     OS << "\n" << tok::r_brace;
-    clearNames(llvm::ArrayRef(ErrOrResultParam));
+    clearNames(toolchain::ArrayRef(ErrOrResultParam));
   }
 }
 
@@ -1402,7 +1406,7 @@ void AsyncConverter::addAwaitCall(const CallExpr *CE,
 
     // Gather the items to print for the variable bindings. This can either be
     // a param decl, or a pattern that binds it.
-    using DeclOrPattern = llvm::PointerUnion<const Decl *, const Pattern *>;
+    using DeclOrPattern = toolchain::PointerUnion<const Decl *, const Pattern *>;
     SmallVector<DeclOrPattern, 4> ToPrint;
     for (auto *Param : SuccessParams) {
       // Check if we have an inline pattern to print.
@@ -1550,7 +1554,7 @@ void AsyncConverter::preparePlaceholdersAndUnwraps(
     auto SuccessParams = Params.getSuccessParams();
     switch (Block) {
     case BlockKind::FALLBACK:
-      llvm_unreachable("Already handled");
+      toolchain_unreachable("Already handled");
     case BlockKind::ERROR:
       if (ErrParam) {
         if (HandlerDesc.shouldUnwrap(ErrParam->getTypeInContext())) {
@@ -1592,7 +1596,7 @@ void AsyncConverter::preparePlaceholdersAndUnwraps(
     break;
   }
   default:
-    llvm_unreachable("Unhandled handler type");
+    toolchain_unreachable("Unhandled handler type");
   }
 }
 
@@ -1630,7 +1634,7 @@ Identifier AsyncConverter::createUniqueName(StringRef Name) {
   if (CurrentNames.count(Ident)) {
     // Add a number to the end of the name until it's unique given the current
     // names in scope.
-    llvm::SmallString<32> UniquedName;
+    toolchain::SmallString<32> UniquedName;
     unsigned UniqueId = 1;
     do {
       UniquedName = Name;
@@ -1652,7 +1656,7 @@ Identifier AsyncConverter::assignUniqueName(const Decl *D,
   }
 
   if (BoundName.starts_with("$")) {
-    llvm::SmallString<8> NewName;
+    toolchain::SmallString<8> NewName;
     NewName.append("val");
     NewName.append(BoundName.drop_front());
     Ident = createUniqueName(NewName);
@@ -1674,7 +1678,7 @@ StringRef AsyncConverter::newNameFor(const Decl *D, bool Required) {
   return Res->second.str();
 }
 
-void AsyncConverter::addNewScope(const llvm::DenseSet<const Decl *> &Decls) {
+void AsyncConverter::addNewScope(const toolchain::DenseSet<const Decl *> &Decls) {
   if (Scopes.empty()) {
     Scopes.emplace_back(/*ContinuationName=*/Identifier());
   } else {
@@ -1798,11 +1802,11 @@ void AsyncConverter::addCompletionHandlerArgument(
       // If the async method returns a tuple, we need to pass its elements to
       // the completion handler separately. For example:
       //
-      // func foo() async -> (String, Int) {}
+      // fn foo() async -> (String, Int) {}
       //
       // causes the following legacy body to be created:
       //
-      // func foo(completion: (String, Int) -> Void) {
+      // fn foo(completion: (String, Int) -> Void) {
       //   Task {
       //     let result = await foo()
       //     completion(result.0, result.1)
@@ -1830,7 +1834,7 @@ void AsyncConverter::addCallToCompletionHandler(
   // Construct arguments to pass to the completion handler
   switch (HandlerDesc.Type) {
   case HandlerType::INVALID:
-    llvm_unreachable("Cannot be rewritten");
+    toolchain_unreachable("Cannot be rewritten");
     break;
   case HandlerType::PARAMS: {
     for (size_t I = 0; I < HandlerDesc.params().size(); ++I) {

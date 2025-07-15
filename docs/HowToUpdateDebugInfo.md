@@ -1,11 +1,11 @@
-# How to update Debug Info in the Swift Compiler
+# How to update Debug Info in the Codira Compiler
 
 ## Introduction
 
 This document describes how debug info works at the SIL level and how to
 correctly update debug info in SIL optimization passes. This document is
 inspired by its LLVM analog, [How to Update Debug Info: A Guide for LLVM Pass
-Authors](https://llvm.org/docs/HowToUpdateDebugInfo.html), which is recommended
+Authors](https://toolchain.org/docs/HowToUpdateDebugInfo.html), which is recommended
 reading, since all of the concepts discussed there also apply to SIL.
 
 ## Source Locations
@@ -44,10 +44,10 @@ allocation instruction.
 
 This is equivalent, and should be optimized similarly:
 ```
-%0 = alloc_stack $T, var, name "value", loc "a.swift":4:2, scope 1
+%0 = alloc_stack $T, var, name "value", loc "a.code":4:2, scope 1
 // equivalent to:
-%0 = alloc_stack $T, loc "a.swift":4:2, scope 1
-debug_value %0 : $*T, var, name "value", expr op_deref, loc "a.swift":4:2, scope 1
+%0 = alloc_stack $T, loc "a.code":4:2, scope 1
+debug_value %0 : $*T, var, name "value", expr op_deref, loc "a.code":4:2, scope 1
 ```
 
 > [!Note]
@@ -66,7 +66,7 @@ their name.
 
 The debug scope, is the range in which the variable is declared and available.
 More information about debug scopes is available on
-[the Swift blog](https://www.swift.org/blog/whats-new-swift-debugging-5.9/#fine-grained-scope-information)
+[the Codira blog](https://www.code.org/blog/whats-new-language-debugging-5.9/#fine-grained-scope-information)
 For arguments, this will be the function's scope, otherwise, this will be a
 subscope within a function. When a function is inlined, a new scope is created,
 including information about the inlined function, and in which function it was
@@ -83,12 +83,12 @@ of the variable declaration:
 
 ```
 %0 = integer_literal $Int, 2
-debug_value %0 : $Int, var, name "a", loc "a.swift":2:5, scope 2
+debug_value %0 : $Int, var, name "a", loc "a.code":2:5, scope 2
 %2 = integer_literal $Int, 3
-debug_value %2 : $Int, var, (name "a", loc "a.swift":2:5, scope 2), loc "a.swift":3:3, scope 2
+debug_value %2 : $Int, var, (name "a", loc "a.code":2:5, scope 2), loc "a.code":3:3, scope 2
 ```
 For this code:
-```swift
+```language
 var a = 2
 a = 3
 ```
@@ -109,7 +109,7 @@ The variable will usually have an associated expression yielding the correct
 type.
 
 > [!Note]
-> As there are no pointers in Swift, the type should never be an address type.
+> As there are no pointers in Codira, the type should never be an address type.
 
 ### Variable expressions
 
@@ -117,7 +117,7 @@ A variable can have an associated expression if the value needs computation.
 This can be for dereferencing a pointer, arithmetic, or for splitting structs.
 An expression is a sequence of operations to be executed left to right. Debug
 expressions get lowered into LLVM
-[DIExpressions](https://llvm.org/docs/LangRef.html#diexpression) which get
+[DIExpressions](https://toolchain.org/docs/LangRef.html#diexpression) which get
 lowered into [DWARF](https://dwarfstd.org) expressions.
 
 #### Address types and op_deref
@@ -135,12 +135,12 @@ debug_value %0 : $*T, var, name "value", expr op_deref
 
 SILGen should always use `SILBuilder::emitDebugDescription` to create debug
 values, which will automatically add an op_deref depending on the type of the
-SSA value. As there are no pointers in Swift, this will always do the right
+SSA value. As there are no pointers in Codira, this will always do the right
 thing. In SIL passes, use `SILBuilder::createDebugValue` to create debug values,
 or `SILBuilder::createDebugValueAddr` to add an op_deref.
 
 > [!Warning]
-> At the optimizer level, Swift `Unsafe*Pointer` types can be simplified
+> At the optimizer level, Codira `Unsafe*Pointer` types can be simplified
 > to address types. As such, a `debug_value` with an address type without an
 > `op_deref` can be valid. SIL passes must not assume that `op_deref` and
 > address types correlate.
@@ -176,7 +176,7 @@ alloc_stack $Builtin.Int64, var, name "pair", type $Pair, expr op_fragment:#Pair
 ```
 
 Here, Pair is a struct containing two Ints, so each `alloc_stack` will receive a
-fragment with the field it is describing. Int, in Swift, is itself a struct
+fragment with the field it is describing. Int, in Codira, is itself a struct
 containing one Builtin.Int64 (on 64 bits systems), so it can itself be SROA'ed.
 Fragments can be chained to describe this.
 
@@ -293,6 +293,6 @@ will also update debug values to use the new instruction.
 
 > [!Tip]
 > To detect when a pass drops a variable, you can use the
-> `-Xllvm -sil-stats-lost-variables` to print when a variable is lost by a pass.
+> `-Xtoolchain -sil-stats-lost-variables` to print when a variable is lost by a pass.
 > More information about this option is available in
 > [Optimizer Counter Analysis](OptimizerCountersAnalysis.md)

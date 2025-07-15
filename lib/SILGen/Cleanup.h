@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Cleanup and CleanupManager classes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_CLEANUP_H
-#define SWIFT_SILGEN_CLEANUP_H
+#ifndef LANGUAGE_SILGEN_CLEANUP_H
+#define LANGUAGE_SILGEN_CLEANUP_H
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/DiverseStack.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -77,9 +78,9 @@ enum class CleanupState {
   PersistentlyActive
 };
 
-llvm::raw_ostream &operator<<(raw_ostream &os, CleanupState state);
+toolchain::raw_ostream &operator<<(raw_ostream &os, CleanupState state);
 
-class LLVM_LIBRARY_VISIBILITY Cleanup {
+class TOOLCHAIN_LIBRARY_VISIBILITY Cleanup {
   friend class CleanupManager;
   friend class CleanupCloner;
 
@@ -122,10 +123,10 @@ public:
 protected:
   Flags getFlags() const { return flags; }
 
-  /// Call func passing in the SILValue address that this cleanup will write
+  /// Call fn passing in the SILValue address that this cleanup will write
   /// back to if supported and any flags associated with the cleanup. Returns
   /// false otherwise.
-  virtual bool getWritebackBuffer(function_ref<void(SILValue)> func) {
+  virtual bool getWritebackBuffer(function_ref<void(SILValue)> fn) {
     return false;
   }
 
@@ -160,7 +161,7 @@ typedef DiverseStackImpl<Cleanup>::stable_iterator CleanupsDepth;
 /// generally cannot be the stack's stable_end().
 typedef DiverseStackImpl<Cleanup>::stable_iterator CleanupHandle;
 
-class LLVM_LIBRARY_VISIBILITY CleanupManager {
+class TOOLCHAIN_LIBRARY_VISIBILITY CleanupManager {
   friend class Scope;
   friend class CleanupCloner;
   
@@ -295,7 +296,7 @@ public:
   bool hasAnyActiveCleanups(CleanupsDepth from);
 
   /// Dump the output of each cleanup on this stack.
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   /// Dump the given cleanup handle if it is on the current stack.
   void dump(CleanupHandle handle) const;

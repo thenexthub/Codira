@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-combine"
@@ -36,19 +37,19 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/Devirtualize.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 using namespace language::PatternMatch;
 
 /// This flag is used to disable alloc stack optimizations to ease testing of
 /// other SILCombine optimizations.
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
     DisableAllocStackOpts("sil-combine-disable-alloc-stack-opts",
-                          llvm::cl::init(false));
+                          toolchain::cl::init(false));
 
 SILInstruction*
 SILCombiner::visitAllocExistentialBoxInst(AllocExistentialBoxInst *AEBI) {
@@ -126,12 +127,12 @@ static EnumElementDecl *getInjectEnumCaseTo(SILValue Addr) {
       SILInstruction *User = Use->getUser();
       switch (User->getKind()) {
         // Handle a very narrow set of known not harmful instructions.
-        case swift::SILInstructionKind::DestroyAddrInst:
-        case swift::SILInstructionKind::DeallocStackInst:
-        case swift::SILInstructionKind::SwitchEnumAddrInst:
+        case language::SILInstructionKind::DestroyAddrInst:
+        case language::SILInstructionKind::DeallocStackInst:
+        case language::SILInstructionKind::SwitchEnumAddrInst:
           break;
-        case swift::SILInstructionKind::ApplyInst:
-        case swift::SILInstructionKind::TryApplyInst: {
+        case language::SILInstructionKind::ApplyInst:
+        case language::SILInstructionKind::TryApplyInst: {
           // Check if the addr is only passed to in_guaranteed arguments.
           FullApplySite AI(User);
           for (Operand &Op : AI.getArgumentOperands()) {
@@ -142,11 +143,11 @@ static EnumElementDecl *getInjectEnumCaseTo(SILValue Addr) {
           }
           break;
         }
-        case swift::SILInstructionKind::InjectEnumAddrInst:
+        case language::SILInstructionKind::InjectEnumAddrInst:
           WritingInst = User;
           ++NumWrites;
           break;
-        case swift::SILInstructionKind::CopyAddrInst:
+        case language::SILInstructionKind::CopyAddrInst:
           if (Addr == cast<CopyAddrInst>(User)->getDest()) {
             WritingInst = User;
             ++NumWrites;
@@ -400,7 +401,7 @@ public:
 /// Returns true if there is a retain instruction between \p from and the
 /// destroy or deallocation of \p alloc.
 static bool somethingIsRetained(SILInstruction *from, AllocStackInst *alloc) {
-  llvm::SmallVector<SILInstruction *, 8> workList;
+  toolchain::SmallVector<SILInstruction *, 8> workList;
   BasicBlockSet handled(from->getFunction());
   workList.push_back(from);
   while (!workList.empty()) {
@@ -564,7 +565,7 @@ SILInstruction *SILCombiner::visitCondFailInst(CondFailInst *CFI) {
   // lexical values.
 
   // Collect all instructions and, in OSSA, the values they define.
-  llvm::SmallVector<SILInstruction *, 32> ToRemove;
+  toolchain::SmallVector<SILInstruction *, 32> ToRemove;
   ValueSet DefinedValues(CFI->getFunction());
   for (auto Iter = std::next(CFI->getIterator());
        Iter != CFI->getParent()->end(); ++Iter) {
@@ -702,7 +703,7 @@ createValueFromAddr(SILValue addr, SILInstruction *forInst, DominanceInfo *DI,
     // Just return anything not null for the dry-run.
     return pairs[0];
   }
-  llvm_unreachable("invalid kind");
+  toolchain_unreachable("invalid kind");
 }
 
 /// Simplify the following two frontend patterns:
@@ -724,7 +725,7 @@ createValueFromAddr(SILValue addr, SILInstruction *forInst, DominanceInfo *DI,
 /// We leave the cleaning up to mem2reg.
 SILInstruction *
 SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
-  auto *func = IEAI->getFunction();
+  auto *fn = IEAI->getFunction();
   // Given an inject_enum_addr of a concrete type without payload, promote it to
   // a store of an enum. Mem2reg/load forwarding will clean things up for us. We
   // can't handle the payload case here due to the flow problems caused by the
@@ -853,7 +854,7 @@ SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
     EnumInst *E =
       Builder.createEnum(IEAI->getLoc(), SILValue(), IEAI->getElement(),
                           IEAI->getOperand()->getType().getObjectType());
-    auto storeQual = !func->hasOwnership()
+    auto storeQual = !fn->hasOwnership()
                          ? StoreOwnershipQualifier::Unqualified
                      : IEAI->getOperand()->getType().isMoveOnly()
                          ? StoreOwnershipQualifier::Init
@@ -916,7 +917,7 @@ SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
     // If we find any of MayWriteSet, return nullptr
     SILBasicBlock *InitEnumBB = DataAddrInst->getParent();
     assert(InitEnumBB && "DataAddrInst is not in a valid Basic Block");
-    llvm::SmallVector<SILInstruction *, 64> Worklist;
+    toolchain::SmallVector<SILInstruction *, 64> Worklist;
     Worklist.push_back(IEAI);
     BasicBlockSet Preds(InitEnumBB->getParent());
     Preds.insert(IEAI->getParent());
@@ -978,9 +979,9 @@ SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
     EnumInst *E = Builder.createEnum(
         DataAddrInst->getLoc(), en, DataAddrInst->getElement(),
         DataAddrInst->getOperand()->getType().getObjectType());
-    auto storeQual = !func->hasOwnership()
+    auto storeQual = !fn->hasOwnership()
                          ? StoreOwnershipQualifier::Unqualified
-                     : DataAddrInst->getOperand()->getType().isTrivial(*func)
+                     : DataAddrInst->getOperand()->getType().isTrivial(*fn)
                          ? StoreOwnershipQualifier::Trivial
                          : StoreOwnershipQualifier::Init;
     Builder.createStore(DataAddrInst->getLoc(), E, DataAddrInst->getOperand(),
@@ -1012,8 +1013,8 @@ SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
       IEAI->getElement()->hasAssociatedValues()
           ? IEAI->getOperand()
                 ->getType()
-                .getEnumElementType(IEAI->getElement(), func)
-                .isEmpty(*func)
+                .getEnumElementType(IEAI->getElement(), fn)
+                .isEmpty(*fn)
           : false;
   if (!AI || (hasEmptyAssociatedType && !DI->properlyDominates(AI, IEAI)))
     return nullptr;
@@ -1061,8 +1062,8 @@ SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
         elemType.getObjectType(), &*Builder.getInsertionPoint(),
         Builder.getBuilderContext(), /*noUndef*/ true);
   } else {
-    auto loadQual = !func->hasOwnership() ? LoadOwnershipQualifier::Unqualified
-                    : DataAddrInst->getOperand()->getType().isTrivial(*func)
+    auto loadQual = !fn->hasOwnership() ? LoadOwnershipQualifier::Unqualified
+                    : DataAddrInst->getType().isTrivial(*fn)
                         ? LoadOwnershipQualifier::Trivial
                         : LoadOwnershipQualifier::Take;
     enumValue =
@@ -1071,8 +1072,8 @@ SILCombiner::visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI) {
   EnumInst *E = Builder.createEnum(
       DataAddrInst->getLoc(), enumValue, DataAddrInst->getElement(),
       DataAddrInst->getOperand()->getType().getObjectType());
-  auto storeQual = !func->hasOwnership() ? StoreOwnershipQualifier::Unqualified
-                   : DataAddrInst->getOperand()->getType().isTrivial(*func)
+  auto storeQual = !fn->hasOwnership() ? StoreOwnershipQualifier::Unqualified
+                   : DataAddrInst->getOperand()->getType().isTrivial(*fn)
                        ? StoreOwnershipQualifier::Trivial
                        : StoreOwnershipQualifier::Init;
   Builder.createStore(DataAddrInst->getLoc(), E, DataAddrInst->getOperand(),
@@ -1091,7 +1092,7 @@ visitUnreachableInst(UnreachableInst *UI) {
     return nullptr;
 
   // Collect together all the instructions after this point
-  llvm::SmallVector<SILInstruction *, 32> ToRemove;
+  toolchain::SmallVector<SILInstruction *, 32> ToRemove;
   for (auto Inst = UI->getParent()->rbegin(); &*Inst != UI; ++Inst)
     ToRemove.push_back(&*Inst);
 
@@ -1511,10 +1512,10 @@ shouldReplaceCallByContiguousArrayStorageAnyObject(SILFunction &F,
   if (!boundGenericTy)
     return std::nullopt;
 
-  // On SwiftStdlib 5.7 we can replace the call.
+  // On CodiraStdlib 5.7 we can replace the call.
   auto &ctxt = storageMetaTy->getASTContext();
   auto deployment = AvailabilityRange::forDeploymentTarget(ctxt);
-  if (!deployment.isContainedIn(ctxt.getSwift57Availability()))
+  if (!deployment.isContainedIn(ctxt.getCodira57Availability()))
     return std::nullopt;
 
   auto genericArgs = boundGenericTy->getGenericArgs();
@@ -1642,90 +1643,6 @@ visitAllocRefDynamicInst(AllocRefDynamicInst *ARDI) {
     NewInst = Builder.createUpcast(ARDI->getLoc(), NewInst, ARDI->getType());
   }
   return NewInst;
-}
-
-/// Returns true if \p val is a literal instruction or a struct of a literal
-/// instruction.
-/// What we want to catch here is a UnsafePointer<Int8> of a string literal.
-static bool isLiteral(SILValue val) {
-  while (auto *str = dyn_cast<StructInst>(val)) {
-    if (str->getNumOperands() != 1)
-      return false;
-    val = str->getOperand(0);
-  }
-  return isa<LiteralInst>(val);
-}
-
-template<SILInstructionKind Opc, typename Derived>
-static SILInstruction *combineMarkDependenceBaseInst(
-  MarkDependenceInstBase<Opc, Derived> *mdi,
-  SILCombiner *C) {
-  
-  if (!mdi->getFunction()->hasOwnership()) {
-    // Simplify the base operand of a MarkDependenceInst to eliminate
-    // unnecessary instructions that aren't adding value.
-    //
-    // Conversions to Optional.Some(x) often happen here, this isn't important
-    // for us, we can just depend on 'x' directly.
-    if (auto *eiBase = dyn_cast<EnumInst>(mdi->getBase())) {
-      if (eiBase->hasOperand()) {
-        mdi->setBase(eiBase->getOperand());
-        if (eiBase->use_empty()) {
-          C->eraseInstFromFunction(*eiBase);
-        }
-        return mdi;
-      }
-    }
-
-    // Conversions from a class to AnyObject also happen a lot, we can just
-    // depend on the class reference.
-    if (auto *ier = dyn_cast<InitExistentialRefInst>(mdi->getBase())) {
-      mdi->setBase(ier->getOperand());
-      if (ier->use_empty())
-        C->eraseInstFromFunction(*ier);
-      return mdi;
-    }
-
-    // Conversions from a class to AnyObject also happen a lot, we can just
-    // depend on the class reference.
-    if (auto *oeri = dyn_cast<OpenExistentialRefInst>(mdi->getBase())) {
-      mdi->setBase(oeri->getOperand());
-      if (oeri->use_empty())
-        C->eraseInstFromFunction(*oeri);
-      return mdi;
-    }
-  }
-
-  // Sometimes due to specialization/builtins, we can get a mark_dependence
-  // whose base is a trivial typed object. In such a case, the mark_dependence
-  // does not have a meaning, so just eliminate it.
-  {
-    SILType baseType = mdi->getBase()->getType();
-    if (baseType.getObjectType().isTrivial(*mdi->getFunction())) {
-      if (auto mdValue = dyn_cast<MarkDependenceInst>(mdi)) {
-        auto &valOper = mdi->getAllOperands()[MarkDependenceInst::Dependent];
-        mdValue->replaceAllUsesWith(valOper.get());
-      }
-      return C->eraseInstFromFunction(*mdi);
-    }
-  }
-  return nullptr;
-}
-
-SILInstruction *SILCombiner::visitMarkDependenceInst(MarkDependenceInst *mdi) {
-  if (isLiteral(mdi->getValue())) {
-    // A literal lives forever, so no mark_dependence is needed.
-    // This pattern can occur after StringOptimization when a utf8CString of
-    // a literal is replace by the string_literal itself.
-    replaceInstUsesWith(*mdi, mdi->getValue());
-    return eraseInstFromFunction(*mdi);
-  }
-  return combineMarkDependenceBaseInst(mdi, this);
-}
-
-SILInstruction *
-SILCombiner::visitMarkDependenceAddrInst(MarkDependenceAddrInst *mdi) {
-  return combineMarkDependenceBaseInst(mdi, this);
 }
 
 /// Returns true if reference counting and debug_value users of a global_value

@@ -1,0 +1,11 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -enable-experimental-feature DefaultIsolationPerFile
+
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface)
+
+// RUN: %FileCheck %s --input-file %t.codeinterface
+
+// REQUIRES: language_feature_DefaultIsolationPerFile
+
+using @MainActor
+
+// CHECK-NOT: using @MainActor

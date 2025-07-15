@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+
+// This test fails if we suppress the @escaping attribute recursively
+// when printing enum element parameter lists instead of only suppressing
+// it when printing the immediate type of the enum payload.
+
+public enum A {
+  case function(_: (@escaping () -> Void) -> Void)
+}
+
+// CHECK-LABEL: public enum A {
+// CHECK-NEXT:    case function((@escaping () -> Codira.Void) -> Codira.Void)
+// CHECK-NEXT:  }

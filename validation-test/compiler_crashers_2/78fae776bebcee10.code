@@ -1,0 +1,7 @@
+// {"signature":"language::QualifiedLookupRequest::evaluate(language::Evaluator&, language::DeclContext const*, toolchain::SmallVector<language::NominalTypeDecl*, 4u>, language::DeclNameRef, language::NLOptions) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  extension a {
+  b {
+    fn c<d>(e : d) {
+      e = f

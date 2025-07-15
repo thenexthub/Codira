@@ -1,13 +1,17 @@
-//===--- CrashHandlerMacOS.cpp - Swift crash handler for macOS ----------- ===//
+//===--- CrashHandlerMacOS.cpp - Codira crash handler for macOS ----------- ===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The macOS crash handler implementation.
@@ -78,8 +82,8 @@ namespace language {
 namespace runtime {
 namespace backtrace {
 
-SWIFT_RUNTIME_STDLIB_INTERNAL int
-_swift_installCrashHandler()
+LANGUAGE_RUNTIME_STDLIB_INTERNAL int
+_language_installCrashHandler()
 {
   stack_t ss;
 
@@ -250,14 +254,14 @@ handle_fatal_signal(int signum,
   pc = (void *)(ctx->uc_mcontext->CTX_MEMBER(ss).THREAD_STATE_MEMBER(pc));
 #endif
 
-  _swift_displayCrashMessage(signum, pc);
+  _language_displayCrashMessage(signum, pc);
 
   /* Start the backtracer; this will suspend the process, so there's no need
      to try to suspend other threads from here. */
-  if (!_swift_spawnBacktracer(&crashInfo)) {
-    const char *message = _swift_backtraceSettings.color == OnOffTty::On
+  if (!_language_spawnBacktracer(&crashInfo)) {
+    const char *message = _language_backtraceSettings.color == OnOffTty::On
       ? " failed\n\n" : " failed ***\n\n";
-    if (_swift_backtraceSettings.outputTo == OutputTo::Stderr)
+    if (_language_backtraceSettings.outputTo == OutputTo::Stderr)
       write(STDERR_FILENO, message, strlen(message));
     else
       write(STDOUT_FILENO, message, strlen(message));

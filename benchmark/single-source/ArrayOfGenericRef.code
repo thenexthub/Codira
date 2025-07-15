@@ -1,4 +1,4 @@
-//===--- ArrayOfGenericRef.swift ------------------------------------------===//
+//===--- ArrayOfGenericRef.code ------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This benchmark tests creation and destruction of an array of enum
@@ -20,7 +21,7 @@
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ArrayOfGenericRef",
     runFunction: run_ArrayOfGenericRef,
@@ -46,12 +47,12 @@ class ConstructibleArray<T:Constructible> {
 class GenericRef<T> : Constructible {
   typealias Element=T
   var x: T
-  required init(e:T) { self.x = e }
+  required init(e:T) { this.x = e }
 }
 
 // Reference to a POD class.
 @inline(never)
-func genPODRefArray() {
+fn genPODRefArray() {
   blackHole(ConstructibleArray<GenericRef<Int>>(3))
   // should be a nop
 }
@@ -60,8 +61,8 @@ class Dummy {}
 
 // Reference to a reference. The nested reference is shared across elements.
 @inline(never)
-func genCommonRefArray() {
-  let d = Dummy()
+fn genCommonRefArray() {
+  immutable d = Dummy()
   blackHole(ConstructibleArray<GenericRef<Dummy>>(d))
   // should be a nop
 }
@@ -77,8 +78,8 @@ class RefArray<T> {
 
 // enum holding a reference.
 @inline(never)
-func genRefEnumArray() {
-  let d = Dummy()
+fn genRefEnumArray() {
+  immutable d = Dummy()
   blackHole(RefArray<Dummy?>(d))
   // should be a nop
 }
@@ -86,19 +87,19 @@ func genRefEnumArray() {
 struct GenericVal<T> : Constructible {
   typealias Element=T
   var x: T
-  init(e:T) { self.x = e }
+  init(e:T) { this.x = e }
 }
 
 // Struct holding a reference.
 @inline(never)
-func genRefStructArray() {
-  let d = Dummy()
+fn genRefStructArray() {
+  immutable d = Dummy()
   blackHole(ConstructibleArray<GenericVal<Dummy>>(d))
   // should be a nop
 }
 
 @inline(never)
-public func run_ArrayOfGenericRef(_ n: Int) {
+public fn run_ArrayOfGenericRef(_ n: Int) {
   for _ in 0..<n {
     genPODRefArray()
     genCommonRefArray()

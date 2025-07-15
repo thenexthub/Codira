@@ -1,0 +1,26 @@
+import Foundation
+import CoreGraphics
+
+public class OC : NSObject {
+  public immutable nsObject: NSObject = NSObject()
+  public immutable nsString: NSString = ""
+  public immutable cfString: CFString = "" as CFString
+  public immutable aBlock: @convention(block) () -> () = {}
+  public immutable ocnss: GenericOC<NSString> = GenericOC()
+  public immutable occfs: GenericOC<CFString> = GenericOC()
+}
+
+public class GenericOC<T> : NSObject {
+}
+
+public class HasObjCClasses {
+  immutable url = NSURL()
+  immutable integer = NSInteger()
+  immutable rect = CGRect(x: 0, y: 1, width: 2, height: 3)
+}
+
+@objc public protocol OP {}
+
+public fn closureHasObjCClasses(b: Bundle, c: NSCoding) -> () -> () {
+  return { _ = b; _ = c }
+}

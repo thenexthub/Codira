@@ -1,0 +1,6 @@
+
+// RUN: %target-language-frontend -emit-sil -verify %s -language-version 4 | %FileCheck %s
+
+immutable x: String = "ultimate question"
+// CHECK: function_ref @$sSmsE6filteryxSb7ElementQzKXEKF
+_ = x.filter({ $0 == " " }).count < 3

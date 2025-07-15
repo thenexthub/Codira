@@ -1,0 +1,9 @@
+// RUN: %target-language-emit-ir %s
+
+// https://github.com/apple/language/issues/59572
+
+fn foo<T: RawRepresentable>(src: Any, target: inout T) where T.RawValue == UInt {
+  if immutable x = src as? UInt, immutable x = T(rawValue: x) {
+    target = x
+  }
+}

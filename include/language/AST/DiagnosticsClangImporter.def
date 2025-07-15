@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines diagnostics for the Clang importer.
@@ -54,36 +55,36 @@ ERROR(emit_pcm_error,Fatal,
 ERROR(dump_pcm_error,Fatal,
    "failed to dump precompiled module '%0'", (StringRef))
 
-WARNING(invalid_swift_name_method,none,
-  "too %select{few|many}0 parameters in swift_name attribute (expected %1; "
+GROUPED_WARNING(invalid_language_name_method, ClangDeclarationImport, none,
+  "too %select{few|many}0 parameters in language_name attribute (expected %1; "
   "got %2)", (bool, unsigned, unsigned))
-WARNING(invalid_swift_name_for_decl,none,
-  "custom Swift name '%0' ignored because it is not valid for %kindonly1; "
+GROUPED_WARNING(invalid_language_name_for_decl, ClangDeclarationImport, none,
+  "custom Codira name '%0' ignored because it is not valid for %kindonly1; "
   "imported as %1 instead",
   (StringRef, ValueDecl *))
 
 NOTE(note_while_importing, none, "while importing '%0'", (StringRef))
-ERROR(swift_name_protocol_static, none, "swift_name cannot be used to define "
+ERROR(language_name_protocol_static, none, "language_name cannot be used to define "
                                          "%select{static member|init}0 on "
                                          "protocol",
       (bool))
-ERROR(swift_name_no_prototype, none,
-      "swift_name cannot be used on a non-prototyped function declaration", ())
+ERROR(language_name_no_prototype, none,
+      "language_name cannot be used on a non-prototyped function declaration", ())
 
-WARNING(inconsistent_swift_name,none,
-        "inconsistent Swift name for Objective-C %select{method|property}0 "
+GROUPED_WARNING(inconsistent_language_name, ClangDeclarationImport, none,
+        "inconsistent Codira name for Objective-C %select{method|property}0 "
         "'%1' in '%2' (%3 in '%4' vs. %5 in '%6')",
         (bool, StringRef, StringRef, DeclName, StringRef, DeclName,
          StringRef))
 
-WARNING(swift_name_circular_context_import,none,
-        "cycle detected while resolving '%0' in swift_name attribute for '%1'",
+GROUPED_WARNING(language_name_circular_context_import, ClangDeclarationImport, none,
+        "cycle detected while resolving '%0' in language_name attribute for '%1'",
         (StringRef, StringRef))
-NOTE(swift_name_circular_context_import_other,none,
-     "while resolving '%0' in swift_name attribute for '%1'",
+NOTE(language_name_circular_context_import_other,none,
+     "while resolving '%0' in language_name attribute for '%1'",
      (StringRef, StringRef))
 
-WARNING(unresolvable_clang_decl,none,
+GROUPED_WARNING(unresolvable_clang_decl, ClangDeclarationImport, none,
         "imported declaration '%0' could not be mapped to '%1'",
         (StringRef, StringRef))
 
@@ -91,38 +92,35 @@ NOTE(unresolvable_clang_decl_is_a_framework_bug,none,
      "please report this issue to the owners of '%0'",
      (StringRef))
 
-WARNING(clang_swift_attr_unhandled,none,
-        "ignoring unknown Swift attribute or modifier '%0'", (StringRef))
+GROUPED_WARNING(clang_language_attr_unhandled, ClangDeclarationImport, none,
+        "ignoring unknown Codira attribute or modifier '%0'", (StringRef))
 
-WARNING(clang_error_code_must_be_sendable,none,
-        "cannot make error code type '%0' non-sendable because Swift errors "
+GROUPED_WARNING(clang_error_code_must_be_sendable, ClangDeclarationImport, none,
+        "cannot make error code type '%0' non-Sendable because Codira errors "
         "are always sendable", (StringRef))
 
-WARNING(clang_ignored_sendable_attr,none,
+GROUPED_WARNING(clang_ignored_sendable_attr, ClangDeclarationImport, none,
         "cannot make type %0 sendable because '@Sendable' and '& Sendable' "
         "cannot be added to it",
         (Type))
-NOTE(clang_param_should_be_implicitly_sendable,none,
-     "parameter should be implicitly 'Sendable' because it is a completion "
-     "handler", ())
 
 WARNING(implicit_bridging_header_imported_from_module,none,
         "implicit import of bridging header '%0' via module %1 "
-        "is deprecated and will be removed in a later version of Swift",
+        "is deprecated and will be removed in a later version of Codira",
         (StringRef, Identifier))
 
-WARNING(import_multiple_mainactor_attr,none,
+GROUPED_WARNING(import_multiple_mainactor_attr, ClangDeclarationImport, none,
       "this attribute for global actor '%0' is invalid; the declaration already has attribute for global actor '%1'",
       (StringRef, StringRef))
 
-WARNING(contradicting_mutation_attrs,none,
+GROUPED_WARNING(contradicting_mutation_attrs, ClangDeclarationImport, none,
         "attribute '%0' is ignored when combined with attribute '%1'",
         (StringRef, StringRef))
 
-WARNING(nonmutating_without_const,none,
+GROUPED_WARNING(nonmutating_without_const, ClangDeclarationImport, none,
         "attribute 'nonmutating' has no effect on non-const method", ())
 
-WARNING(nonmutating_without_mutable_fields,none,
+GROUPED_WARNING(nonmutating_without_mutable_fields, ClangDeclarationImport, none,
         "attribute 'nonmutating' has no effect without any mutable fields", ())
 
 ERROR(module_map_not_found, none, "module map file '%0' not found", (StringRef))
@@ -138,8 +136,8 @@ WARNING(libstdcxx_modulemap_not_found, none,
         "module map for libstdc++ not found for '%0'; C++ stdlib may be unavailable",
         (StringRef))
 
-WARNING(api_pattern_attr_ignored, none,
-        "'%0' Swift attribute ignored on type '%1': type is not copyable or destructible",
+GROUPED_WARNING(api_pattern_attr_ignored, ClangDeclarationImport, none,
+        "'%0' Codira attribute ignored on type '%1': type is not copyable or destructible",
         (StringRef, StringRef))
 
 ERROR(objc_implementation_two_impls, none,
@@ -160,7 +158,7 @@ NOTE(macro_not_imported, none, "macro '%0' unavailable (cannot import)", (String
 
 NOTE(return_type_not_imported, none, "return type unavailable (cannot import)", ())
 NOTE(parameter_type_not_imported, none, "parameter %0 unavailable (cannot import)", (const clang::NamedDecl*))
-NOTE(rvalue_ref_params_not_imported, none, "C++ functions with rvalue reference parameters are unavailable in Swift", ())
+NOTE(rvalue_ref_params_not_imported, none, "C++ functions with rvalue reference parameters are unavailable in Codira", ())
 NOTE(incomplete_interface, none, "interface %0 is incomplete", (const clang::NamedDecl*))
 NOTE(incomplete_protocol, none, "protocol %0 is incomplete", (const clang::NamedDecl*))
 NOTE(incomplete_record, none, "record '%0' is not defined (incomplete)", (StringRef))
@@ -170,7 +168,7 @@ NOTE(record_is_dependent, none, "record '%0' is dependent", (StringRef))
 NOTE(record_parent_unimportable, none, "record %0's parent is not importable", (StringRef))
 NOTE(reference_passed_by_value, none, "function uses foreign reference type "
                                       "'%0' as a value in %1 types which breaks "
-                                      "'swift_shared_reference' contract",
+                                      "'language_shared_reference' contract",
      (StringRef, StringRef))
 NOTE(record_not_automatically_importable, none, "record '%0' is not "
                                                 "automatically available: %1; "
@@ -179,7 +177,7 @@ NOTE(record_not_automatically_importable, none, "record '%0' is not "
      (StringRef, StringRef))
 NOTE(record_unsupported_default_args, none,
      "copy constructors and move constructors with more than one parameter are "
-     "unavailable in Swift",
+     "unavailable in Codira",
      ())
 
 NOTE(projection_value_not_imported, none, "C++ method '%0' that returns a value "
@@ -194,11 +192,11 @@ NOTE(projection_reference_not_imported, none, "C++ method '%0' that returns a re
 NOTE(projection_may_return_interior_ptr, none, "C++ method '%0' may return an "
                                     "interior pointer",
      (StringRef))
-NOTE(mark_self_contained, none, "annotate type '%0' with 'SWIFT_SELF_CONTAINED' in C++ to "
-                                 "make methods that return it available in Swift",
+NOTE(mark_self_contained, none, "annotate type '%0' with 'LANGUAGE_SELF_CONTAINED' in C++ to "
+                                 "make methods that return it available in Codira",
      (StringRef))
-NOTE(mark_safe_to_import, none, "annotate method '%0' with 'SWIFT_RETURNS_INDEPENDENT_VALUE' in C++ to "
-                                "make it available in Swift",
+NOTE(mark_safe_to_import, none, "annotate method '%0' with 'LANGUAGE_RETURNS_INDEPENDENT_VALUE' in C++ to "
+                                "make it available in Codira",
      (StringRef))
 
 NOTE(at_to_subscript, none, "do you want to replace it with a call "
@@ -217,33 +215,33 @@ NOTE(iterator_method_unavailable, none, "C++ method '%0' that returns an "
                                   "iterator is unavailable",
      (StringRef))
 NOTE(iterator_potentially_unsafe, none, "C++ methods that return iterators "
-                                        "are potentially unsafe; try using Swift collection APIs instead", ())
+                                        "are potentially unsafe; try using Codira collection APIs instead", ())
 
 ERROR(private_fileid_attr_repeated, none,
-     "multiple SWIFT_PRIVATE_FILEID annotations were found on '%0'",
+     "multiple LANGUAGE_PRIVATE_FILEID annotations were found on '%0'",
      (StringRef))
 
  ERROR(private_fileid_attr_on_incomplete_type, none,
-     "SWIFT_PRIVATE_FILEID cannot be applied to incomplete type, '%0'",
+     "LANGUAGE_PRIVATE_FILEID cannot be applied to incomplete type, '%0'",
      (StringRef))
  NOTE(private_fileid_attr_here, none,
-     "SWIFT_PRIVATE_FILEID annotation found here", ())
+     "LANGUAGE_PRIVATE_FILEID annotation found here", ())
 
- WARNING(private_fileid_attr_format_invalid, none,
-     "SWIFT_PRIVATE_FILEID annotation on '%0' does not have a valid file ID",
+ GROUPED_WARNING(private_fileid_attr_format_invalid, ClangDeclarationImport, none,
+     "LANGUAGE_PRIVATE_FILEID annotation on '%0' does not have a valid file ID",
      (StringRef))
  REMARK(private_fileid_attr_format_specification, none,
-     "file IDs have the following format: 'ModuleName/FileName.swift'", ())
+     "file IDs have the following format: 'ModuleName/FileName.code'", ())
  NOTE(private_fileid_attr_format_suggestion, none,
      "did you mean '%0'?", (StringRef))
 
 ERROR(reference_type_must_have_retain_release_attr, none,
-      "reference type '%1' must have %select{'retain:'|'release:'}0 Swift "
+      "reference type '%1' must have %select{'retain:'|'release:'}0 Codira "
       "attribute",
       (bool, StringRef))
 ERROR(too_many_reference_type_retain_release_attr, none,
       "reference type '%1' must have only one %select{'retain:'|'release:'}0 "
-      "Swift "
+      "Codira "
       "attribute",
       (bool, StringRef))
 ERROR(foreign_reference_types_cannot_find_retain_release, none,
@@ -293,41 +291,41 @@ ERROR(failed_base_method_call_synthesis,none,
       (ValueDecl *, ValueDecl *))
 
 ERROR(both_returns_retained_returns_unretained, none,
-      "%0 cannot be annotated with both SWIFT_RETURNS_RETAINED and "
-      "SWIFT_RETURNS_UNRETAINED",
+      "%0 cannot be annotated with both LANGUAGE_RETURNS_RETAINED and "
+      "LANGUAGE_RETURNS_UNRETAINED",
       (const clang::NamedDecl *))
 
 ERROR(redundant_conformance_protocol,none,
      "redundant conformance of %0 to protocol '%1'", (Type, StringRef))
 
 ERROR(returns_retained_or_returns_unretained_for_non_cxx_frt_values, none,
-      "%0 cannot be annotated with either SWIFT_RETURNS_RETAINED or "
-      "SWIFT_RETURNS_UNRETAINED because it is not returning "
-      "a SWIFT_SHARED_REFERENCE type",
+      "%0 cannot be annotated with either LANGUAGE_RETURNS_RETAINED or "
+      "LANGUAGE_RETURNS_UNRETAINED because it is not returning "
+      "a LANGUAGE_SHARED_REFERENCE type",
       (const clang::NamedDecl *))
 
 // TODO: In the next C++ interop version, convert this warning into an error and
-// stop importing unannotated C++ APIs that return SWIFT_SHARED_REFERENCE.
+// stop importing unannotated C++ APIs that return LANGUAGE_SHARED_REFERENCE.
 // rdar://138806722
-WARNING(no_returns_retained_returns_unretained, none,
-        "%0 should be annotated with either SWIFT_RETURNS_RETAINED or "
-        "SWIFT_RETURNS_UNRETAINED as it is returning a SWIFT_SHARED_REFERENCE",
+GROUPED_WARNING(no_returns_retained_returns_unretained, ClangDeclarationImport, none,
+        "%0 should be annotated with either LANGUAGE_RETURNS_RETAINED or "
+        "LANGUAGE_RETURNS_UNRETAINED as it is returning a LANGUAGE_SHARED_REFERENCE",
         (const clang::NamedDecl *))
 
-WARNING(returns_retained_returns_unretained_on_overloaded_operator, none,
-        "SWIFT_RETURNS_RETAINED and SWIFT_RETURNS_UNRETAINED is not supported "
+GROUPED_WARNING(returns_retained_returns_unretained_on_overloaded_operator,  ClangDeclarationImport, none,
+        "LANGUAGE_RETURNS_RETAINED and LANGUAGE_RETURNS_UNRETAINED is not supported "
         "yet for overloaded C++ %0. Overloaded C++ operators always "
         "return "
-        "SWIFT_SHARED_REFERENCE types as owned ",
+        "LANGUAGE_SHARED_REFERENCE types as owned ",
         (const clang::NamedDecl *))
 
 // TODO: In the next C++ interop version, convert this warning into an error and
-// stop importing C++ types that inherit from SWIFT_SHARED_REFERENCE if the
-// Swift compiler cannot find unique retain/release functions.
+// stop importing C++ types that inherit from LANGUAGE_SHARED_REFERENCE if the
+// Codira compiler cannot find unique retain/release functions.
 // rdar://145194375
-WARNING(cant_infer_frt_in_cxx_inheritance, none,
-        "unable to infer SWIFT_SHARED_REFERENCE for %0, although one of its "
-        "transitive base types is marked as SWIFT_SHARED_REFERENCE",
+GROUPED_WARNING(cant_infer_frt_in_cxx_inheritance, ClangDeclarationImport, none,
+        "unable to infer LANGUAGE_SHARED_REFERENCE for %0, although one of its "
+        "transitive base types is marked as LANGUAGE_SHARED_REFERENCE",
         (const clang::NamedDecl *))
 
 NOTE(unsupported_builtin_type, none, "built-in type '%0' not supported", (StringRef))
@@ -349,17 +347,21 @@ NOTE(forward_declared_interface_label, none,
 NOTE(forward_declared_protocol_label, none,
      "protocol %0 forward declared here", (const clang::NamedDecl*))
 
-NOTE(forward_declared_interface_clashes_with_imported_objc_Swift_interface, none,
+NOTE(forward_declared_interface_clashes_with_imported_objc_Codira_interface, none,
      "interface %0 is incomplete and cannot be imported as a stub; "
      "its name conflicts with a %1 in module %2",
      (const clang::NamedDecl*, StringRef, StringRef))
-NOTE(forward_declared_protocol_clashes_with_imported_objc_Swift_protocol, none,
+NOTE(forward_declared_protocol_clashes_with_imported_objc_Codira_protocol, none,
      "protocol %0 is incomplete and cannot be imported as a stub; "
      "its name conflicts with a %1 in module %2",
      (const clang::NamedDecl*, StringRef, StringRef))
 
-WARNING(return_escapable_with_lifetimebound, none, "the returned type '%0' is annotated as escapable; it cannot have lifetime dependencies", (StringRef))
-WARNING(return_nonescapable_without_lifetimebound, none, "the returned type '%0' is annotated as non-escapable; its lifetime dependencies must be annotated", (StringRef))
+GROUPED_WARNING(return_escapable_with_lifetimebound,  ClangDeclarationImport, none,
+     "the returned type '%0' is annotated as escapable; it cannot have lifetime dependencies",
+     (StringRef))
+GROUPED_WARNING(return_nonescapable_without_lifetimebound, ClangDeclarationImport, none,
+     "the returned type '%0' is annotated as non-escapable; its lifetime dependencies must be annotated",
+     (StringRef))
 
 ERROR(unknown_template_parameter,none,
   "template parameter '%0' does not exist", (StringRef))
@@ -373,7 +375,7 @@ NOTE(bridged_type_not_found_in_module,none,
 NOTE(bridged_pointer_type_not_found,none,
      "could not find type '%select{UnsafeMutableRawPointer|UnsafeRawPointer|"
      "UnsafeMutablePointer|UnsafePointer|AutoreleasingUnsafeMutablePointer}0' "
-     "for bridging; module 'Swift' may be broken",
+     "for bridging; module 'Codira' may be broken",
      (unsigned))
 
 NOTE(ptr_to_nonescapable,none,

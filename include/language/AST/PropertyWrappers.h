@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines helper types for property wrappers.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_PROPERTY_WRAPPERS_H
-#define SWIFT_AST_PROPERTY_WRAPPERS_H
+#ifndef LANGUAGE_AST_PROPERTY_WRAPPERS_H
+#define LANGUAGE_AST_PROPERTY_WRAPPERS_H
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -144,7 +145,7 @@ struct PropertyWrapperMutability {
       }
       return std::max(Getter, Setter);
     }
-    llvm_unreachable("Unhandled Value in switch");
+    toolchain_unreachable("Unhandled Value in switch");
   }
   
   bool operator==(PropertyWrapperMutability other) const {
@@ -152,13 +153,13 @@ struct PropertyWrapperMutability {
   }
 };
 
-void simple_display(llvm::raw_ostream &os, PropertyWrapperMutability m);
+void simple_display(toolchain::raw_ostream &os, PropertyWrapperMutability m);
 
 /// Describes whether the reference to a property wrapper instance used for
 /// accessing a wrapped property should be an l-value or not.
 struct PropertyWrapperLValueness {
-  llvm::SmallVector<bool, 4> isLValueForGetAccess;
-  llvm::SmallVector<bool, 4> isLValueForSetAccess;
+  toolchain::SmallVector<bool, 4> isLValueForGetAccess;
+  toolchain::SmallVector<bool, 4> isLValueForSetAccess;
 
   PropertyWrapperLValueness(unsigned numWrappers)
       : isLValueForGetAccess(numWrappers), isLValueForSetAccess(numWrappers) {}
@@ -169,7 +170,7 @@ struct PropertyWrapperLValueness {
   }
 };
 
-void simple_display(llvm::raw_ostream &os, PropertyWrapperLValueness l);
+void simple_display(toolchain::raw_ostream &os, PropertyWrapperLValueness l);
 
 /// Given the initializer for a property with an attached property wrapper,
 /// dig out the wrapped value placeholder for the original initialization
@@ -280,17 +281,17 @@ public:
 };
 
 void simple_display(
-    llvm::raw_ostream &out,
+    toolchain::raw_ostream &out,
     const PropertyWrapperTypeInfo &propertyWrapper);
 
 void simple_display(
-    llvm::raw_ostream &out,
+    toolchain::raw_ostream &out,
     const PropertyWrapperInitializerInfo &initInfo);
 
 void simple_display(
-    llvm::raw_ostream &out,
+    toolchain::raw_ostream &out,
     const PropertyWrapperAuxiliaryVariables &auxiliaryVars);
 
 } // end namespace language
 
-#endif // SWIFT_AST_PROPERTY_WRAPPERS_H
+#endif // LANGUAGE_AST_PROPERTY_WRAPPERS_H

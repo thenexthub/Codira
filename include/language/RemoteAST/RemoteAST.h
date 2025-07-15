@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  The RemoteAST library defines interfaces for exploring the
@@ -19,15 +20,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REMOTEAST_REMOTEAST_H
-#define SWIFT_REMOTEAST_REMOTEAST_H
+#ifndef LANGUAGE_REMOTEAST_REMOTEAST_H
+#define LANGUAGE_REMOTEAST_REMOTEAST_H
 
 #include "language/Remote/Failure.h"
 #include "language/Remote/MemoryReader.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/ABI/MetadataValues.h"
 #include "language/AST/Type.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 #include <memory>
 
@@ -258,4 +259,4 @@ public:
 } // end namespace remoteAST
 } // end namespace language
 
-#endif // SWIFT_REMOTEAST_REMOTEAST_H
+#endif // LANGUAGE_REMOTEAST_REMOTEAST_H

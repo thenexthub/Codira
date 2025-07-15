@@ -1,27 +1,27 @@
 #===--- CMakeLists.txt ---------------------------------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2019 - 2022 Apple Inc. and the Swift project authors
+# Copyright (c) 2019 - 2022 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 #===----------------------------------------------------------------------===#
 
-add_swift_target_library(swift_Volatile ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_STDLIB
-  Volatile.swift
+add_language_target_library(language_Volatile ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_STDLIB
+  Volatile.code
 
-  SWIFT_COMPILE_FLAGS
-    ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+  LANGUAGE_COMPILE_FLAGS
+    ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
     -parse-stdlib
-  LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+  LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
 
   INSTALL_IN_COMPONENT stdlib
 )
 
-if(SWIFT_SHOULD_BUILD_EMBEDDED_STDLIB)
+if(LANGUAGE_SHOULD_BUILD_EMBEDDED_STDLIB)
   add_custom_target(embedded-volatile)
   add_dependencies(embedded-libraries embedded-volatile)
   foreach(entry ${EMBEDDED_STDLIB_TARGET_TRIPLES})
@@ -30,23 +30,23 @@ if(SWIFT_SHOULD_BUILD_EMBEDDED_STDLIB)
     list(GET list 1 mod)
     list(GET list 2 triple)
 
-    set(SWIFT_SDK_embedded_ARCH_${arch}_MODULE "${mod}")
-    set(SWIFT_SDK_embedded_LIB_SUBDIR "embedded")
-    set(SWIFT_SDK_embedded_ARCH_${arch}_TRIPLE "${triple}")
-    add_swift_target_library_single(
+    set(LANGUAGE_SDK_embedded_ARCH_${arch}_MODULE "${mod}")
+    set(LANGUAGE_SDK_embedded_LIB_SUBDIR "embedded")
+    set(LANGUAGE_SDK_embedded_ARCH_${arch}_TRIPLE "${triple}")
+    add_language_target_library_single(
       embedded-volatile-${mod}
-      swift_Volatile
-      ONLY_SWIFTMODULE
+      language_Volatile
+      ONLY_LANGUAGEMODULE
       IS_SDK_OVERLAY IS_FRAGILE
 
-      Volatile.swift
-      
-      SWIFT_COMPILE_FLAGS
+      Volatile.code
+
+      LANGUAGE_COMPILE_FLAGS
         -Xcc -ffreestanding -enable-experimental-feature Embedded
         -parse-stdlib
       C_COMPILE_FLAGS
         -ffreestanding
-      MODULE_DIR "${CMAKE_BINARY_DIR}/lib/swift/embedded"
+      MODULE_DIR "${CMAKE_BINARY_DIR}/lib/language/embedded"
       SDK "embedded"
       ARCHITECTURE "${arch}"
       DEPENDS embedded-stdlib-${mod}

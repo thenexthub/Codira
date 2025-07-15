@@ -1,0 +1,126 @@
+//===--- CodiraNativeNSXXXBase.mm.gyb - Cocoa classes with fast refcounts --===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+//
+// Classes derived from ObjC bases but that use native language reference
+// counting, layout, and allocation.
+//
+// These classes declare a native Codira object header and override the
+// NSObject methods that do reference counting to use it accordingly.
+// We can only do this trick with objc classes that are known not to
+// use the storage where Codira places its native object header.  This
+// takes care of how the classes are handled from Objective-C code.
+//    _NSCodiraArrayBase, _NSCodiraDictionaryBase, _NSCodiraSetBase
+//    _NSCodiraSetBase, _NSCodiraStringBase
+//
+// To trick Codira into using its fast refcounting and allocation
+// directly (rather than going through objc_msgSend to arrive at the
+// implementations defined here), we define subclasses on the Codira
+// side but we establish the inheritance relationship with
+// the special @_language_native_objc_runtime_base attribute rather
+// than directly subclassing the classes defined here.
+//
+//===----------------------------------------------------------------------===//
+
+#include "language/Runtime/Config.h"
+
+#if LANGUAGE_OBJC_INTEROP
+#import <Foundation/Foundation.h>
+#import <CoreFoundation/CoreFoundation.h>
+#include <objc/NSObject.h>
+#include <objc/runtime.h>
+#include <objc/objc.h>
+#include "language/Runtime/HeapObject.h"
+#include "language/Runtime/Metadata.h"
+#include "language/Runtime/ObjCBridge.h"
+#include "toolchain/ADT/DenseMap.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+using namespace language;
+
+// NOTE: older runtimes called these _CodiraNativeNSXXXBase. The two must
+// coexist, so these were renamed. The old names must not be used in the new
+// runtime.
+% for Class in ('Array', 'MutableArray', 'Dictionary', 'Set', 'String', 'Enumerator'):
+LANGUAGE_RUNTIME_STDLIB_API
+@interface __CodiraNativeNS${Class}Base : NSObject
+{
+ @private
+  LANGUAGE_HEAPOBJECT_NON_OBJC_MEMBERS;
+}
+@end
+
+
+@implementation __CodiraNativeNS${Class}Base
+
+- (instancetype)initWithCoder: (NSCoder *)coder {
+  return [super init];
+}
+
++ (BOOL)automaticallyNotifiesObserversForKey:(NSString *)key {
+  return NO;
+}
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-missing-super-calls"
+
+STANDARD_OBJC_METHOD_IMPLS_FOR_LANGUAGE_OBJECTS
+
+#pragma clang diagnostic pop
+
+@end
+% end
+
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
+bool
+language_stdlib_NSObject_isEqual(id lhs,
+                              id rhs) {
+  return (lhs == rhs) || [lhs isEqual:rhs];
+}
+
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
+bool
+language_stdlib_connectNSBaseClasses() {
+% for Class in ('Array', 'MutableArray', 'Dictionary', 'Set', 'String', 'Enumerator'):
+  Class NS${Class}Super = objc_lookUpClass("NS${Class}");
+  if (!NS${Class}Super) return false;
+  Class NS${Class}OurClass = objc_lookUpClass("__CodiraNativeNS${Class}Base");
+  if (!NS${Class}OurClass) return false;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  class_setSuperclass(NS${Class}OurClass, NS${Class}Super);
+#pragma clang diagnostic pop
+% end
+  return true;
+}
+
+@interface __CodiraNativeNSArrayBase (Compatibility)
++ (id) new;
+@end
+
+@implementation __CodiraNativeNSArrayBase (Compatibility)
+
++ (id) new {
+  // Some apps accidentally do [[[aCodiraArray class] new] mutableCopy]
+  return [objc_lookUpClass("NSArray") new];
+}
+
+@end
+
+#endif
+
+// ${'Local Variables'}:
+// eval: (read-only-mode 1)
+// End:

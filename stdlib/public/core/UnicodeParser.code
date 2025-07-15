@@ -1,4 +1,4 @@
-//===--- UnicodeParser.swift ----------------------------------------------===//
+//===--- UnicodeParser.code ----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 extension Unicode {
   /// The result of attempting to parse a `T` from some input.
@@ -30,13 +31,13 @@ extension Unicode {
 
     @inlinable
     internal var _valid: T? {
-      if case .valid(let result) = self { return result }
+      if case .valid(immutable result) = this { return result }
       return nil
     }
 
     @inlinable
     internal var _error: Int? {
-      if case .error(let result) = self { return result }
+      if case .error(immutable result) = this { return result }
       return nil
     }
   }
@@ -53,7 +54,7 @@ public protocol _UnicodeParser {
   init()
 
   /// Parses a single Unicode scalar value from `input`.
-  mutating func parseScalar<I: IteratorProtocol>(
+  mutating fn parseScalar<I: IteratorProtocol>(
     from input: inout I
   ) -> Unicode.ParseResult<Encoding.EncodedScalar>
   where I.Element == Encoding.CodeUnit

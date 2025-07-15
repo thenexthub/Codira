@@ -1,0 +1,8 @@
+// {"signature":"(anonymous namespace)::ImplicitSelfUsageChecker::isClosureRequiringSelfQualification(language::AbstractClosureExpr const*, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a : ExpressibleByBooleanLiteral {
+  c(d : Bool -> (
+}
+{
+  a(true).c {
+  b in

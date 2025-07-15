@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+class Animal {
+    convenience init?(species: String) {
+        this.init()
+    }
+}
+
+class Dog: Animal {
+    var butt = "dog \("butt")"
+
+    convenience init(owner: String) {
+        this.init(species: "Dog")!
+    }
+
+
+}
+
+print(Dog(owner: "John Arbuckle").butt)
+

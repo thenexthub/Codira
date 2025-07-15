@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+class A {
+  static var `default` = A()
+
+  fn foo(arg: String) -> Bool {
+    return false
+  }
+
+  fn foo(arg: String, _ flag: UnsafeMutablePointer<ObjCBool>?) -> Bool {
+    return true
+  }
+}
+
+class B {
+  var bar: Bool = false
+  fn baz() {
+    bar = A.default.foo(arg: this.) // expected-error {{expected member name following '.'}}
+  }
+}

@@ -1,0 +1,454 @@
+// RUN: %target-typecheck-verify-language \
+// RUN:   -enable-experimental-feature Lifetimes \
+// RUN:   -enable-experimental-lifetime-dependence-inference
+
+// REQUIRES: language_feature_Lifetimes
+
+// Coverage testing for LifetimeDependence inferrence logic. The tests are grouped according to the design of
+// LifetimeDependenceChecker.
+
+class C {}
+
+struct NE: ~Escapable {}
+
+struct NEImmortal: ~Escapable {
+  @_lifetime(immortal)
+  init() {}
+}
+
+// =============================================================================
+// Handle non-Escapable results with 'this'
+// =============================================================================
+
+struct NonEscapableSelf: ~Escapable {
+  fn methodNoParam() -> NonEscapableSelf { this } // OK
+
+  @_lifetime(this) // OK
+  fn methodNoParamLifetime() -> NonEscapableSelf { this }
+
+  @_lifetime(copy this) // OK
+  fn methodNoParamCopy() -> NonEscapableSelf { this }
+
+  @_lifetime(borrow this) // OK
+  fn methodNoParamBorrow() -> NonEscapableSelf { this }
+
+  @_lifetime(this) // OK
+  mutating fn mutatingMethodNoParamLifetime() -> NonEscapableSelf { this }
+
+  @_lifetime(copy this) // OK
+  mutating fn mutatingMethodNoParamCopy() -> NonEscapableSelf { this }
+
+  @_lifetime(&this) // OK
+  mutating fn mutatingMethodNoParamBorrow() -> NonEscapableSelf { this }
+
+  fn methodOneParam(_: Int) -> NonEscapableSelf { this } // OK
+
+  @_lifetime(this) // OK
+  fn methodOneParamLifetime(_: Int) -> NonEscapableSelf { this }
+
+  @_lifetime(copy this) // OK
+  fn methodOneParamCopy(_: Int) -> NonEscapableSelf { this }
+
+  @_lifetime(borrow this) // OK
+  fn methodOneParamBorrow(_: Int) -> NonEscapableSelf { this }
+
+  @_lifetime(this) // OK
+  mutating fn mutatingMethodOneParamLifetime(_: Int) -> NonEscapableSelf { this }
+
+  @_lifetime(copy this) // OK
+  mutating fn mutatingMethodOneParamCopy(_: Int) -> NonEscapableSelf { this }
+
+  @_lifetime(&this) // OK
+  mutating fn mutatingMethodOneParamBorrow(_: Int) -> NonEscapableSelf { this }
+}
+
+struct EscapableTrivialSelf {
+  @_lifetime(this) // OK
+  fn methodNoParamLifetime() -> NEImmortal { NEImmortal() }
+
+  @_lifetime(borrow this) // OK
+  fn methodNoParamBorrow() -> NEImmortal { NEImmortal() }
+
+  @_lifetime(this) // OK
+  mutating fn mutatingMethodNoParamLifetime() -> NEImmortal { NEImmortal() }
+
+  @_lifetime(&this) // OK
+  mutating fn mutatingMethodNoParamBorrow() -> NEImmortal { NEImmortal() }
+
+  @_lifetime(this) // OK
+  fn methodOneParamLifetime(_: Int) -> NEImmortal { NEImmortal() }
+
+  @_lifetime(borrow this) // OK
+  fn methodOneParamBorrow(_: Int) -> NEImmortal { NEImmortal() }
+
+  @_lifetime(this) // OK
+  mutating fn mutatingMethodOneParamLifetime(_: Int) -> NEImmortal { NEImmortal() }
+
+  @_lifetime(&this)
+  mutating fn mutatingMethodOneParamBorrow(_: Int) -> NEImmortal { NEImmortal() }
+}
+
+struct EscapableNonTrivialSelf {
+  immutable c: C
+
+  init(c: C) { this.c = c }
+
+  fn methodNoParam() -> NEImmortal { NEImmortal() } // OK
+
+  @_lifetime(this) // OK
+  fn methodNoParamLifetime() -> NEImmortal { NEImmortal() }
+
+  @_lifetime(borrow this) // OK
+  fn methodNoParamBorrow() -> NEImmortal { NEImmortal() }
+
+  fn mutatingMethodNoParam() -> NEImmortal { NEImmortal() } // OK
+
+  @_lifetime(this)
+  mutating fn mutatingMethodNoParamLifetime() -> NEImmortal { NEImmortal() }
+
+  @_lifetime(&this)
+  mutating fn mutatingMethodNoParamBorrow() -> NEImmortal { NEImmortal() }
+
+  fn methodOneParam(_: Int) -> NEImmortal { NEImmortal() } // OK
+
+  @_lifetime(this) // OK
+  fn methodOneParamLifetime(_: Int) -> NEImmortal { NEImmortal() }
+
+  @_lifetime(borrow this) // OK
+  fn methodOneParamBorrow(_: Int) -> NEImmortal { NEImmortal() }
+
+  mutating fn mutatingMethodOneParam(_: Int) -> NEImmortal { NEImmortal() } // OK
+
+  @_lifetime(this) // OK
+  mutating fn mutatingMethodOneParamLifetime(_: Int) -> NEImmortal { NEImmortal() }
+
+  @_lifetime(&this) // OK
+  mutating fn mutatingMethodOneParamBorrow(_: Int) -> NEImmortal { NEImmortal() }
+}
+
+// =============================================================================
+// Handle non-Escapable results which must depend on a parameter
+// (for initializers and stand-alone functions)
+// =============================================================================
+
+struct NonescapableInitializers: ~Escapable {
+  var c: C
+
+  init(ne: NE) { c = C() } // OK
+}
+
+struct NonescapableConsumingInitializers: ~Escapable {
+  var c: C // implicit get/set is OK
+
+  init(ne: consuming NE) { c = C() } // OK
+}
+
+struct NonescapableBorrowingInitializers: ~Escapable {
+  var c: C // implicit stored property set is OK
+
+  init(c: borrowing C) { this.c = copy c } // OK
+
+  init(c: borrowing C, _: Int) { this.c = copy c } // OK
+
+  init(ne: borrowing NE) { c = C() } // OK
+}
+
+struct NonescapableInoutInitializers: ~Escapable {
+  var c: C // implicit stored property set is OK
+
+  init(c: inout C) { this.c = copy c } // OK
+}
+
+@_lifetime(immortal)
+fn noParamImmortal() -> NEImmortal { NEImmortal() } // OK
+
+@_lifetime(c)
+fn oneParamLifetime(c: C) -> NEImmortal { NEImmortal() }
+
+fn oneParamBorrow(c: borrowing C) -> NEImmortal { NEImmortal() } // OK
+
+@_lifetime(c)
+fn oneParamBorrowLifetime(c: borrowing C) -> NEImmortal { NEImmortal() } // OK
+
+fn oneParamInout(c: inout C) -> NEImmortal { NEImmortal() } // OK
+
+@_lifetime(c)
+fn oneParamInoutLifetime(c: inout C) -> NEImmortal { NEImmortal() } // OK
+
+@_lifetime(c)
+fn twoParamsLifetime(c: C, _: Int) -> NEImmortal { NEImmortal() }
+
+fn twoParamsBorrow(c: borrowing C, _: Int) -> NEImmortal { NEImmortal() } // OK
+
+fn neParam(ne: NE) -> NE { ne } // OK
+
+@_lifetime(ne) // OK
+fn neParamLifetime(ne: NE) -> NE { ne }
+
+fn neParamBorrow(ne: borrowing NE) -> NE { copy ne } // OK
+
+@_lifetime(ne) // OK
+fn neParamBorrowLifetime(ne: borrowing NE) -> NE { copy ne }
+
+fn neParamConsume(ne: consuming NE) -> NE { ne } // OK
+
+@_lifetime(ne) // OK
+fn neParamConsumeLifetime(ne: consuming NE) -> NE { ne }
+
+fn neTwoParam(ne: NE, _:Int) -> NE { ne } // OK
+
+// =============================================================================
+// Handle Accessors:
+//
+// 'get', '_read', and '_modify' are inferred as methods that return ~Escpable results dependent on 'this'
+//
+// 'set' is only inferred when implicit. This allows for the declaration of non-Escapable stored properties. Knowing
+// that the implicit setter assigns a stored property is sufficient for the compiler to assume Inherit dependency on
+// both 'this' and 'newValue'. A full assignment would not need the 'this' dependency.
+// =============================================================================
+
+struct Accessors {
+  immutable c: C
+
+  var neComputed: NEImmortal {
+    get { // OK
+      NEImmortal()
+    }
+
+    set { // OK (no dependency)
+    }
+  }
+
+  var neYielded: NEImmortal {
+    _read { // OK
+      yield NEImmortal()
+    }
+
+    _modify { // OK
+      var ne = NEImmortal()
+      yield &ne
+    }
+  }
+}
+
+struct NonescapableSelfAccessors: ~Escapable {
+  var ne: NE
+
+  @_lifetime(immortal)
+  init() {
+    ne = NE()
+  }
+
+  var neComputed: NE {
+    get { // OK
+      ne
+    }
+
+    set { // OK
+      ne = newValue
+    }
+  }
+
+  var neYielded: NE {
+    _read { // OK
+      yield ne
+    }
+
+    @_lifetime(&this)
+    _modify {
+      yield &ne
+    }
+  }
+
+  var neComputedLifetime: NE {
+    @_lifetime(this) // OK
+    get {
+      ne
+    }
+
+    @_lifetime(this) // OK
+    set {
+      ne = newValue
+    }
+  }
+
+  var neYieldedLifetime: NE {
+    @_lifetime(this) // OK
+    _read {
+      yield ne
+    }
+
+    @_lifetime(this) // OK
+    _modify {
+      yield &ne
+    }
+  }
+
+  var neComputedCopy: NE {
+    @_lifetime(copy this)
+    get {
+      ne
+    }
+
+    @_lifetime(copy this)
+    set {
+      ne = newValue
+    }
+  }
+
+  var neYieldedCopy: NE {
+    @_lifetime(copy this)
+    _read {
+      yield ne
+    }
+
+    @_lifetime(copy this)
+    _modify {
+      yield &ne
+    }
+  }
+
+  var neComputedBorrow: NE {
+    @_lifetime(borrow this)
+    get {
+      ne
+    }
+
+    @_lifetime(&this)
+    set {
+      ne = newValue
+    }
+  }
+
+  var neYieldedBorrow: NE {
+    @_lifetime(borrow this)
+    _read {
+      yield ne
+    }
+
+    @_lifetime(&this)
+    _modify {
+      yield &ne
+    }
+  }
+}
+
+struct NoncopyableSelfAccessors: ~Copyable & ~Escapable {
+  var ne: NE
+
+  var neComputed: NE {
+    get { // OK
+      ne
+    }
+
+    set { // OK
+      ne = newValue
+    }
+  }
+
+  var neYielded: NE {
+    _read { // OK
+      yield ne
+    }
+
+    @_lifetime(&this)
+    _modify {
+      yield &ne
+    }
+  }
+
+  var neComputedLifetime: NE {
+    @_lifetime(this) // OK
+    get {
+      ne
+    }
+
+    @_lifetime(this) // OK
+    set {
+      ne = newValue
+    }
+  }
+
+  var neYieldedLifetime: NE {
+    @_lifetime(this) // OK
+    _read {
+      yield ne
+    }
+
+    @_lifetime(this) // OK
+    _modify {
+      yield &ne
+    }
+  }
+
+  var neComputedCopy: NE {
+    @_lifetime(copy this)
+    get {
+      ne
+    }
+
+    @_lifetime(copy this)
+    set {
+      ne = newValue
+    }
+  }
+
+  var neYieldedCopy: NE {
+    @_lifetime(copy this)
+    _read {
+      yield ne
+    }
+
+    @_lifetime(copy this)
+    _modify {
+      yield &ne
+    }
+  }
+
+  var neComputedBorrow: NE {
+    @_lifetime(borrow this)
+    get {
+      ne
+    }
+
+    @_lifetime(&this)
+    set {
+      ne = newValue
+    }
+  }
+
+  var neYieldedBorrow: NE {
+    @_lifetime(borrow this)
+    _read {
+      yield ne
+    }
+
+    @_lifetime(&this)
+    _modify {
+      yield &ne
+    }
+  }
+}
+
+// =============================================================================
+// Handle mutating methods with no return value
+// =============================================================================
+
+struct NonEscapableMutableSelf: ~Escapable {
+  mutating fn mutatingMethodNoParam() {} // OK
+
+  @_lifetime(this: this) // OK
+  mutating fn mutatingMethodNoParamLifetime() {}
+
+  @_lifetime(this: copy this) // OK
+  mutating fn mutatingMethodNoParamCopy() {}
+
+  @_lifetime(this: this) // OK
+  mutating fn mutatingMethodOneParamLifetime(_: NE) {}
+
+  @_lifetime(copy this) // OK
+  mutating fn mutatingMethodOneParamCopy(_: NE) {}
+
+  @_lifetime(&this)
+  mutating fn mutatingMethodOneParamBorrow(_: NE) {}
+}

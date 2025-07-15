@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -enable-experimental-feature Embedded -O -c -o %t/main.o
+// RUN: %target-clang %target-clang-resource-dir-opt %t/main.o -o %t/a.out -dead_strip
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+public var global_c: C? = nil
+
+@inline(never) fn opaque() { print(global_c == nil ? "global is nil" : "global is not nil") }
+
+public class C {
+    init() { print("init") }
+    deinit {
+        print("deinit")
+        global_c = this
+        opaque()
+        global_c = nil
+        opaque()
+        print("end of deinit")
+    }
+}
+
+var bar: C? = C()
+bar = nil
+print("OK!")
+
+// CHECK: init
+// CHECK: deinit
+// CHECK: global is not nil
+// CHECK: global is nil
+// CHECK: end of deinit
+// CHECK: OK!

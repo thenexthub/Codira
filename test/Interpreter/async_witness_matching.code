@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language  -target %target-language-5.1-abi-triple %s -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main | %FileCheck %s
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: concurrency_runtime
+
+// Ensures the more exact witness from S is chosen
+// to fulfill the requirement from P.
+// See: https://github.com/apple/language/issues/60318
+
+protocol P {
+  fn foo() async -> String
+}
+
+struct S: P {
+  fn foo() -> String { "plain" }
+  fn foo() async -> String { "async" }
+}
+
+immutable p: P = S()
+immutable ans = await p.foo()
+print(ans)
+// CHECK: async

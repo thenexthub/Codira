@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/other.codemodule %S/Inputs/protocol-override-other.code -module-name other -enable-testing
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+@testable import other
+
+protocol Sub : Base {
+  var foo: String { get set }
+}

@@ -1,0 +1,55 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+protocol A {
+  associatedtype BType: B where BType.AType == Self
+  associatedtype CType: C where CType.AType == Self
+
+  var b: BType { get }
+  var c: CType { get set }
+
+  fn bGetter() -> BType
+  mutating fn cSetter(_ newC: CType)
+
+  subscript (b: BType) -> CType { get set }
+}
+
+protocol B {
+  associatedtype AType: A
+}
+
+protocol C {
+  associatedtype AType: A
+}
+
+struct AImpl: A {
+  typealias BType = BImpl
+  typealias CType = CImpl
+
+  immutable b: BImpl
+  var c: CImpl
+
+  fn bGetter() -> BImpl {
+    return b
+  }
+
+  mutating fn cSetter(_ newC: CImpl) {
+    c = newC
+  }
+
+  subscript(b: BImpl) -> CImpl {
+    get {
+      return c
+    }
+    set {
+      c = newValue
+    }
+  }
+}
+
+struct BImpl: B {
+  typealias AType = AImpl
+}
+
+struct CImpl: C {
+  typealias AType = AImpl
+}

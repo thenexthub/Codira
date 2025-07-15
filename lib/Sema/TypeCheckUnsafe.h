@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_TYPE_CHECK_UNSAFE_H
-#define SWIFT_SEMA_TYPE_CHECK_UNSAFE_H
+#ifndef LANGUAGE_SEMA_TYPE_CHECK_UNSAFE_H
+#define LANGUAGE_SEMA_TYPE_CHECK_UNSAFE_H
 
 #include "language/AST/UnsafeUse.h"
 
-namespace llvm {
+namespace toolchain {
 template <typename Fn> class function_ref;
 }
 
@@ -37,7 +38,8 @@ void diagnoseUnsafeUse(const UnsafeUse &use);
 bool enumerateUnsafeUses(ConcreteDeclRef declRef,
                          SourceLoc loc,
                          bool isCall,
-                         llvm::function_ref<bool(UnsafeUse)> fn);
+                         bool skipTypeCheck,
+                         toolchain::function_ref<bool(UnsafeUse)> fn);
 
 /// Enumerate all of the unsafe uses that occur within this array of protocol
 /// conformances.
@@ -47,7 +49,7 @@ bool enumerateUnsafeUses(ConcreteDeclRef declRef,
 /// it will return `false` once all unsafe uses have been emitted.
 bool enumerateUnsafeUses(ArrayRef<ProtocolConformanceRef> conformances,
                          SourceLoc loc,
-                         llvm::function_ref<bool(UnsafeUse)> fn);
+                         toolchain::function_ref<bool(UnsafeUse)> fn);
 
 /// Enumerate all of the unsafe uses that occur within this substitution map.
 ///
@@ -56,7 +58,7 @@ bool enumerateUnsafeUses(ArrayRef<ProtocolConformanceRef> conformances,
 /// it will return `false` once all unsafe uses have been emitted.
 bool enumerateUnsafeUses(SubstitutionMap subs,
                          SourceLoc loc,
-                         llvm::function_ref<bool(UnsafeUse)> fn);
+                         toolchain::function_ref<bool(UnsafeUse)> fn);
 
 /// Determine whether a reference to this declaration is considered unsafe,
 /// either explicitly (@unsafe) or because it references an unsafe type.
@@ -71,11 +73,11 @@ bool isUnsafeInConformance(const ValueDecl *requirement,
 /// If the given type involves an unsafe type, diagnose it by calling the
 /// diagnose function with the most specific unsafe type that can be provided.
 void diagnoseUnsafeType(ASTContext &ctx, SourceLoc loc, Type type,
-                        llvm::function_ref<void(Type)> diagnose);
+                        toolchain::function_ref<void(Type)> diagnose);
 
 /// Check for unsafe storage within this nominal type declaration.
 void checkUnsafeStorage(NominalTypeDecl *nominal);
 
 }
 
-#endif // SWIFT_SEMA_TYPE_CHECK_UNSAFE_H
+#endif // LANGUAGE_SEMA_TYPE_CHECK_UNSAFE_H

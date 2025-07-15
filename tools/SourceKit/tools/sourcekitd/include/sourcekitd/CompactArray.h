@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_COMPACTARRAY_H
-#define LLVM_SOURCEKITD_COMPACTARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_COMPACTARRAY_H
+#define TOOLCHAIN_SOURCEKITD_COMPACTARRAY_H
 
 #include "sourcekitd/Internal.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 namespace sourcekitd {
 
 class CompactArrayBuilderImpl {
 public:
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer(CustomBufferKind Kind) const;
-  void appendTo(llvm::SmallVectorImpl<char> &Buf) const;
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer(CustomBufferKind Kind) const;
+  void appendTo(toolchain::SmallVectorImpl<char> &Buf) const;
   unsigned copyInto(char *BufPtr) const;
   size_t sizeInBytes() const;
   bool empty() const;
@@ -34,16 +35,16 @@ protected:
 
   void addImpl(uint8_t Val);
   void addImpl(unsigned Val);
-  void addImpl(llvm::StringRef Val);
+  void addImpl(toolchain::StringRef Val);
   void addImpl(SourceKit::UIdent Val);
-  void addImpl(std::optional<llvm::StringRef> Val);
+  void addImpl(std::optional<toolchain::StringRef> Val);
 
 private:
-  unsigned getOffsetForString(llvm::StringRef Str);
+  unsigned getOffsetForString(toolchain::StringRef Str);
   void copyInto(char *BufPtr, size_t Length) const;
 
-  llvm::SmallVector<uint8_t, 256> EntriesBuffer;
-  llvm::SmallString<256> StringBuffer;
+  toolchain::SmallVector<uint8_t, 256> EntriesBuffer;
+  toolchain::SmallString<256> StringBuffer;
 };
 
 

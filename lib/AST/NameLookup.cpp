@@ -1,4 +1,4 @@
-//===--- NameLookup.cpp - Swift Name Lookup Routines ----------------------===//
+//===--- NameLookup.cpp - Codira Name Lookup Routines ----------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements interfaces for performing name lookup.
@@ -49,10 +50,10 @@
 #include "language/Strings.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/Basic/Specifiers.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <deque>
 
@@ -72,7 +73,7 @@ ValueDecl *LookupResultEntry::getBaseDecl() const {
 }
 
 void LookupResult::filter(
-    llvm::function_ref<bool(LookupResultEntry, bool)> pred) {
+    toolchain::function_ref<bool(LookupResultEntry, bool)> pred) {
   size_t index = 0;
   size_t originalFirstOuter = IndexOfFirstOuterResult;
   Results.erase(std::remove_if(Results.begin(), Results.end(),
@@ -112,7 +113,7 @@ void LookupResult::shiftDownResults() {
   }
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            UnqualifiedLookupOptions options) {
   using Flag = std::pair<UnqualifiedLookupFlags, StringRef>;
   Flag possibleFlags[] = {
@@ -127,7 +128,7 @@ void swift::simple_display(llvm::raw_ostream &out,
       {UnqualifiedLookupFlags::ABIProviding, "ABIProviding"},
   };
 
-  auto flagsToPrint = llvm::make_filter_range(
+  auto flagsToPrint = toolchain::make_filter_range(
       possibleFlags, [&](Flag flag) { return options.contains(flag.first); });
 
   out << "{ ";
@@ -199,12 +200,12 @@ void UsableFilteringDeclConsumer::foundDecl(
   // Filter out shadowed decls. Do this for only usable values even though
   // unusable values actually can shadow outer values, because compilers might
   // be able to diagnose it with fix-it to add the qualification. E.g.
-  //   func foo(global: T) {}
+  //   fn foo(global: T) {}
   //   struct Outer {
-  //     func foo(outer: T) {}
-  //     func test() {
+  //     fn foo(outer: T) {}
+  //     fn test() {
   //       struct Inner {
-  //         func test() {
+  //         fn test() {
   //           <HERE>
   //         }
   //       }
@@ -228,14 +229,14 @@ void UsableFilteringDeclConsumer::foundDecl(
     switch (shadowingReason) {
     case DeclVisibilityKind::LocalDecl:
     case DeclVisibilityKind::FunctionParameter:
-      // Local func and var/let with a conflicting name.
-      //   func foo() {
-      //     func value(arg: Int) {}
+      // Local fn and var/let with a conflicting name.
+      //   fn foo() {
+      //     fn value(arg: Int) {}
       //     var value = ""
       //   }
       // In this case, 'var value' wins, regardless of their source order.
       // So, for confilicting local values in the same decl context, even if the
-      // 'var value' is reported after 'func value', don't shadow it, but we
+      // 'var value' is reported after 'fn value', don't shadow it, but we
       // shadow everything with the name after that.
       if (reason == DeclVisibilityKind::LocalDecl &&
           isa<VarDecl>(D) && !isa<VarDecl>(shadowingD) &&
@@ -295,7 +296,7 @@ void UsableFilteringDeclConsumer::foundDecl(
   ChainedConsumer.foundDecl(D, reason, dynamicLookupInfo);
 }
 
-void LookupResultEntry::print(llvm::raw_ostream& out) const {
+void LookupResultEntry::print(toolchain::raw_ostream& out) const {
   getValueDecl()->print(out);
   if (auto dc = getBaseDecl()) {
     out << "\nbase: ";
@@ -310,39 +311,32 @@ void LookupResultEntry::print(llvm::raw_ostream& out) const {
 }
 
 
-bool swift::removeOverriddenDecls(SmallVectorImpl<ValueDecl*> &decls) {
+bool language::removeOverriddenDecls(SmallVectorImpl<ValueDecl*> &decls) {
   if (decls.size() < 2)
     return false;
 
-  llvm::SmallPtrSet<ValueDecl*, 8> overridden;
+  toolchain::SmallPtrSet<ValueDecl*, 8> overridden;
   for (auto decl : decls) {
     // Don't look at the overrides of operators in protocols. The global
     // lookup of operators means that we can find overriding operators that
     // aren't relevant to the types in hand, and will fail to type check.
     if (isa<ProtocolDecl>(decl->getDeclContext())) {
-      if (auto func = dyn_cast<FuncDecl>(decl))
-        if (func->isOperator())
+      if (auto fn = dyn_cast<FuncDecl>(decl))
+        if (fn->isOperator())
           continue;
     }
 
     while (auto overrides = decl->getOverriddenDecl()) {
-      overridden.insert(overrides);
-
-      // Because initializers from Objective-C base classes have greater
-      // visibility than initializers written in Swift classes, we can
-      // have a "break" in the set of declarations we found, where
-      // C.init overrides B.init overrides A.init, but only C.init and
-      // A.init are in the chain. Make sure we still remove A.init from the
-      // set in this case.
-      if (decl->getBaseName().isConstructor()) {
-        /// FIXME: Avoid the possibility of an infinite loop by fixing the root
-        ///        cause instead (incomplete circularity detection).
-        assert(decl != overrides && "Circular class inheritance?");
-        decl = overrides;
-        continue;
+      if (!overridden.insert(overrides).second) {
+        // If we've already seen a decl then there's no need to visit the decls
+        // that it overrides since they should already be in the set. This also
+        // prevents infinite loops in the case that the AST contains an
+        // override chain with a cycle due to circular inheritance.
+        break;
       }
 
-      break;
+      DEBUG_ASSERT(decl != overrides && "Circular class inheritance?");
+      decl = overrides;
     }
   }
 
@@ -374,7 +368,7 @@ enum class ConstructorComparison {
 /// Determines whether \p ctor1 is a "better" initializer than \p ctor2.
 static ConstructorComparison compareConstructors(ConstructorDecl *ctor1,
                                                  ConstructorDecl *ctor2,
-                                                 const swift::ASTContext &ctx) {
+                                                 const language::ASTContext &ctx) {
   bool available1 = !ctor1->isUnavailable();
   bool available2 = !ctor2->isUnavailable();
 
@@ -413,7 +407,7 @@ template <typename T>
 static void recordShadowedDeclsAfterTypeMatch(
                               ArrayRef<T> decls,
                               const DeclContext *dc,
-                              llvm::SmallPtrSetImpl<T> &shadowed) {
+                              toolchain::SmallPtrSetImpl<T> &shadowed) {
   assert(decls.size() > 1 && "Nothing collided");
 
   // Compare each declaration to every other declaration. This is
@@ -570,12 +564,12 @@ static void recordShadowedDeclsAfterTypeMatch(
         }
       }
 
-      // Swift 4 compatibility hack: Don't shadow properties defined in
+      // Codira 4 compatibility hack: Don't shadow properties defined in
       // extensions of generic types with properties defined elsewhere.
-      // This is due to the fact that in Swift 4, we only gave custom overload
+      // This is due to the fact that in Codira 4, we only gave custom overload
       // types to properties in extensions of generic types, otherwise we
       // used the null type.
-      if (!ctx.isSwiftVersionAtLeast(5) && isa<ValueDecl>(firstDecl)) {
+      if (!ctx.isCodiraVersionAtLeast(5) && isa<ValueDecl>(firstDecl)) {
         auto secondSig = cast<ValueDecl>(secondDecl)->getOverloadSignature();
         auto firstSig = cast<ValueDecl>(firstDecl)->getOverloadSignature();
         if (firstSig.IsVariable && secondSig.IsVariable)
@@ -636,11 +630,11 @@ static void recordShadowedDeclsAfterTypeMatch(
 
       // Prefer declarations in the any module over those in the standard
       // library module.
-      if (auto swiftModule = ctx.getStdlibModule()) {
-        if ((firstModule == swiftModule) != (secondModule == swiftModule)) {
+      if (auto languageModule = ctx.getStdlibModule()) {
+        if ((firstModule == languageModule) != (secondModule == languageModule)) {
           // If the second module is the standard library module, the second
           // declaration is shadowed by the first.
-          if (secondModule == swiftModule) {
+          if (secondModule == languageModule) {
             shadowed.insert(secondDecl);
             continue;
           }
@@ -700,7 +694,7 @@ static void recordShadowedDeclsAfterTypeMatch(
       }
 
       // The Foundation overlay introduced Data.withUnsafeBytes, which is
-      // treated as being ambiguous with SwiftNIO's Data.withUnsafeBytes
+      // treated as being ambiguous with CodiraNIO's Data.withUnsafeBytes
       // extension. Apply a special-case name shadowing rule to use the
       // latter rather than the former, which be the consequence of a more
       // significant change to name shadowing in the future.
@@ -809,12 +803,12 @@ static CanType removeThrownError(Type type) {
 static void recordShadowedDeclsAfterSignatureMatch(
                               ArrayRef<ValueDecl *> decls,
                               const DeclContext *dc,
-                              llvm::SmallPtrSetImpl<ValueDecl *> &shadowed) {
+                              toolchain::SmallPtrSetImpl<ValueDecl *> &shadowed) {
   assert(decls.size() > 1 && "Nothing collided");
 
   // Categorize all of the declarations based on their overload types.
-  llvm::SmallDenseMap<CanType, llvm::TinyPtrVector<ValueDecl *>> collisions;
-  llvm::SmallVector<CanType, 2> collisionTypes;
+  toolchain::SmallDenseMap<CanType, toolchain::TinyPtrVector<ValueDecl *>> collisions;
+  toolchain::SmallVector<CanType, 2> collisionTypes;
 
   for (auto decl : decls) {
     assert(!isa<TypeDecl>(decl));
@@ -865,7 +859,7 @@ static void recordShadowedDeclsAfterSignatureMatch(
 /// \c shadowed set.
 static void recordShadowedDeclsForImportedInits(
                                 ArrayRef<ConstructorDecl *> ctors,
-                                llvm::SmallPtrSetImpl<ValueDecl *> &shadowed) {
+                                toolchain::SmallPtrSetImpl<ValueDecl *> &shadowed) {
   assert(ctors.size() > 1 && "No collisions");
 
   ASTContext &ctx = ctors.front()->getASTContext();
@@ -891,20 +885,20 @@ static void recordShadowedDeclsForImportedInits(
 /// \c shadowed set.
 static void recordShadowedDecls(ArrayRef<ValueDecl *> decls,
                                 const DeclContext *dc,
-                                llvm::SmallPtrSetImpl<ValueDecl *> &shadowed) {
+                                toolchain::SmallPtrSetImpl<ValueDecl *> &shadowed) {
   if (decls.size() < 2)
     return;
 
-  llvm::TinyPtrVector<ValueDecl *> typeDecls;
+  toolchain::TinyPtrVector<ValueDecl *> typeDecls;
 
   // Categorize all of the declarations based on their overload signatures.
-  llvm::SmallDenseMap<const GenericSignatureImpl *,
-                      llvm::TinyPtrVector<ValueDecl *>> collisions;
-  llvm::SmallVector<const GenericSignatureImpl *, 2> collisionSignatures;
-  llvm::SmallDenseMap<NominalTypeDecl *,
-                      llvm::TinyPtrVector<ConstructorDecl *>>
+  toolchain::SmallDenseMap<const GenericSignatureImpl *,
+                      toolchain::TinyPtrVector<ValueDecl *>> collisions;
+  toolchain::SmallVector<const GenericSignatureImpl *, 2> collisionSignatures;
+  toolchain::SmallDenseMap<NominalTypeDecl *,
+                      toolchain::TinyPtrVector<ConstructorDecl *>>
     importedInitializerCollisions;
-  llvm::TinyPtrVector<NominalTypeDecl *> importedInitializerCollisionTypes;
+  toolchain::TinyPtrVector<NominalTypeDecl *> importedInitializerCollisionTypes;
 
   for (auto decl : decls) {
     if (auto *typeDecl = dyn_cast<TypeDecl>(decl)) {
@@ -966,7 +960,7 @@ static void recordShadowedDecls(ArrayRef<ValueDecl *> decls,
 
 static void
 recordShadowedDecls(ArrayRef<OperatorDecl *> decls, const DeclContext *dc,
-                    llvm::SmallPtrSetImpl<OperatorDecl *> &shadowed) {
+                    toolchain::SmallPtrSetImpl<OperatorDecl *> &shadowed) {
   // Always considered to have the same signature.
   recordShadowedDeclsAfterTypeMatch(decls, dc, shadowed);
 }
@@ -974,7 +968,7 @@ recordShadowedDecls(ArrayRef<OperatorDecl *> decls, const DeclContext *dc,
 static void
 recordShadowedDecls(ArrayRef<PrecedenceGroupDecl *> decls,
                     const DeclContext *dc,
-                    llvm::SmallPtrSetImpl<PrecedenceGroupDecl *> &shadowed) {
+                    toolchain::SmallPtrSetImpl<PrecedenceGroupDecl *> &shadowed) {
   // Always considered to have the same type.
   recordShadowedDeclsAfterTypeMatch(decls, dc, shadowed);
 }
@@ -982,7 +976,7 @@ recordShadowedDecls(ArrayRef<PrecedenceGroupDecl *> decls,
 template <typename T, typename Container>
 static bool removeShadowedDeclsImpl(Container &decls, const DeclContext *dc) {
   // Collect declarations with the same (full) name.
-  llvm::SmallDenseMap<DeclName, llvm::TinyPtrVector<T>> collidingDeclGroups;
+  toolchain::SmallDenseMap<DeclName, toolchain::TinyPtrVector<T>> collidingDeclGroups;
   bool anyCollisions = false;
   for (auto decl : decls) {
     // Record this declaration based on its full name.
@@ -998,7 +992,7 @@ static bool removeShadowedDeclsImpl(Container &decls, const DeclContext *dc) {
     return false;
 
   // Walk through the declarations again, marking any declarations that shadow.
-  llvm::SmallPtrSet<T, 4> shadowed;
+  toolchain::SmallPtrSet<T, 4> shadowed;
   for (auto decl : decls) {
     auto known = collidingDeclGroups.find(decl->getName());
     if (known == collidingDeclGroups.end()) {
@@ -1030,12 +1024,12 @@ static bool removeShadowedDeclsImpl(Container &decls, const DeclContext *dc) {
   return anyRemoved;
 }
 
-bool swift::removeShadowedDecls(SmallVectorImpl<ValueDecl *> &decls,
+bool language::removeShadowedDecls(SmallVectorImpl<ValueDecl *> &decls,
                                 const DeclContext *dc) {
   return removeShadowedDeclsImpl<ValueDecl *>(decls, dc);
 }
 
-bool swift::removeShadowedDecls(TinyPtrVector<OperatorDecl *> &decls,
+bool language::removeShadowedDecls(TinyPtrVector<OperatorDecl *> &decls,
                                 const DeclContext *dc) {
 #ifndef NDEBUG
   // Make sure all the operators have the same fixity.
@@ -1047,7 +1041,7 @@ bool swift::removeShadowedDecls(TinyPtrVector<OperatorDecl *> &decls,
   return removeShadowedDeclsImpl<OperatorDecl *>(decls, dc);
 }
 
-bool swift::removeShadowedDecls(TinyPtrVector<PrecedenceGroupDecl *> &decls,
+bool language::removeShadowedDecls(TinyPtrVector<PrecedenceGroupDecl *> &decls,
                                 const DeclContext *dc) {
   return removeShadowedDeclsImpl<PrecedenceGroupDecl *>(decls, dc);
 }
@@ -1135,6 +1129,9 @@ enum class DirectlyReferencedTypeLookupFlags {
   /// Include members that would normally be excluded because they come from
   /// modules that have not been imported directly.
   IgnoreMissingImports = 1 << 3,
+
+  /// Whenther we should exclude macro expansions.
+  ExcludeMacroExpansions = 1 << 4,
 };
 
 using DirectlyReferencedTypeLookupOptions =
@@ -1178,7 +1175,7 @@ resolveTypeDeclsToNominal(Evaluator &evaluator,
 
 SelfBounds SelfBoundsFromWhereClauseRequest::evaluate(
     Evaluator &evaluator,
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl) const {
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl) const {
   auto *typeDecl = decl.dyn_cast<const TypeDecl *>();
   auto *protoDecl = dyn_cast_or_null<const ProtocolDecl>(typeDecl);
   auto *extDecl = decl.dyn_cast<const ExtensionDecl *>();
@@ -1236,8 +1233,8 @@ SelfBounds SelfBoundsFromWhereClauseRequest::evaluate(
   return result;
 }
 
-SelfBounds swift::getSelfBoundsFromWhereClause(
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl) {
+SelfBounds language::getSelfBoundsFromWhereClause(
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl) {
   auto *typeDecl = decl.dyn_cast<const TypeDecl *>();
   auto *extDecl = decl.dyn_cast<const ExtensionDecl *>();
   auto &ctx = typeDecl ? typeDecl->getASTContext()
@@ -1266,7 +1263,7 @@ SelfBounds SelfBoundsFromGenericSignatureRequest::evaluate(
 }
 
 SelfBounds
-swift::getSelfBoundsFromGenericSignature(const ExtensionDecl *extDecl) {
+language::getSelfBoundsFromGenericSignature(const ExtensionDecl *extDecl) {
   auto &ctx = extDecl->getASTContext();
   return evaluateOrDefault(ctx.evaluator,
                            SelfBoundsFromGenericSignatureRequest{extDecl}, {});
@@ -1322,21 +1319,21 @@ void LazyConformanceLoader::anchor() {}
 
 /// Lookup table used to store members of a nominal type (and its extensions)
 /// for fast retrieval.
-class swift::MemberLookupTable : public ASTAllocated<swift::MemberLookupTable> {
+class language::MemberLookupTable : public ASTAllocated<language::MemberLookupTable> {
   /// The type of the internal lookup table.
-  typedef llvm::DenseMap<DeclName, llvm::TinyPtrVector<ValueDecl *>>
+  typedef toolchain::DenseMap<DeclName, toolchain::TinyPtrVector<ValueDecl *>>
     LookupTable;
 
   /// Lookup table mapping names to the set of declarations with that name.
   LookupTable Lookup;
 
   /// List of containers that have lazily-loaded members
-  llvm::SmallVector<ExtensionDecl *, 2> ExtensionsWithLazyMembers;
+  toolchain::SmallVector<ExtensionDecl *, 2> ExtensionsWithLazyMembers;
 
   /// The set of names of lazily-loaded members that the lookup table has a
   /// complete accounting of with respect to all known extensions of its
   /// parent nominal type.
-  llvm::DenseSet<DeclBaseName> LazilyCompleteNames;
+  toolchain::DenseSet<DeclBaseName> LazilyCompleteNames;
 
   struct {
     /// Whether we have computed the `containersWithMacroExpansions`.
@@ -1345,11 +1342,11 @@ class swift::MemberLookupTable : public ASTAllocated<swift::MemberLookupTable> {
     /// The nominal type and any extensions that have macro expansions, which
     /// is used to restrict the set of places one will lookup for a member
     /// produced by a macro expansion.
-    llvm::SmallVector<TypeOrExtensionDecl, 2> ContainersWithMacroExpansions;
+    toolchain::SmallVector<TypeOrExtensionDecl, 2> ContainersWithMacroExpansions;
 
     /// The set of names for which we have expanded relevant macros for in the
     /// parent nominal type.
-    llvm::DenseSet<DeclName> LazilyCompleteNames;
+    toolchain::DenseSet<DeclName> LazilyCompleteNames;
   } LazyMacroExpansionState;
 public:
   /// Create a new member lookup table.
@@ -1453,7 +1450,7 @@ public:
     return Lookup.find(name);
   }
 
-  void dump(llvm::raw_ostream &os) const {
+  void dump(toolchain::raw_ostream &os) const {
     os << "Lookup:\n  ";
     for (auto &pair : Lookup) {
       pair.getFirst().print(os);
@@ -1470,8 +1467,8 @@ public:
     os << "\n";
   }
 
-  SWIFT_DEBUG_DUMP {
-    dump(llvm::errs());
+  LANGUAGE_DEBUG_DUMP {
+    dump(toolchain::errs());
   }
 };
 
@@ -1483,30 +1480,30 @@ namespace {
     unsigned Generation = 0;
 
     /// The set of methods with the given selector.
-    llvm::TinyPtrVector<AbstractFunctionDecl *> Methods;
+    toolchain::TinyPtrVector<AbstractFunctionDecl *> Methods;
   };
 } // end anonymous namespace
 
 /// Class member lookup table, which is a member lookup table with a second
 /// table for lookup based on Objective-C selector.
-class swift::ObjCMethodLookupTable
-        : public llvm::DenseMap<std::pair<ObjCSelector, char>,
+class language::ObjCMethodLookupTable
+        : public toolchain::DenseMap<std::pair<ObjCSelector, char>,
                                 StoredObjCMethods>,
           public ASTAllocated<ObjCMethodLookupTable>
 {
-  SWIFT_DEBUG_DUMP {
-    llvm::errs() << "ObjCMethodLookupTable:\n";
+  LANGUAGE_DEBUG_DUMP {
+    toolchain::errs() << "ObjCMethodLookupTable:\n";
     for (auto pair : *this) {
       auto selector = pair.getFirst().first;
       auto isInstanceMethod = pair.getFirst().second;
       auto &methods = pair.getSecond();
 
-      llvm::errs() << "  \"" << (isInstanceMethod ? "-" : "+") << selector
+      toolchain::errs() << "  \"" << (isInstanceMethod ? "-" : "+") << selector
                    << "\":\n";
       for (auto method : methods.Methods) {
-        llvm::errs() << "  - \"";
-        method->dumpRef(llvm::errs());
-        llvm::errs() << "\"\n";
+        toolchain::errs() << "  - \"";
+        method->dumpRef(toolchain::errs());
+        toolchain::errs() << "\"\n";
       }
     }
   }
@@ -1566,9 +1563,9 @@ static bool shouldLoadMembersImmediately(ExtensionDecl *ext) {
 
   // This extension is lazy but is not deserialized or backed by a clang node,
   // so it's a ClangImporter extension containing import-as-member globals.
-  // Historically, Swift forced these extensions to load their members
-  // immediately, bypassing the module's SwiftLookupTable. Using the
-  // SwiftLookupTable *ought* to work the same, but in practice it sometimes
+  // Historically, Codira forced these extensions to load their members
+  // immediately, bypassing the module's CodiraLookupTable. Using the
+  // CodiraLookupTable *ought* to work the same, but in practice it sometimes
   // gives different results when a header is not properly modularized. Provide
   // a flag to temporarily re-enable the old behavior.
   return ext->getASTContext().LangOpts.DisableNamedLazyImportAsMemberLoading;
@@ -1841,7 +1838,7 @@ namelookup::isInMacroArgument(SourceFile *sourceFile, SourceLoc loc) {
 /// triggers request cycles.
 void namelookup::forEachPotentialResolvedMacro(
     DeclContext *moduleScopeCtx, DeclNameRef macroName, MacroRole role,
-    llvm::function_ref<void(MacroDecl *, const MacroRoleAttr *)> body
+    toolchain::function_ref<void(MacroDecl *, const MacroRoleAttr *)> body
 ) {
   ASTContext &ctx = moduleScopeCtx->getASTContext();
   UnqualifiedLookupDescriptor lookupDesc{
@@ -1869,7 +1866,7 @@ void namelookup::forEachPotentialResolvedMacro(
 /// declaration, call the body.
 void namelookup::forEachPotentialAttachedMacro(
     Decl *decl, MacroRole role,
-    llvm::function_ref<void(MacroDecl *macro, const MacroRoleAttr *)> body
+    toolchain::function_ref<void(MacroDecl *macro, const MacroRoleAttr *)> body
 ) {
   // We intentionally avoid calling `forEachAttachedMacro` in order to avoid
   // a request cycle.
@@ -2159,7 +2156,7 @@ DirectLookupRequest::evaluate(Evaluator &evaluator,
   const bool excludeMacroExpansions =
       flags.contains(NominalTypeDecl::LookupDirectFlags::ExcludeMacroExpansions);
 
-  LLVM_DEBUG(llvm::dbgs() << decl->getNameStr() << ".lookupDirect("
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << decl->getNameStr() << ".lookupDirect("
                           << name << ")"
                           << ", excludeMacroExpansions="
                           << excludeMacroExpansions
@@ -2191,10 +2188,10 @@ DirectLookupRequest::evaluate(Evaluator &evaluator,
       if (!allFound.empty()) {
         auto known = Table.find(name);
         if (known != Table.end()) {
-          auto swiftLookupResult =
+          auto languageLookupResult =
               maybeFilterOutUnwantedDecls(known->second, name, flags);
-          for (auto foundSwiftDecl : swiftLookupResult) {
-            allFound.push_back(foundSwiftDecl);
+          for (auto foundCodiraDecl : languageLookupResult) {
+            allFound.push_back(foundCodiraDecl);
           }
         }
         return allFound;
@@ -2286,7 +2283,7 @@ static bool inObjCImplExtension(AbstractFunctionDecl *newDecl) {
 /// in \p vec, should we diagnose it?
 static bool
 shouldDiagnoseConflict(NominalTypeDecl *ty, AbstractFunctionDecl *newDecl,
-                       llvm::TinyPtrVector<AbstractFunctionDecl *> &vec) {
+                       toolchain::TinyPtrVector<AbstractFunctionDecl *> &vec) {
   // Conflicts between member implementations and their interfaces, or
   // inherited inits and their overrides in @_objcImpl extensions, are spurious.
   if (newDecl->isObjCMemberImplementation()
@@ -2295,14 +2292,14 @@ shouldDiagnoseConflict(NominalTypeDecl *ty, AbstractFunctionDecl *newDecl,
     return false;
 
   // Are all conflicting methods imported from ObjC and in our ObjC half or a
-  // bridging header? Some code bases implement ObjC methods in Swift even
+  // bridging header? Some code bases implement ObjC methods in Codira even
   // though it's not exactly supported.
   auto newDeclModuleName = newDecl->getModuleContext()->getName();
   auto newDeclPrivateModuleName = newDecl->getASTContext().getIdentifier(
-                     (llvm::Twine(newDeclModuleName.str()) + "_Private").str());
+                     (toolchain::Twine(newDeclModuleName.str()) + "_Private").str());
   auto bridgingHeaderModuleName = newDecl->getASTContext().getIdentifier(
                                                      CLANG_HEADER_MODULE_NAME);
-  if (llvm::all_of(vec, [&](AbstractFunctionDecl *oldDecl) {
+  if (toolchain::all_of(vec, [&](AbstractFunctionDecl *oldDecl) {
     if (!oldDecl->hasClangNode())
       return false;
     auto oldDeclModuleName = oldDecl->getModuleContext()->getName();
@@ -2381,7 +2378,9 @@ ObjCCategoryNameMap ClassDecl::getObjCCategoryNameMap() {
 /// the given context.
 static bool shouldRequireImportsInContext(const DeclContext *lookupContext) {
   auto &ctx = lookupContext->getASTContext();
-  if (!ctx.LangOpts.hasFeature(Feature::MemberImportVisibility))
+
+  if (!ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                               /*allowMigration=*/true))
     return false;
 
   // Code outside of the main module (which is often synthesized) isn't subject
@@ -2398,6 +2397,8 @@ static bool isAcceptableLookupResult(const DeclContext *dc, NLOptions options,
                                      ValueDecl *decl,
                                      bool onlyCompleteObjectInits,
                                      bool requireImport) {
+  auto &ctx = dc->getASTContext();
+
   // Filter out designated initializers, if requested.
   if (onlyCompleteObjectInits) {
     if (auto ctor = dyn_cast<ConstructorDecl>(decl)) {
@@ -2415,19 +2416,43 @@ static bool isAcceptableLookupResult(const DeclContext *dc, NLOptions options,
   }
 
   // Check access.
-  if (!(options & NL_IgnoreAccessControl) &&
-      !dc->getASTContext().isAccessControlDisabled()) {
+  if (!(options & NL_IgnoreAccessControl) && !ctx.isAccessControlDisabled()) {
     bool allowUsableFromInline = options & NL_IncludeUsableFromInline;
     if (!decl->isAccessibleFrom(dc, /*forConformance*/ false,
                                 allowUsableFromInline))
       return false;
   }
 
-  // Check that there is some import in the originating context that makes this
-  // decl visible.
-  if (requireImport && !(options & NL_IgnoreMissingImports))
-    if (!dc->isDeclImported(decl))
-      return false;
+  if (requireImport) {
+    // Check that there is some import in the originating context that makes
+    // this decl visible.
+    if (!(options & NL_IgnoreMissingImports)) {
+      if (!dc->isDeclImported(decl))
+        return false;
+    }
+
+    // Unlike in Codira, Obj-C allows method overrides to be declared in
+    // extensions (categories), even outside of the module that defines the
+    // type that is being extended. When MemberImportVisibility is enabled,
+    // if these overrides are not filtered out they can hijack name
+    // lookup and cause the compiler to insist that the module that defines
+    // the extension be imported, contrary to developer expectations.
+    //
+    // Filter results belonging to these extensions out, even when ignoring
+    // missing imports, if we're in a context that requires imports to access
+    // member declarations.
+    if (decl->getOverriddenDecl()) {
+      if (auto *extension = dyn_cast<ExtensionDecl>(decl->getDeclContext())) {
+        if (auto *nominal = extension->getExtendedNominal()) {
+          auto extensionMod = extension->getModuleContext();
+          auto nominalMod = nominal->getModuleContext();
+          if (!extensionMod->isSameModuleLookingThroughOverlays(nominalMod) &&
+              !dc->isDeclImported(extension))
+            return false;
+        }
+      }
+    }
+  }
 
   // Check that it has the appropriate ABI role.
   if (!ABIRoleInfo(decl).matchesOptions(options))
@@ -2545,7 +2570,7 @@ void namelookup::extractDirectlyReferencedNominalTypes(
     return;
   }
 
-  llvm_unreachable("Not a type containing nominal types?");
+  toolchain_unreachable("Not a type containing nominal types?");
 }
 
 void namelookup::tryExtractDirectlyReferencedNominalTypes(
@@ -2638,7 +2663,7 @@ QualifiedLookupRequest::evaluate(Evaluator &eval, const DeclContext *DC,
 
   // Tracking for the nominal types we'll visit.
   SmallVector<NominalTypeDecl *, 4> stack;
-  llvm::SmallPtrSet<NominalTypeDecl *, 4> visited;
+  toolchain::SmallPtrSet<NominalTypeDecl *, 4> visited;
   bool sawClassDecl = false;
 
   // Add the given nominal type to the stack.
@@ -2811,7 +2836,7 @@ ModuleQualifiedLookupRequest::evaluate(Evaluator &eval, const DeclContext *DC,
     auto &ctx = DC->getASTContext();
     auto accessPaths = ctx.getImportCache().getAllVisibleAccessPaths(
         module, topLevelScope);
-    if (llvm::any_of(accessPaths,
+    if (toolchain::any_of(accessPaths,
                      [&](ImportPath::Access accessPath) {
                        return accessPath.matches(member.getFullName());
                      })) {
@@ -2854,7 +2879,7 @@ AnyObjectLookupRequest::evaluate(Evaluator &evaluator, const DeclContext *dc,
 
   // For each declaration whose context is not something we've
   // already visited above, add it to the list of declarations.
-  llvm::SmallPtrSet<ValueDecl *, 4> knownDecls;
+  toolchain::SmallPtrSet<ValueDecl *, 4> knownDecls;
   for (auto decl : allDecls) {
     // If the declaration is not @objc, it cannot be called dynamically.
     if (!decl->isObjC())
@@ -2906,11 +2931,11 @@ void DeclContext::lookupAllObjCMethods(
   }
 
   // Filter out duplicates.
-  llvm::SmallPtrSet<AbstractFunctionDecl *, 8> visited;
+  toolchain::SmallPtrSet<AbstractFunctionDecl *, 8> visited;
   results.erase(
     std::remove_if(results.begin(), results.end(),
-                   [&](AbstractFunctionDecl *func) -> bool {
-                     return !visited.insert(func).second;
+                   [&](AbstractFunctionDecl *fn) -> bool {
+                     return !visited.insert(fn).second;
                    }),
     results.end());
 }
@@ -2939,7 +2964,7 @@ resolveTypeDeclsToNominal(Evaluator &evaluator,
                           ResolveToNominalOptions options,
                           SmallVectorImpl<ModuleDecl *> &modulesFound,
                           bool &anyObject,
-                          llvm::SmallPtrSetImpl<TypeAliasDecl *> &typealiases) {
+                          toolchain::SmallPtrSetImpl<TypeAliasDecl *> &typealiases) {
   SmallPtrSet<NominalTypeDecl *, 4> knownNominalDecls;
   TinyPtrVector<NominalTypeDecl *> nominalDecls;
   auto addNominalDecl = [&](NominalTypeDecl *nominal) {
@@ -2979,7 +3004,7 @@ resolveTypeDeclsToNominal(Evaluator &evaluator,
                     underlyingNominalReferences.end(),
                     addNominalDecl);
 
-      // Recognize Swift.AnyObject directly.
+      // Recognize Codira.AnyObject directly.
       if (typealias->getName().is("AnyObject")) {
         // Type version: an empty class-bound existential.
         if (auto type = typealias->getUnderlyingType()) {
@@ -3022,7 +3047,7 @@ resolveTypeDeclsToNominal(Evaluator &evaluator,
                           ResolveToNominalOptions options,
                           SmallVectorImpl<ModuleDecl *> &modulesFound,
                           bool &anyObject) {
-  llvm::SmallPtrSet<TypeAliasDecl *, 4> typealiases;
+  toolchain::SmallPtrSet<TypeAliasDecl *, 4> typealiases;
   return resolveTypeDeclsToNominal(evaluator, ctx, typeDecls, options,
                                    modulesFound, anyObject, typealiases);
 }
@@ -3046,6 +3071,10 @@ static DirectlyReferencedTypeDecls directReferencesForUnqualifiedTypeLookup(
   if (typeLookupOptions.contains(
           DirectlyReferencedTypeLookupFlags::IgnoreMissingImports))
     options |= UnqualifiedLookupFlags::IgnoreMissingImports;
+
+  if (typeLookupOptions.contains(
+          DirectlyReferencedTypeLookupFlags::ExcludeMacroExpansions))
+    options |= UnqualifiedLookupFlags::ExcludeMacroExpansions;
 
   // Manually exclude macro expansions here since the source location
   // is overridden below.
@@ -3103,11 +3132,11 @@ static DirectlyReferencedTypeDecls directReferencesForUnqualifiedTypeLookup(
 }
 
 /// Perform qualified name lookup for types.
-static llvm::TinyPtrVector<TypeDecl *> directReferencesForQualifiedTypeLookup(
+static toolchain::TinyPtrVector<TypeDecl *> directReferencesForQualifiedTypeLookup(
     Evaluator &evaluator, ASTContext &ctx, ArrayRef<TypeDecl *> baseTypes,
     DeclNameRef name, DeclContext *dc, SourceLoc loc,
     DirectlyReferencedTypeLookupOptions typeLookupOptions) {
-  llvm::TinyPtrVector<TypeDecl *> result;
+  toolchain::TinyPtrVector<TypeDecl *> result;
   auto addResults = [&result](ArrayRef<ValueDecl *> found){
     for (auto decl : found){
       assert(isa<TypeDecl>(decl) &&
@@ -3128,6 +3157,10 @@ static llvm::TinyPtrVector<TypeDecl *> directReferencesForQualifiedTypeLookup(
     if (typeLookupOptions.contains(
             DirectlyReferencedTypeLookupFlags::IgnoreMissingImports))
       options |= NL_IgnoreMissingImports;
+
+    if (typeLookupOptions.contains(
+            DirectlyReferencedTypeLookupFlags::ExcludeMacroExpansions))
+      options |= NL_ExcludeMacroExpansions;
 
     // Look through the type declarations we were given, resolving them down
     // to nominal type declarations, module declarations, and
@@ -3300,16 +3333,16 @@ directReferencesForTypeRepr(Evaluator &evaluator, ASTContext &ctx,
     return result;
 
   case TypeReprKind::Fixed:
-    llvm_unreachable("Cannot get fixed TypeReprs in name lookup");
+    toolchain_unreachable("Cannot get fixed TypeReprs in name lookup");
   case TypeReprKind::Self:
-    llvm_unreachable("Cannot get fixed SelfTypeRepr in name lookup");
+    toolchain_unreachable("Cannot get fixed SelfTypeRepr in name lookup");
 
   case TypeReprKind::Optional:
   case TypeReprKind::ImplicitlyUnwrappedOptional:
     result.first.push_back(ctx.getOptionalDecl());
     return result;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 static DirectlyReferencedTypeDecls directReferencesForType(Type type) {
@@ -3366,7 +3399,7 @@ static DirectlyReferencedTypeDecls directReferencesForType(Type type) {
 
 DirectlyReferencedTypeDecls InheritedDeclsReferencedRequest::evaluate(
     Evaluator &evaluator,
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
     unsigned index) const {
 
   // Prefer syntactic information when we have it.
@@ -3483,7 +3516,7 @@ InheritedProtocolsRequest::evaluate(Evaluator &evaluator,
                                     ProtocolDecl *PD) const {
   auto &ctx = PD->getASTContext();
 
-  llvm::SmallSetVector<ProtocolDecl *, 2> inherited;
+  toolchain::SmallSetVector<ProtocolDecl *, 2> inherited;
 
   assert(!PD->wasDeserialized());
 
@@ -3529,7 +3562,7 @@ InheritedProtocolsRequest::evaluate(Evaluator &evaluator,
 ArrayRef<ProtocolDecl *>
 AllInheritedProtocolsRequest::evaluate(Evaluator &evaluator,
                                        ProtocolDecl *PD) const {
-  llvm::SmallSetVector<ProtocolDecl *, 2> result;
+  toolchain::SmallSetVector<ProtocolDecl *, 2> result;
 
   PD->walkInheritedProtocols([&](ProtocolDecl *inherited) {
     if (inherited != PD)
@@ -3556,7 +3589,8 @@ ProtocolRequirementsRequest::evaluate(Evaluator &evaluator,
 
 NominalTypeDecl *
 ExtendedNominalRequest::evaluate(Evaluator &evaluator,
-                                 ExtensionDecl *ext) const {
+                                 ExtensionDecl *ext,
+                                 bool excludeMacroExpansions) const {
   auto typeRepr = ext->getExtendedTypeRepr();
   if (!typeRepr) {
     // We must've seen 'extension { ... }' during parsing.
@@ -3565,9 +3599,15 @@ ExtendedNominalRequest::evaluate(Evaluator &evaluator,
 
   ASTContext &ctx = ext->getASTContext();
   auto options = defaultDirectlyReferencedTypeLookupOptions;
+
   if (ext->isInSpecializeExtensionContext()) {
     options |= DirectlyReferencedTypeLookupFlags::AllowUsableFromInline;
   }
+
+  if (excludeMacroExpansions) {
+    options |= DirectlyReferencedTypeLookupFlags::ExcludeMacroExpansions;
+  }
+
   DirectlyReferencedTypeDecls referenced = directReferencesForTypeRepr(
       evaluator, ctx, typeRepr, ext->getParent(), options);
 
@@ -3575,7 +3615,8 @@ ExtendedNominalRequest::evaluate(Evaluator &evaluator,
   // inaccessible due to missing imports. The missing imports will be diagnosed
   // elsewhere.
   if (referenced.first.empty() &&
-      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility)) {
+      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                              /*allowMigration=*/true)) {
     options |= DirectlyReferencedTypeLookupFlags::IgnoreMissingImports;
     referenced = directReferencesForTypeRepr(evaluator, ctx, typeRepr,
                                              ext->getParent(), options);
@@ -3614,7 +3655,7 @@ static bool declsAreAssociatedTypes(ArrayRef<TypeDecl *> decls) {
 static bool declsAreProtocols(ArrayRef<TypeDecl *> decls) {
   if (decls.empty())
     return false;  // Below, check outer type repr is a protocol, if not bail early
-  return llvm::any_of(decls, [&](const TypeDecl *decl) {
+  return toolchain::any_of(decls, [&](const TypeDecl *decl) {
     if (auto *alias = dyn_cast<TypeAliasDecl>(decl)) {
       auto ty = alias->getUnderlyingType();
       decl = ty->getNominalOrBoundGenericNominal();
@@ -3643,7 +3684,7 @@ createExtensionGenericParams(ASTContext &ctx,
   });
 
   GenericParamList *toParams = nullptr;
-  for (auto *gpList : llvm::reverse(allGenericParams)) {
+  for (auto *gpList : toolchain::reverse(allGenericParams)) {
     gpList->setOuterParameters(toParams);
     toParams = gpList;
   }
@@ -3672,7 +3713,7 @@ createTupleExtensionGenericParams(ASTContext &ctx,
   return createExtensionGenericParams(ctx, ext, typeAlias);
 }
 
-CollectedOpaqueReprs swift::collectOpaqueTypeReprs(TypeRepr *r, ASTContext &ctx,
+CollectedOpaqueReprs language::collectOpaqueTypeReprs(TypeRepr *r, ASTContext &ctx,
                                                    DeclContext *d) {
   class Walker : public ASTWalker {
     CollectedOpaqueReprs &Reprs;
@@ -4002,9 +4043,9 @@ CustomAttrNominalRequest::evaluate(Evaluator &evaluator,
 
 /// Decompose the ith inheritance clause entry to a list of type declarations,
 /// inverses, and optional AnyObject member.
-void swift::getDirectlyInheritedNominalTypeDecls(
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
-    unsigned i, llvm::SmallVectorImpl<InheritedNominalEntry> &result,
+void language::getDirectlyInheritedNominalTypeDecls(
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+    unsigned i, toolchain::SmallVectorImpl<InheritedNominalEntry> &result,
     InvertibleProtocolSet &inverses, bool &anyObject) {
   auto typeDecl = decl.dyn_cast<const TypeDecl *>();
   auto extDecl = decl.dyn_cast<const ExtensionDecl *>();
@@ -4053,15 +4094,16 @@ void swift::getDirectlyInheritedNominalTypeDecls(
 
   // Form the result.
   for (auto nominal : nominalTypes) {
-    result.push_back({nominal, loc, attributes, isSuppressed});
+    result.push_back({nominal, loc, inheritedTypes.getTypeRepr(i), attributes,
+                      isSuppressed});
   }
 }
 
 /// Decompose all inheritance clause entries and return the union of their
 /// type declarations, inverses, and optional AnyObject member.
 SmallVector<InheritedNominalEntry, 4>
-swift::getDirectlyInheritedNominalTypeDecls(
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+language::getDirectlyInheritedNominalTypeDecls(
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
     InvertibleProtocolSet &inverses, bool &anyObject) {
   SmallVector<InheritedNominalEntry, 4> result;
 
@@ -4086,8 +4128,8 @@ swift::getDirectlyInheritedNominalTypeDecls(
     ConformanceAttributes attributes;
     if (attr->isUnchecked())
       attributes.uncheckedLoc = loc;
-    result.push_back(
-        {attr->getProtocol(), loc, attributes, /*isSuppressed=*/false});
+    result.push_back({attr->getProtocol(), loc, /*inheritedTypeRepr=*/nullptr,
+                      attributes, /*isSuppressed=*/false});
   }
 
   // Else we have access to this information on the where clause.
@@ -4098,7 +4140,8 @@ swift::getDirectlyInheritedNominalTypeDecls(
   // FIXME: Refactor SelfBoundsFromWhereClauseRequest to dig out
   // the source location.
   for (auto inheritedNominal : selfBounds.decls)
-    result.emplace_back(inheritedNominal, SourceLoc(), ConformanceAttributes(),
+    result.emplace_back(inheritedNominal, SourceLoc(),
+                        /*inheritedTypeRepr=*/nullptr, ConformanceAttributes(),
                         /*isSuppressed=*/false);
 
   return result;
@@ -4118,7 +4161,7 @@ bool IsCallAsFunctionNominalRequest::evaluate(Evaluator &evaluator,
   dc->lookupQualified(decl, DeclNameRef(ctx.Id_callAsFunction),
                       decl->getLoc(), opts, results);
 
-  return llvm::any_of(results, [](ValueDecl *decl) -> bool {
+  return toolchain::any_of(results, [](ValueDecl *decl) -> bool {
     if (auto *fd = dyn_cast<FuncDecl>(decl))
       return fd->isCallAsFunctionMethod();
     return false;
@@ -4136,7 +4179,7 @@ bool TypeBase::isCallAsFunctionType(DeclContext *dc) {
   tryExtractDirectlyReferencedNominalTypes(this, decls);
 
   auto &ctx = dc->getASTContext();
-  return llvm::any_of(decls, [&](auto *decl) {
+  return toolchain::any_of(decls, [&](auto *decl) {
     IsCallAsFunctionNominalRequest req(decl, dc);
     return evaluateOrDefault(ctx.evaluator, req, false);
   });
@@ -4186,7 +4229,7 @@ bool TypeBase::hasDynamicMemberLookupAttribute() {
   tryExtractDirectlyReferencedNominalTypes(this, decls);
 
   auto &ctx = getASTContext();
-  return llvm::any_of(decls, [&](auto *decl) {
+  return toolchain::any_of(decls, [&](auto *decl) {
     HasDynamicMemberLookupAttributeRequest req(decl);
     return evaluateOrDefault(ctx.evaluator, req, false);
   });
@@ -4203,7 +4246,7 @@ bool TypeBase::hasDynamicCallableAttribute() {
   tryExtractDirectlyReferencedNominalTypes(this, decls);
 
   auto &ctx = getASTContext();
-  return llvm::any_of(decls, [&](auto *decl) {
+  return toolchain::any_of(decls, [&](auto *decl) {
     HasDynamicCallableAttributeRequest req(decl);
     return evaluateOrDefault(ctx.evaluator, req, false);
   });
@@ -4235,7 +4278,7 @@ ProtocolDecl *ImplementsAttrProtocolRequest::evaluate(
 FuncDecl *LookupIntrinsicRequest::evaluate(Evaluator &evaluator,
                                            ModuleDecl *module,
                                            Identifier funcName) const {
-  llvm::SmallVector<ValueDecl *, 1> decls;
+  toolchain::SmallVector<ValueDecl *, 1> decls;
   module->lookupQualified(module, DeclNameRef(funcName), SourceLoc(),
                           NL_QualifiedDefault | NL_IncludeUsableFromInline,
                           decls);
@@ -4245,7 +4288,7 @@ FuncDecl *LookupIntrinsicRequest::evaluate(Evaluator &evaluator,
   return dyn_cast<FuncDecl>(decls[0]);
 }
 
-void swift::simple_display(llvm::raw_ostream &out, NLKind kind) {
+void language::simple_display(toolchain::raw_ostream &out, NLKind kind) {
   switch (kind) {
   case NLKind::QualifiedLookup:
     out << "QualifiedLookup";
@@ -4254,10 +4297,10 @@ void swift::simple_display(llvm::raw_ostream &out, NLKind kind) {
     out << "UnqualifiedLookup";
     return;
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
-void swift::simple_display(llvm::raw_ostream &out, NLOptions options) {
+void language::simple_display(toolchain::raw_ostream &out, NLOptions options) {
   using Flag = std::pair<NLOptions, StringRef>;
   Flag possibleFlags[] = {
 #define FLAG(Name) {Name, #Name},
@@ -4275,7 +4318,7 @@ void swift::simple_display(llvm::raw_ostream &out, NLOptions options) {
 #undef FLAG
   };
 
-  auto flagsToPrint = llvm::make_filter_range(
+  auto flagsToPrint = toolchain::make_filter_range(
       possibleFlags, [&](Flag flag) { return options & flag.first; });
 
   out << "{ ";

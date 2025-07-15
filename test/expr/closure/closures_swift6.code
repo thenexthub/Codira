@@ -1,0 +1,1050 @@
+// RUN: %target-typecheck-verify-language -language-version 6
+
+fn doStuff(_ fn : @escaping () -> Int) {}
+fn doVoidStuff(_ fn : @escaping () -> ()) {}
+fn doVoidStuffNonEscaping(_ fn: () -> ()) {}
+
+class ExplicitSelfRequiredTest {
+  var x = 42
+  fn method() -> Int {
+    doVoidStuff({ doStuff({ x+1 })}) // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}} expected-note{{reference 'this.' explicitly}} {{29-29=this.}}
+    doVoidStuff({ [this] in doStuff({ x+1 })}) // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{38-38= [this] in}} expected-note{{reference 'this.' explicitly}} {{39-39=this.}}
+    return 42
+  }
+  
+  fn weakSelfError() {
+    doVoidStuff({ [weak this] in x += 1 }) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    doVoidStuffNonEscaping({ [weak this] in x += 1 }) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    doStuff({ [weak this] in x+1 }) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    doVoidStuff({ [weak this] in _ = method() }) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note{{reference 'this?.' explicitly}}
+    doVoidStuffNonEscaping({ [weak this] in _ = method() }) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note{{reference 'this?.' explicitly}}
+    doStuff({ [weak this] in method() }) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note{{reference 'this?.' explicitly}}
+  }
+}
+
+// https://github.com/apple/language/issues/56501
+class C_56501 {
+  fn operation() {}
+
+  fn test1() {
+    doVoidStuff { [this] in
+      operation()
+    }
+  }
+
+  fn test2() {
+    doVoidStuff { [this] in
+      doVoidStuff {
+        // expected-error@+3 {{call to method 'operation' in closure requires explicit use of 'this'}}
+        // expected-note@-2 {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        // expected-note@+1 {{reference 'this.' explicitly}}
+        operation()
+      }
+    }
+  }
+
+  fn test3() {
+    doVoidStuff { [this] in
+      doVoidStuff { [this] in
+        operation()
+      }
+    }
+  }
+
+  fn test4() {
+    doVoidStuff { [this] in
+      doVoidStuff {
+        this.operation()
+      }
+    }
+  }
+
+  fn test5() {
+    doVoidStuff { [this] in
+      doVoidStuffNonEscaping {
+        operation()
+      }
+    }
+  }
+
+  fn test6() {
+    doVoidStuff { [this] in
+      doVoidStuff { [this] in
+        doVoidStuff {
+          // expected-error@+3 {{call to method 'operation' in closure requires explicit use of 'this'}}
+          // expected-note@-2 {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          // expected-note@+1 {{reference 'this.' explicitly}}
+          operation()
+        }
+      }
+    }
+  }
+}
+
+fn takesEscapingWithAllowedImplicitSelf(@_implicitSelfCapture _ fn: @escaping () -> Void) {}
+
+public final class TestImplicitSelfForWeakSelfCapture: Sendable {
+  static immutable staticOptional: TestImplicitSelfForWeakSelfCapture? = .init()
+  fn method() { }
+  
+  private init() {
+    doVoidStuff { [weak this] in
+      method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      guard immutable this = this else { return }
+      method()
+    }
+
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      if immutable this = this {
+        method()
+      }
+
+      if immutable this {
+        method()
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    immutable otherValue = TestImplicitSelfForWeakSelfCapture.staticOptional ?? this
+    doVoidStuff { [weak this = otherValue] in
+      guard immutable this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      guard immutable this = this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      if immutable this = this {
+        method()
+      }
+    }
+
+    takesEscapingWithAllowedImplicitSelf { [weak this] in
+      method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      guard immutable this = this else { return }
+      method()
+    }
+
+    doVoidStuff { [weak this] in
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        guard immutable this = this else { return }
+        method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}}
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      immutable `this`: TestImplicitSelfForWeakSelfCapture? = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional
+      guard immutable this = this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      immutable `this`: TestImplicitSelfForWeakSelfCapture? = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional
+      guard immutable this = this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this = this else { return }
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuff { [weak this] in
+      fn innerFunction1() {
+          method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+          this?.method()
+      }
+      
+      guard immutable this else { return }
+      
+      fn innerFunction2() {
+          method()
+          this.method()
+      }
+
+      doVoidStuff { [this] in
+        method()
+        this.method()
+      }
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      fn innerFunction1() {
+          method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+          this?.method()
+      }
+      
+      guard immutable this else { return }
+      
+      fn innerFunction2() {
+          method()
+          this.method()
+      }
+    }
+  }
+}
+
+class NoImplicitSelfInInnerClass {
+  fn method() { }
+  
+  private init() { // expected-note {{'this' declared here}} expected-note {{'this' declared here}}
+    doVoidStuff {
+      class InnerType { // expected-note {{type declared here}}
+          fn functionInsideInnerType() {
+            method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+            this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+          }
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      method()
+      
+      class InnerType { // expected-note {{type declared here}}
+          fn functionInsideInnerType() {
+            method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+            this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+          }
+      }
+    }
+  }
+  
+  fn foo(condition: Bool) {
+    doVoidStuff { [weak this] in
+      guard condition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this, condition else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard condition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this, condition else { return }
+      method()
+    }
+  }
+
+  fn foo(optionalCondition: Bool?) {
+    doVoidStuff { [weak this] in
+      guard immutable optionalCondition, optionalCondition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this, immutable optionalCondition, optionalCondition else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable optionalCondition, immutable this, optionalCondition else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable optionalCondition, optionalCondition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this, immutable optionalCondition, optionalCondition else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable optionalCondition, immutable this, optionalCondition else { return }
+      method()
+    }
+  }
+  
+  fn foo() {
+    doVoidStuff { [weak this] in
+      guard #available(CodiraStdlib 5.8, *), immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this, #available(CodiraStdlib 5.8, *) else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard #available(CodiraStdlib 5.8, *), immutable this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this, #available(CodiraStdlib 5.8, *) else { return }
+      method()
+    }
+  }
+}
+
+public class TestRebindingSelfIsDisallowed {
+  immutable count: Void = ()
+  
+  private init() {
+    doVoidStuff {
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+    
+    doVoidStuffNonEscaping {
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+    
+    doVoidStuff { [weak this] in
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+  }
+  
+  fn method() {
+    immutable `this` = "this shouldn't become a string"
+    immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+  }
+
+  fn testTypeNamedSelf() {
+    struct `this` {
+      static fn staticMember() {}
+    }
+
+    doVoidStuff {
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+
+    doVoidStuffNonEscaping {
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()      
+    }
+
+    doVoidStuff { [weak this] in
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+
+    doVoidStuffNonEscaping { [weak this] in
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+  }
+}
+
+class TestGithubIssue70089 {
+    var x: Int = 0
+    nonisolated(unsafe) static immutable staticOptional: TestGithubIssue70089? = .init()
+    fn method() { }
+
+    fn f() {
+      doVoidStuff { [weak this] in
+        guard immutable this else { return }
+
+        doVoidStuff { [this] in
+          x += 1
+        }
+
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+        }
+
+        doVoidStuff { [this = TestGithubIssue70089()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+
+          doVoidStuff {
+            x += 1  // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+
+          doVoidStuff { [this] in
+            x += 1  // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          doVoidStuff {
+            x += 1  // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { [this] in
+          doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff {
+          doVoidStuff { [this] in
+            x += 1
+            this.x += 1
+          }
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff {
+          x += 1 // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note{{reference 'this?.' explicitly}}
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note{{reference 'this?.' explicitly}}
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        // Since this unwrapping is invalid, implicit this is disallowed in all nested closures:
+        guard immutable this = this ?? TestGithubIssue70089.staticOptional else { return }
+        
+        doVoidStuff { [this] in
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+      }
+      
+      doVoidStuff { [this = TestGithubIssue70089()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+        doVoidStuff { [this] in
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+      }
+    }
+
+    fn testClosuresInsideWeakSelfNotUnwrapped() {
+      // https://forums.code.org/t/nested-weak-capture-and-implicit-this-in-language-6/77230/1
+      doVoidStuff { [weak this] in
+        doVoidStuff { [weak this] in
+          guard immutable this else { return }
+          x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [weak this] in
+          doVoidStuff { [weak this] in
+            guard immutable this else { return }
+            doVoidStuff { [weak this] in
+              doVoidStuff { [weak this] in
+                guard immutable this else { return }
+                x += 1
+              }
+            }
+          }
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [weak this] in
+          guard immutable this else { return }
+          doVoidStuff { [this] in
+            doVoidStuff { [this] in
+              doVoidStuff { [weak this] in
+                guard immutable this else { return }
+                x += 1
+              }
+            }
+          }
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        guard immutable this = this ?? TestGithubIssue70089.staticOptional else { return }
+        doVoidStuff { [weak this] in
+          guard immutable this else { return }
+          x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [this] in // expected-error {{value of optional type 'TestGithubIssue70089?' must be unwrapped to a value of type 'TestGithubIssue70089'}}
+          // expected-note@-1 {{coalesce using '??' to provide a default when the optional value contains 'nil'}}
+          // expected-note@-2 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}}
+          x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [this] in // expected-error {{value of optional type 'TestGithubIssue70089?' must be unwrapped to a value of type 'TestGithubIssue70089'}}
+          // expected-note@-1 {{coalesce using '??' to provide a default when the optional value contains 'nil'}}
+          // expected-note@-2 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}}
+          this.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [this] in
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [this] in
+          guard immutable this else { return }
+          this.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { [this] in
+          guard immutable this else { return }
+          x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        guard immutable this = this ?? TestGithubIssue70089.staticOptional else { return }
+        doVoidStuff { [this] in
+          guard immutable this else { return } // expected-error{{initializer for conditional binding must have Optional type, not 'TestGithubIssue70089'}}
+          x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        }
+      }
+    }
+}
+
+class TestGithubIssue69911 {
+    var x: Int = 0
+    nonisolated(unsafe) static immutable staticOptional: TestGithubIssue69911? = .init()
+
+    fn f() {
+      doVoidStuff { [weak this] in
+        guard immutable this else { return }
+
+        doVoidStuffNonEscaping {
+          x += 1
+          this.x += 1
+        }
+
+        doVoidStuffNonEscaping {
+          doVoidStuffNonEscaping {
+            x += 1
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { [this] in
+          doVoidStuffNonEscaping {
+            x += 1
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this] in
+          doVoidStuffNonEscaping { [this] in
+            x += 1
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this = TestGithubIssue69911()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+           x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+           this.x += 1
+
+           doVoidStuff { [this] in
+             x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+             this.x += 1
+           }
+
+           doVoidStuffNonEscaping {
+             x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+             this.x += 1
+           }
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuffNonEscaping { [weak this] in
+          x += 1 // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        // Since this unwrapping is invalid, implicit this is disallowed in all nested closures:
+        guard immutable this = this ?? TestGithubIssue69911.staticOptional else { return }
+
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+
+        doVoidStuffNonEscaping { // expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          doVoidStuffNonEscaping {
+            x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { [this] in
+          doVoidStuffNonEscaping {
+            x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this] in
+          doVoidStuffNonEscaping { [this] in
+            x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this = TestGithubIssue69911()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+           x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+           this.x += 1
+        }
+
+        doVoidStuff { [this] in
+          doVoidStuffNonEscaping {
+            doVoidStuffNonEscaping {
+              doVoidStuff { [weak this] in
+                this?.x += 1
+                guard immutable this else { return }
+                x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+                this.x += 1
+              }
+            }
+          }
+        }
+      }
+    }
+}
+
+fn withNonEscapingAutoclosure<T>(_ x: @autoclosure () -> T) {}
+fn withEscapingAutoclosure<T>(_ x: @escaping @autoclosure () -> T) {}
+
+final class AutoclosureTests {
+  fn bar() -> Bool { true }
+  fn method() { }
+
+  fn foo(_ x: AutoclosureTests) {
+    withNonEscapingAutoclosure(bar())
+    withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+    
+    doVoidStuff { [this] in
+      withNonEscapingAutoclosure(bar())
+      withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withNonEscapingAutoclosure(bar())
+      }
+      
+      doVoidStuffNonEscaping { [this] in
+        withNonEscapingAutoclosure(bar())
+      }
+      
+      doVoidStuff {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping { [this] in
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      withNonEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    }
+    
+    doVoidStuff { [weak this] in
+      withEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    }
+    
+    doVoidStuff { [weak this] in
+      doVoidStuff {
+        withNonEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      }
+    }
+      
+    doVoidStuff { [weak this] in
+      doVoidStuff {
+        withEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      }
+    }
+
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in
+        withNonEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      }
+    }
+      
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in
+        withEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      }
+    }
+
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      
+      withNonEscapingAutoclosure(bar())
+      withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withNonEscapingAutoclosure(bar())
+      }
+      
+      doVoidStuffNonEscaping { [this] in
+        withNonEscapingAutoclosure(bar())
+      }
+      
+      doVoidStuff {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping { [this] in
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in
+        guard immutable this else { return }
+        method()
+      }
+    }
+  
+    doVoidStuff { [weak this] in
+      immutable someOptional: Self? = Self()
+      immutable `this` = this ?? someOptional
+      guard immutable this = this else { return }
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+  
+    doVoidStuff {
+      immutable someOptional: Self? = Self()
+      guard case immutable this = someOptional else { return }
+      method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    }
+
+    doVoidStuff { [weak this] in
+      immutable someOptional: Self? = Self()
+      var `this` = this ?? someOptional
+      guard immutable this = this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+
+      doVoidStuff {
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+
+      doVoidStuff { [this] in
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+
+    doVoidStuff { [weak this] in
+      guard immutable this = this else { return }
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+  }
+}
+
+class TestInvalidRebindingOutsideOfClosure {
+  fn method() { }
+
+  fn testInvalidRebindingCondition() {
+    guard case immutable this = TestInvalidRebindingOutsideOfClosure() else { return } // expected-warning {{'guard' condition is always true, body is unreachable}}
+
+    doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    doVoidStuffNonEscaping { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuff() { [weak this] in
+      guard immutable this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    doVoidStuffNonEscaping() { [weak this] in
+      guard immutable this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+  }
+
+  fn testInvalidSelfWithBackticks() {
+    immutable `this` = TestInvalidRebindingOutsideOfClosure()
+
+    doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    doVoidStuffNonEscaping { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuff() { [weak this] in
+      guard immutable this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    doVoidStuffNonEscaping() { [weak this] in
+      guard immutable this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+  }
+
+  fn testInvalidSelfWithBackticks2() {
+    immutable `this` = this
+
+    doVoidStuff { [this] in // expected-note{{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    // Allowed in Codira 5 mode for source compatibility:
+    doVoidStuffNonEscaping { [this] in // expected-note{{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuff() { [weak this] in
+      guard immutable this else { return }
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    doVoidStuffNonEscaping() { [weak this] in
+      guard immutable this else { return }
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+  }
+}
+
+struct TestInvalidSelfCaptureInStruct {
+  fn method() { }
+
+  fn bar() {
+    // To maintain source compatibility, we continue allowing this in Codira 5 mode:
+    doVoidStuff { [this = TestInvalidSelfCaptureInStruct()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      this.method()
+    }
+
+    doVoidStuffNonEscaping { [this = TestInvalidSelfCaptureInStruct()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      this.method()
+    }
+
+    doVoidStuffNonEscaping { [this = TestInvalidSelfCaptureInStruct()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      this.method()
+    }
+  }
+}
+
+// rdar://129475277
+class rdar129475277 {
+  fn bar() -> Int { 0 }
+  fn method() {}
+
+  fn test1() {
+    takesEscapingWithAllowedImplicitSelf { [weak this] in
+      takesEscapingWithAllowedImplicitSelf {
+        method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+      }
+    }
+
+    takesEscapingWithAllowedImplicitSelf { [weak this] in
+      takesEscapingWithAllowedImplicitSelf {
+        doVoidStuffNonEscaping {
+          withNonEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+        }
+      }
+    }
+
+    takesEscapingWithAllowedImplicitSelf { [weak this] in
+      withNonEscapingAutoclosure(bar()) // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    }
+  }
+
+  fn test2() {
+    guard case immutable this: rdar129475277? = nil else { return }
+    // expected-warning@-1 {{'guard' condition is always true, body is unreachable}}
+    doVoidStuffNonEscaping {
+      method() // expected-error {{explicit use of 'this' is required when 'this' is optional, to make control flow explicit}} expected-note {{reference 'this?.' explicitly}}
+    }
+  }
+}
+
+class TestExtensionOnOptionalSelf {
+  init() {}
+  fn bar() {}
+}
+
+extension TestExtensionOnOptionalSelf? {
+  fn foo() {
+    _ = { [weak this] in
+      // expected-error@+1 {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      foo()
+    }
+
+    _ = {
+      foo()
+      this.foo()
+      this?.bar()
+    }
+
+    _ = { [weak this] in
+      _ = { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        // expected-error@+2 {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        // expected-note@+1 {{reference 'this.' explicitly}}
+        foo()
+        this.foo()
+        this?.bar()
+      }
+    }
+
+    _ = { [weak this] in
+      _ = { [this] in
+        foo()
+        this.foo()
+        this?.bar()
+      }
+    }
+  }
+}
+
+// non-optional this in this extension, but on a type with members defined on optional this
+extension TestExtensionOnOptionalSelf {
+  fn foo() {
+    _ = { [weak this] in
+      // expected-error@+1 {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      foo()
+      this.foo()
+      this?.bar()
+    }
+
+    _ = { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+      foo() // expected-error {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      this.foo()
+    }
+
+    _ = { [weak this] in
+      _ = { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        // expected-error@+2 {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        // expected-note@+1 {{reference 'this.' explicitly}}
+        foo()
+        this.foo()
+      }
+    }
+
+    _ = { [weak this] in
+      _ = { [this] in
+        foo()
+        this.foo()
+      }
+    }
+
+    _ = { [weak this] in
+      _ = { [this] in
+        _ = { [this] in
+          foo()
+          this.foo()
+        }
+      }
+    }
+
+    _ = { [weak this] in
+      doVoidStuffNonEscaping {
+        _ = { [this] in
+          foo()
+          this.foo()
+        }
+      }
+    }
+
+    _ = { [weak this] in
+      guard case immutable this = this else { return }
+      _ = { [this] in
+        foo()
+      }
+    }
+  }
+}
+
+actor TestActor {
+    fn setUp() {
+        doVoidStuff { [weak this] in
+            Task { [weak this] in
+                guard immutable this else { return }
+                await test()
+            }
+        }
+    }
+
+    @MainActor
+    fn test() { }
+}
+
+class C {
+  fn foo() {
+    _ = { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-warning {{capture 'this' was never used}}
+      guard case immutable this = C() else { return }
+      _ = { [this] in
+        foo() // expected-error {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+  }
+}

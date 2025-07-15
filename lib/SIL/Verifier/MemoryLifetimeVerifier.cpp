@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-memory-lifetime-verifier"
@@ -22,13 +23,13 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/BasicBlockDatastructures.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
-llvm::cl::opt<bool> DontAbortOnMemoryLifetimeErrors(
+toolchain::cl::opt<bool> DontAbortOnMemoryLifetimeErrors(
     "dont-abort-on-memory-lifetime-errors",
-    llvm::cl::desc("Don't abort compilation if the memory lifetime checker "
+    toolchain::cl::desc("Don't abort compilation if the memory lifetime checker "
                    "detects an error."));
 
 namespace {
@@ -251,20 +252,21 @@ bool MemoryLifetimeVerifier::isTrivialEnumSuccessor(SILBasicBlock *block,
 
 void MemoryLifetimeVerifier::reportError(const Twine &complaint,
                                      int locationIdx, SILInstruction *where) {
-  llvm::errs() << "SIL memory lifetime failure in @" << function->getName()
+  toolchain::errs() << "SIL memory lifetime failure in @" << function->getName()
                << ": " << complaint << '\n';
   if (locationIdx >= 0) {
-    llvm::errs() << "memory location: "
+    toolchain::errs() << "memory location: "
                  << locations.getLocation(locationIdx)->representativeValue;
   }
-  llvm::errs() << "at instruction: " << *where << '\n';
+  toolchain::errs() << "at instruction: " << *where << '\n';
 
   if (DontAbortOnMemoryLifetimeErrors)
     return;
 
-  llvm::errs() << "in function:\n";
-  function->print(llvm::errs());
-  abort();
+  ABORT([&](auto &out) {
+    out << "in function:\n";
+    function->print(out);
+  });
 }
 
 void MemoryLifetimeVerifier::require(const Bits &wrongBits,
@@ -562,7 +564,7 @@ void MemoryLifetimeVerifier::setBitsOfPredecessor(Bits &getSet, Bits &killSet,
     case CastConsumptionKind::CopyOnSuccess:
       break;
     case CastConsumptionKind::BorrowAlways:
-      llvm_unreachable("checked_cast_addr_br cannot have BorrowAlways");
+      toolchain_unreachable("checked_cast_addr_br cannot have BorrowAlways");
     }
     if (castInst->getSuccessBB() == block)
       locations.genBits(getSet, killSet, castInst->getDest());
@@ -688,7 +690,7 @@ void MemoryLifetimeVerifier::checkBlock(SILBasicBlock *block, Bits &bits) {
           case LoadOwnershipQualifier::Trivial:
             break;
           case LoadOwnershipQualifier::Unqualified:
-            llvm_unreachable("unqualified load shouldn't be in ownership SIL");
+            toolchain_unreachable("unqualified load shouldn't be in ownership SIL");
         }
         break;
       }
@@ -706,7 +708,7 @@ void MemoryLifetimeVerifier::checkBlock(SILBasicBlock *block, Bits &bits) {
             locations.setBits(bits, SI->getDest());
             break;
           case StoreOwnershipQualifier::Unqualified:
-            llvm_unreachable("unqualified store shouldn't be in ownership SIL");
+            toolchain_unreachable("unqualified store shouldn't be in ownership SIL");
         }
         requireNoStoreBorrowLocation(SI->getDest(), &I);
         break;
@@ -774,7 +776,7 @@ void MemoryLifetimeVerifier::checkBlock(SILBasicBlock *block, Bits &bits) {
         break;
       case SILInstructionKind::UncheckedTakeEnumDataAddrInst: {
         // Note that despite the name, unchecked_take_enum_data_addr does _not_
-        // "take" the payload of the Swift.Optional enum. This is a terrible
+        // "take" the payload of the Codira.Optional enum. This is a terrible
         // hack in SIL.
         auto enumInst = cast<UncheckedTakeEnumDataAddrInst>(&I);
         // For some enums, projecting the enum data requires masking out

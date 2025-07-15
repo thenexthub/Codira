@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEPENDENCY_SERIALIZEDCACHEFORMAT_H
-#define SWIFT_DEPENDENCY_SERIALIZEDCACHEFORMAT_H
+#ifndef LANGUAGE_DEPENDENCY_SERIALIZEDCACHEFORMAT_H
+#define LANGUAGE_DEPENDENCY_SERIALIZEDCACHEFORMAT_H
 
-#include "llvm/Bitcode/BitcodeConvenience.h"
-#include "llvm/Bitstream/BitCodes.h"
+#include "toolchain/Bitcode/BitcodeConvenience.h"
+#include "toolchain/Bitstream/BitCodes.h"
 
-namespace llvm {
+namespace toolchain {
 class MemoryBuffer;
 namespace vfs{
 class OutputBackend;
@@ -29,22 +30,22 @@ class OutputBackend;
 namespace language {
 
 class DiagnosticEngine;
-class SwiftDependencyScanningService;
+class CodiraDependencyScanningService;
 
 namespace dependencies {
 namespace module_dependency_cache_serialization {
 
-using llvm::BCArray;
-using llvm::BCBlob;
-using llvm::BCFixed;
-using llvm::BCRecordLayout;
-using llvm::BCVBR;
+using toolchain::BCArray;
+using toolchain::BCBlob;
+using toolchain::BCFixed;
+using toolchain::BCRecordLayout;
+using toolchain::BCVBR;
 
 /// Every .moddepcache file begins with these 4 bytes, for easy identification.
 const unsigned char MODULE_DEPENDENCY_CACHE_FORMAT_SIGNATURE[] = {'I', 'M', 'D','C'};
-const unsigned MODULE_DEPENDENCY_CACHE_FORMAT_VERSION_MAJOR = 9;
+const unsigned MODULE_DEPENDENCY_CACHE_FORMAT_VERSION_MAJOR = 10;
 /// Increment this on every change.
-const unsigned MODULE_DEPENDENCY_CACHE_FORMAT_VERSION_MINOR = 1;
+const unsigned MODULE_DEPENDENCY_CACHE_FORMAT_VERSION_MINOR = 3;
 
 /// Various identifiers in this format will rely on having their strings mapped
 /// using this ID.
@@ -70,9 +71,12 @@ using IsExportedImport = BCFixed<1>;
 using LineNumberField = BCFixed<32>;
 using ColumnNumberField = BCFixed<32>;
 
+/// Access level of an import
+using AccessLevelField = BCFixed<8>;
+
 /// Arrays of various identifiers, distinguished for readability
-using IdentifierIDArryField = llvm::BCArray<IdentifierIDField>;
-using ModuleIDArryField = llvm::BCArray<IdentifierIDField>;
+using IdentifierIDArryField = toolchain::BCArray<IdentifierIDField>;
+using ModuleIDArryField = toolchain::BCArray<IdentifierIDField>;
 
 /// Identifiers used to refer to the above arrays
 using FileIDArrayIDField = IdentifierIDField;
@@ -81,13 +85,13 @@ using ModuleCacheKeyIDField = IdentifierIDField;
 using ImportArrayIDField = IdentifierIDField;
 using LinkLibrariesArrayIDField = IdentifierIDField;
 using MacroDependenciesArrayIDField = IdentifierIDField;
+using SearchPathArrayIDField = IdentifierIDField;
 using FlagIDArrayIDField = IdentifierIDField;
 using DependencyIDArrayIDField = IdentifierIDField;
-using AuxiliaryFilesArrayIDField = IdentifierIDField;
 using SourceLocationIDArrayIDField = IdentifierIDField;
 
 /// The ID of the top-level block containing the dependency graph
-const unsigned GRAPH_BLOCK_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID;
+const unsigned GRAPH_BLOCK_ID = toolchain::bitc::FIRST_APPLICATION_BLOCKID;
 
 /// The .moddepcache file format consists of a METADATA record, followed by
 /// zero or more IDENTIFIER records that contain various strings seen in the graph
@@ -105,13 +109,14 @@ enum {
   LINK_LIBRARY_ARRAY_NODE,
   MACRO_DEPENDENCY_NODE,
   MACRO_DEPENDENCY_ARRAY_NODE,
+  SEARCH_PATH_NODE,
+  SEARCH_PATH_ARRAY_NODE,
   IMPORT_STATEMENT_NODE,
   IMPORT_STATEMENT_ARRAY_NODE,
   OPTIONAL_IMPORT_STATEMENT_ARRAY_NODE,
-  SWIFT_INTERFACE_MODULE_DETAILS_NODE,
-  SWIFT_SOURCE_MODULE_DETAILS_NODE,
-  SWIFT_PLACEHOLDER_MODULE_DETAILS_NODE,
-  SWIFT_BINARY_MODULE_DETAILS_NODE,
+  LANGUAGE_INTERFACE_MODULE_DETAILS_NODE,
+  LANGUAGE_SOURCE_MODULE_DETAILS_NODE,
+  LANGUAGE_BINARY_MODULE_DETAILS_NODE,
   CLANG_MODULE_DETAILS_NODE,
   IDENTIFIER_NODE,
   IDENTIFIER_ARRAY_NODE
@@ -173,6 +178,17 @@ using MacroDependencyLayout =
 using MacroDependencyArrayLayout =
     BCRecordLayout<MACRO_DEPENDENCY_ARRAY_NODE, IdentifierIDArryField>;
 
+// A record for a serialized search pathof a given dependency
+// node (Codira binary module dependency only).
+using SearchPathLayout =
+    BCRecordLayout<SEARCH_PATH_NODE,             // ID
+                   IdentifierIDField,            // path
+                   IsFrameworkField,             // isFramework
+                   IsSystemField                 // isSystem
+                   >;
+using SearchPathArrayLayout =
+    BCRecordLayout<SEARCH_PATH_ARRAY_NODE, IdentifierIDArryField>;
+
 // A record capturing information about a given 'import' statement
 // captured in a dependency node, including its source location.
 using ImportStatementLayout =
@@ -182,7 +198,8 @@ using ImportStatementLayout =
                    LineNumberField,              // lineNumber
                    ColumnNumberField,            // columnNumber
                    IsOptionalImport,             // isOptional
-                   IsExportedImport              // isExported
+                   IsExportedImport,             // isExported
+                   AccessLevelField              // accessLevel
                    >;
 using ImportStatementArrayLayout =
     BCRecordLayout<IMPORT_STATEMENT_ARRAY_NODE, IdentifierIDArryField>;
@@ -191,10 +208,9 @@ using OptionalImportStatementArrayLayout =
 
 // After the array records, we have a sequence of Module info
 // records, each of which is followed by one of:
-// - SwiftInterfaceModuleDetails
-// - SwiftSourceModuleDetails
-// - SwiftBinaryModuleDetails
-// - SwiftPlaceholderModuleDetails
+// - CodiraInterfaceModuleDetails
+// - CodiraSourceModuleDetails
+// - CodiraBinaryModuleDetails
 // - ClangModuleDetails
 using ModuleInfoLayout =
     BCRecordLayout<MODULE_NODE,                    // ID
@@ -203,18 +219,17 @@ using ModuleInfoLayout =
                    ImportArrayIDField,             // optionalImports
                    LinkLibrariesArrayIDField,      // linkLibraries
                    MacroDependenciesArrayIDField,  // macroDependencies
-                   DependencyIDArrayIDField,       // importedSwiftModules
+                   DependencyIDArrayIDField,       // importedCodiraModules
                    DependencyIDArrayIDField,       // importedClangModules
                    DependencyIDArrayIDField,       // crossImportOverlayModules
-                   DependencyIDArrayIDField,       // swiftOverlayDependencies
-                   ModuleCacheKeyIDField,          // moduleCacheKey
-                   AuxiliaryFilesArrayIDField      // auxiliaryFiles
+                   DependencyIDArrayIDField,       // languageOverlayDependencies
+                   ModuleCacheKeyIDField           // moduleCacheKey
                    >;
 
-using SwiftInterfaceModuleDetailsLayout =
-    BCRecordLayout<SWIFT_INTERFACE_MODULE_DETAILS_NODE, // ID
+using CodiraInterfaceModuleDetailsLayout =
+    BCRecordLayout<LANGUAGE_INTERFACE_MODULE_DETAILS_NODE, // ID
                    FileIDField,                         // outputFilePath
-                   FileIDField,                         // swiftInterfaceFile
+                   FileIDField,                         // languageInterfaceFile
                    FileIDArrayIDField,                  // compiledModuleCandidates
                    FlagIDArrayIDField,                  // buildCommandLine
                    ContextHashIDField,                  // contextHash
@@ -230,8 +245,8 @@ using SwiftInterfaceModuleDetailsLayout =
                    IdentifierIDField                    // UserModuleVersion
                    >;
 
-using SwiftSourceModuleDetailsLayout =
-    BCRecordLayout<SWIFT_SOURCE_MODULE_DETAILS_NODE, // ID
+using CodiraSourceModuleDetailsLayout =
+    BCRecordLayout<LANGUAGE_SOURCE_MODULE_DETAILS_NODE, // ID
                    FileIDField,                      // bridgingHeaderFile
                    FileIDArrayIDField,               // sourceFiles
                    FileIDArrayIDField,               // bridgingSourceFiles
@@ -244,8 +259,8 @@ using SwiftSourceModuleDetailsLayout =
                    IdentifierIDField                 // chainedBridgingHeaderContent
                    >;
 
-using SwiftBinaryModuleDetailsLayout =
-    BCRecordLayout<SWIFT_BINARY_MODULE_DETAILS_NODE, // ID
+using CodiraBinaryModuleDetailsLayout =
+    BCRecordLayout<LANGUAGE_BINARY_MODULE_DETAILS_NODE, // ID
                    FileIDField,                      // compiledModulePath
                    FileIDField,                      // moduleDocPath
                    FileIDField,                      // moduleSourceInfoPath
@@ -253,17 +268,11 @@ using SwiftBinaryModuleDetailsLayout =
                    FileIDField,                      // definingInterfacePath
                    IdentifierIDField,                // headerModuleDependencies
                    FileIDArrayIDField,               // headerSourceFiles
+                   SearchPathArrayIDField,           // serializedSearchPaths
                    IsFrameworkField,                 // isFramework
                    IsStaticField,                    // isStatic
                    IdentifierIDField,                // moduleCacheKey
                    IdentifierIDField                 // UserModuleVersion
-                   >;
-
-using SwiftPlaceholderModuleDetailsLayout =
-    BCRecordLayout<SWIFT_PLACEHOLDER_MODULE_DETAILS_NODE, // ID
-                   FileIDField,                           // compiledModulePath
-                   FileIDField,                           // moduleDocPath
-                   FileIDField                            // moduleSourceInfoPath
                    >;
 
 using ClangModuleDetailsLayout =
@@ -283,26 +292,26 @@ using ClangModuleDetailsLayout =
 
 /// Tries to read the dependency graph from the given buffer.
 /// Returns \c true if there was an error.
-bool readInterModuleDependenciesCache(llvm::MemoryBuffer &buffer,
+bool readInterModuleDependenciesCache(toolchain::MemoryBuffer &buffer,
                                       ModuleDependenciesCache &cache,
-                                      llvm::sys::TimePoint<> &serializedCacheTimeStamp);
+                                      toolchain::sys::TimePoint<> &serializedCacheTimeStamp);
 
 /// Tries to read the dependency graph from the given path name.
 /// Returns true if there was an error.
-bool readInterModuleDependenciesCache(llvm::StringRef path,
+bool readInterModuleDependenciesCache(toolchain::StringRef path,
                                       ModuleDependenciesCache &cache,
-                                      llvm::sys::TimePoint<> &serializedCacheTimeStamp);
+                                      toolchain::sys::TimePoint<> &serializedCacheTimeStamp);
 
 /// Tries to write the dependency graph to the given path name.
 /// Returns true if there was an error.
 bool writeInterModuleDependenciesCache(DiagnosticEngine &diags,
-                                       llvm::vfs::OutputBackend &backend,
-                                       llvm::StringRef outputPath,
+                                       toolchain::vfs::OutputBackend &backend,
+                                       toolchain::StringRef outputPath,
                                        const ModuleDependenciesCache &cache);
 
 /// Tries to write out the given dependency cache with the given
 /// bitstream writer.
-void writeInterModuleDependenciesCache(llvm::BitstreamWriter &Out,
+void writeInterModuleDependenciesCache(toolchain::BitstreamWriter &Out,
                                        const ModuleDependenciesCache &cache);
 
 } // end namespace module_dependency_cache_serialization

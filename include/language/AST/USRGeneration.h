@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Unique Symbol References (USRs) provide a textual encoding for
@@ -19,10 +20,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_USRGENERATION_H
-#define SWIFT_AST_USRGENERATION_H
+#ifndef LANGUAGE_AST_USRGENERATION_H
+#define LANGUAGE_AST_USRGENERATION_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 #include <string>
 
@@ -56,14 +57,14 @@ bool printValueDeclUSR(const ValueDecl *D, raw_ostream &OS,
 /// In case module aliasing is used, it prints the real module name. For example,
 /// if a file has `import Foo` and `-module-alias Foo=Bar` is passed, treat Foo as
 /// an alias and Bar as the real module name as its dependency. Note that the
-/// aliasing only applies to Swift modules.
+/// aliasing only applies to Codira modules.
 /// \returns true if it failed, false on success.
 bool printModuleUSR(ModuleEntity Mod, raw_ostream &OS);
 
 /// Prints out the accessor USR for the given storage Decl.
 /// \returns true if it failed, false on success.
 bool printAccessorUSR(const AbstractStorageDecl *D, AccessorKind AccKind,
-                      llvm::raw_ostream &OS);
+                      toolchain::raw_ostream &OS);
 
 /// Prints out the extension USR for the given extension Decl.
 /// \returns true if it failed, false on success.
@@ -82,5 +83,5 @@ std::string demangleUSR(StringRef mangled);
 } // namespace ide
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_USRGENERATION_H
+#endif // TOOLCHAIN_LANGUAGE_AST_USRGENERATION_H
 

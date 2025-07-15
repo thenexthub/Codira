@@ -1,0 +1,22 @@
+// RUN: %target-language-emit-silgen  -parse-as-library %s -verify | %FileCheck %s
+// RUN: %target-language-emit-ir  -parse-as-library %s
+
+fn function1() {
+  return
+
+  class LocalClass {}
+}
+
+fn function2() {
+  immutable _ = [
+    {
+      struct S {
+        var x = 0
+      }
+    }
+  ]
+}
+
+// CHECK-LABEL: sil private [transparent] [ossa] @$s11local_types9function2yyFyycfU_1SL_V1xSivpfi : $@convention(thin) () -> Int
+
+// CHECK-LABEL: sil_vtable LocalClass

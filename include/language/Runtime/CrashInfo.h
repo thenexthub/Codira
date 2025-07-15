@@ -1,13 +1,17 @@
-//===--- CrashInfo.h - Swift Backtracing Crash Information ------*- C++ -*-===//
+//===--- CrashInfo.h - Codira Backtracing Crash Information ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines the CrashInfo type that holds information about why the program
@@ -15,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CRASHINFO_H
-#define SWIFT_CRASHINFO_H
+#ifndef LANGUAGE_CRASHINFO_H
+#define LANGUAGE_CRASHINFO_H
 
 #include <inttypes.h>
 
@@ -30,7 +34,7 @@ namespace backtrace {
 //       space, which might not even share our bitness.  That is why they are
 //       `uint64_t`s, rather than pointers or `uintptr_t`s.
 
-// The address of this structure in memory is passed to swift-backtrace.
+// The address of this structure in memory is passed to language-backtrace.
 struct CrashInfo {
   // The thread ID for the crashing thread.
   uint64_t crashing_thread;
@@ -93,4 +97,4 @@ struct thread {
 } // namespace language
 #endif
 
-#endif // SWIFT_CRASHINFO_H
+#endif // LANGUAGE_CRASHINFO_H

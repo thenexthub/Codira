@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftSema STATIC
+add_language_host_library(languageSema STATIC
   AssociatedTypeInference.cpp
   NonisolatedNonsendingByDefaultMigration.cpp
   BuilderTransform.cpp
@@ -14,6 +14,7 @@ add_swift_host_library(swiftSema STATIC
   CSStep.cpp
   CSTrail.cpp
   CSFix.cpp
+  CSOptimizer.cpp
   CSDiagnostics.cpp
   CodeSynthesis.cpp
   CodeSynthesisDistributedActor.cpp
@@ -38,6 +39,7 @@ add_swift_host_library(swiftSema STATIC
   DerivedConformance/DerivedConformanceRawRepresentable.cpp
   ImportResolution.cpp
   InstrumenterSupport.cpp
+  LegalConstExprVerifier.cpp
   LookupVisibleDecls.cpp
   MiscDiagnostics.cpp
   OpenedExistentials.cpp
@@ -82,23 +84,23 @@ add_swift_host_library(swiftSema STATIC
   TypeCheckUnsafe.cpp
   TypeChecker.cpp
   IDETypeCheckingRequests.cpp)
-if(SWIFT_FORCE_OPTIMIZED_TYPECHECKER)
+if(LANGUAGE_FORCE_OPTIMIZED_TYPECHECKER)
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-    target_compile_options(swiftSema PRIVATE /O2 /Ob2)
+    target_compile_options(languageSema PRIVATE /O2 /Ob2)
   else()
-    target_compile_options(swiftSema PRIVATE -O3)
+    target_compile_options(languageSema PRIVATE -O3)
   endif()
 endif()
 
-target_link_libraries(swiftSema PRIVATE
-  swiftAST
-  swiftParse
-  swiftSerialization)
+target_link_libraries(languageSema PRIVATE
+  languageAST
+  languageParse
+  languageSerialization)
 
-if (SWIFT_BUILD_SWIFT_SYNTAX)
-  target_link_libraries(swiftSema PRIVATE
-    swiftASTGen
-    swiftMacroEvaluation)
+if (LANGUAGE_BUILD_LANGUAGE_SYNTAX)
+  target_link_libraries(languageSema PRIVATE
+    languageASTGen
+    languageMacroEvaluation)
 endif()
 
-set_swift_llvm_is_available(swiftSema)
+set_language_toolchain_is_available(languageSema)

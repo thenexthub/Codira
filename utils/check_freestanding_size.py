@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import subprocess
@@ -15,7 +15,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", help="path to a binary to check")
 parser.add_argument("--triple", help="target triple of the freestanding stdlib")
-parser.add_argument("--size-path", help="path to llvm-size binary to use")
+parser.add_argument("--size-path", help="path to toolchain-size binary to use")
 args = parser.parse_args()
 
 
@@ -26,7 +26,7 @@ args = parser.parse_args()
 # Before bumping the maximum text segment size please consult with:
 # @kubamracek, @compnerd
 #
-# The 'freestanding' build of the Swift runtime and standard library is
+# The 'freestanding' build of the Codira runtime and standard library is
 # intended to be lean and allow dead-code elimination from the standard library
 # based on client code usage.
 #

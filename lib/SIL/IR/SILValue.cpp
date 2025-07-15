@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -22,7 +23,7 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILVisitor.h"
 #include "language/SIL/Test.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/StringSwitch.h"
 
 using namespace language;
 
@@ -61,7 +62,7 @@ void ValueBase::replaceAllUsesWith(ValueBase *RHS) {
 void ValueBase::replaceAllUsesWithUndef() {
   auto *F = getFunction();
   if (!F) {
-    llvm_unreachable("replaceAllUsesWithUndef can only be used on ValueBase "
+    toolchain_unreachable("replaceAllUsesWithUndef can only be used on ValueBase "
                      "that have access to the parent function.");
   }
   while (!use_empty()) {
@@ -177,9 +178,9 @@ static FunctionTest IsLexicalTest("is_lexical", [](auto &function,
                                                    auto &test) {
   auto value = arguments.takeValue();
   auto isLexical = value->isLexical();
-  value->print(llvm::outs());
+  value->print(toolchain::outs());
   auto *boolString = isLexical ? "true" : "false";
-  llvm::outs() << boolString << "\n";
+  toolchain::outs() << boolString << "\n";
 });
 } // end namespace language::test
 
@@ -285,7 +286,7 @@ void SILValue::dump() const {
 //                               OwnershipKind
 //===----------------------------------------------------------------------===//
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      const OwnershipKind &kind) {
   return os << kind.asString();
 }
@@ -303,7 +304,7 @@ StringRef OwnershipKind::asString() const {
   case OwnershipKind::None:
     return "none";
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 //===----------------------------------------------------------------------===//
@@ -365,21 +366,21 @@ StringRef ValueOwnershipKind::asString() const {
   return value.asString();
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      ValueOwnershipKind kind) {
   return os << kind.asString();
 }
 
 ValueOwnershipKind::ValueOwnershipKind(StringRef S)
     : value(OwnershipKind::Any) {
-  auto Result = llvm::StringSwitch<std::optional<OwnershipKind::innerty>>(S)
+  auto Result = toolchain::StringSwitch<std::optional<OwnershipKind::innerty>>(S)
                     .Case("unowned", OwnershipKind::Unowned)
                     .Case("owned", OwnershipKind::Owned)
                     .Case("guaranteed", OwnershipKind::Guaranteed)
                     .Case("none", OwnershipKind::None)
                     .Default(std::nullopt);
   if (!Result.has_value())
-    llvm_unreachable("Invalid string representation of ValueOwnershipKind");
+    toolchain_unreachable("Invalid string representation of ValueOwnershipKind");
   value = Result.value();
 }
 
@@ -393,7 +394,7 @@ ValueOwnershipKind::getProjectedOwnershipKind(const SILFunction &F,
 
 #if 0
 /// Map a SILValue mnemonic name to its ValueKind.
-ValueKind swift::getSILValueKind(StringRef Name) {
+ValueKind language::getSILValueKind(StringRef Name) {
 #define SINGLE_VALUE_INST(Id, TextualName, Parent, MemoryBehavior,             \
                           ReleasingBehavior)                                   \
   if (Name == #TextualName)                                                    \
@@ -406,15 +407,15 @@ ValueKind swift::getSILValueKind(StringRef Name) {
 #include "language/SIL/SILNodes.def"
 
 #ifdef NDEBUG
-  llvm::errs()
+  toolchain::errs()
     << "Unknown SILValue name\n";
   abort();
 #endif
-  llvm_unreachable("Unknown SILValue name");
+  toolchain_unreachable("Unknown SILValue name");
 }
 
 /// Map ValueKind to a corresponding mnemonic name.
-StringRef swift::getSILValueName(ValueKind Kind) {
+StringRef language::getSILValueName(ValueKind Kind) {
   switch (Kind) {
 #define SINGLE_VALUE_INST(Id, TextualName, Parent, MemoryBehavior,             \
                           ReleasingBehavior)                                   \
@@ -434,7 +435,7 @@ StringRef swift::getSILValueName(ValueKind Kind) {
 //                           UseLifetimeConstraint
 //===----------------------------------------------------------------------===//
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      UseLifetimeConstraint constraint) {
   switch (constraint) {
   case UseLifetimeConstraint::NonLifetimeEnding:
@@ -453,7 +454,7 @@ llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
 
 void Operand::updateReborrowFlags() {
   if (isa<EndBorrowInst>(getUser())) {
-    swift::updateReborrowFlags(get());
+    language::updateReborrowFlags(get());
   }
 }
 
@@ -517,9 +518,9 @@ bool Operand::isConsuming() const {
   return get()->getOwnershipKind() != OwnershipKind::None;
 }
 
-void Operand::dump() const { print(llvm::dbgs()); }
+void Operand::dump() const { print(toolchain::dbgs()); }
 
-void Operand::print(llvm::raw_ostream &os) const {
+void Operand::print(toolchain::raw_ostream &os) const {
   os << "Operand.\n"
         "Owner: "
      << *Owner << "Value: " << get() << "Operand Number: " << getOperandNumber()
@@ -535,7 +536,7 @@ SILFunction *Operand::getFunction() const {
 //                             OperandConstraint
 //===----------------------------------------------------------------------===//
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      OwnershipConstraint constraint) {
   return os << "<Constraint "
                "Kind:" << constraint.getPreferredKind()
@@ -576,10 +577,10 @@ StringRef OperandOwnership::asString() const {
   case OperandOwnership::Reborrow:
     return "reborrow";
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      const OperandOwnership &operandOwnership) {
   return os << operandOwnership.asString();
 }

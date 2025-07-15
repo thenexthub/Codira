@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_WRAPPERTYPES_H
-#define SWIFT_SIL_WRAPPERTYPES_H
+#ifndef LANGUAGE_SIL_WRAPPERTYPES_H
+#define LANGUAGE_SIL_WRAPPERTYPES_H
 
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
@@ -23,7 +24,7 @@ namespace language {
 /// An abstraction over LoadInst/LoadBorrowInst so one can handle both types of
 /// load using common code.
 struct LoadOperation {
-  llvm::PointerUnion<LoadInst *, LoadBorrowInst *> value;
+  toolchain::PointerUnion<LoadInst *, LoadBorrowInst *> value;
 
   LoadOperation() : value() {}
   LoadOperation(SILInstruction *input) : value(nullptr) {
@@ -283,7 +284,7 @@ public:
   ValueOwnershipKind getForwardingOwnershipKind();
   bool preservesOwnership();
 
-  // ForwardingInstruction.swift mirrors this implementation.
+  // ForwardingInstruction.code mirrors this implementation.
   Operand *getSingleForwardingOperand() const {
     switch (forwardingInst->getKind()) {
     case SILInstructionKind::TupleInst:

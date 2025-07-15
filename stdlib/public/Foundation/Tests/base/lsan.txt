@@ -1,2 +1,0 @@
-leak:__objc_exec_class
-leak:class_addMethod

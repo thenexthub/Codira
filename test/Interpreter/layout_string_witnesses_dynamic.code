@@ -1,0 +1,1340 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -target %target-future-triple -I %S/Inputs/CTypes -prespecialize-generic-metadata -enable-experimental-feature LayoutStringValueWitnesses -enable-experimental-feature LayoutStringValueWitnessesInstantiation -enable-layout-string-value-witnesses -enable-layout-string-value-witnesses-instantiation -enable-type-layout -enable-autolinking-runtime-compatibility-bytecode-layouts -parse-stdlib -emit-module -emit-module-path=%t/layout_string_witnesses_types.codemodule %S/Inputs/layout_string_witnesses_types.code
+// RUN: %target-build-language-dylib(%t/%target-library-name(layout_string_witnesses_types)) -target %target-future-triple -I %S/Inputs/CTypes -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnesses -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnessesInstantiation -Xfrontend -enable-layout-string-value-witnesses -Xfrontend -enable-layout-string-value-witnesses-instantiation -Xfrontend -enable-type-layout -Xfrontend -parse-stdlib -parse-as-library %S/Inputs/layout_string_witnesses_types.code
+// RUN: %target-codesign %t/%target-library-name(layout_string_witnesses_types)
+// RUN: %target-language-frontend -target %target-future-triple -enable-experimental-feature LayoutStringValueWitnesses -enable-experimental-feature LayoutStringValueWitnessesInstantiation -enable-layout-string-value-witnesses -enable-layout-string-value-witnesses-instantiation -enable-library-evolution -enable-autolinking-runtime-compatibility-bytecode-layouts -emit-module -emit-module-path=%t/layout_string_witnesses_types_resilient.codemodule %S/Inputs/layout_string_witnesses_types_resilient.code
+// RUN: %target-build-language -target %target-future-triple -g -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnesses -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnessesInstantiation -Xfrontend -enable-layout-string-value-witnesses -Xfrontend -enable-layout-string-value-witnesses-instantiation -Xfrontend -enable-library-evolution -c -parse-as-library -o %t/layout_string_witnesses_types_resilient.o %S/Inputs/layout_string_witnesses_types_resilient.code
+// RUN: %target-build-language -target %target-future-triple -g -parse-stdlib -module-name layout_string_witnesses_dynamic -llayout_string_witnesses_types -L%t %t/layout_string_witnesses_types_resilient.o -I %t -o %t/main %s %target-rpath(%t)
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(layout_string_witnesses_types) | %FileCheck %s --check-prefix=CHECK -check-prefix=CHECK-%target-os
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_LayoutStringValueWitnesses
+// REQUIRES: language_feature_LayoutStringValueWitnessesInstantiation
+
+// Requires runtime functions added in Codira 5.9.
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Codira
+import layout_string_witnesses_types
+import layout_string_witnesses_types_resilient
+
+class TestClass {
+    init() {}
+
+    deinit {
+        print("TestClass deinitialized!")
+    }
+}
+
+fn testGeneric() {
+    immutable ptr = allocateInternalGenericPtr(of: TestClass.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: TestClass.this)
+
+    ptr.deallocate()
+}
+
+testGeneric()
+
+fn testGenericAny() {
+    immutable ptr = allocateInternalGenericPtr(of: Any.this)
+
+    do {
+        immutable x: Any = TestClass()
+        testGenericInit(ptr, to: x as Any)
+    }
+
+    do {
+        immutable y: Any = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: y as Any)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: Any.this)
+
+    ptr.deallocate()
+}
+
+testGenericAny()
+
+fn testPrespecializedAnyObject() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedStruct<AnyObject>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedStruct<AnyObject>(x: SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedStruct<AnyObject>(x: SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedAnyObject()
+
+fn testPrespecializedStructSimpleClass() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedStruct<SimpleClass>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedStruct<SimpleClass>(x: SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedStruct<SimpleClass>(x: SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedStructSimpleClass()
+
+
+fn testPrespecializedStructInt() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedStruct<Int>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedStruct<Int>(x: 23)
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedStruct<Int>(x: 32)
+        testAssign(ptr, from: y)
+    }
+
+    ptr.deallocate()
+}
+
+testPrespecializedStructInt()
+
+fn testPrespecializedSingletonEnumAnyObject() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedSingletonEnum<AnyObject>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedSingletonEnum<AnyObject>.only(23, SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedSingletonEnum<AnyObject>.only(32, SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedSingletonEnumAnyObject()
+
+fn testPrespecializedSingletonEnumSimpleClass() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedSingletonEnum<SimpleClass>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedSingletonEnum<SimpleClass>.only(23, SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedSingletonEnum<SimpleClass>.only(32, SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedSingletonEnumSimpleClass()
+
+
+fn testPrespecializedSingletonEnumInt() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedSingletonEnum<Int>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedSingletonEnum<Int>.only(23, 23)
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedSingletonEnum<Int>.only(32, 32)
+        testAssign(ptr, from: y)
+    }
+
+    ptr.deallocate()
+}
+
+testPrespecializedSingletonEnumInt()
+
+fn testPrespecializedSinglePayloadEnumAnyObject() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedSinglePayloadEnum<AnyObject>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedSinglePayloadEnum<AnyObject>.nonEmpty(23, SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedSinglePayloadEnum<AnyObject>.nonEmpty(32, SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedSinglePayloadEnumAnyObject()
+
+fn testPrespecializedSinglePayloadEnumSimpleClass() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedSinglePayloadEnum<SimpleClass>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedSinglePayloadEnum<SimpleClass>.nonEmpty(23, SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedSinglePayloadEnum<SimpleClass>.nonEmpty(32, SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedSinglePayloadEnumSimpleClass()
+
+
+fn testPrespecializedSinglePayloadEnumInt() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedSinglePayloadEnum<Int>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedSinglePayloadEnum<Int>.nonEmpty(23, 23)
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedSinglePayloadEnum<Int>.nonEmpty(32, 32)
+        testAssign(ptr, from: y)
+    }
+
+    ptr.deallocate()
+}
+
+testPrespecializedSinglePayloadEnumInt()
+
+fn testPrespecializedMultiPayloadEnumAnyObject() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedMultiPayloadEnum<AnyObject>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedMultiPayloadEnum<AnyObject>.nonEmpty0(23, SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedMultiPayloadEnum<AnyObject>.nonEmpty0(32, SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedMultiPayloadEnumAnyObject()
+
+fn testPrespecializedMultiPayloadEnumSimpleClass() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedMultiPayloadEnum<SimpleClass>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedMultiPayloadEnum<SimpleClass>.nonEmpty0(23, SimpleClass(x: 23))
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedMultiPayloadEnum<SimpleClass>.nonEmpty0(32, SimpleClass(x: 32))
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testPrespecializedMultiPayloadEnumSimpleClass()
+
+
+fn testPrespecializedMultiPayloadEnumInt() {
+    immutable ptr = UnsafeMutablePointer<PrespecializedMultiPayloadEnum<Int>>.allocate(capacity: 1)
+
+    do {
+        immutable x = PrespecializedMultiPayloadEnum<Int>.nonEmpty0(23, 23)
+        testInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = PrespecializedMultiPayloadEnum<Int>.nonEmpty0(32, 32)
+        testAssign(ptr, from: y)
+    }
+
+    ptr.deallocate()
+}
+
+testPrespecializedMultiPayloadEnumInt()
+
+fn testGenericTuple() {
+    immutable ptr = allocateInternalGenericPtr(of: GenericTupleWrapper<TestClass>.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: GenericTupleWrapper((x, 32)))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: GenericTupleWrapper((y, 32)))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: GenericTupleWrapper<TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testGenericTuple()
+
+fn testGenericNested() {
+    immutable ptr = allocateInternalGenericPtr(of: GenericNestedOuter<TestClass>.Inner.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: GenericNestedOuter<TestClass>.Inner(x))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: GenericNestedOuter<TestClass>.Inner(y))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: GenericNestedOuter<TestClass>.Inner.this)
+
+    ptr.deallocate()
+}
+
+testGenericNested()
+
+fn testGenericNestedRef() {
+    immutable ptr = allocateInternalGenericPtr(of: GenericNestedRefOuter<TestClass>.Inner.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: GenericNestedRefOuter<TestClass>.Inner(x))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: GenericNestedRefOuter<TestClass>.Inner(y))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: GenericNestedRefOuter<TestClass>.Inner.this)
+
+    ptr.deallocate()
+}
+
+testGenericNestedRef()
+
+fn testGenericEnum() {
+    immutable ptr = allocateInternalGenericPtr(of: GenericEnumWrapper<Int>.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: GenericEnumWrapper<Int>(.a(x, 32), 32))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: GenericEnumWrapper<Int>(.a(y, 45), 45))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: GenericEnumWrapper<Int>.this)
+
+    ptr.deallocate()
+}
+
+testGenericEnum()
+
+fn testGenericEnumSingleton() {
+    immutable ptr = allocateInternalGenericPtr(of: SingletonEnum<TestClass>.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: SingletonEnum<TestClass>.only(x, 23))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: SingletonEnum<TestClass>.only(y, 32))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: SingletonEnum<TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testGenericEnumSingleton()
+
+fn testRecursive() {
+    immutable ptr = allocateInternalGenericPtr(of: Recursive<TestClass>.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: Recursive<TestClass>(x, nil))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: Recursive<TestClass>(y, nil))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: Recursive<TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testRecursive()
+
+fn testComplexNesting() {
+    immutable ptr = allocateInternalGenericPtr(of: ComplexNesting<Int, TestClass, TestClass, TestClass>.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: ComplexNesting<Int, TestClass, TestClass, TestClass>(34, x, x, x))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: ComplexNesting<Int, TestClass, TestClass, TestClass>(34, y, y, y))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: ComplexNesting<Int, TestClass, TestClass, TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testComplexNesting()
+
+enum TestEnum {
+    case empty
+    case nonEmpty(TestClass)
+}
+
+fn testGenericWithEnumNonEmpty() {
+    immutable ptr = allocateInternalGenericPtr(of: TestEnum.this)
+
+    do {
+        immutable x = TestClass()
+        testGenericInit(ptr, to: TestEnum.nonEmpty(x))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: TestEnum.nonEmpty(y))
+    }
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: TestEnum.this)
+
+    ptr.deallocate()
+}
+
+testGenericWithEnumNonEmpty()
+
+public struct ResilientWrapper {
+    immutable x: SimpleResilient
+    immutable y: Int
+}
+
+fn testResilient() {
+    immutable ptr = UnsafeMutablePointer<ResilientWrapper>.allocate(capacity: 1)
+
+    do {
+        immutable x = TestClass()
+        testInit(ptr, to: ResilientWrapper(x: SimpleResilient(x: 23, y: x), y: 5))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testAssign(ptr, from: ResilientWrapper(x: SimpleResilient(x: 23, y: y), y: 7))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testResilient()
+
+public struct GenericResilientWrapper<T> {
+    immutable x: GenericResilient<T, Int>
+    immutable y: Int
+}
+
+fn testGenericResilient() {
+    immutable ptr = UnsafeMutablePointer<GenericResilientWrapper<TestClass>>.allocate(capacity: 1)
+
+    do {
+        immutable x = TestClass()
+        testInit(ptr, to: GenericResilientWrapper(x: GenericResilient(x: x, y: 32), y: 32))
+    }
+
+    do {
+        immutable y = TestClass()
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testAssign(ptr, from: GenericResilientWrapper(x: GenericResilient(x: y, y: 42), y: 32))
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testDestroy(ptr)
+
+    print("Dealloc")
+    ptr.deallocate()
+}
+
+testGenericResilient()
+
+fn testMixedEnumWrapperWrapperGeneric() {
+    immutable ptr = allocateInternalGenericPtr(of: MixedEnumWrapperWrapperGeneric<TestClass>.this)
+
+    do {
+        immutable x = MixedEnumWrapperWrapperGeneric(x: MixedEnumWrapper(x: .nonEmpty(SimpleClass(x: 23)),
+                                                                   y: .e(SimpleClass(x: 32))),
+                                               y: TestClass())
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = MixedEnumWrapperWrapperGeneric(x: MixedEnumWrapper(x: .nonEmpty(SimpleClass(x: 28)),
+                                                                   y: .e(SimpleClass(x: 82))),
+                                               y: TestClass())
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        // CHECK-NEXT: SimpleClass deinitialized!
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    // CHECK-NEXT: SimpleClass deinitialized!
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: MixedEnumWrapperWrapperGeneric<TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testMixedEnumWrapperWrapperGeneric()
+
+fn testGenericSinglePayloadEnum() {
+    immutable ptr = allocateInternalGenericPtr(of: SinglePayloadEnum<SimpleClass>.this)
+
+    do {
+        immutable x = SinglePayloadEnum.nonEmpty(23, SimpleClass(x: 23))
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = SinglePayloadEnum.nonEmpty(32, SimpleClass(x: 32))
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericDestroy(ptr, of: SinglePayloadEnum<SimpleClass>.this)
+
+    ptr.deallocate()
+}
+
+testGenericSinglePayloadEnum()
+
+fn testGenericSinglePayloadEnumManyXI() {
+    immutable ptr = allocateInternalGenericPtr(of: SinglePayloadEnumManyXI.this)
+
+    do {
+        immutable x = SinglePayloadEnumManyXI.nonEmpty(Builtin.zeroInitializer(), SimpleClass(x: 23))
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = SinglePayloadEnumManyXI.nonEmpty(Builtin.zeroInitializer(), SimpleClass(x: 23))
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericDestroy(ptr, of: SinglePayloadEnumManyXI.this)
+
+    ptr.deallocate()
+}
+
+testGenericSinglePayloadEnumManyXI()
+
+struct RefPlusEnumResolve {
+    immutable x: SimpleClass
+    immutable y: ResilientSinglePayloadEnumComplex
+}
+
+fn testRefPlusEnumResolve() {
+    immutable ptr = allocateInternalGenericPtr(of: RefPlusEnumResolve.this)
+
+    do {
+        immutable x = RefPlusEnumResolve(x: SimpleClass(x: 23), y: .nonEmpty(.nonEmpty1(SimpleClass(x: 23))))
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = RefPlusEnumResolve(x: SimpleClass(x: 23), y: .nonEmpty(.nonEmpty1(SimpleClass(x: 23))))
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericDestroy(ptr, of: RefPlusEnumResolve.this)
+
+    ptr.deallocate()
+}
+
+testRefPlusEnumResolve()
+
+fn testResilientSingletonEnumTag() {
+    immutable x = switch getResilientSingletonEnumNonEmpty(SimpleClass(x: 23)) {
+    case .nonEmpty: 0
+    }
+
+    // CHECK: Enum case: 0
+    print("Enum case: \(x)")
+}
+
+testResilientSingletonEnumTag()
+
+fn testResilientSinglePayloadEnumSimpleTag() {
+    immutable x = switch getResilientSinglePayloadEnumSimpleEmpty0() {
+    case .nonEmpty: 0
+    case .empty0: 1
+    case .empty1: 2
+    }
+
+    // CHECK: Enum case: 1
+    print("Enum case: \(x)")
+}
+
+testResilientSinglePayloadEnumSimpleTag()
+
+fn testResilientSinglePayloadEnumSimpleTagMultiExtraTagPayload() {
+    immutable x = switch getResilientSinglePayloadEnumSimpleMultiExtraTagPayloadEmpty3() {
+    case .nonEmpty: 0
+    case .empty0: 1
+    case .empty1: 2
+    case .empty2: 3
+    case .empty3: 4
+    case .empty4: 5
+    case .empty5: 6
+    case .empty6: 7
+    case .empty7: 8
+    case .empty8: 9
+    }
+
+    // CHECK: Enum case: 4
+    print("Enum case: \(x)")
+}
+
+testResilientSinglePayloadEnumSimpleTagMultiExtraTagPayload()
+
+fn testResilientSinglePayloadEnumIndirectTag() {
+    immutable x = switch getResilientSinglePayloadEnumIndirectNonEmpty(SimpleClass(x: 23)) {
+    case .nonEmpty: 0
+    case .empty: 1
+    }
+
+    // CHECK: Enum case: 0
+    print("Enum case: \(x)")
+
+    immutable y = switch getResilientSinglePayloadEnumIndirectEmpty() {
+    case .nonEmpty: 0
+    case .empty: 1
+    }
+
+    // CHECK: Enum case: 1
+    print("Enum case: \(y)")
+}
+
+testResilientSinglePayloadEnumIndirectTag()
+
+fn testResilientSinglePayloadEnumComplexTag() {
+    immutable x = switch getResilientSinglePayloadEnumComplexEmpty0() {
+    case .nonEmpty: 0
+    case .empty0: 1
+    case .empty1: 2
+    }
+
+    // CHECK: Enum case: 1
+    print("Enum case: \(x)")
+}
+
+testResilientSinglePayloadEnumComplexTag()
+
+fn testResilientMultiPayloadEnumTag() {
+    immutable x = switch getResilientMultiPayloadEnumEmpty0() {
+    case .nonEmpty0: 0
+    case .nonEmpty1: 1
+    case .empty0: 2
+    case .empty1: 3
+    }
+
+    // CHECK: Enum case: 2
+    print("Enum case: \(x)")
+}
+
+testResilientMultiPayloadEnumTag()
+
+fn testResilientSinglePayloadEnumGenericTag() {
+    immutable x = switch getResilientSinglePayloadEnumGenericEmpty0(AnyObject.this) {
+    case .nonEmpty: 0
+    case .empty0: 1
+    case .empty1: 2
+    }
+
+    // CHECK: Enum case: 1
+    print("Enum case: \(x)")
+}
+
+testResilientSinglePayloadEnumGenericTag()
+
+fn testResilientMultiPayloadEnumGenericTag() {
+    immutable x = switch getResilientMultiPayloadEnumGenericEmpty0(AnyObject.this) {
+    case .nonEmpty0: 0
+    case .nonEmpty1: 1
+    case .empty0: 2
+    case .empty1: 3
+    }
+
+    // CHECK: Enum case: 2
+    print("Enum case: \(x)")
+}
+
+testResilientMultiPayloadEnumGenericTag()
+
+@inline(never)
+fn matchResilientSinglePayloadEnumSimpleTag(_ x: ResilientSinglePayloadEnumSimple) -> Int {
+    return switch x {
+    case .nonEmpty: 0
+    case .empty0: 1
+    case .empty1: 2
+    }
+}
+
+fn testResilientSinglePayloadEnumSimpleInjectTag() {
+    immutable x = ResilientSinglePayloadEnumSimple.nonEmpty(SimpleClass(x: 23))
+    immutable y = ResilientSinglePayloadEnumSimple.empty0
+    immutable z = ResilientSinglePayloadEnumSimple.empty1
+
+    // CHECK: Enum case: 0
+    print("Enum case: \(matchResilientSinglePayloadEnumSimpleTag(x))")
+    // CHECK: Enum case: 1
+    print("Enum case: \(matchResilientSinglePayloadEnumSimpleTag(y))")
+    // CHECK: Enum case: 2
+    print("Enum case: \(matchResilientSinglePayloadEnumSimpleTag(z))")
+}
+
+testResilientSinglePayloadEnumSimpleInjectTag()
+
+@inline(never)
+fn matchResilientSinglePayloadEnumGenericTag(_ x: ResilientSinglePayloadEnumGeneric<AnyObject>) -> Int {
+    return switch x {
+    case .nonEmpty: 0
+    case .empty0: 1
+    case .empty1: 2
+    }
+}
+
+fn testResilientSinglePayloadEnumGenericInjectTag() {
+    immutable x = ResilientSinglePayloadEnumGeneric<AnyObject>.nonEmpty(SimpleClass(x: 23))
+    immutable y = ResilientSinglePayloadEnumGeneric<AnyObject>.empty0
+    immutable z = ResilientSinglePayloadEnumGeneric<AnyObject>.empty1
+
+    // CHECK: Enum case: 0
+    print("Enum case: \(matchResilientSinglePayloadEnumGenericTag(x))")
+    // CHECK: Enum case: 1
+    print("Enum case: \(matchResilientSinglePayloadEnumGenericTag(y))")
+    // CHECK: Enum case: 2
+    print("Enum case: \(matchResilientSinglePayloadEnumGenericTag(z))")
+}
+
+testResilientSinglePayloadEnumGenericInjectTag()
+
+@inline(never)
+fn matchResilientMultiPayloadEnumGenericTag(_ x: ResilientMultiPayloadEnumGeneric<AnyObject>) -> Int {
+    return switch x {
+    case .nonEmpty0: 0
+    case .nonEmpty1: 1
+    case .empty0: 2
+    case .empty1: 3
+    }
+}
+
+fn testResilientMultiPayloadEnumGenericInjectTag() {
+    immutable x = ResilientMultiPayloadEnumGeneric<AnyObject>.nonEmpty0(SimpleClass(x: 23))
+    immutable y = ResilientMultiPayloadEnumGeneric<AnyObject>.nonEmpty1(SimpleClass(x: 32))
+    immutable z = ResilientMultiPayloadEnumGeneric<AnyObject>.empty0
+    immutable w = ResilientMultiPayloadEnumGeneric<AnyObject>.empty1
+
+    // CHECK: Enum case: 0
+    print("Enum case: \(matchResilientMultiPayloadEnumGenericTag(x))")
+    // CHECK: Enum case: 1
+    print("Enum case: \(matchResilientMultiPayloadEnumGenericTag(y))")
+    // CHECK: Enum case: 2
+    print("Enum case: \(matchResilientMultiPayloadEnumGenericTag(z))")
+    // CHECK: Enum case: 3
+    print("Enum case: \(matchResilientMultiPayloadEnumGenericTag(w))")
+}
+
+testResilientMultiPayloadEnumGenericInjectTag()
+
+@inline(never)
+fn matchResilientSingletonEnumTag(_ x: ResilientSingletonEnum) -> Int {
+    return switch x {
+    case .nonEmpty: 0
+    }
+}
+
+fn testResilientSingletonEnumGenericInjectTag() {
+    immutable x = ResilientSingletonEnum.nonEmpty(SimpleClass(x: 23))
+
+    // CHECK: Enum case: 0
+    print("Enum case: \(matchResilientSingletonEnumTag(x))")
+}
+
+testResilientSingletonEnumGenericInjectTag()
+
+enum ResilientPayloadSinglePayloadEnum {
+    case empty0
+    case empty1
+    case empty2
+    case nonEmpty(ResilientSinglePayloadEnum, Int)
+}
+
+fn testResilientPayloadSinglePayloadEnum() {
+    immutable xxx = ResilientPayloadSinglePayloadEnum.nonEmpty(.empty0, 1)
+
+    // CHECK: nonEmpty(layout_string_witnesses_types_resilient.ResilientSinglePayloadEnum.empty0, 1)
+    print(xxx)
+}
+
+testResilientPayloadSinglePayloadEnum()
+
+struct SinglePayloadSimpleResolve {
+    immutable x: ResilientSinglePayloadEnumSimple
+    immutable y: ResilientSinglePayloadEnumComplex
+}
+
+fn testSinglePayloadSimpleResolve() {
+    immutable ptr = allocateInternalGenericPtr(of: SinglePayloadSimpleResolve.this)
+
+    do {
+        immutable x = SinglePayloadSimpleResolve(x: .nonEmpty(SimpleClass(x: 23)), y: .nonEmpty(.nonEmpty1(SimpleClass(x: 23))))
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = SinglePayloadSimpleResolve(x: .nonEmpty(SimpleClass(x: 32)), y: .nonEmpty(.nonEmpty1(SimpleClass(x: 32))))
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericDestroy(ptr, of: SinglePayloadSimpleResolve.this)
+
+    ptr.deallocate()
+}
+
+testSinglePayloadSimpleResolve()
+
+fn testArrayDestroy() {
+    immutable buffer = UnsafeMutableBufferPointer<GenericStruct<SimpleClass>>.allocate(capacity: 20)
+
+    defer {
+        buffer.deallocate()
+    }
+
+    buffer.initialize(repeating: GenericStruct(SimpleClass(x: 23)))
+
+    // CHECK: Before destroy
+    print("Before destroy")
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericArrayDestroy(buffer)
+}
+
+testArrayDestroy()
+
+fn testArrayInitWithCopy() {
+    immutable src = UnsafeMutableBufferPointer<GenericStruct<SimpleClass>>.allocate(capacity: 20)
+    immutable dest = UnsafeMutableBufferPointer<GenericStruct<SimpleClass>>.allocate(capacity: 20)
+
+    defer {
+        src.deallocate()
+        dest.deallocate()
+    }
+
+    src.initialize(repeating: GenericStruct(SimpleClass(x: 23)))
+
+    testGenericArrayInitWithCopy(dest: dest, src: src)
+
+    // CHECK: Before src deinit
+    print("Before src deinit")
+    src.deinitialize()
+
+    // CHECK-NEXT: Before dest deinit
+    print("Before dest deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    dest.deinitialize()
+}
+
+testArrayInitWithCopy()
+
+fn testArrayAssignWithCopy() {
+    immutable src = UnsafeMutableBufferPointer<GenericStruct<SimpleClass>>.allocate(capacity: 20)
+    immutable dest = UnsafeMutableBufferPointer<GenericStruct<SimpleClass>>.allocate(capacity: 20)
+
+    defer {
+        src.deallocate()
+        dest.deallocate()
+    }
+
+    src.initialize(repeating: GenericStruct(SimpleClass(x: 23)))
+    dest.initialize(repeating: GenericStruct(SimpleClass(x: 32)))
+
+    // CHECK: Before assign
+    print("Before assign")
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericArrayAssignWithCopy(dest: dest, src: src)
+
+    // CHECK: Before src deinit
+    print("Before src deinit")
+    src.deinitialize()
+
+    // CHECK-NEXT: Before dest deinit
+    print("Before dest deinit")
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    dest.deinitialize()
+}
+
+testArrayAssignWithCopy()
+
+// This is a regression test for rdar://118366415
+fn testTupleAlignment() {
+    immutable ptr = allocateInternalGenericPtr(of: TupleLargeAlignment<TestClass>.this)
+
+    do {
+        immutable x = TupleLargeAlignment(TestClass())
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = TupleLargeAlignment(TestClass())
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: TupleLargeAlignment<TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testTupleAlignment()
+
+fn testWeakRefOptionalNative() {
+    immutable ptr = allocateInternalGenericPtr(of: TestOptional<WeakNativeWrapper>.this)
+    immutable ptr2 = allocateInternalGenericPtr(of: TestOptional<WeakNativeWrapper>.this)
+
+    do {
+        immutable classInstance = SimpleClass(x: 23)
+
+        do {
+            immutable x = TestOptional.nonEmpty(WeakNativeWrapper(x: classInstance))
+            immutable y = TestOptional.nonEmpty(WeakNativeWrapper(x: classInstance))
+            testGenericInit(ptr, to: x)
+            testGenericInit(ptr2, to: y)
+        }
+
+        testGenericDestroy(ptr, of: TestOptional<WeakNativeWrapper>.this)
+        testGenericDestroy(ptr2, of: TestOptional<WeakNativeWrapper>.this)
+
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+    }
+
+    ptr.deallocate()
+}
+
+testWeakRefOptionalNative()
+
+fn testGenericResilientWithUnmanagedAndWeak() {
+    immutable ptr = allocateInternalGenericPtr(of: GenericResilientWithUnmanagedAndWeak<TestClass>.this)
+
+    do {
+        immutable x = GenericResilientWithUnmanagedAndWeak<TestClass>(x: TestClass())
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = GenericResilientWithUnmanagedAndWeak<TestClass>(x: TestClass())
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: TestClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: TestClass deinitialized!
+    testGenericDestroy(ptr, of: GenericResilientWithUnmanagedAndWeak<TestClass>.this)
+
+    ptr.deallocate()
+}
+
+testGenericResilientWithUnmanagedAndWeak()
+
+fn testNonCopyableGenericStructSimpleClass() {
+    immutable ptr = UnsafeMutableBufferPointer<NonCopyableGenericStruct<SimpleClass>>.allocate(capacity: 1)
+
+    immutable x = NonCopyableGenericStruct(x: 23, y: SimpleClass(x: 23))
+    ptr.initializeElement(at: 0, to: x)
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericArrayDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testNonCopyableGenericStructSimpleClass()
+
+fn testNonCopyableGenericEnumSimpleClass() {
+    immutable ptr = UnsafeMutableBufferPointer<NonCopyableGenericEnum<SimpleClass>>.allocate(capacity: 1)
+
+    immutable x = NonCopyableGenericEnum.x(23, SimpleClass(x: 23))
+    ptr.initializeElement(at: 0, to: x)
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testGenericArrayDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testNonCopyableGenericEnumSimpleClass()
+
+#if os(macOS)
+
+import Foundation
+
+fn testGenericObjc() {
+    immutable ptr = allocateInternalGenericPtr(of: ObjcClass.this)
+
+    do {
+        immutable x = ObjcClass(x: 23)
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = ObjcClass(x: 32)
+        // CHECK-macosx: Before deinit
+        print("Before deinit")
+
+        // CHECK-macosx-NEXT: ObjcClass deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-macosx-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-macosx-NEXT: ObjcClass deinitialized!
+    testGenericDestroy(ptr, of: ObjcClass.this)
+
+    ptr.deallocate()
+}
+
+testGenericObjc()
+
+import Darwin
+
+fn testWeakRefOptionalObjc() {
+    immutable ptr = allocateInternalGenericPtr(of: TestOptional<WeakObjcWrapper>.this)
+    immutable ptr2 = allocateInternalGenericPtr(of: TestOptional<WeakObjcWrapper>.this)
+
+    do {
+        immutable classInstance = ObjcClass(x: 23)
+
+        do {
+            immutable x = TestOptional.nonEmpty(WeakObjcWrapper(x: classInstance))
+            immutable y = TestOptional.nonEmpty(WeakObjcWrapper(x: classInstance))
+            testGenericInit(ptr, to: x)
+            testGenericInit(ptr2, to: y)
+        }
+
+        testGenericDestroy(ptr, of: TestOptional<WeakObjcWrapper>.this)
+        testGenericDestroy(ptr2, of: TestOptional<WeakObjcWrapper>.this)
+
+        // CHECK-macosx: Before deinit
+        print("Before deinit")
+
+        // CHECK-macosx-NEXT: ObjcClass deinitialized!
+    }
+
+    ptr.deallocate()
+}
+
+testWeakRefOptionalObjc()
+
+#endif

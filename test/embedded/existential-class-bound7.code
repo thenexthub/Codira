@@ -1,0 +1,28 @@
+// RUN: %target-language-emit-ir -parse-as-library -module-name main -verify %s -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public protocol P: AnyObject {
+  fn foo<T>(t: T)
+}
+
+final public class Class: P {
+  public fn foo<T>(t: T) {} // expected-error {{a protocol type cannot contain a generic method 'foo(t:)' in embedded Codira}}
+}
+
+
+public fn testClass() -> P {
+  return Class() // expected-note {{protocol type value created here}}
+}
+
+final public class GenClass<X>: P {
+  public fn foo<T>(t: T) {} // expected-error {{a protocol type cannot contain a generic method 'foo(t:)' in embedded Codira}}
+}
+
+
+public fn testGenClass() -> P {
+  return GenClass<Int>() // expected-note {{protocol type value created here}}
+}
+

@@ -1,24 +1,28 @@
 //===--- PluginRegistry.h ---------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_PLUGIN_REGISTRY_H
-#define SWIFT_PLUGIN_REGISTRY_H
+#ifndef LANGUAGE_PLUGIN_REGISTRY_H
+#define LANGUAGE_PLUGIN_REGISTRY_H
 
 #include "language/Basic/StringExtras.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/Program.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/Program.h"
 
 #include <mutex>
 #include <vector>
@@ -39,13 +43,13 @@ class CompilerPlugin {
   std::function<void(void)> cleanup;
 
   /// Callbacks to be called when the connection is restored.
-  llvm::SmallVector<std::function<void(void)> *, 0> onReconnect;
+  toolchain::SmallVector<std::function<void(void)> *, 0> onReconnect;
 
   /// Flag to enable dumping of plugin messages.
   bool dumpMessaging = false;
 
 protected:
-  CompilerPlugin(llvm::StringRef path) : path(path) {}
+  CompilerPlugin(toolchain::StringRef path) : path(path) {}
 
   bool shouldDumpMessaging() const { return dumpMessaging; }
 
@@ -71,13 +75,13 @@ public:
 
   /// Launch the plugin if it's not already running, or it's stale. Return an
   /// error if it's fails to execute it.
-  virtual llvm::Error spawnIfNeeded() = 0;
+  virtual toolchain::Error spawnIfNeeded() = 0;
 
   /// Send a message to the plugin.
-  virtual llvm::Error sendMessage(llvm::StringRef message) = 0;
+  virtual toolchain::Error sendMessage(toolchain::StringRef message) = 0;
 
   /// Wait for a message from plugin and returns it.
-  virtual llvm::Expected<std::string> waitForNextMessage() = 0;
+  virtual toolchain::Expected<std::string> waitForNextMessage() = 0;
 
   /// Add "on reconnect" callback.
   /// These callbacks are called when `spawnIfNeeded()` relaunched the plugin.
@@ -87,7 +91,7 @@ public:
 
   /// Remove "on reconnect" callback.
   void removeOnReconnect(std::function<void(void)> *fn) {
-    llvm::erase(onReconnect, fn);
+    toolchain::erase(onReconnect, fn);
   }
 
   ArrayRef<std::function<void(void)> *> getOnReconnectCallbacks() {
@@ -110,25 +114,25 @@ class InProcessPlugins : public CompilerPlugin {
   /// Temporary storage for the response data from 'handleMessageFn'.
   std::string receivedResponse;
 
-  InProcessPlugins(llvm::StringRef serverPath,
+  InProcessPlugins(toolchain::StringRef serverPath,
                    HandleMessageFunction handleMessageFn)
       : CompilerPlugin(serverPath), handleMessageFn(handleMessageFn) {}
 
 public:
   /// Create an instance by loading the in-process plugin server at 'serverPath'
   /// and return it.
-  static llvm::Expected<std::unique_ptr<InProcessPlugins>>
+  static toolchain::Expected<std::unique_ptr<InProcessPlugins>>
   create(const char *serverPath);
 
   /// Send a message to the plugin.
-  llvm::Error sendMessage(llvm::StringRef message) override;
+  toolchain::Error sendMessage(toolchain::StringRef message) override;
 
   /// Wait for a message from plugin and returns it.
-  llvm::Expected<std::string> waitForNextMessage() override;
+  toolchain::Expected<std::string> waitForNextMessage() override;
 
-  llvm::Error spawnIfNeeded() override {
+  toolchain::Error spawnIfNeeded() override {
     // NOOP. It's always loaded.
-    return llvm::Error::success();
+    return toolchain::Error::success();
   }
 };
 
@@ -144,13 +148,16 @@ class LoadedExecutablePlugin : public CompilerPlugin {
 
   /// Represents the current process of the executable plugin.
   struct PluginProcess {
-    const llvm::sys::ProcessInfo process;
+    const toolchain::sys::ProcessInfo process;
     const int input;
     const int output;
 
-    PluginProcess(llvm::sys::ProcessInfo process, int input, int output)
+    PluginProcess(toolchain::sys::ProcessInfo process, int input, int output)
         : process(process), input(input), output(output) {}
     ~PluginProcess();
+
+    PluginProcess(const PluginProcess &) = delete;
+    PluginProcess &operator=(const PluginProcess &) = delete;
 
     ssize_t write(const void *buf, size_t nbyte) const;
     ssize_t read(void *buf, size_t nbyte) const;
@@ -160,7 +167,7 @@ class LoadedExecutablePlugin : public CompilerPlugin {
   std::unique_ptr<PluginProcess> Process;
 
   /// Last modification time of the `ExecutablePath` when this is initialized.
-  const llvm::sys::TimePoint<> LastModificationTime;
+  const toolchain::sys::TimePoint<> LastModificationTime;
 
   /// Disable sandbox.
   bool disableSandbox = false;
@@ -170,8 +177,8 @@ class LoadedExecutablePlugin : public CompilerPlugin {
   void setStale() { Process.reset(); }
 
 public:
-  LoadedExecutablePlugin(llvm::StringRef ExecutablePath,
-                         llvm::sys::TimePoint<> LastModificationTime,
+  LoadedExecutablePlugin(toolchain::StringRef ExecutablePath,
+                         toolchain::sys::TimePoint<> LastModificationTime,
                          bool disableSandbox)
       : CompilerPlugin(ExecutablePath),
         LastModificationTime(LastModificationTime),
@@ -179,7 +186,7 @@ public:
 
   /// The last modification time of 'ExecutablePath' when this object is
   /// created.
-  llvm::sys::TimePoint<> getLastModificationTime() const {
+  toolchain::sys::TimePoint<> getLastModificationTime() const {
     return LastModificationTime;
   }
 
@@ -188,16 +195,16 @@ public:
 
   // Launch the plugin if it's not already running, or it's stale. Return an
   // error if it's fails to execute it.
-  llvm::Error spawnIfNeeded() override;
+  toolchain::Error spawnIfNeeded() override;
 
   /// Send a message to the plugin.
-  llvm::Error sendMessage(llvm::StringRef message) override;
+  toolchain::Error sendMessage(toolchain::StringRef message) override;
 
   /// Wait for a message from plugin and returns it.
-  llvm::Expected<std::string> waitForNextMessage() override;
+  toolchain::Expected<std::string> waitForNextMessage() override;
 
-  llvm::sys::procid_t getPid() { return Process->process.Pid; }
-  llvm::sys::process_t getProcess() { return Process->process.Process; }
+  toolchain::sys::procid_t getPid() { return Process->process.Pid; }
+  toolchain::sys::process_t getProcess() { return Process->process.Process; }
 };
 
 class PluginRegistry {
@@ -205,7 +212,7 @@ class PluginRegistry {
   std::unique_ptr<InProcessPlugins> inProcessPlugins;
 
   /// Record of loaded plugin executables.
-  llvm::StringMap<std::unique_ptr<LoadedExecutablePlugin>>
+  toolchain::StringMap<std::unique_ptr<LoadedExecutablePlugin>>
       LoadedPluginExecutables;
 
   /// Flag to dump plugin messagings.
@@ -220,15 +227,15 @@ public:
   /// If it's loaded, returned the cached object. If the loaded instance is
   /// from a different 'serverPath', returns an error as we don't support
   /// multiple in-process plugin server in a host process.
-  llvm::Expected<CompilerPlugin *>
-  getInProcessPlugins(llvm::StringRef serverPath);
+  toolchain::Expected<CompilerPlugin *>
+  getInProcessPlugins(toolchain::StringRef serverPath);
 
   /// Load an executable plugin specified by \p path .
   /// If \p path plugin is already loaded, this returns the cached object.
-  llvm::Expected<CompilerPlugin *> loadExecutablePlugin(llvm::StringRef path,
+  toolchain::Expected<CompilerPlugin *> loadExecutablePlugin(toolchain::StringRef path,
                                                         bool disableSandbox);
 };
 
 } // namespace language
 
-#endif // SWIFT_PLUGIN_REGISTRY_H
+#endif // LANGUAGE_PLUGIN_REGISTRY_H

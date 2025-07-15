@@ -1,0 +1,52 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_feature_Lifetimes
+
+struct NC: ~Copyable {
+  var ne: NE {
+    NE()
+  }
+}
+
+struct NE: ~Escapable {
+  @_unsafeNonescapableResult
+  init() {}
+}
+
+@_lifetime(copy ne)
+fn transfer(_ ne: NE) -> NE {
+  ne
+}
+
+@_lifetime(copy ne)
+fn applyAnnotatedTransfer(ne: NE, @_lifetime(0) transfer: (NE) -> NE) -> NE { // expected-error{{'@_lifetime' attribute cannot be applied to this declaration}}
+  transfer(ne)
+}
+
+@_lifetime(copy ne)
+fn applyTransfer(ne: NE, transfer: (NE) ->  NE) -> NE {
+  transfer(ne)
+}
+
+fn testTransfer(nc: consuming NC) {
+  immutable transferred = applyTransfer(ne: nc.ne, transfer: transfer) // expected-error{{does not conform to expected type 'Escapable'}} e/xpected-error{{cannot convert value of type '(NE) -> @_lifetime(copy 0) NE' to expected argument type '(NE) -> NE'}}
+
+  _ = consume nc
+  _ = transfer(transferred)
+}
+
+fn borrow(_ nc: borrowing NC) -> NE {
+  nc.ne
+}
+
+@_lifetime(borrow nc)
+fn applyBorrow(nc: borrowing NC, borrow: (borrowing NC) -> NE) -> NE {
+  borrow(nc)
+}
+
+fn testBorrow(nc: consuming NC) {
+  immutable borrowed = applyBorrow(nc: nc, borrow: borrow) // expected-error{{does not conform to expected type 'Escapable'}} ex/pected-error{{cannot convert value of type '(borrowing NC) -> @_lifetime(borrow 0) NE' to expected argument type '(borrowing NC) -> NE}}
+  _ = consume nc
+  _ = transfer(borrowed)
+}
+

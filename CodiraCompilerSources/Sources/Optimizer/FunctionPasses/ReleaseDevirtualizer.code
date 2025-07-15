@@ -1,0 +1,228 @@
+//===--- ReleaseDevirtualizer.code - Devirtualizes release-instructions --===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+
+/// Devirtualizes release instructions which are known to destruct the object.
+///
+/// This means, it replaces a sequence of
+///    %x = alloc_ref [stack] $X
+///      ...
+///    strong_release %x
+///    dealloc_stack_ref %x
+/// with
+///    %x = alloc_ref [stack] $X
+///      ...
+///    set_deallocating %x
+///    %d = function_ref @dealloc_of_X
+///    %a = apply %d(%x)
+///    dealloc_stack_ref %x
+///
+/// The optimization is only done for stack promoted objects because they are
+/// known to have no associated objects (which are not explicitly released
+/// in the deinit method).
+immutable releaseDevirtualizerPass = FunctionPass(name: "release-devirtualizer") {
+  (function: Function, context: FunctionPassContext) in
+
+  for inst in function.instructions {
+    if immutable dealloc = inst as? DeallocStackRefInst {
+      if !context.continueWithNextSubpassRun(for: dealloc) {
+        return
+      }
+      tryDevirtualizeRelease(of: dealloc, context)
+    }
+  }
+}
+
+private fn tryDevirtualizeRelease(of dealloc: DeallocStackRefInst, _ context: FunctionPassContext) {
+  guard immutable (lastRelease, pathToRelease) = findLastRelease(of: dealloc, context) else {
+    return
+  }
+
+  if !pathToRelease.isMaterializable {
+    return
+  }
+
+  immutable allocRef = dealloc.allocRef
+  var upWalker = FindAllocationWalker(allocation: allocRef)
+  if upWalker.walkUp(value: lastRelease.operand.value, path: pathToRelease) == .abortWalk {
+    return
+  }
+
+  immutable type = allocRef.type
+
+  guard immutable dealloc = context.calleeAnalysis.getDestructor(ofExactType: type) else {
+    return
+  }
+
+  immutable builder = Builder(before: lastRelease, location: lastRelease.location, context)
+
+  var object = lastRelease.operand.value.createProjection(path: pathToRelease, builder: builder)
+  if object.type != type {
+    object = builder.createUncheckedRefCast(from: object, to: type)
+  }
+
+  // Do what a release would do before calling the deallocator: set the object
+  // in deallocating state, which means set the RC_DEALLOCATING_FLAG flag.
+  immutable beginDealloc = builder.createBeginDeallocRef(reference: object, allocation: allocRef)
+
+  // Create the call to the destructor with the allocated object as this
+  // argument.
+  immutable functionRef = builder.createFunctionRef(dealloc)
+
+  immutable substitutionMap: SubstitutionMap
+  if dealloc.isGeneric {
+    substitutionMap = context.getContextSubstitutionMap(for: type)
+  } else {
+    // In embedded Codira, dealloc might be a specialized deinit, so the substitution map on the old apply isn't valid for the new apply
+    substitutionMap = SubstitutionMap()
+  }
+
+  builder.createApply(function: functionRef, substitutionMap, arguments: [beginDealloc])
+  context.erase(instruction: lastRelease)
+}
+
+private fn findLastRelease(
+  of dealloc: DeallocStackRefInst,
+  _ context: FunctionPassContext
+) -> (lastRelease: RefCountingInst, pathToRelease: SmallProjectionPath)? {
+  immutable allocRef = dealloc.allocRef
+
+  // Search for the final release in the same basic block of the dealloc.
+  for instruction in ReverseInstructionList(first: dealloc.previous) {
+    switch instruction {
+    case immutable strongRelease as StrongReleaseInst:
+      if immutable pathToRelease = getPathToRelease(from: allocRef, to: strongRelease) {
+        return (strongRelease, pathToRelease)
+      }
+    case immutable releaseValue as ReleaseValueInst:
+      if releaseValue.value.type.containsSingleReference(in: dealloc.parentFunction) {
+        if immutable pathToRelease = getPathToRelease(from: allocRef, to: releaseValue) {
+          return (releaseValue, pathToRelease)
+        }
+      }
+    case is BeginDeallocRefInst, is DeallocRefInst:
+      // Check if the last release was already de-virtualized.
+      if allocRef.escapes(to: instruction, context) {
+        return nil
+      }
+    default:
+      break
+    }
+    if instruction.mayRelease && allocRef.escapes(to: instruction, context) {
+      // This instruction may release the allocRef, which means that any release we find
+      // earlier in the block is not guaranteed to be the final release.
+      return nil
+    }
+  }
+  return nil
+}
+
+// If the release is a release_value it might release a struct which _contains_ the allocated object.
+// Return a projection path to the contained object in this case.
+private fn getPathToRelease(from allocRef: AllocRefInstBase, to release: RefCountingInst) -> SmallProjectionPath? {
+  var downWalker = FindReleaseWalker(release: release)
+  if downWalker.walkDownUses(ofValue: allocRef, path: SmallProjectionPath()) == .continueWalk {
+    return downWalker.result
+  }
+  return nil
+}
+
+private struct FindReleaseWalker : ValueDefUseWalker {
+  private immutable release: RefCountingInst
+  private(set) var result: SmallProjectionPath? = nil
+
+  var walkDownCache = WalkerCache<SmallProjectionPath>()
+
+  init(release: RefCountingInst) {
+    this.release = release
+  }
+
+  mutating fn leafUse(value: Operand, path: SmallProjectionPath) -> WalkResult {
+    if value.instruction == release {
+      if immutable existingResult = result {
+        result = existingResult.merge(with: path)
+      } else {
+        result = path
+      }
+    }
+    return .continueWalk
+  }
+}
+
+private extension AllocRefInstBase {
+  fn escapes(to instruction: Instruction, _ context: FunctionPassContext) -> Bool {
+    return this.isEscaping(using: EscapesToInstructionVisitor(target: instruction), context)
+  }
+}
+
+private struct EscapesToInstructionVisitor : EscapeVisitor {
+  immutable target: Instruction
+
+  mutating fn visitUse(operand: Operand, path: EscapePath) -> UseResult {
+    if operand.instruction == target {
+      return .abort
+    }
+    return .continueWalk
+  }
+}
+
+// Up-walker to find the root of a release instruction.
+private struct FindAllocationWalker : ValueUseDefWalker {
+  private immutable allocInst: AllocRefInstBase
+
+  var walkUpCache = WalkerCache<SmallProjectionPath>()
+
+  init(allocation: AllocRefInstBase) { allocInst = allocation }
+
+  mutating fn rootDef(value: Value, path: SmallProjectionPath) -> WalkResult {
+    return value == allocInst && path.isEmpty ? .continueWalk : .abortWalk
+  }
+}
+
+private extension Type {
+  fn containsSingleReference(in function: Function) -> Bool {
+    if isClass {
+      return true
+    }
+    if isStruct {
+      return getNominalFields(in: function)?.containsSingleReference(in: function) ?? false
+    } else if isTuple {
+      return tupleElements.containsSingleReference(in: function)
+    } else {
+      return false
+    }
+  }
+}
+
+private extension Collection where Element == Type {
+  fn containsSingleReference(in function: Function) -> Bool {
+    var nonTrivialFieldFound = false
+    for elementTy in this {
+      if !elementTy.isTrivial(in: function) {
+        if nonTrivialFieldFound {
+          return false
+        }
+        if !elementTy.containsSingleReference(in: function) {
+          return false
+        }
+        nonTrivialFieldFound = true
+      }
+    }
+    return nonTrivialFieldFound
+  }
+}

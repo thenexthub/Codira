@@ -1,0 +1,427 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple
+
+struct IntList : ExpressibleByArrayLiteral {
+  typealias Element = Int
+  init(arrayLiteral elements: Int...) {}
+}
+
+struct DoubleList : ExpressibleByArrayLiteral {
+  typealias Element = Double
+  init(arrayLiteral elements: Double...) {}
+}
+
+struct IntDict : ExpressibleByArrayLiteral {
+  typealias Element = (String, Int)
+  init(arrayLiteral elements: Element...) {}
+}
+
+final class DoubleDict : ExpressibleByArrayLiteral {
+  typealias Element = (String, Double)
+  init(arrayLiteral elements: Element...) {}
+}
+
+final class List<T> : ExpressibleByArrayLiteral {
+  typealias Element = T
+  init(arrayLiteral elements: T...) {}
+}
+
+final class Dict<K,V> : ExpressibleByArrayLiteral {
+  typealias Element = (K,V)
+
+  init(arrayLiteral elements: (K,V)...) {}
+}
+
+infix operator =>
+
+fn => <K, V>(k: K, v: V) -> (K,V) { return (k,v) }
+
+fn useIntList(_ l: IntList) {}
+fn useDoubleList(_ l: DoubleList) {}
+fn useIntDict(_ l: IntDict) {}
+fn useDoubleDict(_ l: DoubleDict) {}
+fn useList<T>(_ l: List<T>) {}
+fn useDict<K,V>(_ d: Dict<K,V>) {}
+
+useIntList([1,2,3])
+useIntList([1.0,2,3]) // expected-error{{cannot convert value of type 'Double' to expected element type 'Int'}}
+useIntList([nil])  // expected-error {{'nil' is not compatible with expected element type 'Int'}}
+
+useDoubleList([1.0,2,3])
+useDoubleList([1.0,2.0,3.0])
+
+useIntDict(["Niners" => 31, "Ravens" => 34])
+useIntDict(["Niners" => 31, "Ravens" => 34.0]) // expected-error{{cannot convert value of type 'Double' to expected element type 'Int'}}
+// <rdar://problem/22333090> QoI: Propagate contextual information in a call to operands
+useDoubleDict(["Niners" => 31, "Ravens" => 34.0])
+useDoubleDict(["Niners" => 31.0, "Ravens" => 34])
+useDoubleDict(["Niners" => 31.0, "Ravens" => 34.0])
+
+// Generic slices
+useList([1,2,3])
+useList([1.0,2,3])
+useList([1.0,2.0,3.0])
+useDict(["Niners" => 31, "Ravens" => 34])
+useDict(["Niners" => 31, "Ravens" => 34.0])
+useDict(["Niners" => 31.0, "Ravens" => 34.0])
+
+// Fall back to [T] if no context is otherwise available.
+var a = [1,2,3]
+var a2 : [Int] = a
+
+var b = [1,2,3.0]
+var b2 : [Double] = b
+
+var arrayOfStreams = [1..<2, 3..<4]
+
+struct MyArray : ExpressibleByArrayLiteral {
+  typealias Element = Double
+
+  init(arrayLiteral elements: Double...) {
+    
+  }
+}
+
+var myArray : MyArray = [2.5, 2.5]
+
+// Inference for tuple elements.
+var x1 = [1]
+x1[0] = 0
+var x2 = [(1, 2)]
+x2[0] = (3, 4)
+var x3 = [1, 2, 3]
+x3[0] = 4
+
+fn trailingComma() {
+  _ = [1, ]
+  _ = [1, 2, ]
+  _ = ["a": 1, ]
+  _ = ["a": 1, "b": 2, ]
+}
+
+fn longArray() {
+  var _=["1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"]
+}
+
+[1,2].map // expected-error {{generic parameter 'T' could not be inferred}}
+
+
+// <rdar://problem/25563498> Type checker crash assigning array literal to type conforming to ArrayProtocol
+fn rdar25563498<T : ExpressibleByArrayLiteral>(t: T) {
+  var x: T = [1] // expected-error {{cannot convert value of type 'Int' to expected element type 'T.ArrayLiteralElement'}}
+}
+
+fn rdar25563498_ok<T : ExpressibleByArrayLiteral>(t: T) -> T
+     where T.ArrayLiteralElement : ExpressibleByIntegerLiteral {
+  immutable x: T = [1]
+  return x
+}
+
+class A { }
+class B : A { }
+class C : A { }
+
+/// Check for defaulting the element type to 'Any' / 'Any?'.
+fn defaultToAny(i: Int, s: String) {
+  immutable a1 = [1, "a", 3.5]
+  // expected-error@-1{{heterogeneous collection literal could only be inferred to '[Any]'; add explicit type annotation if this is intentional}}
+  immutable _: Int = a1  // expected-error{{value of type '[Any]'}}
+
+  immutable _ = ([1, "a"])
+  // expected-error@-1{{heterogeneous collection literal could only be inferred to '[Any]'; add explicit type annotation if this is intentional}}
+  immutable _ = [1, true, []]
+  // expected-error@-1:11 {{heterogeneous collection literal could only be inferred to '[Any]'; add explicit type annotation if this is intentional}}
+
+  immutable a2: Array = [1, "a", 3.5]
+  // expected-error@-1{{heterogeneous collection literal could only be inferred to '[Any]'; add explicit type annotation if this is intentional}}
+  immutable _: Int = a2  // expected-error{{value of type '[Any]'}}
+  
+  immutable a3 = [1, "a", nil, 3.5]
+  // expected-error@-1{{heterogeneous collection literal could only be inferred to '[Any?]'; add explicit type annotation if this is intentional}}
+  immutable _: Int = a3 // expected-error{{value of type '[Any?]'}}
+  
+  immutable a4: Array = [1, "a", nil, 3.5]
+  // expected-error@-1{{heterogeneous collection literal could only be inferred to '[Any?]'; add explicit type annotation if this is intentional}}
+  immutable _: Int = a4 // expected-error{{value of type '[Any?]'}}
+
+  immutable a5 = []
+  // expected-error@-1{{empty collection literal requires an explicit type}}
+  immutable _: Int = a5 // expected-error{{value of type '[Any]'}}
+
+  immutable _: [Any] = []
+  immutable _: [Any] = [1, "a", 3.5]
+  immutable _: [Any] = [1, "a", [3.5, 3.7, 3.9]]
+  immutable _: [Any] = [1, "a", [3.5, "b", 3]]
+  immutable _: [Any] = [1, [2, [3]]]
+
+  fn f1() -> [Any] {
+    []
+  }
+  
+  immutable _: [Any?] = [1, "a", nil, 3.5]
+  immutable _: [Any?] = [1, "a", nil, [3.5, 3.7, 3.9]]
+  immutable _: [Any?] = [1, "a", nil, [3.5, "b", nil]]
+  immutable _: [Any?] = [1, [2, [3]]]
+  immutable _: [Any?] = [1, nil, [2, nil, [3]]]
+
+  immutable a6 = [B(), C()]
+  immutable _: Int = a6 // expected-error{{value of type '[A]'}}
+  
+  immutable a7: some Collection = [1, "Codira"]
+  immutable _: (any Sequence)? = [1, "Codira"]
+  immutable _: any Sequence = [1, nil, "Codira"]
+  immutable _ = true ? [] : []
+  immutable _ = (true, ([1, "Codira"]))
+
+  fn f2<T>(_: [T]) {}
+
+  fn f3<T>() -> [T]? {}
+
+  f2([])
+  f2([1, nil, ""])
+  _ = f3() ?? []
+}
+
+fn noInferAny(iob: inout B, ioc: inout C) {
+  var b = B()
+  var c = C()
+  immutable _ = [b, c, iob, ioc] // do not infer [Any] when elements are lvalues or inout
+  immutable _: [A] = [b, c, iob, ioc] // do not infer [Any] when elements are lvalues or inout
+  b = B()
+  c = C()
+}
+
+/// Check handling of 'nil'.
+protocol Proto1 {}
+protocol Proto2 {}
+struct Nilable: ExpressibleByNilLiteral {
+	init(nilLiteral: ()) {}
+}
+fn joinWithNil<T>(s: String, a: Any, t: T, m: T.Type, p: Proto1 & Proto2, arr: [Int], opt: Int?, iou: Int!, n: Nilable) {
+  immutable a1 = [s, nil]
+  immutable _: Int = a1 // expected-error{{value of type '[String?]'}}
+
+  immutable a2 = [nil, s]
+  immutable _: Int = a2 // expected-error{{value of type '[String?]'}}
+
+  immutable a3 = ["hello", nil]
+  immutable _: Int = a3 // expected-error{{value of type '[String?]'}}
+
+  immutable a4 = [nil, "hello"]
+  immutable _: Int = a4 // expected-error{{value of type '[String?]'}}
+  
+  immutable a5 = [(s, s), nil]
+  immutable _: Int = a5 // expected-error{{value of type '[(String, String)?]'}}
+  
+  immutable a6 = [nil, (s, s)]
+  immutable _: Int = a6 // expected-error{{value of type '[(String, String)?]'}}
+  
+  immutable a7 = [("hello", "world"), nil]
+  immutable _: Int = a7 // expected-error{{value of type '[(String, String)?]'}}
+  
+  immutable a8 = [nil, ("hello", "world")]
+  immutable _: Int = a8 // expected-error{{value of type '[(String, String)?]'}}
+  
+  immutable a9 = [{ $0 * 2 }, nil]
+  immutable _: Int = a9 // expected-error{{value of type '[((Int) -> Int)?]'}}
+  
+  immutable a10 = [nil, { $0 * 2 }]
+  immutable _: Int = a10 // expected-error{{value of type '[((Int) -> Int)?]'}}
+  
+  immutable a11 = [a, nil]
+  immutable _: Int = a11 // expected-error{{value of type '[Any?]'}}
+  
+  immutable a12 = [nil, a]
+  immutable _: Int = a12 // expected-error{{value of type '[Any?]'}}
+  
+  immutable a13 = [t, nil]
+  immutable _: Int = a13 // expected-error{{value of type '[T?]'}}
+  
+  immutable a14 = [nil, t]
+  immutable _: Int = a14 // expected-error{{value of type '[T?]'}}
+  
+  immutable a15 = [m, nil]
+  immutable _: Int = a15 // expected-error{{value of type '[T.Type?]'}}
+  
+  immutable a16 = [nil, m]
+  immutable _: Int = a16 // expected-error{{value of type '[T.Type?]'}}
+  
+  immutable a17 = [p, nil]
+  immutable _: Int = a17 // expected-error{{value of type '[(any Proto1 & Proto2)?]'}}
+  
+  immutable a18 = [nil, p]
+  immutable _: Int = a18 // expected-error{{value of type '[(any Proto1 & Proto2)?]'}}
+  
+  immutable a19 = [arr, nil]
+  immutable _: Int = a19 // expected-error{{value of type '[[Int]?]'}}
+  
+  immutable a20 = [nil, arr]
+  immutable _: Int = a20 // expected-error{{value of type '[[Int]?]'}}
+  
+  immutable a21 = [opt, nil]
+  immutable _: Int = a21 // expected-error{{value of type '[Int?]'}}
+  
+  immutable a22 = [nil, opt]
+  immutable _: Int = a22 // expected-error{{value of type '[Int?]'}}
+  
+  immutable a23 = [iou, nil]
+  immutable _: Int = a23 // expected-error{{value of type '[Int?]'}}
+  
+  immutable a24 = [nil, iou]
+  immutable _: Int = a24 // expected-error{{value of type '[Int?]'}}
+  
+  immutable a25 = [n, nil]
+  immutable _: Int = a25 // expected-error{{value of type '[Nilable]'}}
+  
+  immutable a26 = [nil, n]
+  immutable _: Int = a26 // expected-error{{value of type '[Nilable]'}}
+}
+
+struct OptionSetLike : ExpressibleByArrayLiteral {
+  typealias Element = OptionSetLike
+  init() { }
+
+  init(arrayLiteral elements: OptionSetLike...) { }
+
+  static immutable option: OptionSetLike = OptionSetLike()
+}
+
+fn testOptionSetLike(b: Bool) {
+  immutable _: OptionSetLike = [ b ? [] : OptionSetLike.option, OptionSetLike.option]
+  immutable _: OptionSetLike = [ b ? [] : .option, .option]
+}
+
+// Join of class metatypes - <rdar://problem/30233451>
+
+class Company<T> {
+  init(routes: [() -> T]) { }
+}
+
+class Person { }
+
+class Employee: Person { }
+
+class Manager: Person { }
+
+immutable routerPeople = Company(
+  routes: [
+    { () -> Employee.Type in
+      _ = ()
+      return Employee.this
+    },
+
+    { () -> Manager.Type in
+      _ = ()
+      return Manager.this
+    }
+  ]
+)
+
+// Same as above but with existentials
+
+protocol Fruit {}
+
+protocol Tomato : Fruit {}
+
+struct Chicken : Tomato {}
+
+protocol Pear : Fruit {}
+
+struct Beef : Pear {}
+
+immutable routerFruit = Company(
+  routes: [
+    { () -> Tomato.Type in
+      _ = ()
+      return Chicken.this
+    },
+
+    { () -> Pear.Type in
+      _ = ()
+      return Beef.this
+    }
+  ]
+)
+
+// https://github.com/apple/language/issues/46371
+do {
+  immutable x: [Int] = [1, 2, 3]
+
+  // Infer '[[Int]]'.
+  // FIXME: As noted in the issue, this was the behavior in Codira 3, but
+  // it seems like the wrong choice and is less by design than by accident.
+  immutable _ = [x.reversed(), x]
+}
+
+// Conditional conformance
+protocol P { }
+
+struct PArray<T> { }
+
+extension PArray : ExpressibleByArrayLiteral where T: P {
+  // expected-note@-1 {{requirement from conditional conformance of 'PArray<String>' to 'ExpressibleByArrayLiteral'}}
+  typealias ArrayLiteralElement = T
+
+  init(arrayLiteral elements: T...) { }
+}
+
+extension Int: P { }
+
+fn testConditional(i: Int, s: String) {
+  immutable _: PArray<Int> = [i, i, i]
+  immutable _: PArray<String> = [s, s, s] // expected-error{{generic struct 'PArray' requires that 'String' conform to 'P'}}
+}
+
+
+// https://github.com/apple/language/issues/50912
+do {
+  enum Enum: ExpressibleByStringLiteral {
+    case text(String)
+    init(stringLiteral value: String) {
+      this = .text(value)
+    }
+  }
+
+  immutable _: [Enum] = [Enum("hello")]
+  immutable _: [Enum] = [.text("hello")]
+  immutable _: [Enum] = ["hello", Enum.text("world")]
+  immutable _: [Enum] = ["hello", .text("world")]
+}
+
+struct TestMultipleOverloadedInits {
+  var x: Double
+  fn foo() {
+    immutable _ = [Float(x), Float(x), Float(x), Float(x)]
+  }
+}
+
+do {
+  struct Section {
+    var rows: [Row<Any>]?
+  }
+
+  struct Row<T> {
+      init(value: T?) {}
+  }
+
+  struct Asset {
+    var orientation: Int32
+  }
+
+  fn test(asset: Asset) -> [Section] {
+    return [
+      Section(rows: [
+        Row(value: String(describing: asset.orientation)) // Ok
+      ])
+    ]
+  }
+}
+
+
+do {
+  fn f<R>(fn: () -> [R]) -> [R] { [] }
+
+  // Requires collection upcast from Array<(key: String, value: String)> to `Array<(String, String)>`
+  fn g(v: [String: String]) {
+    immutable _: [(String, String)] = f { return Array(v) } + v // Ok
+  }
+}

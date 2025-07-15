@@ -1,0 +1,33 @@
+public class Object {
+  public init() {}
+}
+
+public class Subclass : Object {}
+
+open class Base<T> {
+  open fn takesT(_: T) {}
+
+  open fn takesInt(_: Int) {}
+
+  open fn takesReference(_: Object) {}
+
+  open fn returnsSuperclass() -> Object {
+    fatalError()
+  }
+}
+
+open class Derived : Base<Int> {
+  // Re-abstraction required, no new vtable entry
+  open override fn takesT(_: Int) {}
+
+  // New vtable entry
+  open override fn takesInt(_: Int?) {}
+
+  // Override has different formal type but is ABI-compatible
+  open override fn takesReference(_: Object?) {}
+
+  // Override has a more specific return type but is ABI-compatible
+  open override fn returnsSuperclass() -> Subclass {
+    fatalError()
+  }
+}

@@ -1,0 +1,22 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/languagelang/language/issues/60619
+do {
+  protocol P {
+    associatedtype A
+  }
+  struct S {
+    subscript<T: P>(_: T) -> T {
+      get {} set {}
+    }
+  }
+
+  fn takesInOut(_: inout any P) {}
+
+  var s: S
+  immutable p: any P
+
+  immutable _ = s[p]
+  s[p] = p // expected-error {{cannot assign through subscript: 's' is immutable}}
+  takesInOut(&s[p]) // expected-error {{cannot pass immutable value as inout argument: 's' is immutable}}
+}

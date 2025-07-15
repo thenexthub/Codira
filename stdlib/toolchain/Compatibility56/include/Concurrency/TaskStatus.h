@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing "status records", the mechanism by which
+// Codira ABI describing "status records", the mechanism by which
 // tasks track dynamic information about their child tasks, custom
 // cancellation hooks, and other information which may need to be exposed
 // asynchronously outside of the task.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASKSTATUS_BACKDEPLOY56_H
-#define SWIFT_ABI_TASKSTATUS_BACKDEPLOY56_H
+#ifndef LANGUAGE_ABI_TASKSTATUS_BACKDEPLOY56_H
+#define LANGUAGE_ABI_TASKSTATUS_BACKDEPLOY56_H
 
 #include "language/ABI/MetadataValues.h"
 #include "Task.h"
@@ -32,7 +33,7 @@ namespace language {
 ///
 /// TaskStatusRecords are typically allocated on the stack (possibly
 /// in the task context), partially initialized, and then atomically
-/// added to the task with `swift_task_addTaskStatusRecord`.  While
+/// added to the task with `language_task_addTaskStatusRecord`.  While
 /// registered with the task, a status record should only be
 /// modified in ways that respect the possibility of asynchronous
 /// access by a cancelling thread.  In particular, the chain of
@@ -108,7 +109,7 @@ public:
   }
 
   using child_iterator = LinkedListIterator<AsyncTask, getNextChildTask>;
-  llvm::iterator_range<child_iterator> children() const {
+  toolchain::iterator_range<child_iterator> children() const {
     return child_iterator::rangeBeginning(getFirstChild());
   }
 
@@ -127,10 +128,10 @@ public:
 /// subsequently used.
 class CancellationNotificationStatusRecord : public TaskStatusRecord {
 public:
-  using FunctionType = SWIFT_CC(swift) void(SWIFT_CONTEXT void *);
+  using FunctionType = LANGUAGE_CC(language) void(LANGUAGE_CONTEXT void *);
 
 private:
-  FunctionType *__ptrauth_swift_cancellation_notification_function Function;
+  FunctionType *__ptrauth_language_cancellation_notification_function Function;
   void *Argument;
 
 public:
@@ -147,8 +148,8 @@ public:
 
 /// Return the current thread's active task reference.
 __attribute__((visibility("hidden")))
-SWIFT_CC(swift)
-AsyncTask *swift_task_getCurrent(void);
+LANGUAGE_CC(language)
+AsyncTask *language_task_getCurrent(void);
 } // namespace language
 
-#endif // SWIFT_ABI_TASKSTATUS_BACKDEPLOY56_H
+#endif // LANGUAGE_ABI_TASKSTATUS_BACKDEPLOY56_H

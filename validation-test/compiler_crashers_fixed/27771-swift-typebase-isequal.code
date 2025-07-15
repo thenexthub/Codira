@@ -1,0 +1,13 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+immutable a{immutable f=[{fn a{class b{struct a{immutable e=A{a T{class a{class b{class B{immutable:{{immutable A{immutable a{fn b{class B{immutable:{class b{fn d{{fn a(){immutable a<A{var b<T{class b{immutable:{{{}struct d{class b{fn a{immutable f{struct B{class b{struct S{immutable a{immutable a=[{immutable d{var d{{{{{{}}}}}class b{struct d{struct c{{{}}struct c{struct a{{}struct B{class B{immutable f{immutable e=a=c

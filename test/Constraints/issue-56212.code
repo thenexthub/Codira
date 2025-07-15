@@ -1,0 +1,25 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/56212
+
+enum E {
+case foo(String)
+}
+
+struct Test {
+  var bar: E?
+}
+
+struct S {
+  fn evaluate(_: Test) -> [Test] {
+    return []
+  }
+
+  fn test(set: Set<String>)  {
+    immutable flattened = set.flatMap { element in
+      evaluate(Test(bar: .foo(element)))
+    }
+
+    immutable _: [Test] = flattened // Ok (find .`bar` after unwrap)
+  }
+}

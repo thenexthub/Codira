@@ -1,0 +1,27 @@
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -emit-module -o %t %clang-importer-sdk-path/language-modules/CoreGraphics.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -emit-module -o %t %clang-importer-sdk-path/language-modules/Foundation.code
+// FIXME: END -enable-source-import hackaround
+
+// RUN: %target-language-emit-module-interface(%t/assoc_type_inference_tvos.codeinterface) %s %clang-importer-sdk -F %clang-importer-sdk-path/frameworks -I %S/Inputs/assoc_type_inference_tvos
+// RUN: %FileCheck --input-file %t/assoc_type_inference_tvos.codeinterface %s
+// RUN: %target-language-typecheck-module-from-interface(%t/assoc_type_inference_tvos.codeinterface) %clang-importer-sdk -F %clang-importer-sdk-path/frameworks -I %S/Inputs/assoc_type_inference_tvos
+
+// REQUIRES: objc_interop
+
+import CAssoc
+
+extension TheColor {
+  // This checks for the absence of an @available(tvOS) on an associated type
+  // that is inferred to have tvOS availability based on its enclosing type
+  // having iOS availability that predates the introduction of tvOS.
+
+  // CHECK: public init?(rawValue: Codira.String)
+  // CHECK-NOT: @available(tvOS)
+  // CHECK: public typealias RawValue = Codira.String
+  public enum StaticNamedColor: String {
+    case black
+  }
+}

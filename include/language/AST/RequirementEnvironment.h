@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the RequirementEnvironment class, which is used to
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_REQUIREMENT_ENVIRONMENT_H
-#define SWIFT_AST_REQUIREMENT_ENVIRONMENT_H
+#ifndef LANGUAGE_AST_REQUIREMENT_ENVIRONMENT_H
+#define LANGUAGE_AST_REQUIREMENT_ENVIRONMENT_H
 
 #include "language/AST/SubstitutionMap.h"
 
@@ -49,8 +50,8 @@ class RequirementEnvironment {
   ///
   /// For example, if you have:
   ///
-  /// protocol P { func f<T>(_: T) }
-  /// struct S<A, B> : P { func f<T>(_: T) }
+  /// protocol P { fn f<T>(_: T) }
+  /// struct S<A, B> : P { fn f<T>(_: T) }
   ///
   /// The requirement and witness signatures are, respectively:
   ///
@@ -62,8 +63,8 @@ class RequirementEnvironment {
   /// It may be that the witness is more generic than the requirement,
   /// for example:
   ///
-  /// protocol P { func f(_: Int) }
-  /// struct S<A, B> : P { func f<T>(_: T) { } }
+  /// protocol P { fn f(_: Int) }
+  /// struct S<A, B> : P { fn f<T>(_: T) { } }
   ///
   /// Here, the requirement signature and witness signatures are:
   ///
@@ -117,7 +118,8 @@ public:
   }
 
   /// Retrieve the substitution map that maps the interface types of the
-  /// requirement to the interface types of the witness thunk signature.
+  /// requirement to the archetypes of the witness thunk signature's
+  /// generic environment.
   SubstitutionMap getRequirementToWitnessThunkSubs() const {
     return reqToWitnessThunkSigMap;
   }
@@ -125,4 +127,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_REQUIREMENT_ENVIRONMENT_H
+#endif // LANGUAGE_AST_REQUIREMENT_ENVIRONMENT_H

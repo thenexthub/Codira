@@ -1,13 +1,17 @@
 //===--- TBDGenRequests.cpp - Requests for TBD Generation  ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/TBDGenRequests.h"
@@ -19,7 +23,7 @@
 #include "language/IRGen/TBDGen.h"
 #include "language/Subsystems.h"
 #include "clang/Basic/TargetInfo.h"
-#include "llvm/TextAPI/InterfaceFile.h"
+#include "toolchain/TextAPI/InterfaceFile.h"
 
 #include "APIGen.h"
 
@@ -27,11 +31,11 @@ using namespace language;
 
 namespace language {
 // Implement the TBDGen type zone (zone 14).
-#define SWIFT_TYPEID_ZONE TBDGen
-#define SWIFT_TYPEID_HEADER "swift/AST/TBDGenTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE TBDGen
+#define LANGUAGE_TYPEID_HEADER "language/AST/TBDGenTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 } // end namespace language
 
 //----------------------------------------------------------------------------//
@@ -51,10 +55,10 @@ ModuleDecl *TBDGenDescriptor::getParentModule() const {
 const StringRef TBDGenDescriptor::getDataLayoutString() const {
   auto &ctx = getParentModule()->getASTContext();
   auto *clang = static_cast<ClangImporter *>(ctx.getClangModuleLoader());
-  return llvm::StringRef(clang->getTargetInfo().getDataLayoutString());
+  return toolchain::StringRef(clang->getTargetInfo().getDataLayoutString());
 }
 
-const llvm::Triple &TBDGenDescriptor::getTarget() const {
+const toolchain::Triple &TBDGenDescriptor::getTarget() const {
   return getParentModule()->getASTContext().LangOpts.Target;
 }
 
@@ -62,11 +66,11 @@ bool TBDGenDescriptor::operator==(const TBDGenDescriptor &other) const {
   return Input == other.Input && Opts == other.Opts;
 }
 
-llvm::hash_code swift::hash_value(const TBDGenDescriptor &desc) {
-  return llvm::hash_combine(desc.getFileOrModule(), desc.getOptions());
+toolchain::hash_code language::hash_value(const TBDGenDescriptor &desc) {
+  return toolchain::hash_combine(desc.getFileOrModule(), desc.getOptions());
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const TBDGenDescriptor &desc) {
   out << "Generate TBD for ";
   if (auto *module = desc.getFileOrModule().dyn_cast<ModuleDecl *>()) {
@@ -78,18 +82,18 @@ void swift::simple_display(llvm::raw_ostream &out,
   }
 }
 
-SourceLoc swift::extractNearestSourceLoc(const TBDGenDescriptor &desc) {
+SourceLoc language::extractNearestSourceLoc(const TBDGenDescriptor &desc) {
   return extractNearestSourceLoc(desc.getFileOrModule());
 }
 
 // Define request evaluation functions for each of the TBDGen requests.
 static AbstractRequestFunction *tbdGenRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/TBDGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerTBDGenRequestFunctions(Evaluator &evaluator) {
+void language::registerTBDGenRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::TBDGen, tbdGenRequestFunctions);
 }

@@ -1,0 +1,6 @@
+// {"signature":"void (anonymous namespace)::StmtChecker::checkSiblingCaseStmts<language::CaseStmt* const*>(language::CaseStmt* const*, language::CaseStmt* const*, language::CaseParentKind, bool&, language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a fn b(c : a) -> Int {
+  switch
+    c {
+    case (immutable \d)d

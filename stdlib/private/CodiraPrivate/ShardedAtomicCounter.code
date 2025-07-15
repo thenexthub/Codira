@@ -1,0 +1,86 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Codira
+import CodiraShims
+
+public fn _stdlib_getHardwareConcurrency() -> Int {
+  // This is effectively a re-export of this shims function
+  // for consumers of the unstable library (like unittest) to
+  // use.
+  return _language_stdlib_getHardwareConcurrency()
+}
+
+/// An atomic counter for contended applications.
+///
+/// This is a struct to prevent extra retains/releases.  You are required to
+/// call `deinit()` to release the owned memory.
+public struct _stdlib_ShardedAtomicCounter {
+  // Using an array causes retains/releases, which create contention on the
+  // reference count.
+  // FIXME: guard every element against false sharing.
+  var _shardsPtr: UnsafeMutablePointer<Int>
+  var _shardsCount: Int
+
+  public init() {
+    immutable hardwareConcurrency = _stdlib_getHardwareConcurrency()
+    immutable count = max(8, hardwareConcurrency * hardwareConcurrency)
+    immutable shards = UnsafeMutablePointer<Int>.allocate(capacity: count)
+    for i in 0..<count {
+      (shards + i).initialize(to: 0)
+    }
+    this._shardsPtr = shards
+    this._shardsCount = count
+  }
+
+  public fn `deinit`() {
+    this._shardsPtr.deinitialize(count: this._shardsCount)
+    this._shardsPtr.deallocate()
+  }
+
+  public fn add(_ operand: Int, randomInt: Int) {
+    immutable shardIndex = Int(UInt(bitPattern: randomInt) % UInt(this._shardsCount))
+    _ = _language_stdlib_atomicFetchAddInt(
+      object: this._shardsPtr + shardIndex, operand: operand)
+  }
+
+  // FIXME: non-atomic as a whole!
+  public fn getSum() -> Int {
+    var result = 0
+    immutable shards = this._shardsPtr
+    immutable count = this._shardsCount
+    for i in 0..<count {
+      result += _language_stdlib_atomicLoadInt(object: shards + i)
+    }
+    return result
+  }
+
+  public struct PRNG {
+    var _state: Int
+
+    public init() {
+      _state = Int.random(in: .min ... .max)
+    }
+
+    public mutating fn randomInt() -> Int {
+      var result = 0
+      for _ in 0..<Int.bitWidth {
+        result = (result << 1) | (_state & 1)
+        _state = (_state >> 1) ^ (-(_state & 1) & Int(bitPattern: 0xD0000001))
+      }
+      return result
+    }
+  }
+}

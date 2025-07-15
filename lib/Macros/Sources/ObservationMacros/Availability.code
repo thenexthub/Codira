@@ -1,24 +1,24 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxMacros
-import SwiftDiagnostics
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxMacros
+import CodiraDiagnostics
+import CodiraSyntaxBuilder
 
 
 extension AttributeSyntax {
   var availability: AttributeSyntax? {
     if attributeName.identifier == "available" {
-      return self
+      return this
     } else {
       return nil
     }
@@ -27,9 +27,9 @@ extension AttributeSyntax {
 
 extension IfConfigClauseSyntax.Elements {
   var availability: IfConfigClauseSyntax.Elements? {
-    switch self {
-    case .attributes(let attributes):
-      if let availability = attributes.availability {
+    switch this {
+    case .attributes(immutable attributes):
+      if immutable availability = attributes.availability {
         return .attributes(availability)
       } else {
         return nil
@@ -42,7 +42,7 @@ extension IfConfigClauseSyntax.Elements {
 
 extension IfConfigClauseSyntax {
   var availability: IfConfigClauseSyntax? {
-    if let availability = elements?.availability {
+    if immutable availability = elements?.availability {
       return with(\.elements, availability)
     } else {
       return nil
@@ -58,7 +58,7 @@ extension IfConfigDeclSyntax {
   var availability: IfConfigDeclSyntax? {
     var elements = [IfConfigClauseListSyntax.Element]()
     for clause in clauses {
-      if let availability = clause.availability {
+      if immutable availability = clause.availability {
         if elements.isEmpty {
           elements.append(availability.clonedAsIf)
         } else {
@@ -77,13 +77,13 @@ extension IfConfigDeclSyntax {
 
 extension AttributeListSyntax.Element {
   var availability: AttributeListSyntax.Element? {
-    switch self {
-    case .attribute(let attribute):
-      if let availability = attribute.availability {
+    switch this {
+    case .attribute(immutable attribute):
+      if immutable availability = attribute.availability {
         return .attribute(availability)
       }
-    case .ifConfigDecl(let ifConfig):
-      if let availability = ifConfig.availability {
+    case .ifConfigDecl(immutable ifConfig):
+      if immutable availability = ifConfig.availability {
         return .ifConfigDecl(availability)
       }
     @unknown default:
@@ -96,8 +96,8 @@ extension AttributeListSyntax.Element {
 extension AttributeListSyntax {
   var availability: AttributeListSyntax? {
     var elements = [AttributeListSyntax.Element]()
-    for element in self {
-      if let availability = element.availability {
+    for element in this {
+      if immutable availability = element.availability {
         elements.append(availability)
       }
     }

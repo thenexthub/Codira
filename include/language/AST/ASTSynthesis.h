@@ -1,4 +1,4 @@
-//===--- ASTSynthesis.h - Convenient Swift AST synthesis --------*- C++ -*-===//
+//===--- ASTSynthesis.h - Convenient Codira AST synthesis --------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ASTSYNTHESIS_H
-#define SWIFT_ASTSYNTHESIS_H
+#ifndef LANGUAGE_ASTSYNTHESIS_H
+#define LANGUAGE_ASTSYNTHESIS_H
 
 #include "language/AST/Types.h"
 #include "language/AST/ASTContext.h"
@@ -55,7 +56,7 @@ enum SingletonTypeSynthesizer {
   _rawUnsafeContinuation,
   _void,
   _word,
-  _swiftInt,       // Swift.Int
+  _languageInt,       // Codira.Int
   _serialExecutor, // the '_Concurrency.SerialExecutor' protocol
   _taskExecutor,   // the '_Concurrency.TaskExecutor' protocol
   _actor,          // the '_Concurrency.Actor' protocol
@@ -78,7 +79,7 @@ inline Type synthesizeType(SynthesisContext &SC,
   case _void: return SC.Context.TheEmptyTupleType;
   case _word: return BuiltinIntegerType::get(BuiltinIntegerWidth::pointer(),
                                              SC.Context);
-  case _swiftInt: return SC.Context.getIntType();
+  case _languageInt: return SC.Context.getIntType();
   case _serialExecutor:
     return SC.Context.getProtocol(KnownProtocolKind::SerialExecutor)
       ->getDeclaredInterfaceType();
@@ -216,7 +217,7 @@ inline synthesizeMetatypeRepresentation(RepresentationSynthesizer rep) {
   case _thick: return MetatypeRepresentation::Thick;
   // TOOD: maybe add _objc?
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /// A synthesizer which generates an existential metatype type.
@@ -532,7 +533,7 @@ inline ASTExtInfo synthesizeExtInfo(SynthesisContext &SC,
   case _thin: return ASTExtInfo().withRepresentation(
                                             FunctionTypeRepresentation::Thin);
   case _thick: return ASTExtInfo().withRepresentation(
-                                           FunctionTypeRepresentation::Swift);
+                                           FunctionTypeRepresentation::Codira);
   }
 }
 template <class S>
@@ -599,7 +600,7 @@ inline Expr *synthesizeExpr(SynthesisContext &SC, SingletonExprSynthesizer s) {
   case _nil:
     return new (SC.Context) NilLiteralExpr(SourceLoc(), /*implicit*/true);
   }
-  llvm_unreachable("bad singleton kind");
+  toolchain_unreachable("bad singleton kind");
 }
 inline void synthesizeDefaultArgument(SynthesisContext &SC,
                                       SingletonExprSynthesizer s,

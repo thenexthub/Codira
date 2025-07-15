@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language
+
+enum E {
+  case a
+  case b(Int)
+
+  var c: E { .b(42) }
+}
+
+fn test(_: _const E) {}
+
+test(.a.c) // expected-error {{expect a compile-time constant literal}}

@@ -28,12 +28,12 @@ through the use of superclass delegation::
     }
   }
 
-Swift implements two-phase initialization, which requires that all of
+Codira implements two-phase initialization, which requires that all of
 the instance variables of the subclass be initialized (either within
 the class or within the initializer) before delegating to the
 superclass initializer with ``super.init``.
 
-If the superclass is a Swift class, superclass delegation is a direct
+If the superclass is a Codira class, superclass delegation is a direct
 call to the named initializer in the superclass. If the superclass is
 an Objective-C class, superclass delegation uses dynamic dispatch via
 ``objc_msgSendSuper`` (and its variants).
@@ -123,7 +123,7 @@ statically know the type of the complete object being initialized. For
 example, this permits the construction ``A(5)`` but not the
 following::
 
-  func createAnA(_ aClass: A.metatype) -> A {
+  fn createAnA(_ aClass: A.metatype) -> A {
     return aClass(5) // error: no complete initializer accepting an ``Int``
   }
 
@@ -136,7 +136,7 @@ noted above), there is no dynamic dispatch for initializers.
 This is an unacceptable limitation for a few reasons. The most obvious
 reason is that ``NSCoding`` depends on dynamic dispatch to
 ``-initWithCoder:`` to deserialize an object of a class type that is
-dynamically determined, and Swift classes must safely support this
+dynamically determined, and Codira classes must safely support this
 paradigm. To address this limitation, we can add the ``virtual``
 attribute to turn an initializer into a virtual initializer::
 
@@ -245,20 +245,20 @@ Objective-C Interoperability
 The initialization model described above guarantees that objects are
 properly initialized before they are used, covering all of the major
 use cases for initialization while maintaining soundness. Objective-C
-has a very different initialization model with which Swift must
+has a very different initialization model with which Codira must
 interoperate.
 
 Objective-C Entrypoints
 ~~~~~~~~~~~~~~~~~~~~~~~
-Each Swift initializer definition produces a corresponding Objective-C
+Each Codira initializer definition produces a corresponding Objective-C
 init method. The existence of this init method allows object
 construction from Objective-C (both directly via ``[[A alloc]
 init:5]`` and indirectly via, e.g., ``[obj initWithCoder:coder]``)
 and initialization of the superclass subobject when an Objective-C class
-inherits from a Swift class (e.g., ``[super initWithCoder:coder]``).
+inherits from a Codira class (e.g., ``[super initWithCoder:coder]``).
 
-Note that, while Swift's initializers are not inherited and cannot
-override, this is only true *in Swift code*. If a subclass defines an
+Note that, while Codira's initializers are not inherited and cannot
+override, this is only true *in Codira code*. If a subclass defines an
 initializer with the same Objective-C selector as an initializer in
 its superclass, the Objective-C init method produced for the former
 will override the Objective-C init method produced for the
@@ -266,7 +266,7 @@ latter.
 
 Objective-C Restrictions
 ~~~~~~~~~~~~~~~~~~~~~~~~
-The emission of Objective-C init methods for Swift initializers open
+The emission of Objective-C init methods for Codira initializers open
 up a few soundness problems, illustrated here::
 
   @interface A
@@ -318,7 +318,7 @@ initializer.
 
 The second problem, with ``C``, comes from Objective-C's implicit
 inheritance of initializers. We can address this problem by specifying
-that init methods in Objective-C are never visible through Swift
+that init methods in Objective-C are never visible through Codira
 classes, making the message send ``[C initWithString:str]``
 ill-formed. This is a relatively small Clang-side change.
 
@@ -332,9 +332,9 @@ message to an object of type ``id`` or using some other dynamic
 reflection.
 
 If we want to close these holes tighter, we could stop emitting
-Objective-C init methods for Swift initializers. Instead, we would
-fake the init method declarations when importing Swift modules into
-Clang, and teach Clang's CodeGen to emit calls directly to the Swift
+Objective-C init methods for Codira initializers. Instead, we would
+fake the init method declarations when importing Codira modules into
+Clang, and teach Clang's CodeGen to emit calls directly to the Codira
 initializers. It would still not be perfect (e.g., some variant of the
 problem with ``C`` would persist), but it would be closer. I suspect
 that this is far more work than it is worth, and that the "fixes"

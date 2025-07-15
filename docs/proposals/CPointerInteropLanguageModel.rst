@@ -66,7 +66,7 @@ As a special case, when a function is declared as taking an
 
 So if you have a function declared::
 
-  func foo(_ x: UnsafeMutablePointer<Float>)
+  fn foo(_ x: UnsafeMutablePointer<Float>)
 
 You can call it as any of::
 
@@ -80,7 +80,7 @@ You can call it as any of::
 
 And if you have a function declared::
 
-  func bar(_ x: UnsafeMutableRawPointer)
+  fn bar(_ x: UnsafeMutableRawPointer)
 
 You can call it as any of::
 
@@ -112,7 +112,7 @@ Note that the above list does not include arrays, since implicit autoreleasing-t
 
 So if you have a function declared::
 
-  func bas(_ x: AutoreleasingUnsafeMutablePointer<NSBas?>)
+  fn bas(_ x: AutoreleasingUnsafeMutablePointer<NSBas?>)
 
 You can call it as any of::
 
@@ -145,7 +145,7 @@ types can furthermore interoperate with strings; see `Strings`_ below.
 
 So if you have a function declared::
 
-  func zim(_ x: UnsafePointer<Float>)
+  fn zim(_ x: UnsafePointer<Float>)
 
 You can call it as any of::
 
@@ -158,7 +158,7 @@ You can call it as any of::
 
 And if you have a function declared::
 
-  func zang(_ x: UnsafeRawPointer)
+  fn zang(_ x: UnsafeRawPointer)
 
 You can call it as any of::
 
@@ -188,7 +188,7 @@ Strings
 =======
 
 Pointers to the following C integer and character types can interoperate with
-Swift ``String`` values and string literals:
+Codira ``String`` values and string literals:
 
 - ``CChar``, ``CSignedChar``, and ``CUnsignedChar``, which interoperate with
   ``String`` as a UTF-8 code unit array;

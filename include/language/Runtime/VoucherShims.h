@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Shims for interfacing with OS voucher calls.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_VOUCHERSHIMS_H
-#define SWIFT_CONCURRENCY_VOUCHERSHIMS_H
+#ifndef LANGUAGE_CONCURRENCY_VOUCHERSHIMS_H
+#define LANGUAGE_CONCURRENCY_VOUCHERSHIMS_H
 
 #include "Config.h"
 
-// swift-corelibs-libdispatch has os/voucher_private.h but it doesn't work for
+// language-corelibs-libdispatch has os/voucher_private.h but it doesn't work for
 // us yet, so only look for it on Apple platforms.  We also don't need vouchers
 // in the single threaded concurrency runtime.
-#if __APPLE__ && !SWIFT_THREADING_NONE && __has_include(<os/voucher_private.h>)
-#define SWIFT_HAS_VOUCHER_HEADER 1
+#if __APPLE__ && !LANGUAGE_THREADING_NONE && __has_include(<os/voucher_private.h>)
+#define LANGUAGE_HAS_VOUCHER_HEADER 1
 #include <os/voucher_private.h>
 #endif
 
@@ -34,20 +35,20 @@
 // a Job, distinct from a NULL voucher that could just mean no voucher was
 // present. This allows us to catch problems like adopting a voucher from the
 // same Job twice without restoring it.
-#define SWIFT_DEAD_VOUCHER ((voucher_t)-1)
+#define LANGUAGE_DEAD_VOUCHER ((voucher_t)-1)
 
 // The OS has voucher support if it has the header or if it has ObjC interop.
-#if (SWIFT_HAS_VOUCHER_HEADER || SWIFT_OBJC_INTEROP) && !SWIFT_THREADING_NONE
-#define SWIFT_HAS_VOUCHERS 1
+#if (LANGUAGE_HAS_VOUCHER_HEADER || LANGUAGE_OBJC_INTEROP) && !LANGUAGE_THREADING_NONE
+#define LANGUAGE_HAS_VOUCHERS 1
 #endif
 
-#if SWIFT_HAS_VOUCHERS
+#if LANGUAGE_HAS_VOUCHERS
 
-#if SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL
+#if LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL
 #error Cannot use task-to-thread model with vouchers
 #endif
 
-#if SWIFT_HAS_VOUCHER_HEADER
+#if LANGUAGE_HAS_VOUCHER_HEADER
 
 #else
 
@@ -67,12 +68,12 @@ extern "C" voucher_t _Nullable voucher_adopt(voucher_t _Nullable voucher);
 
 #endif // __has_include(<os/voucher_private.h>)
 
-static inline void swift_voucher_release(voucher_t _Nullable voucher) {
+static inline void language_voucher_release(voucher_t _Nullable voucher) {
   // This NULL check isn't necessary, but NULL vouchers will be common, so
   // optimize for that.
   if (!voucher)
     return;
-  if (voucher == SWIFT_DEAD_VOUCHER)
+  if (voucher == LANGUAGE_DEAD_VOUCHER)
     return;
   os_release(voucher);
 }
@@ -85,7 +86,7 @@ static inline voucher_t _Nullable voucher_copy(void) { return nullptr; }
 static inline voucher_t _Nullable voucher_adopt(voucher_t _Nullable voucher) {
   return nullptr;
 }
-static inline void swift_voucher_release(voucher_t _Nullable voucher) {}
+static inline void language_voucher_release(voucher_t _Nullable voucher) {}
 #endif // __APPLE__
 
 // Declare our own voucher_needs_adopt for when we don't get it from the SDK.
@@ -97,7 +98,7 @@ static inline bool voucher_needs_adopt(void * _Nullable voucher) {
   return true;
 }
 
-static inline bool swift_voucher_needs_adopt(voucher_t _Nullable voucher) {
+static inline bool language_voucher_needs_adopt(voucher_t _Nullable voucher) {
 #if __APPLE__
   if (__builtin_available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *))
     return voucher_needs_adopt(voucher);
@@ -107,4 +108,4 @@ static inline bool swift_voucher_needs_adopt(voucher_t _Nullable voucher) {
 #endif
 }
 
-#endif // SWIFT_CONCURRENCY_VOUCHERSHIMS_H
+#endif // LANGUAGE_CONCURRENCY_VOUCHERSHIMS_H

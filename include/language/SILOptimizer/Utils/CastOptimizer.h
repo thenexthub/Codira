@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_CASTOPTIMIZER_H
-#define SWIFT_SILOPTIMIZER_UTILS_CASTOPTIMIZER_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_CASTOPTIMIZER_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_CASTOPTIMIZER_H
 
 #include "language/Basic/ArrayRefView.h"
 #include "language/SIL/SILBuilder.h"
@@ -25,7 +26,7 @@
 #include "language/SILOptimizer/Analysis/EpilogueARCAnalysis.h"
 #include "language/SILOptimizer/Analysis/SimplifyInstruction.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/Support/Allocator.h"
 #include <functional>
 #include <utility>
 
@@ -126,14 +127,14 @@ public:
   SILInstruction *optimizeBridgedCasts(SILDynamicCastInst cast);
 
   /// Optimize a cast from a bridged ObjC type into
-  /// a corresponding Swift type implementing _ObjectiveCBridgeable.
+  /// a corresponding Codira type implementing _ObjectiveCBridgeable.
   SILInstruction *
-  optimizeBridgedObjCToSwiftCast(SILDynamicCastInst dynamicCast);
+  optimizeBridgedObjCToCodiraCast(SILDynamicCastInst dynamicCast);
 
-  /// Optimize a cast from a Swift type implementing _ObjectiveCBridgeable
+  /// Optimize a cast from a Codira type implementing _ObjectiveCBridgeable
   /// into a bridged ObjC type.
   SILInstruction *
-  optimizeBridgedSwiftToObjCCast(SILDynamicCastInst dynamicCast);
+  optimizeBridgedCodiraToObjCCast(SILDynamicCastInst dynamicCast);
 
   void deleteInstructionsAfterUnreachable(SILInstruction *UnreachableInst,
                                           SILInstruction *TrapInst);
@@ -144,4 +145,4 @@ public:
 
 } // namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_CASTOPTIMIZER_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_CASTOPTIMIZER_H

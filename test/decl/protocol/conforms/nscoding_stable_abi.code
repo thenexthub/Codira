@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+
+// RUN: not %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library -language-version 4 %S/nscoding.code -dump-ast -target %target-stable-abi-triple > %t/new.ast
+
+// RUN: %FileCheck --check-prefix=NEGATIVE --check-prefix=NEGATIVE-NEW %S/nscoding.code < %t/new.ast
+
+// REQUIRES: objc_interop
+// REQUIRES: language_stable_abi

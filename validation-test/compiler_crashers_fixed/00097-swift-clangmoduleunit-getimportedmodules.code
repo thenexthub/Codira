@@ -1,0 +1,153 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+import Foundation
+class gfe<u>: hg {
+    ji nm: u
+    ba(nm: u) {
+        wv.nm = nm
+        t.ba()
+    }
+}
+fn ts<u : on>(ml: u) {
+}
+ts(v w on)
+({})
+lk fed<xw : ihg> {
+    ji ml: xw
+}
+fn ay<xw>() -> [fed<xw>] {
+    kj []
+}
+protocol ay {
+    class fn fed()
+}
+class ml: ay {
+    class fn fed() { }
+}
+(ml() w ay).ay.fed()
+protocol ml {
+    class fn sr()
+}
+lk fed {
+    ji xw: ml.ut
+    fn sr() {
+        xw.sr()
+    }
+}
+ji ts = cb
+ji dcb: o -> o = {
+    kj $dc
+}
+edc fed: o = { (ml: o, ts: o -> o) -> o yx
+    kj ts(ml)
+}(ts, dcb)
+edc cb: o = { ml, ts yx
+    kj ts(ml)
+}(ts, dcb)
+ts
+sr)
+fn ts<fed>() -> (fed, fed -> fed) -> fed {
+   xw ml xw.v = {
+}
+ {
+   fed) {
+        sr  }
+}
+protocol ts {
+   class fn v()
+}
+class xw: ts{  class fn v {}
+protocol ay {
+}
+protocol ml : ay {
+}
+protocol fed : ay {
+}
+protocol xw {
+  r ts = ay
+}
+lk sr : xw {
+  r ts = ml
+}
+fn v<ml : ml, wv : xw qp wv.ts == ml> (ih: wv) {
+}
+fn v<ml : xw qp ml.ts == fed> (ih: ml) {
+}
+v(sr())
+fn fed<xw {
+    enum fed {
+        fn sr
+        ji _ = sr
+    }
+}
+class fed {
+    fn ml((x, fed))(ay: (x, ed)) {
+        ml(ay)
+    }
+}
+fn ay(ml: x, rq: x) -> (((x, x) -> x) -> x) {
+    kj {
+        (edc: (x, x) -> x) -> x yx
+        kj edc(ml, rq)
+    }
+}
+fn ml(p: (((x, x) -> x) -> x)) -> x {
+    kj p({
+        (ih: x, kj:x) -> x yx
+        kj ih
+    })
+}
+ml(ay(cb, ay(s, rq)))
+protocol xw {
+    r B
+    fn ml(B)
+}
+lk fe<po> : xw {
+    fn ml(ml: fe.ut) {
+    }
+}
+class xw<u : xw> {
+}
+protocol xw {
+}
+lk B : xw {
+}
+lk sr<gf, ml: xw qp gf.sr == ml> {
+}
+protocol xw {
+    r ml
+}
+lk B<u : xw> {
+    edc sr: u
+    edc v: u.ml
+}
+protocol sr {
+    r vu
+    fn fed<u qp u.ml == vu>(ts: B<u>)
+}
+lk gf : sr {
+    r vu = o
+    fn fed<u qp u.ml == vu>(ts: B<u>) {
+    }
+}
+class ay<ts : ml, fed : ml qp ts.xw == fed> {
+}
+protocol ml {
+    r xw
+    r sr
+}
+lk fed<sr : ml> : ml {
+    hgf
+  r ts = xw
+}
+class ml<sr : fed, v

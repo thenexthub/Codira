@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the SimpleRequest class template, which makes it easier
 //  to define new request kinds.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_SIMPLEREQUEST_H
-#define SWIFT_AST_SIMPLEREQUEST_H
+#ifndef LANGUAGE_AST_SIMPLEREQUEST_H
+#define LANGUAGE_AST_SIMPLEREQUEST_H
 
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsCommon.h"
 #include "language/Basic/SimpleDisplay.h"
 #include "language/Basic/Statistic.h"
 #include "language/Basic/TypeID.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Error.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/Error.h"
 #include <tuple>
 #include <type_traits>
 
@@ -135,7 +136,7 @@ template<typename T, typename U,
           typename = typename std::enable_if<
             canExtractNearestSourceLoc<T>() &&
             canExtractNearestSourceLoc<U>()>::type>
-SourceLoc extractNearestSourceLoc(const llvm::PointerUnion<T, U> &value) {
+SourceLoc extractNearestSourceLoc(const toolchain::PointerUnion<T, U> &value) {
   if (auto first = value.template dyn_cast<T>()) {
     return extractNearestSourceLoc(first);
   }
@@ -337,13 +338,13 @@ public:
     return !(lhs == rhs);
   }
 
-  friend llvm::hash_code hash_value(const SimpleRequest &request) {
-    using llvm::hash_combine;
+  friend toolchain::hash_code hash_value(const SimpleRequest &request) {
+    using toolchain::hash_combine;
 
     return hash_combine(TypeID<Derived>::value, request.storage);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                              const Derived &request) {
     out << TypeID<Derived>::getName();
     simple_display(out, request.storage);
@@ -356,11 +357,11 @@ public:
 };
 }
 
-namespace llvm {
+namespace toolchain {
   template <typename T, unsigned N>
-  llvm::hash_code hash_value(const SmallVector<T, N> &vec) {
+  toolchain::hash_code hash_value(const SmallVector<T, N> &vec) {
     return hash_combine_range(vec.begin(), vec.end());
   }
 }
 
-#endif // SWIFT_BASIC_SIMPLEREQUEST_H
+#endif // LANGUAGE_BASIC_SIMPLEREQUEST_H

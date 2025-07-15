@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This header is shared between the runtime and the compiler and
@@ -18,13 +19,13 @@
 // between them.
 //
 // This header ought not to include any compiler-specific headers (such as
-// those from `swift/AST`, `swift/SIL`, etc.) since doing so may introduce
+// those from `language/AST`, `language/SIL`, etc.) since doing so may introduce
 // accidental ABI dependencies on compiler internals.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_METADATAVALUES_H
-#define SWIFT_ABI_METADATAVALUES_H
+#ifndef LANGUAGE_ABI_METADATAVALUES_H
+#define LANGUAGE_ABI_METADATAVALUES_H
 
 #include "language/ABI/KeyPath.h"
 #include "language/ABI/ProtocolDispatchStrategy.h"
@@ -35,9 +36,9 @@
 #include "language/AST/Ownership.h"
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/FlagSet.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -98,7 +99,7 @@ const unsigned MetadataKindIsNonHeap = 0x200;
 /// their associated data structures.
 const unsigned MetadataKindIsRuntimePrivate = 0x100;
 
-/// Kinds of Swift metadata records.  Some of these are types, some
+/// Kinds of Codira metadata records.  Some of these are types, some
 /// aren't.
 enum class MetadataKind : uint32_t {
 #define METADATAKIND(name, value) name = value,
@@ -109,7 +110,7 @@ enum class MetadataKind : uint32_t {
   /// The largest possible non-isa-pointer metadata kind value.
   ///
   /// This is included in the enumeration to prevent against attempts to
-  /// exhaustively match metadata kinds. Future Swift runtimes or compilers
+  /// exhaustively match metadata kinds. Future Codira runtimes or compilers
   /// may introduce new metadata kinds, so for forward compatibility, the
   /// runtime must tolerate metadata with unknown kinds.
   /// This specific value is not mapped to a valid metadata kind at this time,
@@ -140,7 +141,7 @@ inline MetadataKind getEnumeratedMetadataKind(uint64_t kind) {
 
 StringRef getStringForMetadataKind(MetadataKind kind);
 
-/// Kinds of Swift nominal type descriptor records.
+/// Kinds of Codira nominal type descriptor records.
 enum class NominalTypeKind : uint32_t {
 #define NOMINALTYPEMETADATAKIND(name, value) name = value,
 #include "MetadataKind.def"
@@ -168,18 +169,19 @@ public:
   // flags for the struct. (The "non-inline" and "has-extra-inhabitants" bits
   // still require additional fixup.)
   enum : uint32_t {
-    AlignmentMask =          0x000000FF,
-    // unused                0x0000FF00,
-    IsNonPOD =               0x00010000,
-    IsNonInline =            0x00020000,
-    // unused                0x00040000,
-    HasSpareBits =           0x00080000,
-    IsNonBitwiseTakable =    0x00100000,
-    HasEnumWitnesses =       0x00200000,
-    Incomplete =             0x00400000,
-    IsNonCopyable =          0x00800000,
-    IsNonBitwiseBorrowable = 0x01000000,
-    // unused                0xFE000000,
+    AlignmentMask =                0x000000FF,
+    // unused                      0x0000FF00,
+    IsNonPOD =                     0x00010000,
+    IsNonInline =                  0x00020000,
+    // unused                      0x00040000,
+    HasSpareBits =                 0x00080000,
+    IsNonBitwiseTakable =          0x00100000,
+    HasEnumWitnesses =             0x00200000,
+    Incomplete =                   0x00400000,
+    IsNonCopyable =                0x00800000,
+    IsNonBitwiseBorrowable =       0x01000000,
+    IsAddressableForDependencies = 0x02000000,
+    // unused                      0xFC000000,
   };
 
   static constexpr const uint32_t MaxNumExtraInhabitants = 0x7FFFFFFF;
@@ -251,9 +253,9 @@ public:
   /// `&T` type is always represented as a pointer, and borrowing a
   /// value always moves the borrowed value into memory.
   bool isBitwiseBorrowable() const {
-    /// This bit was introduced with Swift 6; prior to the introduction of
+    /// This bit was introduced with Codira 6; prior to the introduction of
     /// `Atomic` and `Mutex`, a type was always bitwise-borrowable if it
-    /// was bitwise-takable. Compilers and runtimes before Swift 6 would
+    /// was bitwise-takable. Compilers and runtimes before Codira 6 would
     /// never set the `IsNonBitwiseBorrowable` bit in the value witness
     /// table, but any type that sets `IsNonBitwiseTakable` is definitely
     /// not bitwise borrowable.
@@ -271,6 +273,19 @@ public:
     return TargetValueWitnessFlags((Data & ~IsNonCopyable) |
                                    (isCopyable ? 0 : IsNonCopyable));
   }
+  
+  /// True if values of this type are addressable-for-dependencies, meaning
+  /// that values of this type should be passed indirectly to functions that
+  /// produce lifetime-dependent values that could possibly contain pointers
+  /// to the inline storage of this type.
+  bool isAddressableForDependencies() const {
+    return Data & IsAddressableForDependencies;
+  }
+  constexpr TargetValueWitnessFlags withAddressableForDependencies(bool afd) const {
+    return TargetValueWitnessFlags((Data & ~IsAddressableForDependencies) |
+                                   (afd ? IsAddressableForDependencies : 0));
+  }
+
 
   /// True if this type's binary representation is that of an enum, and the
   /// enum value witness table entries are available in this type's value
@@ -332,17 +347,17 @@ inline DynamicCastFlags &operator|=(DynamicCastFlags &a, DynamicCastFlags b) {
   return a = (a | b);
 }
 
-/// Swift class flags.
+/// Codira class flags.
 /// These flags are valid only when isTypeMetadata().
-/// When !isTypeMetadata() these flags will collide with other Swift ABIs.
+/// When !isTypeMetadata() these flags will collide with other Codira ABIs.
 enum class ClassFlags : uint32_t {
-  /// Is this a Swift class from the Darwin pre-stable ABI?
-  /// This bit is clear in stable ABI Swift classes.
+  /// Is this a Codira class from the Darwin pre-stable ABI?
+  /// This bit is clear in stable ABI Codira classes.
   /// The Objective-C runtime also reads this bit.
-  IsSwiftPreStableABI = 0x1,
+  IsCodiraPreStableABI = 0x1,
 
-  /// Does this class use Swift refcounting?
-  UsesSwiftRefcounting = 0x2,
+  /// Does this class use Codira refcounting?
+  UsesCodiraRefcounting = 0x2,
 
   /// Has this class a custom name, specified with the @objc attribute?
   HasCustomObjCName = 0x4,
@@ -513,7 +528,7 @@ enum class ProtocolClassConstraint : bool {
   Any = true,
 };
 
-/// Identifiers for protocols with special meaning to the Swift runtime.
+/// Identifiers for protocols with special meaning to the Codira runtime.
 enum class SpecialProtocol: uint8_t {
   /// Not a special protocol.
   ///
@@ -527,7 +542,7 @@ enum class SpecialProtocol: uint8_t {
 class ProtocolDescriptorFlags {
   typedef uint32_t int_type;
   enum : int_type {
-    IsSwift           =   1U <<  0U,
+    IsCodira           =   1U <<  0U,
     ClassConstraint   =   1U <<  1U,
 
     DispatchStrategyMask  = 0xFU << 2U,
@@ -547,8 +562,8 @@ class ProtocolDescriptorFlags {
   constexpr ProtocolDescriptorFlags(int_type Data) : Data(Data) {}
 public:
   constexpr ProtocolDescriptorFlags() : Data(0) {}
-  constexpr ProtocolDescriptorFlags withSwift(bool s) const {
-    return ProtocolDescriptorFlags((Data & ~IsSwift) | (s ? IsSwift : 0));
+  constexpr ProtocolDescriptorFlags withCodira(bool s) const {
+    return ProtocolDescriptorFlags((Data & ~IsCodira) | (s ? IsCodira : 0));
   }
   constexpr ProtocolDescriptorFlags withClassConstraint(
                                               ProtocolClassConstraint c) const {
@@ -569,8 +584,8 @@ public:
     return ProtocolDescriptorFlags((Data & ~IsResilient) | (s ? IsResilient : 0));
   }
 
-  /// Was the protocol defined in Swift 1 or 2?
-  bool isSwift() const { return Data & IsSwift; }
+  /// Was the protocol defined in Codira 1 or 2?
+  bool isCodira() const { return Data & IsCodira; }
 
   /// Is the protocol class-constrained?
   ProtocolClassConstraint getClassConstraint() const {
@@ -585,7 +600,7 @@ public:
 
   /// Does the protocol require a witness table for method dispatch?
   bool needsWitnessTable() const {
-    return swift::protocolRequiresWitnessTable(getDispatchStrategy());
+    return language::protocolRequiresWitnessTable(getDispatchStrategy());
   }
 
   /// Return the identifier if this is a special runtime-known protocol.
@@ -602,7 +617,7 @@ public:
   }
 
 #ifndef NDEBUG
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 #endif
 };
 
@@ -757,14 +772,6 @@ private:
     IsConformanceOfProtocolMask = 0x01u << 18,
     HasGlobalActorIsolation = 0x01u << 19,
 
-    // Used to detect if this is a conformance to SerialExecutor that has
-    // an user defined implementation of 'isIsolatingCurrentContext'. This
-    // requirement is special in the sense that if a non-default impl is present
-    // we will avoid calling the `checkIsolated` method which would lead to a
-    // crash. In other words, this API "soft replaces" 'checkIsolated' so we
-    // must at runtime the presence of a non-default implementation.
-    HasNonDefaultSerialExecutorIsIsolatingCurrentContext = 0x01u << 20,
-
     NumConditionalPackDescriptorsMask = 0xFFu << 24,
     NumConditionalPackDescriptorsShift = 24
   };
@@ -831,15 +838,7 @@ public:
                                  : 0));
   }
 
-  ConformanceFlags withHasNonDefaultSerialExecutorIsIsolatingCurrentContext(
-                                           bool hasNonDefaultSerialExecutorIsIsolatingCurrentContext) const {
-    return ConformanceFlags((Value & ~HasNonDefaultSerialExecutorIsIsolatingCurrentContext)
-                            | (hasNonDefaultSerialExecutorIsIsolatingCurrentContext
-                                 ? HasNonDefaultSerialExecutorIsIsolatingCurrentContext
-                                 : 0));
-  }
-
-  /// Retrieve the type reference kind kind.
+  /// Retrieve the type reference kind.
   TypeReferenceKind getTypeReferenceKind() const {
     return TypeReferenceKind(
                       (Value & TypeMetadataKindMask) >> TypeMetadataKindShift);
@@ -855,8 +854,8 @@ public:
 
   /// Is the conformance synthesized in a non-unique manner?
   ///
-  /// The Swift compiler will synthesize conformances on behalf of some
-  /// imported entities (e.g., C typedefs with the swift_wrapper attribute).
+  /// The Codira compiler will synthesize conformances on behalf of some
+  /// imported entities (e.g., C typedefs with the language_wrapper attribute).
   /// Such conformances are retroactive by nature, but the presence of multiple
   /// such conformances is not a conflict because all synthesized conformances
   /// will be equivalent.
@@ -866,7 +865,7 @@ public:
 
   /// Is this a conformance of a protocol to another protocol?
   ///
-  /// The Swift compiler can synthesize a conformance of one protocol to
+  /// The Codira compiler can synthesize a conformance of one protocol to
   /// another, meaning that every type that conforms to the first protocol
   /// can also produce a witness table conforming to the second. Such
   /// conformances cannot generally be written in the surface language, but
@@ -881,10 +880,6 @@ public:
   /// Does this conformance have a global actor to which it is isolated?
   bool hasGlobalActorIsolation() const {
     return Value & HasGlobalActorIsolation;
-  }
-
-  bool hasNonDefaultSerialExecutorIsIsolatingCurrentContext() const {
-    return Value & HasNonDefaultSerialExecutorIsIsolatingCurrentContext;
   }
 
   /// Retrieve the # of conditional requirements.
@@ -1126,7 +1121,7 @@ public:
 
 /// Convention values for function type metadata.
 enum class FunctionMetadataConvention: uint8_t {
-  Swift = 0,
+  Codira = 0,
   Block = 1,
   Thin = 2,
   CFunctionPointer = 3,
@@ -1561,8 +1556,8 @@ enum class StructLayoutFlags : uintptr_t {
   /// Reserve space for 256 layout algorithms.
   AlgorithmMask     = 0xff,
 
-  /// The ABI baseline algorithm, i.e. the algorithm implemented in Swift 5.
-  Swift5Algorithm   = 0x00,
+  /// The ABI baseline algorithm, i.e. the algorithm implemented in Codira 5.
+  Codira5Algorithm   = 0x00,
 
   /// Is the value-witness table mutable in place, or does layout need to
   /// clone it?
@@ -1589,8 +1584,8 @@ enum class ClassLayoutFlags : uintptr_t {
   /// Reserve space for 256 layout algorithms.
   AlgorithmMask     = 0xff,
 
-  /// The ABI baseline algorithm, i.e. the algorithm implemented in Swift 5.
-  Swift5Algorithm   = 0x00,
+  /// The ABI baseline algorithm, i.e. the algorithm implemented in Codira 5.
+  Codira5Algorithm   = 0x00,
 
   /// If true, the vtable for this class and all of its superclasses was emitted
   /// statically in the class metadata. If false, the superclass vtable is
@@ -1619,8 +1614,8 @@ enum class EnumLayoutFlags : uintptr_t {
   /// Reserve space for 256 layout algorithms.
   AlgorithmMask     = 0xff,
 
-  /// The ABI baseline algorithm, i.e. the algorithm implemented in Swift 5.
-  Swift5Algorithm   = 0x00,
+  /// The ABI baseline algorithm, i.e. the algorithm implemented in Codira 5.
+  Codira5Algorithm   = 0x00,
 
   /// Is the value-witness table mutable in place, or does layout need to
   /// clone it?
@@ -1726,16 +1721,16 @@ namespace SpecialPointerAuthDiscriminators {
   const uint16_t StoreEnumTagSinglePayload = 0xa0d1;
 
   /// KeyPath metadata functions.
-  const uint16_t KeyPathDestroy = _SwiftKeyPath_ptrauth_ArgumentDestroy;
-  const uint16_t KeyPathCopy = _SwiftKeyPath_ptrauth_ArgumentCopy;
-  const uint16_t KeyPathEquals = _SwiftKeyPath_ptrauth_ArgumentEquals;
-  const uint16_t KeyPathHash = _SwiftKeyPath_ptrauth_ArgumentHash;
-  const uint16_t KeyPathGetter = _SwiftKeyPath_ptrauth_Getter;
-  const uint16_t KeyPathNonmutatingSetter = _SwiftKeyPath_ptrauth_NonmutatingSetter;
-  const uint16_t KeyPathMutatingSetter = _SwiftKeyPath_ptrauth_MutatingSetter;
-  const uint16_t KeyPathGetLayout = _SwiftKeyPath_ptrauth_ArgumentLayout;
-  const uint16_t KeyPathInitializer = _SwiftKeyPath_ptrauth_ArgumentInit;
-  const uint16_t KeyPathMetadataAccessor = _SwiftKeyPath_ptrauth_MetadataAccessor;
+  const uint16_t KeyPathDestroy = _CodiraKeyPath_ptrauth_ArgumentDestroy;
+  const uint16_t KeyPathCopy = _CodiraKeyPath_ptrauth_ArgumentCopy;
+  const uint16_t KeyPathEquals = _CodiraKeyPath_ptrauth_ArgumentEquals;
+  const uint16_t KeyPathHash = _CodiraKeyPath_ptrauth_ArgumentHash;
+  const uint16_t KeyPathGetter = _CodiraKeyPath_ptrauth_Getter;
+  const uint16_t KeyPathNonmutatingSetter = _CodiraKeyPath_ptrauth_NonmutatingSetter;
+  const uint16_t KeyPathMutatingSetter = _CodiraKeyPath_ptrauth_MutatingSetter;
+  const uint16_t KeyPathGetLayout = _CodiraKeyPath_ptrauth_ArgumentLayout;
+  const uint16_t KeyPathInitializer = _CodiraKeyPath_ptrauth_ArgumentInit;
+  const uint16_t KeyPathMetadataAccessor = _CodiraKeyPath_ptrauth_MetadataAccessor;
 
   /// ObjC bridging entry points.
   const uint16_t ObjectiveCTypeDiscriminator = 0x31c3; // = 12739
@@ -1768,13 +1763,13 @@ namespace SpecialPointerAuthDiscriminators {
   const uint16_t AsyncContextParent = 0xbda2; // = 48546
   const uint16_t AsyncContextResume = 0xd707; // = 55047
   const uint16_t AsyncContextYield = 0xe207; // = 57863
-  const uint16_t CancellationNotificationFunction = 0x1933; // = 6451
+  const uint16_t CancellationNotificationFunction = 0x0f08; // = 3848
   const uint16_t EscalationNotificationFunction = 0x7861; // = 30817
   const uint16_t AsyncThinNullaryFunction = 0x0f08; // = 3848
   const uint16_t AsyncFutureFunction = 0x720f; // = 29199
 
-  /// Swift async context parameter stored in the extended frame info.
-  const uint16_t SwiftAsyncContextExtendedFrameEntry = 0xc31a; // = 49946
+  /// Codira async context parameter stored in the extended frame info.
+  const uint16_t CodiraAsyncContextExtendedFrameEntry = 0xc31a; // = 49946
 
   // C type TaskContinuationFunction* descriminator.
   const uint16_t ClangTypeTaskContinuationFunction = 0x2abe; // = 10942
@@ -1799,7 +1794,7 @@ namespace SpecialPointerAuthDiscriminators {
   /// Isolated deinit body function pointer
   const uint16_t DeinitWorkFunction = 0x8438; // = 33848
 
-  /// IsCurrentGlobalActor function used between the Swift runtime and
+  /// IsCurrentGlobalActor function used between the Codira runtime and
   /// concurrency runtime.
   const uint16_t IsCurrentGlobalActorFunction = 0xd1b8; // = 53688
 }
@@ -2234,7 +2229,7 @@ enum class GenericParamKind : uint8_t {
 };
 
 class GenericParamDescriptor {
-  /// Don't set 0x40 for compatibility with pre-Swift 5.8 runtimes
+  /// Don't set 0x40 for compatibility with pre-Codira 5.8 runtimes
   uint8_t Value;
 
   explicit constexpr GenericParamDescriptor(uint8_t Value)
@@ -2289,7 +2284,7 @@ public:
 /// Can the given generic parameter array be implicit, for places in
 /// the ABI which support that?
 inline bool canGenericParamsBeImplicit(
-                            llvm::ArrayRef<GenericParamDescriptor> params) {
+                            toolchain::ArrayRef<GenericParamDescriptor> params) {
   // If there are more parameters than the maximum, they cannot be implicit.
   if (params.size() > MaxNumImplicitGenericParamDescriptors)
     return false;
@@ -2325,7 +2320,7 @@ enum class GenericRequirementKind : uint8_t {
 };
 
 class GenericRequirementFlags {
-  /// Don't set 0x40 for compatibility with pre-Swift 5.8 runtimes
+  /// Don't set 0x40 for compatibility with pre-Codira 5.8 runtimes
   uint32_t Value;
 
   explicit constexpr GenericRequirementFlags(uint32_t Value)
@@ -2767,9 +2762,9 @@ public:
     /// The context pointer should be treated as opaque and non-copyable;
     /// in particular, it should not be retained or released.
     ///
-    /// Supported starting in Swift 6.1.
+    /// Supported starting in Codira 6.1.
     Task_IsTaskFunctionConsumed                   = 15,
-    Task_IsStartSynchronouslyTask                 = 16,
+    Task_IsImmediateTask                          = 16,
   };
 
   explicit constexpr TaskCreateFlags(size_t bits) : FlagSet(bits) {}
@@ -2802,9 +2797,9 @@ public:
   FLAGSET_DEFINE_FLAG_ACCESSORS(Task_IsTaskFunctionConsumed,
                                 isTaskFunctionConsumed,
                                 setIsTaskFunctionConsumed)
-  FLAGSET_DEFINE_FLAG_ACCESSORS(Task_IsStartSynchronouslyTask,
-                                isSynchronousStartTask,
-                                setIsSYnchronousStartTask)
+  FLAGSET_DEFINE_FLAG_ACCESSORS(Task_IsImmediateTask,
+                                isImmediateTask,
+                                setIsImmediateTask)
 };
 
 /// Flags for schedulable jobs.
@@ -2918,14 +2913,14 @@ enum class TaskOptionRecordKind : uint8_t {
   AsyncLet = 2,
   /// Request a child task for an 'async let'.
   AsyncLetWithBuffer = 3,
-  /// Information about the result type of the task, used in embedded Swift.
+  /// Information about the result type of the task, used in embedded Codira.
   ResultTypeInfo = 4,
   /// Set the initial task executor preference of the task.
   InitialTaskExecutorUnowned = 5,
   InitialTaskExecutorOwned = 6,
   // Set a human-readable task name.
   InitialTaskName = 7,
-  /// Request a child task for swift_task_run_inline.
+  /// Request a child task for language_task_run_inline.
   RunInline = UINT8_MAX,
 };
 
@@ -2983,7 +2978,7 @@ public:
                                  getKind, setKind)
 };
 
-/// Flags passed to swift_continuation_init.
+/// Flags passed to language_continuation_init.
 class AsyncContinuationFlags : public FlagSet<size_t> {
 public:
   enum {
@@ -3000,15 +2995,15 @@ public:
   FLAGSET_DEFINE_FLAG_ACCESSORS(CanThrow, canThrow, setCanThrow)
 
   /// Whether the continuation should be resumed on a different
-  /// executor than the current one.  swift_continuation_init
+  /// executor than the current one.  language_continuation_init
   /// will not initialize ResumeToExecutor if this is set.
   FLAGSET_DEFINE_FLAG_ACCESSORS(HasExecutorOverride,
                                 hasExecutorOverride,
                                 setHasExecutorOverride)
 
   /// Whether the switch to the target executor should be forced
-  /// by swift_continuation_await.  If this is not set, and
-  /// swift_continuation_await finds that the continuation has
+  /// by language_continuation_await.  If this is not set, and
+  /// language_continuation_await finds that the continuation has
   /// already been resumed, then execution will continue on the
   /// current executor.  This has no effect in combination with
   /// pre-awaiting.
@@ -3067,4 +3062,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_ABI_METADATAVALUES_H
+#endif // LANGUAGE_ABI_METADATAVALUES_H

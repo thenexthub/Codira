@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 /// String
 
 @_unavailableInEmbedded
-internal func _print_unlocked<T>(_ value: T, _ target: inout String) { fatalError() }
+internal fn _print_unlocked<T>(_ value: T, _ target: inout String) { fatalError() }
 @_unavailableInEmbedded
-public func _debugPrint_unlocked<T>(_ value: T, _ target: inout String) { fatalError() }
+public fn _debugPrint_unlocked<T>(_ value: T, _ target: inout String) { fatalError() }
 
 /// Codable
 
 @_unavailableInEmbedded
 public protocol Encodable {
-  func encode(to encoder: any Encoder) throws
+  fn encode(to encoder: any Encoder) throws
 }
 
 @_unavailableInEmbedded
@@ -48,12 +49,12 @@ public struct KeyedEncodingContainer<K: CodingKey> { }
 
 @_unavailableInEmbedded
 public protocol UnkeyedDecodingContainer { 
-  mutating func decode<T>(_ type: T.Type) throws -> T
+  mutating fn decode<T>(_ type: T.Type) throws -> T
 }
 
 @_unavailableInEmbedded
 public protocol UnkeyedEncodingContainer { 
-  mutating func encode<T>(_ value: T) throws
+  mutating fn encode<T>(_ value: T) throws
 }
 
 @_unavailableInEmbedded
@@ -65,17 +66,17 @@ public protocol SingleValueEncodingContainer { }
 @_unavailableInEmbedded
 public protocol Encoder {
   var codingPath: [any CodingKey] { get }
-  func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key>
-  func unkeyedContainer() -> any UnkeyedEncodingContainer
-  func singleValueContainer() -> any SingleValueEncodingContainer
+  fn container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key>
+  fn unkeyedContainer() -> any UnkeyedEncodingContainer
+  fn singleValueContainer() -> any SingleValueEncodingContainer
 }
 
 @_unavailableInEmbedded
 public protocol Decoder {
   var codingPath: [any CodingKey] { get }
-  func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
-  func unkeyedContainer() throws -> any UnkeyedDecodingContainer
-  func singleValueContainer() throws -> any SingleValueDecodingContainer
+  fn container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
+  fn unkeyedContainer() throws -> any UnkeyedDecodingContainer
+  fn singleValueContainer() throws -> any SingleValueDecodingContainer
 }
 
 @_unavailableInEmbedded

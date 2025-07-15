@@ -1,0 +1,4 @@
+// {"signature":"constrainDomainInfos(toolchain::SmallVectorImpl<language::AvailabilityContext::DomainInfo>&, toolchain::ArrayRef<language::AvailabilityContext::DomainInfo>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@available(*, unavailable) @available(_PackageDescription 3) fn a {
+  @available(_PackageDescription 5) fn b

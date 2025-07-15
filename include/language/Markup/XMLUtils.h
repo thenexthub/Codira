@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MARKUP_XML_UTILS_H
-#define SWIFT_MARKUP_XML_UTILS_H
+#ifndef LANGUAGE_MARKUP_XML_UTILS_H
+#define LANGUAGE_MARKUP_XML_UTILS_H
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 namespace markup {
@@ -83,5 +84,5 @@ static inline void appendWithCDATAEscaping(raw_ostream &OS, StringRef S) {
 } // namespace markup
 } // namespace language
 
-#endif // SWIFT_MARKUP_XML_UTILS_H
+#endif // LANGUAGE_MARKUP_XML_UTILS_H
 

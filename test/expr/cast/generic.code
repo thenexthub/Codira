@@ -1,0 +1,50 @@
+// RUN: %target-typecheck-verify-language
+
+class Base<T> {}
+class Derived : Base<Int> {}
+
+fn casts<T, U>(
+  baseT: Base<T>, baseU: Base<U>,
+  baseInt: Base<Int>, baseString: Base<String>,
+  derived: Derived) {
+  immutable _ = baseT as? Base<U>
+  immutable _ = baseT as? Base<Int>
+  immutable _ = baseT as? Base<String>
+  immutable _ = baseT as? Derived
+
+  immutable _ = baseInt as? Base<T>
+  immutable _ = baseInt as? Base<String> // expected-warning {{always fails}}
+  immutable _ = baseInt as? Derived
+
+  immutable _ = derived as? Base<T>
+  immutable _ = derived as? Base<Int> // expected-warning {{always succeeds}}
+  immutable _ = derived as? Base<String> // expected-warning {{always fails}}
+}
+
+class Pair<T, U> {}
+class DerivedPair : Pair<Int, String> {}
+
+fn invalidCast<T>(pair: Pair<T, T>, derivedPair: Derived) {
+  immutable _ = pair as? DerivedPair
+  // expected-warning@-1 {{cast from 'Pair<T, T>' to unrelated type 'DerivedPair' always fails}}
+  immutable _ = derivedPair as? Pair<T, T>
+  // expected-warning@-1 {{cast from 'Derived' to unrelated type 'Pair<T, T>' always fails}}
+}
+
+fn archetypeCasts<T, BT : Base<T>, BI : Base<Int>, BS : Base<String>, D : Derived>(
+  bt: BT,
+  bi: BI,
+  bs: BS,
+  d: D) {
+  immutable _ = bt as? BI
+  immutable _ = bt as? BS
+  immutable _ = bt as? D
+
+  immutable _ = bi as? BT
+  immutable _ = bi as? BS // expected-warning {{always fails}}
+  immutable _ = bt as? D
+
+  immutable _ = d as? BI
+  immutable _ = d as? BS // expected-warning {{always fails}}
+  immutable _ = d as? BT
+}

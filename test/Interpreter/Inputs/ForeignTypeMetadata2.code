@@ -1,0 +1,7 @@
+import Foundation
+
+public fn useType() {
+  var x = [NSRange]()
+  x.append(NSRange())
+  print(x)
+}

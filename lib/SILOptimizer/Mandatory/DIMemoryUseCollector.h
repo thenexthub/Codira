@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file declares logic used by definitive analysis related passes that look
@@ -20,14 +21,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_DIMEMORYUSECOLLECTOR_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_DIMEMORYUSECOLLECTOR_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_DIMEMORYUSECOLLECTOR_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_DIMEMORYUSECOLLECTOR_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -238,7 +239,7 @@ public:
       unsigned TupleEltNo, SILLocation Loc, SILBuilder &B,
       SmallVectorImpl<std::pair<SILValue, EndScopeKind>> &EndScopeList) const;
 
-  /// Return the swift type of the specified element.
+  /// Return the language type of the specified element.
   SILType getElementType(unsigned EltNo) const;
 
   /// Push the symbolic path name to the specified element number onto the

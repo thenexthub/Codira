@@ -1,25 +1,25 @@
 
-gyb_expand(tgmath.swift.gyb tgmath.swift)
+gyb_expand(tgmath.code.gyb tgmath.code)
 
-add_library(swiftAndroid
-  tgmath.swift
-  Android.swift
-  Platform.swift
-  POSIXError.swift
-  TiocConstants.swift)
-set_target_properties(swiftAndroid PROPERTIES
-  Swift_MODULE_NAME Android)
-target_compile_definitions(swiftAndroid PRIVATE
-  $<$<BOOL:${SwiftOverlay_ENABLE_REFLECTION}>:SWIFT_ENABLE_REFLECTION>)
-target_link_libraries(swiftAndroid PRIVATE
-  SwiftAndroid
-  swiftCore)
+add_library(languageAndroid
+  tgmath.code
+  Android.code
+  Platform.code
+  POSIXError.code
+  TiocConstants.code)
+set_target_properties(languageAndroid PROPERTIES
+  Codira_MODULE_NAME Android)
+target_compile_definitions(languageAndroid PRIVATE
+  $<$<BOOL:${CodiraOverlay_ENABLE_REFLECTION}>:LANGUAGE_ENABLE_REFLECTION>)
+target_link_libraries(languageAndroid PRIVATE
+  CodiraAndroid
+  languageCore)
 
-install(TARGETS swiftAndroid
-  ARCHIVE DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
-  LIBRARY DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
+install(TARGETS languageAndroid
+  ARCHIVE DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-emit_swift_interface(swiftAndroid)
-install_swift_interface(swiftAndroid)
+emit_language_interface(languageAndroid)
+install_language_interface(languageAndroid)
 
-embed_manifest(swiftAndroid)
+embed_manifest(languageAndroid)

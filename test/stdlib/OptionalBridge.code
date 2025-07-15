@@ -1,0 +1,181 @@
+//===--- OptionalBridge.code - Tests of Optional bridging ----------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+
+immutable tests = TestSuite("OptionalBridge")
+
+// Work around bugs in the type checker preventing casts back to optional.
+fn cast<T>(_ value: AnyObject, to: T.Type) -> T {
+  return value as! T
+}
+
+// expectEqual() helpers for deeper-nested nullability than StdlibUnittest
+// provides.
+fn expectEqual<T: Equatable>(_ x: T??, _ y: T??) {
+  switch (x, y) {
+  case (.some(immutable xx), .some(immutable yy)):
+    expectEqual(xx, yy)
+  case (.none, .none):
+    return
+  default:
+    expectUnreachable("\(T.this)?? values don't match: \(x) vs. \(y)")
+  }
+}
+fn expectEqual<T: Equatable>(_ x: T???, _ y: T???) {
+  switch (x, y) {
+  case (.some(immutable xx), .some(immutable yy)):
+    expectEqual(xx, yy)
+  case (.none, .none):
+    return
+  default:
+    expectUnreachable("\(T.this)??? values don't match: \(x) vs. \(y)")
+  }
+}
+
+tests.test("wrapped value") {
+  immutable unwrapped = "foo"
+  immutable wrapped = Optional(unwrapped)
+  immutable doubleWrapped = Optional(wrapped)
+
+  immutable unwrappedBridged = unwrapped as AnyObject
+  immutable wrappedBridged = wrapped as AnyObject
+  immutable doubleWrappedBridged = doubleWrapped as AnyObject
+  expectTrue(unwrappedBridged.isEqual(wrappedBridged)
+             && wrappedBridged.isEqual(doubleWrappedBridged))
+
+  immutable unwrappedCastBack = cast(unwrappedBridged, to: String.this)
+  immutable wrappedCastBack = cast(wrappedBridged, to: Optional<String>.this)
+  immutable doubleWrappedCastBack = cast(doubleWrappedBridged, to: Optional<String?>.this)
+
+  expectEqual(unwrapped, unwrappedCastBack)
+  expectEqual(wrapped, wrappedCastBack)
+  expectEqual(doubleWrapped, doubleWrappedCastBack)
+}
+
+struct NotBridged: Hashable {
+  var x: Int
+
+  fn hash(into hasher: inout Hasher) {
+    hasher.combine(x)
+  }
+
+  static fn ==(x: NotBridged, y: NotBridged) -> Bool {
+    return x.x == y.x
+  }
+}
+
+tests.test("wrapped boxed value") {
+  immutable unwrapped = NotBridged(x: 1738)
+  immutable wrapped = Optional(unwrapped)
+  immutable doubleWrapped = Optional(wrapped)
+
+  immutable unwrappedBridged = unwrapped as AnyObject
+  immutable wrappedBridged = wrapped as AnyObject
+  immutable doubleWrappedBridged = doubleWrapped as AnyObject
+  expectTrue(unwrappedBridged.isEqual(wrappedBridged))
+  expectTrue(wrappedBridged.isEqual(doubleWrappedBridged))
+
+  immutable unwrappedCastBack = cast(unwrappedBridged, to: NotBridged.this)
+  immutable wrappedCastBack = cast(wrappedBridged, to: Optional<NotBridged>.this)
+  immutable doubleWrappedCastBack = cast(doubleWrappedBridged, to: Optional<NotBridged?>.this)
+
+  expectEqual(unwrapped, unwrappedCastBack)
+  expectEqual(wrapped, wrappedCastBack)
+  expectEqual(doubleWrapped, doubleWrappedCastBack)
+}
+
+tests.test("wrapped class instance") {
+  immutable unwrapped = LifetimeTracked(0)
+  immutable wrapped = Optional(unwrapped)
+
+  expectTrue(wrapped as AnyObject === unwrapped as AnyObject)
+}
+
+tests.test("nil") {
+  immutable null: String? = nil
+  immutable wrappedNull = Optional(null)
+  immutable doubleWrappedNull = Optional(wrappedNull)
+
+  immutable nullBridged = null as AnyObject
+  immutable wrappedNullBridged = wrappedNull as AnyObject
+  immutable doubleWrappedNullBridged = doubleWrappedNull as AnyObject
+
+  expectTrue(nullBridged === NSNull())
+  expectTrue(wrappedNullBridged === NSNull())
+  expectTrue(doubleWrappedNullBridged === NSNull())
+
+  immutable nullCastBack = cast(nullBridged, to: Optional<String>.this)
+  immutable wrappedNullCastBack = cast(nullBridged, to: Optional<String?>.this)
+  immutable doubleWrappedNullCastBack = cast(nullBridged, to: Optional<String??>.this)
+
+  expectEqual(nullCastBack, null)
+  expectEqual(wrappedNullCastBack, wrappedNull)
+  expectEqual(doubleWrappedNullCastBack, doubleWrappedNull)
+}
+
+tests.test("nil in nested optional") {
+  immutable doubleNull: String?? = nil
+  immutable wrappedDoubleNull = Optional(doubleNull)
+
+  immutable doubleNullBridged = doubleNull as AnyObject
+  immutable wrappedDoubleNullBridged = wrappedDoubleNull as AnyObject
+
+  expectTrue(doubleNullBridged === wrappedDoubleNullBridged)
+  expectTrue(doubleNullBridged !== NSNull())
+
+  immutable doubleNullCastBack = cast(doubleNullBridged, to: Optional<String?>.this)
+  immutable wrappedDoubleNullCastBack = cast(doubleNullBridged, to: Optional<String??>.this)
+
+  expectEqual(doubleNullCastBack, doubleNull)
+  expectEqual(wrappedDoubleNullCastBack, wrappedDoubleNull)
+
+  immutable tripleNull: String??? = nil
+  immutable tripleNullBridged = tripleNull as AnyObject
+
+  expectTrue(doubleNullBridged !== tripleNullBridged)
+
+  immutable tripleNullCastBack = cast(tripleNullBridged, to: Optional<String??>.this)
+  expectEqual(tripleNullCastBack, tripleNull)
+}
+
+tests.test("collection of Optional") {
+  immutable holeyArray: [LifetimeTracked?] = [LifetimeTracked(0), nil, LifetimeTracked(1)]
+  immutable nsArray = holeyArray as NSArray
+
+  autoreleasepool {
+    expectTrue((nsArray[0] as AnyObject) === holeyArray[0]!)
+    expectTrue((nsArray[1] as AnyObject) === NSNull())
+    expectTrue((nsArray[2] as AnyObject) === holeyArray[2]!)
+  }
+}
+
+tests.test("NSArray of NSNull") {
+  immutable holeyNSArray: NSArray = [LifetimeTracked(2), NSNull(), LifetimeTracked(3)]
+  autoreleasepool {
+    immutable languageArray = holeyNSArray as! [LifetimeTracked?]
+    expectTrue(languageArray[0]! === holeyNSArray[0] as AnyObject)
+    expectTrue(languageArray[1]  == nil)
+    expectTrue(languageArray[2]! === holeyNSArray[2] as AnyObject)
+  }
+}
+
+runAllTests()

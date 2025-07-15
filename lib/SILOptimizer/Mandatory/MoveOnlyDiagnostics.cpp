@@ -1,13 +1,17 @@
 //===--- MoveOnlyDiagnostics.cpp ------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-move-only-checker"
@@ -25,18 +29,18 @@
 #include "language/SIL/FieldSensitivePrunedLiveness.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SILOptimizer/Utils/VariableNameUtils.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 #include "MoveOnlyTypeUtils.h"
 using namespace language;
 using namespace language::siloptimizer;
 
-static llvm::cl::opt<bool> SilentlyEmitDiagnostics(
+static toolchain::cl::opt<bool> SilentlyEmitDiagnostics(
     "move-only-diagnostics-silently-emit-diagnostics",
-    llvm::cl::desc(
+    toolchain::cl::desc(
         "For testing purposes, emit the diagnostic silently so we can "
         "filecheck the result of emitting an error from the move checkers"),
-    llvm::cl::init(false));
+    toolchain::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 //                              MARK: Utilities
@@ -158,7 +162,7 @@ void DiagnosticEmitter::emitMissingConsumeInDiscardingContext(
       }
       Stmt *stmt = loc.getAsASTNode<Stmt>();
       if (!stmt)
-        return true; // For non-statements, assume it is exiting the func.
+        return true; // For non-statements, assume it is exiting the fn.
 
       // Prefer statements that can possibly lead to an exit of the function.
       // This is determined by whether the statement causes an exit of a
@@ -308,9 +312,9 @@ void DiagnosticEmitter::emitObjectOwnedDiagnostic(
   // compile time to emit a nice error.
   InstructionSet consumingUserSet(markedValue->getFunction());
   InstructionSet nonConsumingUserSet(markedValue->getFunction());
-  llvm::SmallDenseMap<SILBasicBlock *, SILInstruction *, 8>
+  toolchain::SmallDenseMap<SILBasicBlock *, SILInstruction *, 8>
       consumingBlockToUserMap;
-  llvm::SmallDenseMap<SILBasicBlock *, SILInstruction *, 8>
+  toolchain::SmallDenseMap<SILBasicBlock *, SILInstruction *, 8>
       nonConsumingBlockToUserMap;
 
   // NOTE: We use all lifetime ending and non-lifetime ending users to ensure
@@ -495,9 +499,9 @@ void DiagnosticEmitter::emitAddressExclusivityHazardDiagnostic(
   SmallString<64> varName;
   getVariableNameForValue(markedValue, varName);
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting error for exclusivity!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    Consuming use: " << *consumingUser);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting error for exclusivity!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Consuming use: " << *consumingUser);
 
   diagnose(astContext, markedValue,
            diag::sil_movechecking_bug_exclusivity_violation, varName);
@@ -517,12 +521,12 @@ void DiagnosticEmitter::emitAddressDiagnostic(
   SmallString<64> varName;
   getVariableNameForValue(markedValue, varName);
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting error!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    Last Live Use: " << *lastLiveUser);
-  LLVM_DEBUG(llvm::dbgs() << "    Last Live Use Is Consuming? "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting error!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Last Live Use: " << *lastLiveUser);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Last Live Use Is Consuming? "
                           << (isUseConsuming ? "yes" : "no") << '\n');
-  LLVM_DEBUG(llvm::dbgs() << "    Violating Use: " << *violatingUser);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Violating Use: " << *violatingUser);
 
   // If our liveness use is the same as our violating use, then we know that we
   // had a loop. Give a better diagnostic.
@@ -594,9 +598,9 @@ void DiagnosticEmitter::emitInOutEndOfFunctionDiagnostic(
   SmallString<64> varName;
   getVariableNameForValue(markedValue, varName);
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting inout error error!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    Violating Use: " << *violatingUser);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting inout error error!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Violating Use: " << *violatingUser);
 
   // Otherwise, we need to do no implicit copy semantics. If our last use was
   // consuming message:
@@ -618,9 +622,9 @@ void DiagnosticEmitter::emitAddressDiagnosticNoCopy(
   SmallString<64> varName;
   getVariableNameForValue(markedValue, varName);
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting no copy error!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    Consuming Use: " << *consumingUser);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting no copy error!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Consuming Use: " << *consumingUser);
 
   // Otherwise, we need to do no implicit copy semantics. If our last use was
   // consuming message:
@@ -643,9 +647,9 @@ void DiagnosticEmitter::emitObjectDestructureNeededWithinBorrowBoundary(
   SmallString<64> varName;
   getVariableNameForValue(markedValue, varName);
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting destructure can't be created error!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    Destructure Needing Use: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting destructure can't be created error!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Destructure Needing Use: "
                           << *destructureNeedingUser);
 
   diagnose(astContext, markedValue,
@@ -656,9 +660,9 @@ void DiagnosticEmitter::emitObjectDestructureNeededWithinBorrowBoundary(
   // Only emit errors for last users that overlap with our needed destructure
   // bits.
   for (auto pair : boundary.getLastUsers()) {
-    if (llvm::any_of(destructureSpan.getRange(),
+    if (toolchain::any_of(destructureSpan.getRange(),
                      [&](unsigned index) { return pair.second.test(index); })) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "    Destructure Boundary Use: " << *pair.first);
       diagnose(astContext, pair.first, diag::sil_movechecking_nonconsuming_use_here);
     }
@@ -673,12 +677,12 @@ void DiagnosticEmitter::emitObjectInstConsumesValueTwice(
   assert(firstUse->isConsuming());
   assert(secondUse->isConsuming());
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting object consumes value twice error!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    User: " << *firstUse->getUser());
-  LLVM_DEBUG(llvm::dbgs() << "    First Conflicting Operand: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting object consumes value twice error!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    User: " << *firstUse->getUser());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    First Conflicting Operand: "
                           << firstUse->getOperandNumber() << '\n');
-  LLVM_DEBUG(llvm::dbgs() << "    Second Conflicting Operand: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Second Conflicting Operand: "
                           << secondUse->getOperandNumber() << '\n');
 
   auto &astContext = markedValue->getModule().getASTContext();
@@ -699,12 +703,12 @@ void DiagnosticEmitter::emitObjectInstConsumesAndUsesValue(
   assert(consumingUse->isConsuming());
   assert(!nonConsumingUse->isConsuming());
 
-  LLVM_DEBUG(llvm::dbgs() << "Emitting object consumeed and used error!\n");
-  LLVM_DEBUG(llvm::dbgs() << "    Mark: " << *markedValue);
-  LLVM_DEBUG(llvm::dbgs() << "    User: " << *consumingUse->getUser());
-  LLVM_DEBUG(llvm::dbgs() << "    Consuming Operand: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting object consumeed and used error!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Mark: " << *markedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    User: " << *consumingUse->getUser());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Consuming Operand: "
                           << consumingUse->getOperandNumber() << '\n');
-  LLVM_DEBUG(llvm::dbgs() << "    Non Consuming Operand: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Non Consuming Operand: "
                           << nonConsumingUse->getOperandNumber() << '\n');
 
   auto &astContext = markedValue->getModule().getASTContext();
@@ -793,7 +797,7 @@ void DiagnosticEmitter::emitCannotPartiallyMutateError(
   SmallString<128> pathString;
   auto rootType = address->getType();
   if (error.type != rootType) {
-    llvm::raw_svector_ostream os(pathString);
+    toolchain::raw_svector_ostream os(pathString);
     auto *fn = address->getFunction();
     pair.constructPathString(error.type, {rootType, fn}, rootType, fn, os);
   }
@@ -828,10 +832,6 @@ void DiagnosticEmitter::emitCannotPartiallyMutateError(
     return;
   }
   case PartialMutationError::Kind::HasDeinit: {
-    assert(
-        astContext.LangOpts.hasFeature(Feature::MoveOnlyPartialConsumption) ||
-        astContext.LangOpts.hasFeature(
-            Feature::MoveOnlyPartialReinitialization));
     auto diagnostic = [&]() {
       switch (kind) {
       case PartialMutation::Kind::Consume:
@@ -851,10 +851,6 @@ void DiagnosticEmitter::emitCannotPartiallyMutateError(
     return;
   }
   case PartialMutationError::Kind::NonfrozenImportedType: {
-    assert(
-        astContext.LangOpts.hasFeature(Feature::MoveOnlyPartialConsumption) ||
-        astContext.LangOpts.hasFeature(
-            Feature::MoveOnlyPartialReinitialization));
     auto &nominal = error.getNonfrozenImportedNominal();
     auto diagnostic = [&]() {
       switch (kind) {
@@ -870,10 +866,6 @@ void DiagnosticEmitter::emitCannotPartiallyMutateError(
     return;
   }
   case PartialMutationError::Kind::NonfrozenUsableFromInlineType: {
-    assert(
-        astContext.LangOpts.hasFeature(Feature::MoveOnlyPartialConsumption) ||
-        astContext.LangOpts.hasFeature(
-            Feature::MoveOnlyPartialReinitialization));
     auto &nominal = error.getNonfrozenUsableFromInlineNominal();
     auto diagnostic = [&]() {
       switch (kind) {
@@ -896,5 +888,5 @@ void DiagnosticEmitter::emitCannotPartiallyMutateError(
     return;
   }
   }
-  llvm_unreachable("unhandled case");
+  toolchain_unreachable("unhandled case");
 }

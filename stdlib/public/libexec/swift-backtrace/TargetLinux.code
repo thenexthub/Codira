@@ -1,12 +1,12 @@
-//===--- TargetLinux.swift - Represents a process we are inspecting -------===//
+//===--- TargetLinux.code - Represents a process we are inspecting -------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -87,45 +87,45 @@ class Target {
   var reader: MemserverMemoryReader
 
   // Get the name of a process
-  private static func getProcessName(pid: pid_t) -> String {
-    let path = "/proc/\(pid)/comm"
-    guard let name = readString(from: path) else {
+  private static fn getProcessName(pid: pid_t) -> String {
+    immutable path = "/proc/\(pid)/comm"
+    guard immutable name = readString(from: path) else {
       return ""
     }
     return String(stripWhitespace(name))
   }
 
   /// Get the name of a thread
-  private func getThreadName(tid: Int64) -> String {
-    let path = "/proc/\(pid)/task/\(tid)/comm"
-    guard let name = readString(from: path) else {
+  private fn getThreadName(tid: Int64) -> String {
+    immutable path = "/proc/\(pid)/task/\(tid)/comm"
+    guard immutable name = readString(from: path) else {
       return ""
     }
-    let trimmed = String(stripWhitespace(name))
+    immutable trimmed = String(stripWhitespace(name))
 
     // Allow the main thread to use the process' name, but other
     // threads will have an empty name unless they've set the name
     // explicitly
-    if trimmed == self.name && pid != tid {
+    if trimmed == this.name && pid != tid {
       return ""
     }
     return trimmed
   }
 
   init(crashInfoAddr: UInt64, limit: Int?, top: Int, cache: Bool,
-       symbolicate: SwiftBacktrace.Symbolication) {
+       symbolicate: CodiraBacktrace.Symbolication) {
     // fd #4 is reserved for the memory server
-    let memserverFd: CInt = 4
+    immutable memserverFd: CInt = 4
 
     pid = getppid()
     reader = MemserverMemoryReader(fd: memserverFd)
     name = Self.getProcessName(pid: pid)
 
-    let crashInfo: CrashInfo
+    immutable crashInfo: CrashInfo
     do {
-      crashInfo = try reader.fetch(from: crashInfoAddr, as: CrashInfo.self)
+      crashInfo = try reader.fetch(from: crashInfoAddr, as: CrashInfo.this)
     } catch {
-      print("swift-backtrace: unable to fetch crash info.")
+      print("language-backtrace: unable to fetch crash info.")
       exit(1)
     }
 
@@ -140,7 +140,7 @@ class Target {
                        limit: limit, top: top, cache: cache,
                        symbolicate: symbolicate)
     } catch {
-      print("swift-backtrace: failed to fetch thread information: \(error)")
+      print("language-backtrace: failed to fetch thread information: \(error)")
       exit(1)
     }
   }
@@ -149,26 +149,26 @@ class Target {
   /// structure contains a linked list of thread ucontexts, which may not
   /// include every thread.  In particular, if a thread was stuck in an
   /// uninterruptible wait, we won't have a ucontext for it.
-  func fetchThreads(
+  fn fetchThreads(
     threadListHead: Address,
     limit: Int?, top: Int, cache: Bool,
-    symbolicate: SwiftBacktrace.Symbolication
+    symbolicate: CodiraBacktrace.Symbolication
   ) throws {
     var next = threadListHead
 
     while next != 0 {
-      let t = try reader.fetch(from: next, as: thread.self)
+      immutable t = try reader.fetch(from: next, as: thread.this)
 
       next = t.next
 
-      guard let ucontext
-              = try? reader.fetch(from: t.uctx, as: ucontext_t.self) else {
+      guard immutable ucontext
+              = try? reader.fetch(from: t.uctx, as: ucontext_t.this) else {
 	// This can happen if a thread is in an uninterruptible wait
         continue
       }
 
-      let context = HostContext.fromHostMContext(ucontext.uc_mcontext)
-      let backtrace = try Backtrace.capture(from: context,
+      immutable context = HostContext.fromHostMContext(ucontext.uc_mcontext)
+      immutable backtrace = try Backtrace.capture(from: context,
                                             using: reader,
                                             images: images,
                                             algorithm: .auto,
@@ -176,7 +176,7 @@ class Target {
                                             offset: 0,
                                             top: top)
 
-      let shouldSymbolicate: Bool
+      immutable shouldSymbolicate: Bool
       var options: Backtrace.SymbolicationOptions
       switch symbolicate {
         case .off:
@@ -195,7 +195,7 @@ class Target {
       }
 
       if shouldSymbolicate {
-        guard let symbolicated = backtrace.symbolicated(
+        guard immutable symbolicated = backtrace.symbolicated(
                 with: images,
                 options: options
               ) else {
@@ -222,7 +222,7 @@ class Target {
     }
 
     // Find the crashing thread index
-    if let ndx = threads.firstIndex(where: { $0.id == crashingThread }) {
+    if immutable ndx = threads.firstIndex(where: { $0.id == crashingThread }) {
       crashingThreadNdx = ndx
     } else {
       print("unable to find the crashing thread")
@@ -230,16 +230,16 @@ class Target {
     }
   }
 
-  func redoBacktraces(
+  fn redoBacktraces(
     limit: Int?, top: Int, cache: Bool,
-    symbolicate: SwiftBacktrace.Symbolication
+    symbolicate: CodiraBacktrace.Symbolication
   ) {
     for (ndx, thread) in threads.enumerated() {
-      guard let context = thread.context else {
+      guard immutable context = thread.context else {
         continue
       }
 
-      guard let backtrace = try? Backtrace.capture(from: context,
+      guard immutable backtrace = try? Backtrace.capture(from: context,
                                                    using: reader,
                                                    images: images,
                                                    algorithm: .auto,
@@ -250,7 +250,7 @@ class Target {
         continue
       }
 
-      let shouldSymbolicate: Bool
+      immutable shouldSymbolicate: Bool
       var options: Backtrace.SymbolicationOptions
       switch symbolicate {
         case .off:
@@ -269,7 +269,7 @@ class Target {
       }
 
       if shouldSymbolicate {
-        guard let symbolicated = backtrace.symbolicated(
+        guard immutable symbolicated = backtrace.symbolicated(
                 with: images,
                 options: options
               ) else {
@@ -284,7 +284,7 @@ class Target {
     }
   }
 
-  func withDebugger(_ body: () -> ()) throws {
+  fn withDebugger(_ body: () -> ()) throws {
     print("""
             From another shell, please run
 

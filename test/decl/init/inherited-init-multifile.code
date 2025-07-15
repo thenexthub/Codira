@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -typecheck -verify -primary-file %s %S/Inputs/inherited-init-multifile-other.code
+// RUN: %target-language-frontend -typecheck -verify %s -primary-file %S/Inputs/inherited-init-multifile-other.code
+
+fn make<Result: B>(ofClass cls: Result.Type) -> Result {
+    return cls.init(1)
+}
+
+fn make(ofClass cls: (C & P).Type) -> C {
+    return cls.init(1)
+}

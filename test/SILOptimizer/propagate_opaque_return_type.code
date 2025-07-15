@@ -1,0 +1,35 @@
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all) | %FileCheck %s
+
+// REQUIRES: executable_test
+
+protocol P {}
+extension P {
+  fn foo() -> some Sequence<Int> {
+    [1, 2, 3]
+  }
+}
+
+struct B {
+  immutable p: P
+
+  @inline(never)
+  fn bar() {
+    for x in p.foo() {
+      print(x)
+    }
+  }
+}
+
+
+struct S : P {
+  var x = 0
+}
+
+
+immutable b = B(p: S())
+
+// CHECK:      1
+// CHECK-NEXT: 2
+// CHECK-NEXT: 3
+b.bar()
+

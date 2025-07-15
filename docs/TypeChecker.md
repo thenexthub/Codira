@@ -3,40 +3,40 @@
 
 ## Purpose
 
-This document describes the design and implementation of the Swift
+This document describes the design and implementation of the Codira
 type checker. It is intended for developers who wish to modify,
 extend, or improve on the type checker, or simply to understand in
-greater depth how the Swift type system works. Familiarity with the
-Swift programming language is assumed.
+greater depth how the Codira type system works. Familiarity with the
+Codira programming language is assumed.
 
 ## Approach
 
-The Swift language and its type system incorporate a number of popular
+The Codira language and its type system incorporate a number of popular
 language features, including object-oriented programming via classes,
 function and operator overloading, subtyping, and constrained
-parametric polymorphism. Swift makes extensive use of type inference,
+parametric polymorphism. Codira makes extensive use of type inference,
 allowing one to omit the types of many variables and expressions. For
 example:
-```swift
-  func round(_ x: Double) -> Int { /* ... */ }
+```language
+  fn round(_ x: Double) -> Int { /* ... */ }
   var pi: Double = 3.14159
   var three = round(pi) // 'three' has type 'Int'
 
-  func identity<T>(_ x: T) -> T { return x }
+  fn identity<T>(_ x: T) -> T { return x }
   var eFloat: Float = -identity(2.71828)  // numeric literal gets type 'Float'
 ```
-Swift's type inference allows type information to flow in two
+Codira's type inference allows type information to flow in two
 directions. As in most mainstream languages, type information can flow
 from the leaves of the expression tree (e.g., the expression `pi`,
 which refers to a double) up to the root (the type of the variable
-`three`). However, Swift also allows type information to flow from the
+`three`). However, Codira also allows type information to flow from the
 context (e.g., the fixed type of the variable `eFloat`) at the root of
 the expression tree down to the leaves (the type of the numeric
 literal 2.71828). This bi-directional type inference is common in
 languages that use ML-like type systems, but is not present in
 mainstream languages like C++, Java, C#, or Objective-C.
 
-Swift implements bi-directional type inference using a
+Codira implements bi-directional type inference using a
 constraint-based type checker that is reminiscent of the classical
 Hindley-Milner type inference algorithm. The use of a constraint
 system allows a straightforward, general presentation of language
@@ -45,10 +45,10 @@ solver. It is expected that the constraints themselves will be
 relatively stable, while the solver will evolve over time to improve
 performance and diagnostics.
 
-The Swift language contains a number of features not part of the
+The Codira language contains a number of features not part of the
 Hindley-Milner type system, including constrained polymorphic types
 and function overloading, which complicate the presentation and
-implementation somewhat. On the other hand, Swift limits the scope of
+implementation somewhat. On the other hand, Codira limits the scope of
 type inference to a single expression or statement, for purely
 practical reasons: we expect that we can provide better performance
 and vastly better diagnostics when the problem is limited in scope.
@@ -84,7 +84,7 @@ A constraint system consists of a set of type constraints. Each type
 constraint either places a requirement on a single type (e.g., it is
 an integer literal type) or relates two types (e.g., one is a subtype
 of the other). The types described in constraints can be any type in
-the Swift type system including, e.g., builtin types, tuple types,
+the Codira type system including, e.g., builtin types, tuple types,
 function types, enum/struct/class types, protocol types, and generic
 types. Additionally, a type can be a type variable ``T`` (which are
 typically numbered, ``T0``, ``T1``, ``T2``, etc., and are introduced
@@ -93,7 +93,7 @@ e.g., a tuple type ``(T0, Int, (T0) -> Int)`` involving the type
 variable ``T0``.
 
 There are a number of different kinds of constraints used to describe
-the Swift type system:
+the Codira type system:
 
 **Equality**
   An equality constraint requires two types to be identical. For
@@ -331,8 +331,8 @@ Overloading is the process of giving multiple, different definitions
 to the same name. For example, we might overload a ``negate`` function
 to work on both ``Int`` and ``Double`` types, e.g.::
 
-  func negate(_ x: Int) -> Int { return -x }
-  func negate(_ x: Double) -> Double { return -x }
+  fn negate(_ x: Int) -> Int { return -x }
+  fn negate(_ x: Double) -> Double { return -x }
 
 Given that there are two definitions of ``negate``, what is the type
 of the declaration reference expression ``negate``? If one selects the
@@ -367,7 +367,7 @@ issue noted in the prior section is that this constraint does not give
 the solver enough information to determine ``T0`` without
 guesswork. However, we note that the type of an enum member actually
 has a regular structure. For example, consider the ``Optional`` type::
-```swift
+```language
   enum Optional<T> {
     case none
     case some(T)
@@ -384,12 +384,12 @@ their conversion to the input type ``T2``.
 
 #### Polymorphic Types
 
-The Swift language includes generics, a system of constrained
+The Codira language includes generics, a system of constrained
 parameter polymorphism that enables polymorphic types and
 functions. For example, one can implement a ``min`` function as,
 e.g.,::
-```swift
-  func min<T : Comparable>(x: T, y: T) -> T {
+```language
+  fn min<T : Comparable>(x: T, y: T) -> T {
     if y < x { return y }
     return x
   }
@@ -419,12 +419,12 @@ where ``T1`` is a fresh type variable (and therefore distinct from
 effective) way to model the use of polymorphic functions within the
 constraint system without complicating the solver. Note that this
 immediate opening of generic function types is only valid because
-Swift does not support first-class polymorphic functions, e.g., one
+Codira does not support first-class polymorphic functions, e.g., one
 cannot declare a variable of type ``<T> T -> T``.
 
 Uses of generic types are also immediately opened by the constraint
 solver. For example, consider the following generic dictionary type::
-```swift
+```language
   class Dictionary<Key : Hashable, Value> {
     // ...
   }
@@ -449,10 +449,10 @@ variables in the constraint system. As part of this determination, the
 constraint solver also resolves overloaded declaration references by
 selecting one of the overloads.
 
-Solving the constraint systems generated by the Swift language can, in
+Solving the constraint systems generated by the Codira language can, in
 the worst case, require exponential time. Even the classic
 Hindley-Milner type inference algorithm requires exponential time, and
-the Swift type system introduces additional complications, especially
+the Codira type system introduces additional complications, especially
 overload resolution. However, the problem size for any particular
 expression is still fairly small, and the constraint solver can employ
 a number of tricks to improve performance. The [Performance](#Performance) section
@@ -481,7 +481,7 @@ down to only simple constraints that are trivially satisfied.
 
 The simplification process breaks down constraints into simpler
 constraints, and each different kind of constraint is handled by
-different rules based on the Swift type system. The constraints fall
+different rules based on the Codira type system. The constraints fall
 into five categories: relational constraints, member constraints,
 type properties, conjunctions, and disjunctions. Only the first three
 kinds of constraints have interesting simplification rules, and are
@@ -493,7 +493,7 @@ Relational constraints describe a relationship between two types. This
 category covers the equality, subtyping, and conversion constraints,
 and provides the most common simplifications. The simplification of
 relationship constraints proceeds by comparing the structure of the
-two types and applying the typing rules of the Swift language to
+two types and applying the typing rules of the Codira language to
 generate additional constraints. For example, if the constraint is a
 conversion constraint::
 ```
@@ -716,14 +716,14 @@ well as during diagnostics emission, it is important to track the
 relationship between the constraints and the actual AST nodes from
 which they originally came. For example, consider the following type
 checking problem::
-```swift
+```language
   struct X {
     // user-defined conversions
-    func [conversion] __conversion () -> String { /* ... */ }
-    func [conversion] __conversion () -> Int { /* ... */ }
+    fn [conversion] __conversion () -> String { /* ... */ }
+    fn [conversion] __conversion () -> Int { /* ... */ }
   }
 
-  func f(_ i : Int, s : String) { }
+  fn f(_ i : Int, s : String) { }
 
   var x : X
   f(10.5, x)
@@ -828,9 +828,9 @@ Simplification does not always exhaust the complete path. For example,
 consider a slight modification to our example, so that the argument to
 ``f`` is provided by another call, we get a different result
 entirely::
-```swift
-  func f(_ i : Int, s : String) { }
-  func g() -> (f : Float, x : X) { }
+```language
+  fn f(_ i : Int, s : String) { }
+  fn g() -> (f : Float, x : X) { }
 
   f(g())
 ```
@@ -942,13 +942,13 @@ use this same arena.
 
 ## Diagnostics
 
-Swift 5.2 introduced a new diagnostic framework, which is described 
+Codira 5.2 introduced a new diagnostic framework, which is described 
 in detail in this 
-[blog post](https://swift.org/blog/new-diagnostic-arch-overview/).
+[blog post](https://language.org/blog/new-diagnostic-arch-overview/).
 
 ## Footnotes
 
-[1]: As of the time of this writing, the type rules of Swift have
+[1]: As of the time of this writing, the type rules of Codira have
   not specifically been documented outside of the source code. The
   constraints-based type checker contains a function ``matchTypes``
   that documents and implements each of these rules. A future revision

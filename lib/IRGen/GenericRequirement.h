@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This class describes types for working with requirements of generic
@@ -19,16 +20,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENERICREQUIREMENT_H
-#define SWIFT_IRGEN_GENERICREQUIREMENT_H
+#ifndef LANGUAGE_IRGEN_GENERICREQUIREMENT_H
+#define LANGUAGE_IRGEN_GENERICREQUIREMENT_H
 
 #include "language/AST/Type.h"
 #include "language/IRGen/GenericRequirement.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
 
-namespace llvm {
+namespace toolchain {
 class Value;
 }
 
@@ -47,7 +48,7 @@ class IRGenModule;
 class DynamicMetadataRequest;
 
 using RequirementCallback =
-  llvm::function_ref<void(GenericRequirement requirement)>;
+  toolchain::function_ref<void(GenericRequirement requirement)>;
 
 /// Enumerate the generic requirements imposed by a generic signature.
 void enumerateGenericSignatureRequirements(CanGenericSignature signature,
@@ -55,7 +56,7 @@ void enumerateGenericSignatureRequirements(CanGenericSignature signature,
 
 /// Given a substitution map and a generic requirement for the
 /// substitution map's input generic signature, emit the required value.
-llvm::Value *
+toolchain::Value *
 emitGenericRequirementFromSubstitutions(IRGenFunction &IGF,
                                         GenericRequirement requirement,
                                         MetadataState metadataState,
@@ -73,7 +74,7 @@ void emitInitOfGenericRequirementsBuffer(IRGenFunction &IGF,
 /// context and bind the value.
 void bindGenericRequirement(IRGenFunction &IGF,
                             GenericRequirement requirement,
-                            llvm::Value *requiredValue,
+                            toolchain::Value *requiredValue,
                             MetadataState metadataState,
                             SubstitutionMap subs);
 
@@ -86,8 +87,8 @@ void bindFromGenericRequirementsBuffer(IRGenFunction &IGF,
 void bindPolymorphicArgumentsFromComponentIndices(IRGenFunction &IGF,
                                                   GenericEnvironment *genericEnv,
                                                   ArrayRef<GenericRequirement> requirements,
-                                                  llvm::Value *args,
-                                                  llvm::Value *size,
+                                                  toolchain::Value *args,
+                                                  toolchain::Value *size,
                                                   bool hasSubscriptIndices);
 
 
@@ -97,7 +98,7 @@ void bindPolymorphicArgumentsFromComponentIndices(IRGenFunction &IGF,
 /// The generic requirements are always laid out as a sequence of shape
 /// parameters, followed by type metadata and witness tables.
 class GenericTypeRequirements {
-  llvm::SmallVector<GenericRequirement, 4> Requirements;
+  toolchain::SmallVector<GenericRequirement, 4> Requirements;
 
 public:
   GenericTypeRequirements(IRGenModule &IGM, NominalTypeDecl *decl);

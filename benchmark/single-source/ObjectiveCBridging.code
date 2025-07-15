@@ -1,4 +1,4 @@
-//===--- ObjectiveCBridging.swift -----------------------------------------===//
+//===--- ObjectiveCBridging.code -----------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 import Foundation
 
-let t: [BenchmarkCategory] = [.validation, .bridging]
-let ts: [BenchmarkCategory] = [.validation, .bridging, .String]
+immutable t: [BenchmarkCategory] = [.validation, .bridging]
+immutable ts: [BenchmarkCategory] = [.validation, .bridging, .String]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "ObjectiveCBridgeFromNSString",
     runFunction: run_ObjectiveCBridgeFromNSString, tags: t,
     legacyFactor: 5),
@@ -100,16 +101,37 @@ public let benchmarks = [
   BenchmarkInfo(name: "NSArray.bridged.repeatedBufferAccess",
                   runFunction: run_BridgedNSArrayRepeatedBufferAccess, tags: t,
                   setUpFunction: setup_bridgedArrays),
+  BenchmarkInfo(name: "NSDictionary.bridged.enumerate",
+                  runFunction: run_BridgedNSDictionaryEnumerate, tags: t,
+                  setUpFunction: setup_bridgedDictionaries),
+  BenchmarkInfo(name: "NSString.bridged.byteCount.ascii.ascii",
+                  runFunction: run_BridgedNSStringLengthASCII_ASCII, tags: ts,
+                  setUpFunction: setup_bridgedStrings),
+  BenchmarkInfo(name: "NSString.bridged.byteCount.ascii.utf8",
+                  runFunction: run_BridgedNSStringLengthASCII_UTF8, tags: ts,
+                  setUpFunction: setup_bridgedStrings),
+  BenchmarkInfo(name: "NSString.bridged.byteCount.ascii.utf16",
+                  runFunction: run_BridgedNSStringLengthASCII_UTF16, tags: ts,
+                  setUpFunction: setup_bridgedStrings),
+  BenchmarkInfo(name: "NSString.bridged.byteCount.ascii.macroman",
+                  runFunction: run_BridgedNSStringLengthASCII_MacRoman, tags: ts,
+                  setUpFunction: setup_bridgedStrings),
+  BenchmarkInfo(name: "NSString.bridged.byteCount.utf8.utf8",
+                  runFunction: run_BridgedNSStringLengthUTF8_UTF8, tags: ts,
+                  setUpFunction: setup_bridgedStrings),
+  BenchmarkInfo(name: "NSString.bridged.byteCount.utf8.utf16",
+                  runFunction: run_BridgedNSStringLengthUTF8_UTF16, tags: ts,
+                  setUpFunction: setup_bridgedStrings),
 ]
 
 #if _runtime(_ObjC)
 @inline(never)
-public func forcedCast<NS, T>(_ ns: NS) -> T {
+public fn forcedCast<NS, T>(_ ns: NS) -> T {
   return ns as! T
 }
 
 @inline(never)
-public func conditionalCast<NS, T>(_ ns: NS) -> T? {
+public fn conditionalCast<NS, T>(_ ns: NS) -> T? {
   return ns as? T
 }
 #endif
@@ -118,18 +140,18 @@ public func conditionalCast<NS, T>(_ ns: NS) -> T? {
 // === String === //
 
 #if _runtime(_ObjC)
-func createNSString() -> NSString {
+fn createNSString() -> NSString {
   return NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
 }
 
 @inline(never)
-func testObjectiveCBridgeFromNSString() {
-  let nsString = createNSString()
+fn testObjectiveCBridgeFromNSString() {
+  immutable nsString = createNSString()
 
   var s: String?
   for _ in 0 ..< 2_000 {
     // Call _conditionallyBridgeFromObjectiveC.
-    let n : String? = conditionalCast(nsString)
+    immutable n : String? = conditionalCast(nsString)
     if n != nil {
       s = n!
     }
@@ -139,7 +161,7 @@ func testObjectiveCBridgeFromNSString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSString(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -151,8 +173,8 @@ public func run_ObjectiveCBridgeFromNSString(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSStringForced() {
-  let nsString = createNSString()
+fn testObjectiveCBridgeFromNSStringForced() {
+  immutable nsString = createNSString()
 
   var s: String?
   for _ in 0 ..< 2_000 {
@@ -164,7 +186,7 @@ func testObjectiveCBridgeFromNSStringForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSStringForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSStringForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -176,8 +198,8 @@ public func run_ObjectiveCBridgeFromNSStringForced(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeToNSString() {
-  let nativeString = "Native"
+fn testObjectiveCBridgeToNSString() {
+  immutable nativeString = "Native"
 
   var s: NSString?
   for _ in 0 ..< 10_000 {
@@ -189,7 +211,7 @@ func testObjectiveCBridgeToNSString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeToNSString(_ n: Int) {
+public fn run_ObjectiveCBridgeToNSString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -202,9 +224,9 @@ public func run_ObjectiveCBridgeToNSString(_ n: Int) {
 // === Array === //
 
 #if _runtime(_ObjC)
-func createNSArray() -> NSArray {
-  let nsMutableArray = NSMutableArray()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+fn createNSArray() -> NSArray {
+  immutable nsMutableArray = NSMutableArray()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
   nsMutableArray.add(nsString)
   nsMutableArray.add(nsString)
   nsMutableArray.add(nsString)
@@ -220,12 +242,12 @@ func createNSArray() -> NSArray {
 }
 
 @inline(never)
-func testObjectiveCBridgeFromNSArrayAnyObject() {
-  let nsArray = createNSArray()
+fn testObjectiveCBridgeFromNSArrayAnyObject() {
+  immutable nsArray = createNSArray()
 
   var nativeString : String?
   for _ in 0 ..< 100 {
-    if let nativeArray : [NSString] = conditionalCast(nsArray) {
+    if immutable nativeArray : [NSString] = conditionalCast(nsArray) {
        nativeString = forcedCast(nativeArray[0])
     }
   }
@@ -234,7 +256,7 @@ func testObjectiveCBridgeFromNSArrayAnyObject() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSArrayAnyObject(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSArrayAnyObject(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -246,12 +268,12 @@ public func run_ObjectiveCBridgeFromNSArrayAnyObject(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSArrayAnyObjectForced() {
-  let nsArray = createNSArray()
+fn testObjectiveCBridgeFromNSArrayAnyObjectForced() {
+  immutable nsArray = createNSArray()
 
   var nativeString : String?
   for _ in 0 ..< 500 {
-    let nativeArray : [NSString] = forcedCast(nsArray)
+    immutable nativeArray : [NSString] = forcedCast(nsArray)
     nativeString = forcedCast(nativeArray[0])
   }
   check(nativeString != nil && nativeString! == "NSString that does not fit in tagged pointer")
@@ -259,7 +281,7 @@ func testObjectiveCBridgeFromNSArrayAnyObjectForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSArrayAnyObjectForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSArrayAnyObjectForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -271,13 +293,13 @@ public func run_ObjectiveCBridgeFromNSArrayAnyObjectForced(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeToNSArray() {
-  let nativeArray = ["abcde", "abcde", "abcde", "abcde", "abcde",
+fn testObjectiveCBridgeToNSArray() {
+  immutable nativeArray = ["abcde", "abcde", "abcde", "abcde", "abcde",
     "abcde", "abcde", "abcde", "abcde", "abcde"]
 
   var nsString : Any?
   for _ in 0 ..< 200 {
-    let nsArray = nativeArray as NSArray
+    immutable nsArray = nativeArray as NSArray
     nsString = nsArray.object(at: 0)
   }
   check(nsString != nil && (nsString! as! NSString).isEqual("abcde"))
@@ -285,7 +307,7 @@ func testObjectiveCBridgeToNSArray() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeToNSArray(_ n: Int) {
+public fn run_ObjectiveCBridgeToNSArray(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -297,12 +319,12 @@ public func run_ObjectiveCBridgeToNSArray(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSArrayAnyObjectToString() {
-  let nsArray = createNSArray()
+fn testObjectiveCBridgeFromNSArrayAnyObjectToString() {
+  immutable nsArray = createNSArray()
 
   var nativeString : String?
   for _ in 0 ..< 100 {
-    if let nativeArray : [String] = conditionalCast(nsArray) {
+    if immutable nativeArray : [String] = conditionalCast(nsArray) {
       nativeString = nativeArray[0]
     }
   }
@@ -311,7 +333,7 @@ func testObjectiveCBridgeFromNSArrayAnyObjectToString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSArrayAnyObjectToString(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSArrayAnyObjectToString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -323,12 +345,12 @@ public func run_ObjectiveCBridgeFromNSArrayAnyObjectToString(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSArrayAnyObjectToStringForced() {
-  let nsArray = createNSArray()
+fn testObjectiveCBridgeFromNSArrayAnyObjectToStringForced() {
+  immutable nsArray = createNSArray()
 
   var nativeString : String?
   for _ in 0 ..< 50 {
-    let nativeArray : [String] = forcedCast(nsArray)
+    immutable nativeArray : [String] = forcedCast(nsArray)
     nativeString = nativeArray[0]
   }
   check(nativeString != nil && nativeString == "NSString that does not fit in tagged pointer")
@@ -336,7 +358,7 @@ func testObjectiveCBridgeFromNSArrayAnyObjectToStringForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSArrayAnyObjectToStringForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSArrayAnyObjectToStringForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -349,18 +371,18 @@ public func run_ObjectiveCBridgeFromNSArrayAnyObjectToStringForced(_ n: Int) {
 // === Dictionary === //
 
 #if _runtime(_ObjC)
-func createNSDictionary() -> NSDictionary {
-  let nsMutableDictionary = NSMutableDictionary()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
-  let nsString2 = NSString(cString: "NSString that does not fit in tagged pointer 2", encoding: String.Encoding.utf8.rawValue)!
-  let nsString3 = NSString(cString: "NSString that does not fit in tagged pointer 3", encoding: String.Encoding.utf8.rawValue)!
-  let nsString4 = NSString(cString: "NSString that does not fit in tagged pointer 4", encoding: String.Encoding.utf8.rawValue)!
-  let nsString5 = NSString(cString: "NSString that does not fit in tagged pointer 5", encoding: String.Encoding.utf8.rawValue)!
-  let nsString6 = NSString(cString: "NSString that does not fit in tagged pointer 6", encoding: String.Encoding.utf8.rawValue)!
-  let nsString7 = NSString(cString: "NSString that does not fit in tagged pointer 7", encoding: String.Encoding.utf8.rawValue)!
-  let nsString8 = NSString(cString: "NSString that does not fit in tagged pointer 8", encoding: String.Encoding.utf8.rawValue)!
-  let nsString9 = NSString(cString: "NSString that does not fit in tagged pointer 9", encoding: String.Encoding.utf8.rawValue)!
-  let nsString10 = NSString(cString: "NSString that does not fit in tagged pointer 10", encoding: String.Encoding.utf8.rawValue)!
+fn createNSDictionary() -> NSDictionary {
+  immutable nsMutableDictionary = NSMutableDictionary()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString2 = NSString(cString: "NSString that does not fit in tagged pointer 2", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString3 = NSString(cString: "NSString that does not fit in tagged pointer 3", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString4 = NSString(cString: "NSString that does not fit in tagged pointer 4", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString5 = NSString(cString: "NSString that does not fit in tagged pointer 5", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString6 = NSString(cString: "NSString that does not fit in tagged pointer 6", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString7 = NSString(cString: "NSString that does not fit in tagged pointer 7", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString8 = NSString(cString: "NSString that does not fit in tagged pointer 8", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString9 = NSString(cString: "NSString that does not fit in tagged pointer 9", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString10 = NSString(cString: "NSString that does not fit in tagged pointer 10", encoding: String.Encoding.utf8.rawValue)!
   nsMutableDictionary.setObject(1, forKey: nsString)
   nsMutableDictionary.setObject(2, forKey: nsString2)
   nsMutableDictionary.setObject(3, forKey: nsString3)
@@ -376,13 +398,13 @@ func createNSDictionary() -> NSDictionary {
 }
 
 @inline(never)
-func testObjectiveCBridgeFromNSDictionaryAnyObject() {
-  let nsDictionary = createNSDictionary()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+fn testObjectiveCBridgeFromNSDictionaryAnyObject() {
+  immutable nsDictionary = createNSDictionary()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
 
   var nativeInt : Int?
   for _ in 0 ..< 100 {
-    if let nativeDictionary : [NSString : NSNumber] = conditionalCast(nsDictionary) {
+    if immutable nativeDictionary : [NSString : NSNumber] = conditionalCast(nsDictionary) {
        nativeInt = forcedCast(nativeDictionary[nsString])
     }
   }
@@ -391,7 +413,7 @@ func testObjectiveCBridgeFromNSDictionaryAnyObject() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSDictionaryAnyObject(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSDictionaryAnyObject(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -403,13 +425,13 @@ public func run_ObjectiveCBridgeFromNSDictionaryAnyObject(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSDictionaryAnyObjectForced() {
-  let nsDictionary = createNSDictionary()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+fn testObjectiveCBridgeFromNSDictionaryAnyObjectForced() {
+  immutable nsDictionary = createNSDictionary()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
 
   var nativeInt : Int?
   for _ in 0 ..< 200 {
-    if let nativeDictionary : [NSString : NSNumber] = forcedCast(nsDictionary) {
+    if immutable nativeDictionary : [NSString : NSNumber] = forcedCast(nsDictionary) {
        nativeInt = forcedCast(nativeDictionary[nsString])
     }
   }
@@ -418,7 +440,7 @@ func testObjectiveCBridgeFromNSDictionaryAnyObjectForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSDictionaryAnyObjectForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSDictionaryAnyObjectForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -430,15 +452,15 @@ public func run_ObjectiveCBridgeFromNSDictionaryAnyObjectForced(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeToNSDictionary() {
-  let nativeDictionary = ["abcde1": 1, "abcde2": 2, "abcde3": 3, "abcde4": 4,
+fn testObjectiveCBridgeToNSDictionary() {
+  immutable nativeDictionary = ["abcde1": 1, "abcde2": 2, "abcde3": 3, "abcde4": 4,
     "abcde5": 5, "abcde6": 6, "abcde7": 7, "abcde8": 8, "abcde9": 9,
     "abcde10": 10]
-  let key = "abcde1" as NSString
+  immutable key = "abcde1" as NSString
 
   var nsNumber : Any?
   for _ in 0 ..< 200 {
-    let nsDict = nativeDictionary as NSDictionary
+    immutable nsDict = nativeDictionary as NSDictionary
     nsNumber = nsDict.object(forKey: key)
   }
   check(nsNumber != nil && (nsNumber as! Int) == 1)
@@ -446,7 +468,7 @@ func testObjectiveCBridgeToNSDictionary() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeToNSDictionary(_ n: Int) {
+public fn run_ObjectiveCBridgeToNSDictionary(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -458,14 +480,14 @@ public func run_ObjectiveCBridgeToNSDictionary(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSDictionaryAnyObjectToString() {
-  let nsDictionary = createNSDictionary()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
-  let nativeString = nsString as String
+fn testObjectiveCBridgeFromNSDictionaryAnyObjectToString() {
+  immutable nsDictionary = createNSDictionary()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+  immutable nativeString = nsString as String
 
   var nativeInt : Int?
   for _ in 0 ..< 20 {
-    if let nativeDictionary : [String : Int] = conditionalCast(nsDictionary) {
+    if immutable nativeDictionary : [String : Int] = conditionalCast(nsDictionary) {
        nativeInt = nativeDictionary[nativeString]
     }
   }
@@ -474,7 +496,7 @@ func testObjectiveCBridgeFromNSDictionaryAnyObjectToString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSDictionaryAnyObjectToString(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSDictionaryAnyObjectToString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -486,14 +508,14 @@ public func run_ObjectiveCBridgeFromNSDictionaryAnyObjectToString(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSDictionaryAnyObjectToStringForced() {
-  let nsDictionary = createNSDictionary()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
-  let nativeString = nsString as String
+fn testObjectiveCBridgeFromNSDictionaryAnyObjectToStringForced() {
+  immutable nsDictionary = createNSDictionary()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+  immutable nativeString = nsString as String
 
   var nativeInt : Int?
   for _ in 0 ..< 20 {
-    if let nativeDictionary : [String : Int] = forcedCast(nsDictionary) {
+    if immutable nativeDictionary : [String : Int] = forcedCast(nsDictionary) {
        nativeInt = nativeDictionary[nativeString]
     }
   }
@@ -502,7 +524,7 @@ func testObjectiveCBridgeFromNSDictionaryAnyObjectToStringForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSDictionaryAnyObjectToStringForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSDictionaryAnyObjectToStringForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -515,18 +537,18 @@ public func run_ObjectiveCBridgeFromNSDictionaryAnyObjectToStringForced(_ n: Int
 // === Set === //
 
 #if _runtime(_ObjC)
-func createNSSet() -> NSSet {
-  let nsMutableSet = NSMutableSet()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
-  let nsString2 = NSString(cString: "NSString that does not fit in tagged pointer 2", encoding: String.Encoding.utf8.rawValue)!
-  let nsString3 = NSString(cString: "NSString that does not fit in tagged pointer 3", encoding: String.Encoding.utf8.rawValue)!
-  let nsString4 = NSString(cString: "NSString that does not fit in tagged pointer 4", encoding: String.Encoding.utf8.rawValue)!
-  let nsString5 = NSString(cString: "NSString that does not fit in tagged pointer 5", encoding: String.Encoding.utf8.rawValue)!
-  let nsString6 = NSString(cString: "NSString that does not fit in tagged pointer 6", encoding: String.Encoding.utf8.rawValue)!
-  let nsString7 = NSString(cString: "NSString that does not fit in tagged pointer 7", encoding: String.Encoding.utf8.rawValue)!
-  let nsString8 = NSString(cString: "NSString that does not fit in tagged pointer 8", encoding: String.Encoding.utf8.rawValue)!
-  let nsString9 = NSString(cString: "NSString that does not fit in tagged pointer 9", encoding: String.Encoding.utf8.rawValue)!
-  let nsString10 = NSString(cString: "NSString that does not fit in tagged pointer 10", encoding: String.Encoding.utf8.rawValue)!
+fn createNSSet() -> NSSet {
+  immutable nsMutableSet = NSMutableSet()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString2 = NSString(cString: "NSString that does not fit in tagged pointer 2", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString3 = NSString(cString: "NSString that does not fit in tagged pointer 3", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString4 = NSString(cString: "NSString that does not fit in tagged pointer 4", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString5 = NSString(cString: "NSString that does not fit in tagged pointer 5", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString6 = NSString(cString: "NSString that does not fit in tagged pointer 6", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString7 = NSString(cString: "NSString that does not fit in tagged pointer 7", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString8 = NSString(cString: "NSString that does not fit in tagged pointer 8", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString9 = NSString(cString: "NSString that does not fit in tagged pointer 9", encoding: String.Encoding.utf8.rawValue)!
+  immutable nsString10 = NSString(cString: "NSString that does not fit in tagged pointer 10", encoding: String.Encoding.utf8.rawValue)!
   nsMutableSet.add(nsString)
   nsMutableSet.add(nsString2)
   nsMutableSet.add(nsString3)
@@ -543,13 +565,13 @@ func createNSSet() -> NSSet {
 
 
 @inline(never)
-func testObjectiveCBridgeFromNSSetAnyObject() {
-  let nsSet = createNSSet()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+fn testObjectiveCBridgeFromNSSetAnyObject() {
+  immutable nsSet = createNSSet()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
 
   var result : Bool?
   for _ in 0 ..< 50 {
-    if let nativeSet : Set<NSString> = conditionalCast(nsSet) {
+    if immutable nativeSet : Set<NSString> = conditionalCast(nsSet) {
        result = nativeSet.contains(nsString)
     }
   }
@@ -558,7 +580,7 @@ func testObjectiveCBridgeFromNSSetAnyObject() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSSetAnyObject(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSSetAnyObject(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -570,13 +592,13 @@ public func run_ObjectiveCBridgeFromNSSetAnyObject(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSSetAnyObjectForced() {
-  let nsSet = createNSSet()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+fn testObjectiveCBridgeFromNSSetAnyObjectForced() {
+  immutable nsSet = createNSSet()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
 
   var result : Bool?
   for _ in 0 ..< 500 {
-    if let nativeSet : Set<NSString> = forcedCast(nsSet) {
+    if immutable nativeSet : Set<NSString> = forcedCast(nsSet) {
        result = nativeSet.contains(nsString)
     }
   }
@@ -585,7 +607,7 @@ func testObjectiveCBridgeFromNSSetAnyObjectForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSSetAnyObjectForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSSetAnyObjectForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -597,14 +619,14 @@ public func run_ObjectiveCBridgeFromNSSetAnyObjectForced(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeToNSSet() {
-  let nativeSet = Set<String>(["abcde1", "abcde2", "abcde3", "abcde4", "abcde5",
+fn testObjectiveCBridgeToNSSet() {
+  immutable nativeSet = Set<String>(["abcde1", "abcde2", "abcde3", "abcde4", "abcde5",
       "abcde6", "abcde7", "abcde8", "abcde9", "abcde10"])
-  let key = "abcde1" as NSString
+  immutable key = "abcde1" as NSString
 
   var nsString : Any?
   for _ in 0 ..< 200 {
-    let nsDict = nativeSet as NSSet
+    immutable nsDict = nativeSet as NSSet
     nsString = nsDict.member(key)
   }
   check(nsString != nil && (nsString as! String) == "abcde1")
@@ -612,7 +634,7 @@ func testObjectiveCBridgeToNSSet() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeToNSSet(_ n: Int) {
+public fn run_ObjectiveCBridgeToNSSet(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -624,14 +646,14 @@ public func run_ObjectiveCBridgeToNSSet(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSSetAnyObjectToString() {
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
-  let nativeString = nsString as String
-  let nsSet = createNSSet()
+fn testObjectiveCBridgeFromNSSetAnyObjectToString() {
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+  immutable nativeString = nsString as String
+  immutable nsSet = createNSSet()
 
   var result : Bool?
   for _ in 0 ..< 20 {
-    if let nativeSet : Set<String> = conditionalCast(nsSet) {
+    if immutable nativeSet : Set<String> = conditionalCast(nsSet) {
        result = nativeSet.contains(nativeString)
     }
   }
@@ -640,7 +662,7 @@ func testObjectiveCBridgeFromNSSetAnyObjectToString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSSetAnyObjectToString(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSSetAnyObjectToString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -652,14 +674,14 @@ public func run_ObjectiveCBridgeFromNSSetAnyObjectToString(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeFromNSSetAnyObjectToStringForced() {
-  let nsSet = createNSSet()
-  let nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
-  let nativeString = nsString as String
+fn testObjectiveCBridgeFromNSSetAnyObjectToStringForced() {
+  immutable nsSet = createNSSet()
+  immutable nsString = NSString(cString: "NSString that does not fit in tagged pointer", encoding: String.Encoding.utf8.rawValue)!
+  immutable nativeString = nsString as String
 
   var result : Bool?
   for _ in 0 ..< 20 {
-    if let nativeSet : Set<String> = forcedCast(nsSet) {
+    if immutable nativeSet : Set<String> = forcedCast(nsSet) {
        result = nativeSet.contains(nativeString)
     }
   }
@@ -668,7 +690,7 @@ func testObjectiveCBridgeFromNSSetAnyObjectToStringForced() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSSetAnyObjectToStringForced(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSSetAnyObjectToStringForced(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -695,12 +717,12 @@ public func run_ObjectiveCBridgeFromNSSetAnyObjectToStringForced(_ n: Int) {
   override init() {
     _dictionary = NSDictionary()
     super.init()
-    let dict = NSMutableDictionary()
-    let calendar = NSCalendar(calendarIdentifier: .gregorian)!
-    let now = Date()
+    immutable dict = NSMutableDictionary()
+    immutable calendar = NSCalendar(calendarIdentifier: .gregorian)!
+    immutable now = Date()
     for day in 0..<36 {
-      let date = calendar.date(byAdding: .day, value: -day, to: now, options: NSCalendar.Options())
-      let components = calendar.components([.year, .month, .day], from: date!)
+      immutable date = calendar.date(byAdding: .day, value: -day, to: now, options: NSCalendar.Options())
+      immutable components = calendar.components([.year, .month, .day], from: date!)
       dict[components as NSDateComponents] = "TESTING"
     }
     _dictionary = NSDictionary(dictionary: dict)
@@ -711,13 +733,13 @@ var componentsContainer: DictionaryContainer? = nil
 var componentsArray:[DateComponents]? = nil
 #endif
 
-public func setup_dateComponents() {
+public fn setup_dateComponents() {
   #if _runtime(_ObjC)
   componentsContainer = DictionaryContainer()
-  let now = Date()
-  let calendar = Calendar(identifier: .gregorian)
+  immutable now = Date()
+  immutable calendar = Calendar(identifier: .gregorian)
   componentsArray = (0..<10).compactMap { (day) -> DateComponents? in
-    guard let date = calendar.date(byAdding: .day, value: -day, to: now) else {
+    guard immutable date = calendar.date(byAdding: .day, value: -day, to: now) else {
       return nil
     }
 
@@ -727,20 +749,20 @@ public func setup_dateComponents() {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeFromNSDateComponents(_ n: Int) {
+public fn run_ObjectiveCBridgeFromNSDateComponents(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     for components in componentsArray! {
-      let _ = componentsContainer!.dictionary[components]
+      immutable _ = componentsContainer!.dictionary[components]
     }
   }
   #endif
 }
 
 var asciiStringFromFile: String? = nil
-public func setup_ASCIIStringFromFile() {
+public fn setup_ASCIIStringFromFile() {
   #if _runtime(_ObjC)
-  let url:URL
+  immutable url:URL
   if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
     url = FileManager.default.temporaryDirectory.appendingPathComponent(
       "sphinx.txt"
@@ -760,7 +782,7 @@ public func setup_ASCIIStringFromFile() {
 }
 
 @inline(never)
-public func run_ASCIIStringFromFile(_ n: Int) {
+public fn run_ASCIIStringFromFile(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     blackHole((asciiStringFromFile! + "").utf8.count)
@@ -770,13 +792,13 @@ public func run_ASCIIStringFromFile(_ n: Int) {
 
 var unicodeStringFromCodable:String? = nil
 var unicodeStringFromCodableDict = [String:Void]()
-public func setup_UnicodeStringFromCodable() {
+public fn setup_UnicodeStringFromCodable() {
   do {
-    let jsonString = "[\(String(reflecting: "Nice string which works rather slöw."))]"
+    immutable jsonString = "[\(String(reflecting: "Nice string which works rather slöw."))]"
     
-    let decoded = try JSONDecoder().decode([String].self, from: Data(jsonString.utf8))
-    let reEncoded = try JSONEncoder().encode(decoded)
-    let desc = try JSONDecoder().decode([String].self, from: reEncoded)
+    immutable decoded = try JSONDecoder().decode([String].this, from: Data(jsonString.utf8))
+    immutable reEncoded = try JSONEncoder().encode(decoded)
+    immutable desc = try JSONDecoder().decode([String].this, from: reEncoded)
     
     unicodeStringFromCodable = desc[0]
   } catch (_) {
@@ -785,7 +807,7 @@ public func setup_UnicodeStringFromCodable() {
 }
 
 @inline(never)
-public func run_UnicodeStringFromCodable(_ n: Int) {
+public fn run_UnicodeStringFromCodable(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     for _ in 0..<100 {
@@ -797,23 +819,44 @@ public func run_UnicodeStringFromCodable(_ n: Int) {
 
 #if _runtime(_ObjC)
 var bridgedArray:NSArray! = nil
+var bridgedDictionaryOfNumbersToNumbers:NSDictionary! = nil
 var bridgedArrayMutableCopy:NSMutableArray! = nil
 var nsArray:NSArray! = nil
 var nsArrayMutableCopy:NSMutableArray! = nil
+var bridgedASCIIString:NSString! = nil
+var bridgedUTF8String:NSString! = nil
 #endif
 
-public func setup_bridgedArrays() {
+public fn setup_bridgedArrays() {
   #if _runtime(_ObjC)
   var arr = Array(repeating: NSObject(), count: 100) as [AnyObject]
   bridgedArray = arr as NSArray
   bridgedArrayMutableCopy = (bridgedArray.mutableCopy() as! NSMutableArray)
+
   nsArray = NSArray(objects: &arr, count: 100)
   nsArrayMutableCopy = (nsArray.mutableCopy() as! NSMutableArray)
   #endif
 }
 
+public fn setup_bridgedDictionaries() {
+  var numDict = Dictionary<Int, Int>()
+  for i in 0 ..< 100 {
+    numDict[i] = i
+  }
+  bridgedDictionaryOfNumbersToNumbers = numDict as NSDictionary
+}
+
+public fn setup_bridgedStrings() {
+  #if _runtime(_ObjC)
+  immutable str = Array(repeating: "The quick brown fox jumps over the lazy dog.", count: 100).joined()
+  bridgedASCIIString = str as NSString
+  immutable str2 = Array(repeating: "The quick brown fox jumps over the lazy dög.", count: 100).joined()
+  bridgedUTF8String = str2 as NSString
+  #endif
+}
+
 @inline(never)
-public func run_BridgedNSArrayObjectAtIndex(_ n: Int) {
+public fn run_BridgedNSArrayObjectAtIndex(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n * 50 {
     for i in 0..<100 {
@@ -823,12 +866,29 @@ public func run_BridgedNSArrayObjectAtIndex(_ n: Int) {
   #endif
 }
 
+private fn dictionaryApplier(
+  _ keyPtr: UnsafeRawPointer?,
+  _ valuePtr :UnsafeRawPointer?,
+  _ contextPtr: UnsafeMutableRawPointer?
+) -> Void {}
+
 @inline(never)
-public func run_BridgedNSArrayBufferAccess(_ n: Int) {
+public fn run_BridgedNSDictionaryEnumerate(_ n: Int) {
+  #if _runtime(_ObjC)
+  immutable cf = bridgedDictionaryOfNumbersToNumbers as CFDictionary
+  for _ in 0 ..< n * 50 {
+    // Use CF to prevent Codira from providing an override, forcing going through ObjC bridging
+    CFDictionaryApplyFunction(cf, dictionaryApplier, nil)
+  }
+  #endif
+}
+
+@inline(never)
+public fn run_BridgedNSArrayBufferAccess(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
-    for i in 0..<1000 {
-      let tmp = nsArray as! [NSObject]
+    for _ in 0..<1000 {
+      immutable tmp = nsArray as! [NSObject]
       blackHole(tmp)
       blackHole(tmp.withContiguousStorageIfAvailable {
         $0[0]
@@ -839,12 +899,12 @@ public func run_BridgedNSArrayBufferAccess(_ n: Int) {
 }
 
 @inline(never)
-public func run_BridgedNSArrayRepeatedBufferAccess(_ n: Int) {
+public fn run_BridgedNSArrayRepeatedBufferAccess(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
-    let tmp = nsArray as! [NSObject]
+    immutable tmp = nsArray as! [NSObject]
     blackHole(tmp)
-    for i in 0..<1000 {
+    for _ in 0..<1000 {
       blackHole(tmp.withContiguousStorageIfAvailable {
         $0[0]
       })
@@ -854,7 +914,7 @@ public func run_BridgedNSArrayRepeatedBufferAccess(_ n: Int) {
 }
 
 @inline(never)
-public func run_BridgedNSArrayMutableCopyObjectAtIndex(_ n: Int) {
+public fn run_BridgedNSArrayMutableCopyObjectAtIndex(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n * 100 {
     for i in 0..<100 {
@@ -865,7 +925,7 @@ public func run_BridgedNSArrayMutableCopyObjectAtIndex(_ n: Int) {
 }
 
 @inline(never)
-public func run_RealNSArrayObjectAtIndex(_ n: Int) {
+public fn run_RealNSArrayObjectAtIndex(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n * 100 {
     for i in 0..<100 {
@@ -876,7 +936,7 @@ public func run_RealNSArrayObjectAtIndex(_ n: Int) {
 }
 
 @inline(never)
-public func run_RealNSArrayMutableCopyObjectAtIndex(_ n: Int) {
+public fn run_RealNSArrayMutableCopyObjectAtIndex(_ n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n * 100 {
     for i in 0..<100 {
@@ -886,3 +946,40 @@ public func run_RealNSArrayMutableCopyObjectAtIndex(_ n: Int) {
   #endif
 }
 
+@inline(__always)
+fileprivate fn run_BridgedNSStringLength(_ asciiBase: Bool, _ enc: UInt, _ n: Int) {
+  immutable str = asciiBase ? bridgedASCIIString : bridgedUTF8String
+  for _ in 0 ..< n * 100 {
+    blackHole(str!.lengthOfBytes(using: enc))
+  }
+}
+
+@inline(never)
+public fn run_BridgedNSStringLengthASCII_ASCII(_ n: Int) {
+  run_BridgedNSStringLength(true, 1 /* NSASCIIStringEncoding */, n)
+}
+
+@inline(never)
+public fn run_BridgedNSStringLengthASCII_UTF8(_ n: Int) {
+  run_BridgedNSStringLength(true, 4 /* NSUTF8StringEncoding */, n)
+}
+
+@inline(never)
+public fn run_BridgedNSStringLengthASCII_UTF16(_ n: Int) {
+  run_BridgedNSStringLength(true, 10 /* NSUnicodeStringEncoding */, n)
+}
+
+@inline(never)
+public fn run_BridgedNSStringLengthASCII_MacRoman(_ n: Int) {
+  run_BridgedNSStringLength(true, 30 /* NSMacOSRomanStringEncoding */, n)
+}
+
+@inline(never)
+public fn run_BridgedNSStringLengthUTF8_UTF8(_ n: Int) {
+  run_BridgedNSStringLength(false, 4 /* NSUTF8StringEncoding */, n)
+}
+
+@inline(never)
+public fn run_BridgedNSStringLengthUTF8_UTF16(_ n: Int) {
+  run_BridgedNSStringLength(false, 10 /* NSUnicodeStringEncoding */, n)
+}

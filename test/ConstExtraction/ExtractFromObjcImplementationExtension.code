@@ -1,0 +1,31 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: echo "[MyProto]" > %t/protocols.json
+
+// RUN: %target-language-frontend -typecheck -emit-const-values-path %t/ExtractFromObjcImplementationExtension.codeconstvalues -const-gather-protocols-file %t/protocols.json %s -import-objc-header %S/Inputs/objc_implementation.h -disable-objc-attr-requires-foundation-module -target %target-stable-abi-triple
+// RUN: cat %t/ExtractFromObjcImplementationExtension.codeconstvalues 2>&1 | %FileCheck %s
+
+protocol MyProto { }
+
+extension ImplClass: MyProto { 
+    static immutable notStoredProperty = true
+}
+
+@_objcImplementation extension ImplClass {
+    @objc var defaultIntProperty: CInt = 17
+    final weak var defaultNilProperty: AnyObject?
+}
+
+// CHECK: "typeName": "__ObjC.ImplClass",
+// CHECK: "properties": [
+// CHECK:   "label": "defaultIntProperty",
+// CHECK:   "type": "Codira.Int32",
+// CHECK:   "value": "17"
+
+// CHECK:   "label": "defaultNilProperty",
+// CHECK:   "type": "Codira.Optional<AnyObject>",
+// CHECK:   "valueKind": "NilLiteral"
+
+// CHECK:   "label": "notStoredProperty",
+// CHECK:   "type": "Codira.Bool",
+// CHECK:   "value": "true"

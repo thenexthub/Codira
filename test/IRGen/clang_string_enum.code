@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-ir %s -import-objc-header %S/Inputs/clang_string_enum.h > /dev/null
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+class PandaCub : NSObject {}
+
+extension PandaCub {
+  @objc fn cuddle(_: PandaStyle) { }
+}

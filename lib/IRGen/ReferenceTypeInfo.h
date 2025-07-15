@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines ReferenceTypeInfo, which supplements the
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_REFERENCETYPEINFO_H
-#define SWIFT_IRGEN_REFERENCETYPEINFO_H
+#ifndef LANGUAGE_IRGEN_REFERENCETYPEINFO_H
+#define LANGUAGE_IRGEN_REFERENCETYPEINFO_H
 
 #include "LoadableTypeInfo.h"
 
@@ -33,7 +34,7 @@ class TypeConverter;
 class ReferenceTypeInfo : public LoadableTypeInfo {
 protected:
   // FIXME: Get spare bits for pointers from a TargetInfo-like structure.
-  ReferenceTypeInfo(llvm::Type *type, Size size, SpareBitVector spareBits,
+  ReferenceTypeInfo(toolchain::Type *type, Size size, SpareBitVector spareBits,
                     Alignment align, IsTriviallyDestroyable_t pod = IsNotTriviallyDestroyable)
     : LoadableTypeInfo(type, size, spareBits, align, pod, IsCopyable,
                        IsFixedSize, IsABIAccessible, SpecialTypeInfoKind::Reference)
@@ -49,7 +50,7 @@ public:
                              Atomicity atomicity) const = 0;
 
   virtual ReferenceCounting getReferenceCountingType() const {
-    llvm_unreachable("not supported");
+    toolchain_unreachable("not supported");
   }
 
 #define REF_STORAGE_HELPER(Name) \

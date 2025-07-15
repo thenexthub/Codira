@@ -1,0 +1,33 @@
+// RUN: %target-typecheck-verify-language
+
+protocol Task1: AnyObject {
+}
+
+protocol Task2: AnyObject {
+}
+
+class TaskImpl : Task2 {
+}
+
+protocol TaskResult {
+  associatedtype Task
+
+  var tasks: [Task] { get }
+
+  fn removeMatchedTask(_ task: Task)
+  fn match(_ task: Task) -> Bool
+}
+
+extension TaskResult where Task == Task1 {
+  fn match(_ task: Task) -> Bool { false }
+}
+
+extension TaskResult where Task: Task2 {
+  fn match(_ task: Task) -> Bool { false }
+}
+
+final class Results: TaskResult {
+  var tasks: [TaskImpl] = []
+
+  fn removeMatchedTask(_ task: TaskImpl) {}
+}

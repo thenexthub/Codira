@@ -1,0 +1,16 @@
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %refactor -find-rename-ranges -source-filename %t/input.code -pos="foo" -is-function-like -old-name "foo(baz:)" > %t/actual-output.code
+// RUN: diff -u %t/expected-output.code %t/actual-output.code
+
+//--- input.code
+
+/// `/*foo:unknown*/foo(baz:)` does very importants stuff
+fn /*foo:def*/foo(baz: Int) {}
+
+//--- expected-output.code
+
+/// `/*foo:unknown*/<base>foo</base>(<sel index=0>baz</sel>:)` does very importants stuff
+fn /*foo:def*/<base>foo</base>(<arglabel index=0>baz</arglabel><param index=0></param>: Int) {}
+

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass promotes AllocStack instructions into virtual register
@@ -48,13 +49,13 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/ScopeOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 #include <algorithm>
 #include <queue>
 
@@ -65,9 +66,9 @@ STATISTIC(NumAllocStackFound,    "Number of AllocStack found");
 STATISTIC(NumAllocStackCaptured, "Number of AllocStack captured");
 STATISTIC(NumInstRemoved,        "Number of Instructions removed");
 
-llvm::cl::opt<bool> Mem2RegDisableLifetimeCanonicalization(
-    "sil-mem2reg-disable-lifetime-canonicalization", llvm::cl::init(false),
-    llvm::cl::desc("Don't canonicalize any lifetimes during Mem2Reg."));
+toolchain::cl::opt<bool> Mem2RegDisableLifetimeCanonicalization(
+    "sil-mem2reg-disable-lifetime-canonicalization", toolchain::cl::init(false),
+    toolchain::cl::desc("Don't canonicalize any lifetimes during Mem2Reg."));
 
 static bool lexicalLifetimeEnsured(AllocStackInst *asi);
 static bool lexicalLifetimeEnsured(AllocStackInst *asi, SILInstruction *store);
@@ -75,8 +76,8 @@ static bool isGuaranteedLexicalValue(SILValue src);
 
 namespace {
 
-using DomTreeNode = llvm::DomTreeNodeBase<SILBasicBlock>;
-using DomTreeLevelMap = llvm::DenseMap<DomTreeNode *, unsigned>;
+using DomTreeNode = toolchain::DomTreeNodeBase<SILBasicBlock>;
+using DomTreeLevelMap = toolchain::DenseMap<DomTreeNode *, unsigned>;
 
 /// A transient structure containing the values that are accessible in some
 /// context: coming into a block, going out of the block, or within a block
@@ -441,6 +442,16 @@ static bool isAddressForLoad(SILInstruction *load, SILBasicBlock *&singleBlock,
       !isa<TupleElementAddrInst>(load))
     return false;
 
+  // In OSSA, the result of an unchecked_bitwise_cast must immediately be
+  // copied or unchecked_bitwise_cast'd again.  In particular, it is not
+  // permitted to borrow it and perform additional projections (struct_extract,
+  // tuple_extract) on the borrowed value.  Consequently, we cannot promote an
+  // address if such a promotion would result in such a pattern.
+  if (load->getFunction()->hasOwnership() &&
+      isa<UncheckedAddrCastInst>(load->getOperand(0)) &&
+      !isa<UncheckedAddrCastInst>(load))
+    return false;
+
   // None of the projections are lowered to owned values:
   //
   // struct_element_addr and tuple_element_addr instructions are lowered to
@@ -541,7 +552,7 @@ static bool isCaptured(SILValue def, bool *inSingleBlock) {
         continue;
 
     // Other instructions are assumed to capture the AllocStack.
-    LLVM_DEBUG(llvm::dbgs() << "*** AllocStack is captured by: " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** AllocStack is captured by: " << *user);
     return true;
   }
 
@@ -588,7 +599,7 @@ static bool isWriteOnlyAllocation(SILValue def) {
       continue;
 
     // Can't do anything else with it.
-    LLVM_DEBUG(llvm::dbgs() << "*** AllocStack has non-write use: " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** AllocStack has non-write use: " << *user);
     return false;
   }
 
@@ -620,7 +631,7 @@ replaceLoad(SILInstruction *inst, SILValue newValue, AllocStackInst *asi,
     op = projInst->getOperand(0);
   }
 
-  for (const auto &proj : llvm::reverse(projections)) {
+  for (const auto &proj : toolchain::reverse(projections)) {
     assert(proj.getKind() == ProjectionKind::BitwiseCast ||
            proj.getKind() == ProjectionKind::Struct ||
            proj.getKind() == ProjectionKind::Tuple);
@@ -723,7 +734,7 @@ static SILValue getLexicalValueForStore(SILInstruction *inst,
   assert(isa<StoreInst>(inst) || isa<StoreBorrowInst>(inst));
 
   SILValue stored = inst->getOperand(CopyLikeInstruction::Src);
-  LLVM_DEBUG(llvm::dbgs() << "*** Found Store def " << stored);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Found Store def " << stored);
 
   if (!lexicalLifetimeEnsured(asi)) {
     return SILValue();
@@ -826,7 +837,7 @@ void LiveValues::Guaranteed::endLexicalLifetimeBeforeInst(
 void LiveValues::None::endLexicalLifetimeBeforeInst(
     AllocStackInst *asi, SILInstruction *beforeInstruction,
     SILBuilderContext &ctx) {
-  llvm::report_fatal_error(
+  toolchain::report_fatal_error(
       "can't have lexical lifetime for ownership none value");
 }
 
@@ -838,14 +849,14 @@ namespace {
 
 /// Promotes a single AllocStackInst into registers..
 class StackAllocationPromoter {
-  using BlockToInstMap = llvm::DenseMap<SILBasicBlock *, SILInstruction *>;
+  using BlockToInstMap = toolchain::DenseMap<SILBasicBlock *, SILInstruction *>;
 
   // Use a priority queue keyed on dominator tree level so that inserted nodes
   // are handled from the bottom of the dom tree upwards.
   using DomTreeNodePair = std::pair<DomTreeNode *, unsigned>;
   using NodePriorityQueue =
       std::priority_queue<DomTreeNodePair, SmallVector<DomTreeNodePair, 32>,
-                          llvm::less_second>;
+                          toolchain::less_second>;
 
   /// The AllocStackInst that we are handling.
   AllocStackInst *asi;
@@ -1021,7 +1032,7 @@ private:
 
 SILInstruction *StackAllocationPromoter::promoteAllocationInBlock(
     SILBasicBlock *blockPromotingWithin) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Promoting ASI in block: " << *asi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Promoting ASI in block: " << *asi);
 
   // RunningVal is the current value in the stack location.
   // We don't know the value of the alloca until we find the first store.
@@ -1068,7 +1079,7 @@ SILInstruction *StackAllocationPromoter::promoteAllocationInBlock(
       if (runningVals) {
         // If we are loading from the AllocStackInst and we already know the
         // content of the Alloca then use it.
-        LLVM_DEBUG(llvm::dbgs() << "*** Promoting load: " << *inst);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Promoting load: " << *inst);
         replaceLoad(inst, runningVals->value.replacement(asi, inst), asi, ctx,
                     deleter, instructionsToDelete);
         ++NumInstRemoved;
@@ -1079,7 +1090,7 @@ SILInstruction *StackAllocationPromoter::promoteAllocationInBlock(
         // Don't use result of load [copy] as a RunningVal, it necessitates
         // additional logic for cleanup of consuming instructions of the result.
         // StackAllocationPromoter::fixBranchesAndUses will later handle it.
-        LLVM_DEBUG(llvm::dbgs() << "*** First load: " << *li);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** First load: " << *li);
         runningVals = {LiveValues::toReplace(asi, /*replacement=*/li),
                        /*isStorageValid=*/true};
       }
@@ -1118,7 +1129,7 @@ SILInstruction *StackAllocationPromoter::promoteAllocationInBlock(
                    StoreOwnershipQualifier::Assign &&
                "store [assign] to the stack location should have been "
                "transformed to a store [init]");
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "*** Removing redundant store: " << lastStoreInst);
         ++NumInstRemoved;
         prepareForDeletion(lastStoreInst, instructionsToDelete);
@@ -1149,7 +1160,7 @@ SILInstruction *StackAllocationPromoter::promoteAllocationInBlock(
 
       // If we met a store before this one, delete it.
       if (lastStoreInst) {
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "*** Removing redundant store: " << lastStoreInst);
         ++NumInstRemoved;
         prepareForDeletion(lastStoreInst, instructionsToDelete);
@@ -1234,18 +1245,18 @@ SILInstruction *StackAllocationPromoter::promoteAllocationInBlock(
              StoreOwnershipQualifier::Assign)) &&
            "store [assign] to the stack location should have been "
            "transformed to a store [init]");
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "*** Finished promotion. Last store: " << lastStoreInst);
     return lastStoreInst;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Finished promotion with no stores.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Finished promotion with no stores.\n");
   return nullptr;
 }
 
 void StackAllocationPromoter::addBlockArguments(
     BasicBlockSetVector &phiBlocks) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Adding new block arguments.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Adding new block arguments.\n");
 
   for (auto *block : phiBlocks) {
     // The stored value or its lexical move.
@@ -1256,7 +1267,7 @@ void StackAllocationPromoter::addBlockArguments(
 std::optional<LiveValues>
 StackAllocationPromoter::getLiveOutValues(BasicBlockSetVector &phiBlocks,
                                           SILBasicBlock *startBlock) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Searching for a value definition.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Searching for a value definition.\n");
   // Walk the Dom tree in search of a defining value:
   for (DomTreeNode *domNode = domInfo->getNode(startBlock); domNode;
        domNode = domNode->getIDom()) {
@@ -1281,15 +1292,15 @@ StackAllocationPromoter::getLiveOutValues(BasicBlockSetVector &phiBlocks,
       // add to the basic block.
       SILValue argument =
           domBlock->getArgument(domBlock->getNumArguments() - 1);
-      LLVM_DEBUG(llvm::dbgs() << "*** Found a dummy Phi def " << *argument);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Found a dummy Phi def " << *argument);
       auto values = LiveValues::toReplace(asi, argument);
       return values;
     }
 
     // Move to the next dominating block.
-    LLVM_DEBUG(llvm::dbgs() << "*** Walking up the iDOM.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Walking up the iDOM.\n");
   }
-  LLVM_DEBUG(llvm::dbgs() << "*** Could not find a Def. Using Undef.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Could not find a Def. Using Undef.\n");
   return std::nullopt;
 }
 
@@ -1310,7 +1321,7 @@ StackAllocationPromoter::getLiveInValues(BasicBlockSetVector &phiBlocks,
   // in the first block, but stores first in all other stores in the idom
   // chain.
   if (phiBlocks.contains(block)) {
-    LLVM_DEBUG(llvm::dbgs() << "*** Found a local Phi definition.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Found a local Phi definition.\n");
     SILValue argument = block->getArgument(block->getNumArguments() - 1);
     auto values = LiveValues::toReplace(asi, argument);
     return values;
@@ -1342,11 +1353,11 @@ void StackAllocationPromoter::fixPhiPredBlock(BasicBlockSetVector &phiBlocks,
                                               SILBasicBlock *destBlock,
                                               SILBasicBlock *predBlock) {
   TermInst *ti = predBlock->getTerminator();
-  LLVM_DEBUG(llvm::dbgs() << "*** Fixing the terminator " << *ti << ".\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Fixing the terminator " << *ti << ".\n");
 
   LiveValues values = getEffectiveLiveOutValues(phiBlocks, predBlock);
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Found the definition: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Found the definition: "
                           << values.getStored());
 
   SmallVector<SILValue> vals;
@@ -1434,7 +1445,7 @@ void StackAllocationPromoter::fixBranchesAndUses(
       SILBasicBlock *loadBlock = li->getParent();
       auto def = getEffectiveLiveInValues(phiBlocks, loadBlock);
 
-      LLVM_DEBUG(llvm::dbgs() << "*** Replacing " << *li << " with Def "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Replacing " << *li << " with Def "
                               << def.replacement(asi, li));
 
       // Replace the load with the definition that we found.
@@ -1603,7 +1614,7 @@ void StackAllocationPromoter::endLexicalLifetime(
   enum class AvailableValuesKind : uint8_t { In, Out };
 
   using ScopeEndPosition =
-      llvm::PointerIntPair<SILBasicBlock *, 1, AvailableValuesKind>;
+      toolchain::PointerIntPair<SILBasicBlock *, 1, AvailableValuesKind>;
 
   GraphNodeWorklist<ScopeEndPosition, 16> worklist;
   for (auto pair : initializationPoints) {
@@ -1646,7 +1657,7 @@ void StackAllocationPromoter::endLexicalLifetime(
 }
 
 void StackAllocationPromoter::pruneAllocStackUsage() {
-  LLVM_DEBUG(llvm::dbgs() << "*** Pruning : " << *asi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Pruning : " << *asi);
   BasicBlockSetVector functionBlocks(asi->getFunction());
 
   // Insert all of the blocks that asi is live in.
@@ -1667,12 +1678,12 @@ void StackAllocationPromoter::pruneAllocStackUsage() {
       initializationPoints[block] = si;
     }
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Finished pruning : " << *asi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Finished pruning : " << *asi);
 }
 
 void StackAllocationPromoter::promoteAllocationToPhi(
     BasicBlockSetVector &livePhiBlocks) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Placing Phis for : " << *asi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Placing Phis for : " << *asi);
 
   // A list of blocks that will require new Phi values.
   BasicBlockSetVector phiBlocks(asi->getFunction());
@@ -1693,11 +1704,11 @@ void StackAllocationPromoter::promoteAllocationToPhi(
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Found: " << priorityQueue.size()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Found: " << priorityQueue.size()
                           << " Defs\n");
 
   // A list of nodes for which we already calculated the dominator frontier.
-  llvm::SmallPtrSet<DomTreeNode *, 32> visited;
+  toolchain::SmallPtrSet<DomTreeNode *, 32> visited;
 
   SmallVector<DomTreeNode *, 32> worklist;
 
@@ -1772,7 +1783,7 @@ void StackAllocationPromoter::promoteAllocationToPhi(
 
   endLexicalLifetime(livePhiBlocks);
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Finished placing Phis ***\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Finished placing Phis ***\n");
 }
 
 void StackAllocationPromoter::run(BasicBlockSetVector &livePhiBlocks) {
@@ -1932,11 +1943,11 @@ public:
 } // end anonymous namespace
 
 void MemoryToRegisters::removeSingleBlockAllocation(AllocStackInst *asi) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Promoting in-block: " << *asi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Promoting in-block: " << *asi);
 
   SILBasicBlock *parentBlock = asi->getParent();
   // The default value of the AllocStack is NULL because we don't have
-  // uninitialized variables in Swift.
+  // uninitialized variables in Codira.
   std::optional<StorageStateTracking<LiveValues>> runningVals;
 
   // For all instructions in the block.
@@ -2179,7 +2190,7 @@ void MemoryToRegisters::canonicalizeValueLifetimes(
 /// should check to see if the ASI is dead after this and remove it if so.
 bool MemoryToRegisters::promoteAllocation(AllocStackInst *alloc,
                                           BasicBlockSetVector &livePhiBlocks) {
-  LLVM_DEBUG(llvm::dbgs() << "*** Memory to register looking at: " << *alloc);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Memory to register looking at: " << *alloc);
   ++NumAllocStackFound;
 
   // In OSSA, don't do Mem2Reg on non-trivial alloc_stack with dynamic_lifetime.
@@ -2197,7 +2208,7 @@ bool MemoryToRegisters::promoteAllocation(AllocStackInst *alloc,
 
   // Remove write-only AllocStacks.
   if (isWriteOnlyAllocation(alloc) && !lexicalLifetimeEnsured(alloc)) {
-    LLVM_DEBUG(llvm::dbgs() << "*** Deleting store-only AllocStack: "<< *alloc);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Deleting store-only AllocStack: "<< *alloc);
     deleter.forceDeleteWithUsers(alloc);
     return true;
   }
@@ -2213,13 +2224,13 @@ bool MemoryToRegisters::promoteAllocation(AllocStackInst *alloc,
   if (inSingleBlock) {
     removeSingleBlockAllocation(alloc);
 
-    LLVM_DEBUG(llvm::dbgs() << "*** Deleting single block AllocStackInst: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Deleting single block AllocStackInst: "
                             << *alloc);
     deleter.forceDeleteWithUsers(alloc);
     return true;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Need to insert BB arguments for " << *alloc);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Need to insert BB arguments for " << *alloc);
 
   // Promote this allocation, lazily computing dom tree levels for this function
   // if we have not done so yet.
@@ -2283,7 +2294,7 @@ class SILMem2Reg : public SILFunctionTransform {
   void run() override {
     SILFunction *f = getFunction();
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "** Mem2Reg on function: " << f->getName() << " **\n");
 
     auto *da = getAnalysis<DominanceAnalysis>();
@@ -2303,6 +2314,6 @@ class SILMem2Reg : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createMem2Reg() {
+SILTransform *language::createMem2Reg() {
   return new SILMem2Reg();
 }

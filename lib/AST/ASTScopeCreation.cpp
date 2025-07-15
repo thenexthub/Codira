@@ -1,4 +1,4 @@
-//===--- ASTScopeCreation.cpp - Swift Object-Oriented AST Scope -----------===//
+//===--- ASTScopeCreation.cpp - Codira Object-Oriented AST Scope -----------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements the creation methods of the ASTScopeImpl ontology.
@@ -37,7 +38,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include <algorithm>
 #include <unordered_set>
 
@@ -232,10 +233,10 @@ public:
                                              ASTScopeImpl *parent,
                                              std::optional<SourceLoc> endLoc);
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs()); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs()); }
 
   void print(raw_ostream &out) const {
-    out << "(swift::ASTSourceFileScope*) " << sourceFileScope << "\n";
+    out << "(language::ASTSourceFileScope*) " << sourceFileScope << "\n";
   }
 };
 } // ast_scope
@@ -407,6 +408,7 @@ public:
   VISIT_AND_IGNORE(ParamDecl)
   VISIT_AND_IGNORE(MissingDecl)
   VISIT_AND_IGNORE(MissingMemberDecl)
+  VISIT_AND_IGNORE(UsingDecl)
 
   // This declaration is handled from the PatternBindingDecl
   VISIT_AND_IGNORE(VarDecl)
@@ -462,7 +464,7 @@ public:
 
   ASTScopeImpl *visitBuiltinTupleDecl(BuiltinTupleDecl *btd, ASTScopeImpl *p,
                                       ScopeCreator &scopeCreator) {
-    llvm_unreachable("BuiltinTupleDecl should never appear in a source file");
+    toolchain_unreachable("BuiltinTupleDecl should never appear in a source file");
   }
 
   // This declaration is handled from
@@ -664,7 +666,7 @@ void ScopeCreator::addChildrenForKnownAttributes(Decl *decl,
     if (isa<DifferentiableAttr>(attr))
       relevantAttrs.push_back(attr);
 
-    if (isa<SpecializeAttr>(attr))
+    if (isa<AbstractSpecializeAttr>(attr))
       relevantAttrs.push_back(attr);
 
     if (isa<CustomAttr>(attr))
@@ -682,7 +684,7 @@ void ScopeCreator::addChildrenForKnownAttributes(Decl *decl,
     if (auto *diffAttr = dyn_cast<DifferentiableAttr>(attr)) {
       constructExpandAndInsert<DifferentiableAttributeScope>(
           parent, diffAttr, decl);
-    } else if (auto *specAttr = dyn_cast<SpecializeAttr>(attr)) {
+    } else if (auto *specAttr = dyn_cast<AbstractSpecializeAttr>(attr)) {
       if (auto *afd = dyn_cast<AbstractFunctionDecl>(decl)) {
         constructExpandAndInsert<SpecializeAttributeScope>(
             parent, specAttr, afd);
@@ -876,7 +878,7 @@ ParameterListScope::expandAScopeThatDoesNotCreateANewInsertionPoint(
 AnnotatedInsertionPoint
 PatternEntryDeclScope::expandAScopeThatCreatesANewInsertionPoint(
     ScopeCreator &scopeCreator) {
-  // Initializers come before VarDecls, e.g. PCMacro/didSet.swift 19
+  // Initializers come before VarDecls, e.g. PCMacro/didSet.code 19
   auto patternEntry = getPatternEntry();
 
   // If the pattern type is for a named opaque result type, introduce the
@@ -1467,7 +1469,7 @@ IterableTypeBodyPortion::insertionPointForDeferredExpansion(
 
 #pragma mark verification
 
-void ast_scope::simple_display(llvm::raw_ostream &out,
+void ast_scope::simple_display(toolchain::raw_ostream &out,
                                const ScopeCreator *scopeCreator) {
   scopeCreator->print(out);
 }

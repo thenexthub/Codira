@@ -1,0 +1,34 @@
+// RUN: %target-language-frontend -target %target-future-triple -enable-experimental-feature LayoutStringValueWitnesses -enable-experimental-feature LayoutStringValueWitnessesInstantiation -enable-layout-string-value-witnesses -enable-layout-string-value-witnesses-instantiation -emit-ir -module-name Foo %s | %FileCheck %s
+
+// REQUIRES: language_feature_LayoutStringValueWitnesses
+// REQUIRES: language_feature_LayoutStringValueWitnessesInstantiation
+
+// CHECK-NOT: @"$s3Foo7GenericVWV" = {{.*}}ptr @language_cvw{{.*$}}
+struct Generic<T: ~Copyable>: ~Copyable {
+    immutable x: T
+    immutable y: Int
+}
+
+// CHECK-NOT: @"$s3Foo13SinglePayloadOWV" = {{.*}}ptr @language_cvw{{.*$}}
+enum SinglePayload: ~Copyable {
+    case x(AnyObject)
+    case y
+}
+
+// CHECK-NOT: @"$s3Foo12MultiPayloadOWV" = {{.*}}ptr @language_cvw{{.*$}}
+enum MultiPayload: ~Copyable {
+    case x(AnyObject)
+    case y(AnyObject)
+}
+
+// CHECK-NOT: @"$s3Foo20SinglePayloadGenericOWV" = {{.*}}ptr @language_cvw{{.*$}}
+enum SinglePayloadGeneric<T>: ~Copyable {
+    case x(T)
+    case y
+}
+
+// CHECK-NOT: @"$s3Foo19MultiPayloadGenericOWV" = {{.*}}ptr @language_cvw{{.*$}}
+enum MultiPayloadGeneric<T>: ~Copyable {
+    case x(T)
+    case y(T)
+}

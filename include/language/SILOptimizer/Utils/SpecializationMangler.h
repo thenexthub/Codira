@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_SPECIALIZATIONMANGLER_H
-#define SWIFT_SILOPTIMIZER_UTILS_SPECIALIZATIONMANGLER_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_SPECIALIZATIONMANGLER_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_SPECIALIZATIONMANGLER_H
 
 #include "language/SIL/GenericSpecializationMangler.h"
 
@@ -27,7 +28,7 @@
 
 namespace language {
 namespace Mangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 class PartialSpecializationMangler : public SpecializationMangler {
 
@@ -37,7 +38,7 @@ class PartialSpecializationMangler : public SpecializationMangler {
 public:
   PartialSpecializationMangler(ASTContext &Ctx, SILFunction *F,
                                CanSILFunctionType SpecializedFnTy,
-                               swift::SerializedKind_t Serialized, bool isReAbstracted)
+                               language::SerializedKind_t Serialized, bool isReAbstracted)
       : SpecializationMangler(Ctx, SpecializationPass::GenericSpecializer,
                               Serialized, F),
         SpecializedFnTy(SpecializedFnTy), isReAbstracted(isReAbstracted) {}
@@ -90,13 +91,13 @@ class FunctionSignatureSpecializationMangler : public SpecializationMangler {
   // Information for each SIL argument in the original function before
   // specialization. This includes SIL indirect result argument required for
   // the original function type at the current stage of compilation.
-  llvm::SmallVector<ArgInfo, 8> OrigArgs;
+  toolchain::SmallVector<ArgInfo, 8> OrigArgs;
 
   ReturnValueModifierIntBase ReturnValue;
 
 public:
   FunctionSignatureSpecializationMangler(ASTContext &Ctx, SpecializationPass Pass,
-                                         swift::SerializedKind_t Serialized,
+                                         language::SerializedKind_t Serialized,
                                          SILFunction *F);
   // For arguments / return values
   void setArgumentConstantProp(unsigned OrigArgIdx, SILInstruction *constInst);
@@ -128,7 +129,7 @@ private:
   void mangleReturnValue(ReturnValueModifierIntBase RetMod);
 };
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Mangle
 } // end namespace language
 

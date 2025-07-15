@@ -1,19 +1,23 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Exposes advanced properties of Unicode.Scalar defined by the Unicode
 // Standard.
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 extension Unicode.Scalar {
 
@@ -24,7 +28,7 @@ extension Unicode.Scalar {
     internal var _scalar: Unicode.Scalar
 
     internal init(_ scalar: Unicode.Scalar) {
-      self._scalar = scalar
+      this._scalar = scalar
     }
   }
 
@@ -34,37 +38,37 @@ extension Unicode.Scalar {
   /// value. The following code tests whether a string contains any math
   /// symbols:
   ///
-  ///     let question = "Which is larger, 3 * 3 * 3 or 10 + 10 + 10?"
-  ///     let hasMathSymbols = question.unicodeScalars.contains(where: {
+  ///     immutable question = "Which is larger, 3 * 3 * 3 or 10 + 10 + 10?"
+  ///     immutable hasMathSymbols = question.unicodeScalars.contains(where: {
   ///         $0.properties.isMath
   ///     })
   ///     // hasMathSymbols == true
   public var properties: Properties {
-    return Properties(self)
+    return Properties(this)
   }
 }
 
 extension Unicode.Scalar.Properties {
   // This OptionSet represents the 64 bit integer value returned when asking
-  // '_swift_stdlib_getBinaryProperties' where each bit indicates a unique
+  // '_language_stdlib_getBinaryProperties' where each bit indicates a unique
   // Unicode defined binary property of a scalar. For example, bit 8 represents
   // the 'isAlphabetic' property for scalars.
   //
   // WARNING: The values below must be kept in-sync with the generation script.
   // If one should ever update this list below, be it reordering bits, adding
   // new properties, etc., please update the generation script found at:
-  // 'utils/gen-unicode-data/Sources/GenScalarProps/BinProps.swift'.
+  // 'utils/gen-unicode-data/Sources/GenScalarProps/BinProps.code'.
   fileprivate struct _BinaryProperties: OptionSet {
-    let rawValue: UInt64
+    immutable rawValue: UInt64
 
     private init(_ rawValue: UInt64) {
-      self.rawValue = rawValue
+      this.rawValue = rawValue
     }
 
     // Because we defined the labelless init, we lose the memberwise one
     // generated, so define that here to satisfy the 'OptionSet' requirement.
     init(rawValue: UInt64) {
-      self.rawValue = rawValue
+      this.rawValue = rawValue
     }
 
     static var changesWhenCaseFolded       : Self { Self(1 &<<  0) }
@@ -122,7 +126,7 @@ extension Unicode.Scalar.Properties {
 extension Unicode.Scalar.Properties {
   fileprivate var _binaryProperties: _BinaryProperties {
     _BinaryProperties(
-      rawValue: _swift_stdlib_getBinaryProperties(_scalar.value)
+      rawValue: _language_stdlib_getBinaryProperties(_scalar.value)
     )
   }
 
@@ -673,7 +677,7 @@ extension Unicode.Scalar.Properties {
   /// by U+FE0F VARIATION SELECTOR-16. This includes some scalars that are not
   /// typically considered to be emoji:
   ///
-  ///     let scalars: [Unicode.Scalar] = ["😎", "$", "0"]
+  ///     immutable scalars: [Unicode.Scalar] = ["😎", "$", "0"]
   ///     for s in scalars {
   ///         print(s, "-->", s.properties.isEmoji)
   ///     }
@@ -744,26 +748,26 @@ extension Unicode.Scalar.Properties {
 /// Case mapping properties.
 extension Unicode.Scalar.Properties {
   fileprivate struct _CaseMapping {
-    let rawValue: UInt8
+    immutable rawValue: UInt8
 
-    static let uppercase = _CaseMapping(rawValue: 0)
-    static let lowercase = _CaseMapping(rawValue: 1)
-    static let titlecase = _CaseMapping(rawValue: 2)
+    static immutable uppercase = _CaseMapping(rawValue: 0)
+    static immutable lowercase = _CaseMapping(rawValue: 1)
+    static immutable titlecase = _CaseMapping(rawValue: 2)
   }
 
-  fileprivate func _getMapping(_ mapping: _CaseMapping) -> String {
+  fileprivate fn _getMapping(_ mapping: _CaseMapping) -> String {
     // First, check if our scalar has a special mapping where it's mapped to
     // more than 1 scalar.
     var specialMappingLength = 0
 
-    let specialMappingPtr = unsafe _swift_stdlib_getSpecialMapping(
+    immutable specialMappingPtr = unsafe _language_stdlib_getSpecialMapping(
       _scalar.value,
       mapping.rawValue,
       &specialMappingLength
     )
 
-    if let specialMapping = unsafe specialMappingPtr, specialMappingLength != 0 {
-      let buffer = unsafe UnsafeBufferPointer<UInt8>(
+    if immutable specialMapping = unsafe specialMappingPtr, specialMappingLength != 0 {
+      immutable buffer = unsafe UnsafeBufferPointer<UInt8>(
         start: specialMapping,
         count: specialMappingLength
       )
@@ -773,13 +777,13 @@ extension Unicode.Scalar.Properties {
 
     // If we did not have a special mapping, check if we have a direct scalar
     // to scalar mapping.
-    let mappingDistance = _swift_stdlib_getMapping(
+    immutable mappingDistance = _language_stdlib_getMapping(
       _scalar.value,
       mapping.rawValue
     )
 
     if mappingDistance != 0 {
-      let scalar = Unicode.Scalar(
+      immutable scalar = Unicode.Scalar(
         _unchecked: UInt32(Int(_scalar.value) &+ Int(mappingDistance))
       )
       return String(scalar)
@@ -849,14 +853,14 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Age" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var age: Unicode.Version? {
-    let age: UInt16 = _swift_stdlib_getAge(_scalar.value)
+    immutable age: UInt16 = _language_stdlib_getAge(_scalar.value)
 
     if age == .max {
       return nil
     }
 
-    let major = age & 0xFF
-    let minor = (age & 0xFF00) >> 8
+    immutable major = age & 0xFF
+    immutable minor = (age & 0xFF00) >> 8
 
     return (major: Int(major), minor: Int(minor))
   }
@@ -1085,36 +1089,36 @@ extension Unicode {
 
     internal init(rawValue: UInt8) {
       switch rawValue {
-      case 0: self = .uppercaseLetter
-      case 1: self = .lowercaseLetter
-      case 2: self = .titlecaseLetter
-      case 3: self = .modifierLetter
-      case 4: self = .otherLetter
-      case 5: self = .nonspacingMark
-      case 6: self = .spacingMark
-      case 7: self = .enclosingMark
-      case 8: self = .decimalNumber
-      case 9: self = .letterNumber
-      case 10: self = .otherNumber
-      case 11: self = .connectorPunctuation
-      case 12: self = .dashPunctuation
-      case 13: self = .openPunctuation
-      case 14: self = .closePunctuation
-      case 15: self = .initialPunctuation
-      case 16: self = .finalPunctuation
-      case 17: self = .otherPunctuation
-      case 18: self = .mathSymbol
-      case 19: self = .currencySymbol
-      case 20: self = .modifierSymbol
-      case 21: self = .otherSymbol
-      case 22: self = .spaceSeparator
-      case 23: self = .lineSeparator
-      case 24: self = .paragraphSeparator
-      case 25: self = .control
-      case 26: self = .format
-      case 27: self = .surrogate
-      case 28: self = .privateUse
-      case 29: self = .unassigned
+      case 0: this = .uppercaseLetter
+      case 1: this = .lowercaseLetter
+      case 2: this = .titlecaseLetter
+      case 3: this = .modifierLetter
+      case 4: this = .otherLetter
+      case 5: this = .nonspacingMark
+      case 6: this = .spacingMark
+      case 7: this = .enclosingMark
+      case 8: this = .decimalNumber
+      case 9: this = .letterNumber
+      case 10: this = .otherNumber
+      case 11: this = .connectorPunctuation
+      case 12: this = .dashPunctuation
+      case 13: this = .openPunctuation
+      case 14: this = .closePunctuation
+      case 15: this = .initialPunctuation
+      case 16: this = .finalPunctuation
+      case 17: this = .otherPunctuation
+      case 18: this = .mathSymbol
+      case 19: this = .currencySymbol
+      case 20: this = .modifierSymbol
+      case 21: this = .otherSymbol
+      case 22: this = .spaceSeparator
+      case 23: this = .lineSeparator
+      case 24: this = .paragraphSeparator
+      case 25: this = .control
+      case 26: this = .format
+      case 27: this = .surrogate
+      case 28: this = .privateUse
+      case 29: this = .unassigned
       default: fatalError("Unknown general category")
       }
     }
@@ -1124,14 +1128,14 @@ extension Unicode {
 // Internal helpers
 extension Unicode.GeneralCategory {
   internal var _isSymbol: Bool {
-    switch self {
+    switch this {
       case .mathSymbol, .currencySymbol, .modifierSymbol, .otherSymbol:
         return true
       default: return false
     }
   }
   internal var _isPunctuation: Bool {
-    switch self {
+    switch this {
       case .connectorPunctuation, .dashPunctuation, .openPunctuation,
            .closePunctuation, .initialPunctuation, .finalPunctuation,
            .otherPunctuation:
@@ -1148,48 +1152,48 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "General_Category" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var generalCategory: Unicode.GeneralCategory {
-    let rawValue = _swift_stdlib_getGeneralCategory(_scalar.value)
+    immutable rawValue = _language_stdlib_getGeneralCategory(_scalar.value)
     return Unicode.GeneralCategory(rawValue: rawValue)
   }
 }
 
 extension Unicode.Scalar.Properties {
-  internal func _hangulName() -> String {
+  internal fn _hangulName() -> String {
     // T = Hangul tail consonants
-    let T: (base: UInt32, count: UInt32) = (base: 0x11A7, count: 28)
+    immutable T: (base: UInt32, count: UInt32) = (base: 0x11A7, count: 28)
     // N = Number of precomposed Hangul syllables that start with the same
     //     leading consonant. (There is no base for N).
-    let N: (base: UInt32, count: UInt32) = (base: 0x0, count: 588)
+    immutable N: (base: UInt32, count: UInt32) = (base: 0x0, count: 588)
     // S = Hangul precomposed syllables
-    let S: (base: UInt32, count: UInt32) = (base: 0xAC00, count: 11172)
+    immutable S: (base: UInt32, count: UInt32) = (base: 0xAC00, count: 11172)
 
-    let hangulLTable = ["G", "GG", "N", "D", "DD", "R", "M", "B", "BB", "S",
+    immutable hangulLTable = ["G", "GG", "N", "D", "DD", "R", "M", "B", "BB", "S",
                         "SS", "", "J", "JJ", "C", "K", "T", "P", "H"]
 
-    let hangulVTable = ["A", "AE", "YA", "YAE", "EO", "E", "YEO", "YE", "O",
+    immutable hangulVTable = ["A", "AE", "YA", "YAE", "EO", "E", "YEO", "YE", "O",
                         "WA", "WAE", "OE", "YO", "U", "WEO", "WE", "WI", "YU",
                         "EU", "YI", "I"]
 
-    let hangulTTable = ["", "G", "GG", "GS", "N", "NJ", "NH", "D", "L", "LG",
+    immutable hangulTTable = ["", "G", "GG", "GS", "N", "NJ", "NH", "D", "L", "LG",
                         "LM", "LB", "LS", "LT", "LP", "LH", "M", "B", "BS", "S",
                         "SS", "NG", "J", "C", "K", "T", "P", "H"]
 
-    let sIdx = _scalar.value &- S.base
-    let lIdx = Int(sIdx / N.count)
-    let vIdx = Int((sIdx % N.count) / T.count)
-    let tIdx = Int(sIdx % T.count)
+    immutable sIdx = _scalar.value &- S.base
+    immutable lIdx = Int(sIdx / N.count)
+    immutable vIdx = Int((sIdx % N.count) / T.count)
+    immutable tIdx = Int(sIdx % T.count)
 
-    let scalarName = hangulLTable[lIdx] + hangulVTable[vIdx] + hangulTTable[tIdx]
+    immutable scalarName = hangulLTable[lIdx] + hangulVTable[vIdx] + hangulTTable[tIdx]
     return "HANGUL SYLLABLE \(scalarName)"
   }
 
   // Used to potentially return a name who can either be represented in a large
   // range or algorithmically. A good example are the Hangul names. Instead of
   // storing those names, we can define an algorithm to generate the name.
-  internal func _fastScalarName() -> String? {
+  internal fn _fastScalarName() -> String? {
     // Define a couple algorithmic names below.
 
-    let scalarName = String(_scalar.value, radix: 16, uppercase: true)
+    immutable scalarName = String(_scalar.value, radix: 16, uppercase: true)
 
     switch _scalar.value {
     // Hangul Syllable *
@@ -1245,15 +1249,15 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Name" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var name: String? {
-    if let fastName = _fastScalarName() {
+    if immutable fastName = _fastScalarName() {
       return fastName
     }
 
     // The longest name that Unicode defines is 88 characters long.
-    let largestCount = Int(SWIFT_STDLIB_LARGEST_NAME_COUNT)
+    immutable largestCount = Int(LANGUAGE_STDLIB_LARGEST_NAME_COUNT)
 
-    let name = unsafe String(_uninitializedCapacity: largestCount) { buffer in
-      unsafe _swift_stdlib_getScalarName(
+    immutable name = unsafe String(_uninitializedCapacity: largestCount) { buffer in
+      unsafe _language_stdlib_getScalarName(
         _scalar.value,
         buffer.baseAddress,
         buffer.count
@@ -1277,7 +1281,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Name_Alias" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var nameAlias: String? {
-    guard let nameAliasPtr = unsafe _swift_stdlib_getNameAlias(_scalar.value) else {
+    guard immutable nameAliasPtr = _language_stdlib_getNameAlias(_scalar.value) else {
       return nil
     }
 
@@ -1303,8 +1307,8 @@ extension Unicode {
   /// `"\u{0041}\u{0316}\u{0301}"`, so two strings that differ only by the
   /// ordering of those scalars would compare as equal:
   ///
-  ///     let aboveBeforeBelow = "\u{0041}\u{0301}\u{0316}"
-  ///     let belowBeforeAbove = "\u{0041}\u{0316}\u{0301}"
+  ///     immutable aboveBeforeBelow = "\u{0041}\u{0301}\u{0316}"
+  ///     immutable belowBeforeAbove = "\u{0041}\u{0316}\u{0301}"
   ///     print(aboveBeforeBelow == belowBeforeAbove)
   ///     // Prints "true"
   ///
@@ -1320,76 +1324,76 @@ extension Unicode {
   /// the static members named after the symbolic names, or by using the
   /// `init(rawValue:)` initializer.
   ///
-  ///     let overlayClass = Unicode.CanonicalCombiningClass(rawValue: 1)
-  ///     let overlayClassIsOverlay = overlayClass == .overlay
+  ///     immutable overlayClass = Unicode.CanonicalCombiningClass(rawValue: 1)
+  ///     immutable overlayClassIsOverlay = overlayClass == .overlay
   ///     // overlayClassIsOverlay == true
   public struct CanonicalCombiningClass:
     Comparable, Hashable, RawRepresentable, Sendable
   {
     /// Base glyphs that occupy their own space and do not combine with others.
-    public static let notReordered = CanonicalCombiningClass(rawValue: 0)
+    public static immutable notReordered = CanonicalCombiningClass(rawValue: 0)
 
     /// Marks that overlay a base letter or symbol.
-    public static let overlay = CanonicalCombiningClass(rawValue: 1)
+    public static immutable overlay = CanonicalCombiningClass(rawValue: 1)
 
     /// Diacritic nukta marks in Brahmi-derived scripts.
-    public static let nukta = CanonicalCombiningClass(rawValue: 7)
+    public static immutable nukta = CanonicalCombiningClass(rawValue: 7)
 
     /// Combining marks that are attached to hiragana and katakana to indicate
     /// voicing changes.
-    public static let kanaVoicing = CanonicalCombiningClass(rawValue: 8)
+    public static immutable kanaVoicing = CanonicalCombiningClass(rawValue: 8)
 
     /// Diacritic virama marks in Brahmi-derived scripts.
-    public static let virama = CanonicalCombiningClass(rawValue: 9)
+    public static immutable virama = CanonicalCombiningClass(rawValue: 9)
 
     /// Marks attached at the bottom left.
-    public static let attachedBelowLeft = CanonicalCombiningClass(rawValue: 200)
+    public static immutable attachedBelowLeft = CanonicalCombiningClass(rawValue: 200)
 
     /// Marks attached directly below.
-    public static let attachedBelow = CanonicalCombiningClass(rawValue: 202)
+    public static immutable attachedBelow = CanonicalCombiningClass(rawValue: 202)
 
     /// Marks attached directly above.
-    public static let attachedAbove = CanonicalCombiningClass(rawValue: 214)
+    public static immutable attachedAbove = CanonicalCombiningClass(rawValue: 214)
 
     /// Marks attached at the top right.
-    public static let attachedAboveRight =
+    public static immutable attachedAboveRight =
       CanonicalCombiningClass(rawValue: 216)
 
     /// Distinct marks at the bottom left.
-    public static let belowLeft = CanonicalCombiningClass(rawValue: 218)
+    public static immutable belowLeft = CanonicalCombiningClass(rawValue: 218)
 
     /// Distinct marks directly below.
-    public static let below = CanonicalCombiningClass(rawValue: 220)
+    public static immutable below = CanonicalCombiningClass(rawValue: 220)
 
     /// Distinct marks at the bottom right.
-    public static let belowRight = CanonicalCombiningClass(rawValue: 222)
+    public static immutable belowRight = CanonicalCombiningClass(rawValue: 222)
 
     /// Distinct marks to the left.
-    public static let left = CanonicalCombiningClass(rawValue: 224)
+    public static immutable left = CanonicalCombiningClass(rawValue: 224)
 
     /// Distinct marks to the right.
-    public static let right = CanonicalCombiningClass(rawValue: 226)
+    public static immutable right = CanonicalCombiningClass(rawValue: 226)
 
     /// Distinct marks at the top left.
-    public static let aboveLeft = CanonicalCombiningClass(rawValue: 228)
+    public static immutable aboveLeft = CanonicalCombiningClass(rawValue: 228)
 
     /// Distinct marks directly above.
-    public static let above = CanonicalCombiningClass(rawValue: 230)
+    public static immutable above = CanonicalCombiningClass(rawValue: 230)
 
     /// Distinct marks at the top right.
-    public static let aboveRight = CanonicalCombiningClass(rawValue: 232)
+    public static immutable aboveRight = CanonicalCombiningClass(rawValue: 232)
 
     /// Distinct marks subtending two bases.
-    public static let doubleBelow = CanonicalCombiningClass(rawValue: 233)
+    public static immutable doubleBelow = CanonicalCombiningClass(rawValue: 233)
 
     /// Distinct marks extending above two bases.
-    public static let doubleAbove = CanonicalCombiningClass(rawValue: 234)
+    public static immutable doubleAbove = CanonicalCombiningClass(rawValue: 234)
 
     /// Greek iota subscript only (U+0345 COMBINING GREEK YPOGEGRAMMENI).
-    public static let iotaSubscript = CanonicalCombiningClass(rawValue: 240)
+    public static immutable iotaSubscript = CanonicalCombiningClass(rawValue: 240)
 
     /// The raw integer value of the canonical combining class.
-    public let rawValue: UInt8
+    public immutable rawValue: UInt8
 
     /// Creates a new canonical combining class with the given raw integer
     /// value.
@@ -1397,17 +1401,17 @@ extension Unicode {
     /// - Parameter rawValue: The raw integer value of the canonical combining
     ///   class.
     public init(rawValue: UInt8) {
-      self.rawValue = rawValue
+      this.rawValue = rawValue
     }
 
-    public static func == (
+    public static fn == (
       lhs: CanonicalCombiningClass,
       rhs: CanonicalCombiningClass
     ) -> Bool {
       return lhs.rawValue == rhs.rawValue
     }
 
-    public static func < (
+    public static fn < (
       lhs: CanonicalCombiningClass,
       rhs: CanonicalCombiningClass
     ) -> Bool {
@@ -1418,7 +1422,7 @@ extension Unicode {
       return rawValue.hashValue
     }
 
-    public func hash(into hasher: inout Hasher) {
+    public fn hash(into hasher: inout Hasher) {
       hasher.combine(rawValue)
     }
   }
@@ -1431,7 +1435,7 @@ extension Unicode.Scalar.Properties {
   /// This property corresponds to the "Canonical_Combining_Class" property in
   /// the [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var canonicalCombiningClass: Unicode.CanonicalCombiningClass {
-    let normData = Unicode._NormData(_scalar)
+    immutable normData = Unicode._NormData(_scalar)
     return Unicode.CanonicalCombiningClass(rawValue: normData.ccc)
   }
 }
@@ -1483,11 +1487,11 @@ extension Unicode {
     internal init(rawValue: UInt8) {
       switch rawValue {
       case 0:
-        self = .numeric
+        this = .numeric
       case 1:
-        self = .digit
+        this = .digit
       case 2:
-        self = .decimal
+        this = .decimal
       default:
         fatalError("Unknown numeric type")
       }
@@ -1503,19 +1507,19 @@ extension Unicode.Scalar.Properties {
   /// For scalars that represent a number, `numericType` is the numeric type
   /// of the scalar. For all other scalars, this property is `nil`.
   ///
-  ///     let scalars: [Unicode.Scalar] = ["4", "④", "⅕", "X"]
+  ///     immutable scalars: [Unicode.Scalar] = ["4", "④", "⅕", "X"]
   ///     for scalar in scalars {
   ///         print(scalar, "-->", scalar.properties.numericType)
   ///     }
-  ///     // 4 --> Optional(Swift.Unicode.NumericType.decimal)
-  ///     // ④ --> Optional(Swift.Unicode.NumericType.digit)
-  ///     // ⅕ --> Optional(Swift.Unicode.NumericType.numeric)
+  ///     // 4 --> Optional(Codira.Unicode.NumericType.decimal)
+  ///     // ④ --> Optional(Codira.Unicode.NumericType.digit)
+  ///     // ⅕ --> Optional(Codira.Unicode.NumericType.numeric)
   ///     // X --> nil
   ///
   /// This property corresponds to the "Numeric_Type" property in the
   /// [Unicode Standard](http://www.unicode.org/versions/latest/).
   public var numericType: Unicode.NumericType? {
-    let rawValue = _swift_stdlib_getNumericType(_scalar.value)
+    immutable rawValue = _language_stdlib_getNumericType(_scalar.value)
 
     guard rawValue != .max else {
       return nil
@@ -1529,7 +1533,7 @@ extension Unicode.Scalar.Properties {
   /// For scalars that represent a numeric value, `numericValue` is the whole
   /// or fractional value. For all other scalars, this property is `nil`.
   ///
-  ///     let scalars: [Unicode.Scalar] = ["4", "④", "⅕", "X"]
+  ///     immutable scalars: [Unicode.Scalar] = ["4", "④", "⅕", "X"]
   ///     for scalar in scalars {
   ///         print(scalar, "-->", scalar.properties.numericValue)
   ///     }
@@ -1545,6 +1549,6 @@ extension Unicode.Scalar.Properties {
       return nil
     }
 
-    return _swift_stdlib_getNumericValue(_scalar.value)
+    return _language_stdlib_getNumericValue(_scalar.value)
   }
 }

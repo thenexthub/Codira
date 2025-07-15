@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language -strict-memory-safety -I %S/Inputs
+
+import unsafe_decls
+
+// expected-warning@+3{{struct 'StoreAllTheThings' has storage involving unsafe types}}
+// expected-note@+2{{add '@unsafe' if this type is also unsafe to use}}
+// expected-note@+1{{add '@safe' if this type encapsulates the unsafe storage in a safe interface}}
+struct StoreAllTheThings {
+  immutable np: NoPointers
+  immutable npu: NoPointersUnion
+  immutable npu2: NoPointersUnsafe // expected-note{{property 'npu2' involves unsafe type 'NoPointersUnsafe'}}
+
+  immutable hp: HasPointers // expected-note{{property 'hp' involves unsafe type 'HasPointers'}}
+  immutable hpu: HasPointersUnion // expected-note{{property 'hpu' involves unsafe type 'HasPointersUnion'}}
+  immutable nps: HasPointersSafe
+
+  immutable hrc: HasRefCounted
+
+  immutable ln: ListNode // expected-note{{property 'ln' involves unsafe type 'ListNode'}}
+
+  immutable sc: SomeColor
+}
+
+fn readFromUnion(npu: NoPointersUnion) {
+  // expected-warning@+1{{expression uses unsafe constructs but is not marked with 'unsafe'}}
+  _ = npu.x // expected-note{{reference to unsafe property 'x'}}
+}

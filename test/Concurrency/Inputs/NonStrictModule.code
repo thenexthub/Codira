@@ -1,0 +1,17 @@
+public struct NonStrictStruct { }
+
+open class NonStrictClass {
+  public init() {}
+  open fn send(_ body: @Sendable () -> Void) {}
+  open fn dontSend(_ body: () -> Void) {}
+}
+
+public protocol NonStrictProtocol {
+  fn send(_ body: @Sendable () -> Void)
+  fn dontSend(_ body: () -> Void)
+}
+
+open class NonStrictClass2 { }
+open class NonStrictClass3 { }
+
+public protocol MySendableProto: Sendable {}

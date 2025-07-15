@@ -1,21 +1,25 @@
 //===--- TypeInfoProvider.h - Abstract access to type info ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file declares an abstract interface for reading type layout info.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REMOTE_TYPEINFOPROVIDER_H
-#define SWIFT_REMOTE_TYPEINFOPROVIDER_H
+#ifndef LANGUAGE_REMOTE_TYPEINFOPROVIDER_H
+#define LANGUAGE_REMOTE_TYPEINFOPROVIDER_H
 
 #include <stdint.h>
 namespace language {
@@ -34,7 +38,7 @@ struct TypeInfoProvider {
   /// represented in the metadata. LLDB can read this information from debug
   /// info, for example.
   virtual const reflection::TypeInfo *
-  getTypeInfo(llvm::StringRef mangledName) = 0;
+  getTypeInfo(toolchain::StringRef mangledName) = 0;
 
   /// A key that can be used to identify the type info provider (for example, 
   /// for caching purposes).

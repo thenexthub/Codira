@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides the \c OverloadChoice class and its related types,
@@ -18,14 +19,14 @@
 // selection of a particular overload from a set.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_OVERLOADCHOICE_H
-#define SWIFT_SEMA_OVERLOADCHOICE_H
+#ifndef LANGUAGE_SEMA_OVERLOADCHOICE_H
+#define LANGUAGE_SEMA_OVERLOADCHOICE_H
 
 #include "language/AST/AvailabilityRange.h"
 #include "language/AST/FunctionRefInfo.h"
 #include "language/AST/Types.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
@@ -103,12 +104,12 @@ class OverloadChoice {
 
   /// The base type to be used when referencing the declaration
   /// along with the three bits above.
-  llvm::PointerIntPair<Type, 3, unsigned> BaseAndDeclKind;
+  toolchain::PointerIntPair<Type, 3, unsigned> BaseAndDeclKind;
 
   /// We mash together OverloadChoiceKind with tuple indices into a single
   /// integer representation.
   using OverloadChoiceKindWithTupleIndex =
-      llvm::PointerEmbeddedInt<uint32_t, 29>;
+      toolchain::PointerEmbeddedInt<uint32_t, 29>;
 
   /// Depending on the OverloadChoiceKind, this could be one of two cases:
   /// 1) A ValueDecl for the cases that match to a Decl.  The exactly kind of
@@ -117,13 +118,13 @@ class OverloadChoice {
   /// 2) An OverloadChoiceKindWithTupleIndex if this is an overload kind without
   ///    a decl (e.g., a BaseType, keypath, tuple, etc).
   ///
-  llvm::PointerUnion<ValueDecl*, OverloadChoiceKindWithTupleIndex> DeclOrKind;
+  toolchain::PointerUnion<ValueDecl*, OverloadChoiceKindWithTupleIndex> DeclOrKind;
 
   /// If this OverloadChoice represents a DynamicMemberLookup result,
   /// then this holds the identifier for the original member being
   /// looked up, as well as 1 bit tag which identifies whether this
   /// choice represents a key-path based dynamic lookup.
-  llvm::PointerIntPair<Identifier, 1, unsigned> DynamicMember;
+  toolchain::PointerIntPair<Identifier, 1, unsigned> DynamicMember;
 
   /// This holds the kind of function reference.
   /// FIXME: This needs three bits. Can we pack them somewhere?
@@ -253,6 +254,23 @@ public:
     return (OverloadChoiceKind)kind;
   }
 
+  bool canBePrepared() const {
+    switch (getKind()) {
+    case OverloadChoiceKind::Decl:
+    case OverloadChoiceKind::DeclViaBridge:
+    case OverloadChoiceKind::DeclViaDynamic:
+    case OverloadChoiceKind::DeclViaUnwrappedOptional:
+    case OverloadChoiceKind::DynamicMemberLookup:
+    case OverloadChoiceKind::KeyPathDynamicMemberLookup:
+      return true;
+    case OverloadChoiceKind::TupleIndex:
+    case OverloadChoiceKind::MaterializePack:
+    case OverloadChoiceKind::ExtractFunctionIsolation:
+    case OverloadChoiceKind::KeyPathApplication:
+      return false;
+    }
+  }
+
   /// Determine whether this choice is for a declaration.
   bool isDecl() const {
     return DeclOrKind.is<ValueDecl*>();
@@ -319,4 +337,4 @@ public:
 } // end namespace constraints
 } // end namespace language
 
-#endif // LLVM_SWIFT_SEMA_OVERLOADCHOICE_H
+#endif // TOOLCHAIN_LANGUAGE_SEMA_OVERLOADCHOICE_H

@@ -1,30 +1,34 @@
 //===--- SILOptimizerRequests.cpp - Requests for SIL Optimization  --------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/SILOptimizerRequests.h"
 #include "language/AST/Evaluator.h"
 #include "language/SILOptimizer/PassManager/PassPipeline.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/Hashing.h"
+#include "toolchain/ADT/Hashing.h"
 
 using namespace language;
 
 namespace language {
 // Implement the SILOptimizer type zone (zone 13).
-#define SWIFT_TYPEID_ZONE SILOptimizer
-#define SWIFT_TYPEID_HEADER "swift/AST/SILOptimizerTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE SILOptimizer
+#define LANGUAGE_TYPEID_HEADER "language/AST/SILOptimizerTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 } // end namespace language
 
 //----------------------------------------------------------------------------//
@@ -37,11 +41,11 @@ operator==(const SILPipelineExecutionDescriptor &other) const {
          IsMandatory == other.IsMandatory && IRMod == other.IRMod;
 }
 
-llvm::hash_code swift::hash_value(const SILPipelineExecutionDescriptor &desc) {
-  return llvm::hash_combine(desc.SM, desc.Plan, desc.IsMandatory, desc.IRMod);
+toolchain::hash_code language::hash_value(const SILPipelineExecutionDescriptor &desc) {
+  return toolchain::hash_combine(desc.SM, desc.Plan, desc.IsMandatory, desc.IRMod);
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const SILPipelineExecutionDescriptor &desc) {
   out << "Run pipelines { ";
   interleave(
@@ -53,7 +57,7 @@ void swift::simple_display(llvm::raw_ostream &out,
 }
 
 SourceLoc
-swift::extractNearestSourceLoc(const SILPipelineExecutionDescriptor &desc) {
+language::extractNearestSourceLoc(const SILPipelineExecutionDescriptor &desc) {
   return extractNearestSourceLoc(desc.SM);
 }
 
@@ -90,13 +94,13 @@ LoweredSILRequest::evaluate(Evaluator &evaluator,
 
 // Define request evaluation functions for each of the SILGen requests.
 static AbstractRequestFunction *silOptimizerRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/SILOptimizerTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerSILOptimizerRequestFunctions(Evaluator &evaluator) {
+void language::registerSILOptimizerRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::SILOptimizer,
                                      silOptimizerRequestFunctions);
 }

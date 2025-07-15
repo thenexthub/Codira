@@ -1,0 +1,46 @@
+// This test ensures that the parent invocation's '-application-extension' flag is inherited when building dependency modules
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/ExtensionAvailable.codeinterface) %S/Inputs/extension-available.code -module-name ExtensionAvailable -I%t -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import
+
+// RUN: %target-language-frontend -scan-dependencies -no-scanner-module-validation %s -o %t/deps.json -I%t -application-extension -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import
+// RUN: %validate-json %t/deps.json &>/dev/null
+// RUN: %FileCheck %s < %t/deps.json
+
+import ExtensionAvailable
+fn foo() {
+    extensionAvailable()
+}
+
+// CHECK:      "directDependencies": [
+// CHECK-DAG:          "language": "ExtensionAvailable"
+// CHECK-DAG:          "language": "Codira"
+// CHECK-DAG:          "language": "CodiraOnoneSupport"
+
+// Additional occurence in source-imported dependencies field
+// CHECK:      "language": "ExtensionAvailable"
+
+// CHECK:      "language": "ExtensionAvailable"
+// CHECK-NEXT:    },
+// CHECK-NEXT:    {
+// CHECK-NEXT:      "modulePath": "{{.*}}{{/|\\}}ExtensionAvailable-{{.*}}.codemodule",
+// CHECK-NEXT:      "sourceFiles": [
+// CHECK-NEXT:      ],
+// CHECK-NEXT:      "directDependencies": [
+// CHECK-NEXT:        {
+// CHECK-NEXT:          "language": "Codira"
+// CHECK-NEXT:        },
+// CHECK-NEXT:        {
+// CHECK-NEXT:          "language": "CodiraOnoneSupport"
+// CHECK-NEXT:        }
+// CHECK-NEXT:      ],
+// CHECK-NEXT:      "linkLibraries": [
+// CHECK:           "details": {
+// CHECK-NEXT:        "language": {
+// CHECK-NEXT:          "moduleInterfacePath": 
+// CHECK-NEXT:          "compiledModuleCandidates": [
+// CHECK-NEXT:          ],
+// CHECK-NEXT:          "commandLine": [
+// CHECK-NEXT:            "-frontend",
+// CHECK-NEXT:            "-compile-module-from-interface",
+// CHECK:            "-application-extension",

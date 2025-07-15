@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Internal functions for the concurrency library.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_TASKPRIVATE_BACKDEPLOY56_H
-#define SWIFT_CONCURRENCY_TASKPRIVATE_BACKDEPLOY56_H
+#ifndef LANGUAGE_CONCURRENCY_TASKPRIVATE_BACKDEPLOY56_H
+#define LANGUAGE_CONCURRENCY_TASKPRIVATE_BACKDEPLOY56_H
 
 #include "Concurrency/Error.h"
 #include "Concurrency/Task.h"
@@ -27,7 +28,7 @@
 #include "language/Runtime/Exclusivity.h"
 #include "language/Runtime/Error.h"
 
-#define SWIFT_FATAL_ERROR swift_Concurrency_fatalError
+#define LANGUAGE_FATAL_ERROR language_Concurrency_fatalError
 #include "public/runtime/StackAllocator.h"
 
 namespace language {
@@ -35,7 +36,7 @@ namespace language {
 #if 0
 using ThreadID = decltype(pthread_self());
 
-inline ThreadID _swift_get_thread_id() {
+inline ThreadID _language_get_thread_id() {
 #if defined(_WIN32)
   return GetCurrentThreadId();
 #else
@@ -43,50 +44,50 @@ inline ThreadID _swift_get_thread_id() {
 #endif
 }
 
-#define SWIFT_TASK_DEBUG_LOG(fmt, ...)                                         \
+#define LANGUAGE_TASK_DEBUG_LOG(fmt, ...)                                         \
   fprintf(stderr, "[%lu] [%s:%d](%s) " fmt "\n",                               \
-          (unsigned long)_swift_get_thread_id(),                               \
+          (unsigned long)_language_get_thread_id(),                               \
           __FILE__, __LINE__, __FUNCTION__,                                    \
           __VA_ARGS__)
 #else
-#define SWIFT_TASK_DEBUG_LOG(fmt ...) (void)0
+#define LANGUAGE_TASK_DEBUG_LOG(fmt ...) (void)0
 #endif
 
 /// Allocate task-local memory on behalf of a specific task,
 /// not necessarily the current one.  Generally this should only be
 /// done on behalf of a child task.
-void *_swift_task_alloc_specific(AsyncTask *task, size_t size);
+void *_language_task_alloc_specific(AsyncTask *task, size_t size);
 
 /// dellocate task-local memory on behalf of a specific task,
 /// not necessarily the current one.  Generally this should only be
 /// done on behalf of a child task.
-void _swift_task_dealloc_specific(AsyncTask *task, void *ptr);
+void _language_task_dealloc_specific(AsyncTask *task, void *ptr);
 
 namespace {
 
 /// The layout of a context to call one of the following functions:
 ///
-///   @_silgen_name("swift_task_future_wait")
-///   func _taskFutureGet<T>(_ task: Builtin.NativeObject) async -> T
+///   @_silgen_name("language_task_future_wait")
+///   fn _taskFutureGet<T>(_ task: Builtin.NativeObject) async -> T
 ///
-///   @_silgen_name("swift_task_future_wait_throwing")
-///   func _taskFutureGetThrowing<T>(_ task: Builtin.NativeObject) async throws -> T
+///   @_silgen_name("language_task_future_wait_throwing")
+///   fn _taskFutureGetThrowing<T>(_ task: Builtin.NativeObject) async throws -> T
 ///
-///   @_silgen_name("swift_asyncLet_wait")
-///   func _asyncLetGet<T>(_ task: Builtin.RawPointer) async -> T
+///   @_silgen_name("language_asyncLet_wait")
+///   fn _asyncLetGet<T>(_ task: Builtin.RawPointer) async -> T
 ///
-///   @_silgen_name("swift_asyncLet_waitThrowing")
-///   func _asyncLetGetThrowing<T>(_ task: Builtin.RawPointer) async throws -> T
+///   @_silgen_name("language_asyncLet_waitThrowing")
+///   fn _asyncLetGetThrowing<T>(_ task: Builtin.RawPointer) async throws -> T
 ///
-///   @_silgen_name("swift_taskGroup_wait_next_throwing")
-///   func _taskGroupWaitNext<T>(group: Builtin.RawPointer) async throws -> T?
+///   @_silgen_name("language_taskGroup_wait_next_throwing")
+///   fn _taskGroupWaitNext<T>(group: Builtin.RawPointer) async throws -> T?
 ///
-///   @_silgen_name("swift_taskGroup_wait_nextAll")
-///   func _taskGroupWaitAll<T>(group: Builtin.RawPointer) async throws -> T?
+///   @_silgen_name("language_taskGroup_wait_nextAll")
+///   fn _taskGroupWaitAll<T>(group: Builtin.RawPointer) async throws -> T?
 ///
 class TaskFutureWaitAsyncContext : public AsyncContext {
 public:
-  SwiftError *errorResult;
+  CodiraError *errorResult;
 
   OpaqueValue *successResultPointer;
 
@@ -102,9 +103,9 @@ public:
   void fillWithError(AsyncTask::FutureFragment *future) {
     fillWithError(future->getError());
   }
-  void fillWithError(SwiftError *error) {
+  void fillWithError(CodiraError *error) {
     errorResult = error;
-    swift_errorRetain(error);
+    language_errorRetain(error);
   }
 };
 
@@ -123,13 +124,13 @@ void restoreTaskVoucher(AsyncTask *task);
 /// release() establishes a happens-before relation with a preceding acquire()
 /// on the same address.
 __attribute__((visibility("hidden")))
-void _swift_tsan_acquire(void *addr);
+void _language_tsan_acquire(void *addr);
 __attribute__((visibility("hidden")))
-void _swift_tsan_release(void *addr);
+void _language_tsan_release(void *addr);
 
 /// Clear the active task reference for the current thread.
 __attribute__((visibility("hidden")))
-AsyncTask *_swift_task_clearCurrent();
+AsyncTask *_language_task_clearCurrent();
 
 /// The current state of a task's status records.
 class alignas(sizeof(void*) * 2) ActiveTaskStatus {
@@ -217,7 +218,7 @@ public:
 
   /// Return the innermost cancellation record.  Code running
   /// asynchronously with this task should not access this record
-  /// without having first locked it; see swift_taskCancel.
+  /// without having first locked it; see language_taskCancel.
   TaskStatusRecord *getInnermostRecord() const {
     return Record;
   }
@@ -229,7 +230,7 @@ public:
 
   using record_iterator =
     LinkedListIterator<TaskStatusRecord, getStatusRecordParent>;
-  llvm::iterator_range<record_iterator> records() const {
+  toolchain::iterator_range<record_iterator> records() const {
     return record_iterator::rangeBeginning(getInnermostRecord());
   }
 };
@@ -244,7 +245,7 @@ using TaskAllocator = StackAllocator<SlabCapacity, &TaskAllocatorSlabMetadata>;
 struct AsyncTask::PrivateStorage {
   /// The currently-active information about cancellation.
   /// Currently two words.
-  swift::atomic<ActiveTaskStatus> Status;
+  language::atomic<ActiveTaskStatus> Status;
 
   /// The allocator for the task stack.
   /// Currently 2 words + 8 bytes.
@@ -257,7 +258,7 @@ struct AsyncTask::PrivateStorage {
   /// State inside the AsyncTask whose state is only managed by the exclusivity
   /// runtime in stdlibCore. We zero initialize to provide a safe initial value,
   /// but actually initialize its bit state to a const global provided by
-  /// libswiftCore so that libswiftCore can control the layout of our initial
+  /// liblanguageCore so that liblanguageCore can control the layout of our initial
   /// state.
   uintptr_t ExclusivityAccessSet[2] = {0, 0};
 
@@ -323,14 +324,14 @@ inline bool AsyncTask::isCancelled() const {
 }
 
 inline void AsyncTask::flagAsRunning() {
-  SWIFT_TASK_DEBUG_LOG("%p->flagAsRunning()", this);
+  LANGUAGE_TASK_DEBUG_LOG("%p->flagAsRunning()", this);
   auto oldStatus = _private().Status.load(std::memory_order_relaxed);
   while (true) {
     assert(!oldStatus.isRunning());
     if (oldStatus.isLocked()) {
       flagAsRunning_slow();
       adoptTaskVoucher(this);
-      swift_task_enterThreadLocalContextBackdeploy56(
+      language_task_enterThreadLocalContextBackdeploy56(
           (char *)&_private().ExclusivityAccessSet[0]);
       return;
     }
@@ -345,7 +346,7 @@ inline void AsyncTask::flagAsRunning() {
                                                 std::memory_order_relaxed,
                                                 std::memory_order_relaxed)) {
       adoptTaskVoucher(this);
-      swift_task_enterThreadLocalContextBackdeploy56(
+      language_task_enterThreadLocalContextBackdeploy56(
           (char *)&_private().ExclusivityAccessSet[0]);
       return;
     }
@@ -353,13 +354,13 @@ inline void AsyncTask::flagAsRunning() {
 }
 
 inline void AsyncTask::flagAsSuspended() {
-  SWIFT_TASK_DEBUG_LOG("%p->flagAsSuspended()", this);
+  LANGUAGE_TASK_DEBUG_LOG("%p->flagAsSuspended()", this);
   auto oldStatus = _private().Status.load(std::memory_order_relaxed);
   while (true) {
     assert(oldStatus.isRunning());
     if (oldStatus.isLocked()) {
       flagAsSuspended_slow();
-      swift_task_exitThreadLocalContextBackdeploy56(
+      language_task_exitThreadLocalContextBackdeploy56(
           (char *)&_private().ExclusivityAccessSet[0]);
       restoreTaskVoucher(this);
       return;
@@ -374,7 +375,7 @@ inline void AsyncTask::flagAsSuspended() {
     if (_private().Status.compare_exchange_weak(oldStatus, newStatus,
                                                 std::memory_order_relaxed,
                                                 std::memory_order_relaxed)) {
-      swift_task_exitThreadLocalContextBackdeploy56(
+      language_task_exitThreadLocalContextBackdeploy56(
           (char *)&_private().ExclusivityAccessSet[0]);
       restoreTaskVoucher(this);
       return;
@@ -385,4 +386,4 @@ inline void AsyncTask::flagAsSuspended() {
 
 } // namespace language
 
-#endif // SWIFT_CONCURRENCY_TASKPRIVATE_BACKDEPLOY56_H
+#endif // LANGUAGE_CONCURRENCY_TASKPRIVATE_BACKDEPLOY56_H

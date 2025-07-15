@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -o %t %S/../Inputs/empty.code -module-name new_module
+// RUN: %target-language-frontend -emit-module -o %t %S/../Inputs/empty.code -module-name another_new_module
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/depends_on_new_module.code -I %t
+// RUN: %target-language-frontend %s -typecheck -I %t
+// RUN: rm %t/new_module.codemodule
+// RUN: %target-language-frontend %s -typecheck -I %t -verify -show-diagnostics-after-fatal
+
+// Attempt to round-trip dependency information through module merging.
+// RUN: %target-language-frontend -emit-module -o %t %S/../Inputs/empty.code -module-name new_module
+// RUN: mv %t/depends_on_new_module.codemodule %t/depends2.codemodule
+// RUN: %target-language-frontend -emit-module -parse-as-library -o %t %t/depends2.codemodule -module-name depends_on_new_module -I %t
+// RUN: %target-language-frontend %s -typecheck -I %t
+// RUN: rm %t/new_module.codemodule
+// RUN: %target-language-frontend %s -typecheck -I %t -verify -show-diagnostics-after-fatal
+
+// This error should happen after we've deleted the dependency module
+import depends_on_new_module // expected-error{{missing required module 'new_module'}}
+
+depends_on_new_module.foo() // expected-error {{module 'depends_on_new_module' has no member named 'foo'}}

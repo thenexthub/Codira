@@ -1,0 +1,47 @@
+// RUN: %target-language-frontend -emit-sil -o /dev/null -verify %s -strict-concurrency=complete
+// RUN: %target-language-frontend -emit-sil -o /dev/null -verify %s -strict-concurrency=complete
+// RUN: %target-language-frontend -emit-sil -o /dev/null -verify %s -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@Sendable fn globalFunc() { }
+
+@available(CodiraStdlib 5.1, *)
+actor A {
+  var state: Bool = false
+  
+  @Sendable fn f() { // expected-warning{{actor-isolated synchronous instance method 'f()' cannot be marked as '@Sendable'}}
+    state = true
+  }
+
+  @Sendable nonisolated fn g() { }
+
+  @Sendable fn fAsync() async {
+    state = true
+  }
+}
+
+class NonSendableC { // expected-note{{class 'NonSendableC' does not conform to the 'Sendable' protocol}}
+    var x: Int = 0
+
+    @Sendable fn inc() { // expected-warning{{instance method of non-Sendable type 'NonSendableC' cannot be marked as '@Sendable'}}
+        x += 1
+    }
+}
+
+struct S<T> { // expected-note{{consider making generic parameter 'T' conform to the 'Sendable' protocol}}
+  immutable t: T
+
+  @Sendable fn test() {} // expected-warning{{instance method of non-Sendable type 'S<T>' cannot be marked as '@Sendable'}}
+}
+
+extension S: Sendable where T: Sendable {
+  @Sendable fn test2() {}
+}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor @Sendable fn globalActorFunc() { } // expected-warning{{main actor-isolated synchronous global function 'globalActorFunc()' cannot be marked as '@Sendable'}}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor @Sendable fn globalActorFuncAsync() async { }

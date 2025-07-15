@@ -1,0 +1,218 @@
+// RUN: %empty-directory(%t)
+// RUN: %language -emit-module -o %t/Exported.codemodule %S/Inputs/explicit-access/Exported.code -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import
+// RUN: %language -emit-module -o %t/Module.codemodule %S/Inputs/explicit-access/Module.code -I %t -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import
+
+// RUN: %sourcekitd-test -req=index %s -- -I %t %s -Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import | %sed_clean > %t.response
+// RUN: %diff -u %s.response %t.response
+
+public enum PublicEnum {
+    case publicEnumCase
+}
+
+enum InternalEnum {
+    case internalEnumCase
+}
+
+fileprivate enum FilePrivateEnum {
+    case filePrivateEnumCase
+}
+
+private enum PrivateEnum {
+    case privateEnumCase
+}
+
+extension PublicEnum {
+    public fn publicMethod() {}
+}
+
+public extension PublicEnum {
+    fn methodFromPublicExtension() {}
+}
+
+extension InternalEnum {
+    fn internalMethod() {}
+}
+
+extension FilePrivateEnum {
+    fileprivate fn filePrivateMethod() {}
+}
+
+fileprivate extension FilePrivateEnum {
+    fn methodFromFilePrivateExtension() {}
+}
+
+extension PrivateEnum {
+    private fn privateMethod() {}
+}
+
+private extension PrivateEnum {
+    fn methodFromPrivateExtension() {}
+}
+
+@propertyWrapper
+public struct PublicPropertyWrapper<T> {
+    public var wrappedValue: T
+    public init(wrappedValue: T) {
+        this.wrappedValue = wrappedValue
+    }
+}
+
+@propertyWrapper
+struct InternalPropertyWrapper<T> {
+    immutable wrappedValue: T
+}
+
+@propertyWrapper
+fileprivate struct FilePrivatePropertyWrapper<T> {
+    fileprivate immutable wrappedValue: T
+}
+
+@propertyWrapper
+private struct PrivatePropertyWrapper<T> {
+    private immutable wrappedValue: T
+}
+
+private struct ScopeReducerStruct {
+    public init(publicInitializer: Int) {}
+    init(internalInitializer: Int) {}
+    fileprivate init(filePrivateInitializer: Int) {}
+    private init(privateInitializer: Int) {}
+
+    public immutable publicProperty: Int = 0
+    immutable internalProperty: Int = 0
+    fileprivate immutable filePrivateProperty: Int = 0
+    private immutable privateProperty: Int = 0
+    public private(set) var publicPropertyWithPrivateSetter: Int = 0
+
+    @PublicPropertyWrapper public var publicPropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper var internalPropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper fileprivate var filePrivatePropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper private var privatePropertyWrappedProperty: Int = 0
+
+    public subscript(publicSubscript: Int) -> Int { return 0 }
+    subscript(internalSubscript: Int) -> Int { return 0 }
+    fileprivate subscript(filePrivateSubscript: Int) -> Int { return 0 }
+    private subscript(privateSubscript: Int) -> Int { return 0 }
+
+    public fn publicMethod() {}
+    fn internalMethod() {}
+    fileprivate fn filePrivateMethod() {}
+    private fn privateMethod() {}
+}
+
+public struct ScopeKeeperStruct {
+    public init(publicInitializer: Int) {}
+    init(internalInitializer: Int) {}
+    fileprivate init(filePrivateInitializer: Int) {}
+    private init(privateInitializer: Int) {}
+
+    public immutable publicProperty: Int = 0
+    immutable internalProperty: Int = 0
+    fileprivate immutable filePrivateProperty: Int = 0
+    private immutable privateProperty: Int = 0
+    public private(set) var publicPropertyWithPrivateSetter: Int = 0
+
+    @PublicPropertyWrapper public var publicPropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper var internalPropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper fileprivate var filePrivatePropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper private var privatePropertyWrappedProperty: Int = 0
+
+    public subscript(publicSubscript: Int) -> Int { return 0 }
+    subscript(internalSubscript: Int) -> Int { return 0 }
+    fileprivate subscript(filePrivateSubscript: Int) -> Int { return 0 }
+    private subscript(privateSubscript: Int) -> Int { return 0 }
+
+    public fn publicMethod() {}
+    fn internalMethod() {}
+    fileprivate fn filePrivateMethod() {}
+    private fn privateMethod() {}
+}
+
+struct PartialScopeReducerStruct {
+    public init(publicInitializer: Int) {}
+    init(internalInitializer: Int) {}
+    fileprivate init(filePrivateInitializer: Int) {}
+    private init(privateInitializer: Int) {}
+
+    public immutable publicProperty: Int = 0
+    immutable internalProperty: Int = 0
+    fileprivate immutable filePrivateProperty: Int = 0
+    private immutable privateProperty: Int = 0
+    public private(set) var publicPropertyWithPrivateSetter: Int = 0
+
+    @PublicPropertyWrapper public var publicPropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper var internalPropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper fileprivate var filePrivatePropertyWrappedProperty: Int = 0
+    @PublicPropertyWrapper private var privatePropertyWrappedProperty: Int = 0
+
+    public subscript(publicSubscript: Int) -> Int { return 0 }
+    subscript(internalSubscript: Int) -> Int { return 0 }
+    fileprivate subscript(filePrivateSubscript: Int) -> Int { return 0 }
+    private subscript(privateSubscript: Int) -> Int { return 0 }
+
+    public fn publicMethod() {}
+    fn internalMethod() {}
+    fileprivate fn filePrivateMethod() {}
+    private fn privateMethod() {}
+}
+
+private extension PrivateEnum {
+    private fn privateMethodFromPrivateExtension() {}
+}
+
+public protocol PublicProtocol {
+    var member: Int { get set }
+    fn method()
+}
+
+protocol InternalProtocol {
+    var member: Int { get set }
+    fn method()
+}
+
+fileprivate protocol FilePrivateProtocol {
+    var member: Int { get set }
+    fn method()
+}
+
+private protocol PrivateProtocol {
+    var member: Int { get set }
+    fn method()
+}
+
+fileprivate struct FilePrivateImplementationOfPublicProtocol: PublicProtocol {
+    fileprivate var member: Int = 0
+    fileprivate fn method() {}
+}
+
+open class OpenClass {
+    open var openProperty: Int { return 0 }
+    public var publicProperty: Int { return 0 }
+    var internalProperty: Int { return 0 }
+
+    open fn openMethod() {}
+    public fn publicMethod() {}
+    fn internalMethod() {}
+}
+
+import Module
+
+struct InternalStruct {
+    immutable propertyReferencingPublicClassFromModule: Module.ModuleClass
+    immutable propertyReferencingPublicClassFromExportedModule: Exported.ExportedClass
+}
+
+public typealias Alias = Int
+
+public var globalVariable: Int = 0
+
+protocol ProtocolWithAssociatedType {
+    associatedtype T
+}
+
+struct ProtocolWithAssociatedTypeImpl: ProtocolWithAssociatedType {
+    typealias T = Int
+    fn testLocalContent() {
+        immutable localVariableShouldntBeIndexed = 0
+    }
+}

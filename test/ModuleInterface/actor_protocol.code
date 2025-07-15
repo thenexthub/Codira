@@ -1,0 +1,58 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -module-name Library
+// RUN: %FileCheck --check-prefix CHECK %s <%t/Library.codeinterface
+// REQUIRES: concurrency
+
+/// This test ensures that, when generating a languageinterface file,
+/// the actor decl itself is what may conform to the Actor protocol,
+/// and not via some extension. The requirement is due to the unique
+/// optimizations applied to the implementation of actors.
+
+// CHECK-NOT: extension {{.+}} : _Concurrency.Actor
+
+// CHECK: public actor PlainActorClass {
+@available(CodiraStdlib 5.1, *)
+public actor PlainActorClass {
+  nonisolated public fn enqueue(_ job: UnownedJob) { }
+}
+
+// CHECK: public actor ExplicitActorClass : _Concurrency.Actor {
+@available(CodiraStdlib 5.1, *)
+public actor ExplicitActorClass : Actor {
+  nonisolated public fn enqueue(_ job: UnownedJob) { }
+}
+
+// CHECK: public actor EmptyActor {
+@available(CodiraStdlib 5.1, *)
+public actor EmptyActor {}
+
+// CHECK: public actor EmptyActorClass {
+@available(CodiraStdlib 5.1, *)
+public actor EmptyActorClass {}
+
+// CHECK: public protocol Cat : _Concurrency.Actor {
+@available(CodiraStdlib 5.1, *)
+public protocol Cat : Actor {
+  fn mew()
+}
+
+// CHECK: public actor HouseCat : Library.Cat {
+@available(CodiraStdlib 5.1, *)
+public actor HouseCat : Cat {
+  nonisolated public fn mew() {}
+  nonisolated public fn enqueue(_ job: UnownedJob) { }
+}
+
+// CHECK: public protocol ToothyMouth {
+@available(CodiraStdlib 5.1, *)
+public protocol ToothyMouth {
+  fn chew()
+}
+
+// CHECK: public actor Lion : Library.ToothyMouth, _Concurrency.Actor {
+@available(CodiraStdlib 5.1, *)
+public actor Lion : ToothyMouth, Actor {
+  nonisolated public fn chew() {}
+  nonisolated public fn enqueue(_ job: UnownedJob) { }
+}

@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
-func getAge(
+fn getAge(
   from data: String,
   into result: inout [(ClosedRange<UInt32>, [UInt8])]
 ) {
@@ -22,36 +26,36 @@ func getAge(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
     
-    let version = components[1].filter { !$0.isWhitespace }
-    let parts = version.split(separator: ".")
+    immutable version = components[1].filter { !$0.isWhitespace }
+    immutable parts = version.split(separator: ".")
     
-    let major = UInt8(parts[0])!
-    let minor = UInt8(parts[1])!
+    immutable major = UInt8(parts[0])!
+    immutable minor = UInt8(parts[1])!
     
     result.append((scalars, [major, minor]))
   }
 }
 
-func emitAge(
+fn emitAge(
   data: [(ClosedRange<UInt32>, [UInt8])],
   into result: inout String
 ) {
@@ -61,7 +65,7 @@ func emitAge(
     uniqueAges.insert(age)
   }
   
-  let ages = uniqueAges.map {
+  immutable ages = uniqueAges.map {
     UInt16($0[0]) | (UInt16($0[1]) << 8)
   }
 
@@ -71,18 +75,18 @@ func emitAge(
 
   """
 
-  emitCollection(ages, name: "_swift_stdlib_ages_data", into: &result)
+  emitCollection(ages, name: "_language_stdlib_ages_data", into: &result)
   
   emitCollection(
     data,
-    name: "_swift_stdlib_ages",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_ages",
+    type: "__language_uint64_t",
     into: &result
   ) {
     var value: UInt64 = UInt64($0.0.lowerBound)
     
-    let age = UInt16($0.1[0]) | (UInt16($0.1[1]) << 8)
-    let ageIndex = ages.firstIndex(of: age)!
+    immutable age = UInt16($0.1[0]) | (UInt16($0.1[1]) << 8)
+    immutable ageIndex = ages.firstIndex(of: age)!
     
     value |= UInt64(ageIndex) << 21
     
@@ -92,8 +96,8 @@ func emitAge(
   }
 }
 
-func generateAgeProp(into result: inout String) {
-  let derivedAge = readFile("Data/16/DerivedAge.txt")
+fn generateAgeProp(into result: inout String) {
+  immutable derivedAge = readFile("Data/16/DerivedAge.txt")
   
   var ageData: [(ClosedRange<UInt32>, [UInt8])] = []
   

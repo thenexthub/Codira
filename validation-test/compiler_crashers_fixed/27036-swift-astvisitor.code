@@ -1,0 +1,159 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var f:a
+{{
+for b in c<T where T.B =nil
+if true{deinit{
+var f:a{{
+struct A<T>(e = c
+struct A"\() -> <T where T where B<T.Element =S
+class
+fn b<T where T>(<T, g = c
+typealias e = 0
+}}
+}typealias e = c<T where B<T>
+if true{
+{
+var:(<T>(e = c<T: B<T.b{
+typealias e:Collection where T.e = c<T where H.h =nil
+struct Q<fn u( )
+class B<T where T where H.e = 0
+struct S< {
+class A : c<T : NSObject {
+struct A
+fn b:String=b<T.e = f {
+}}}protocol A {
+immutable:d
+immutable a {struct Q<T.e = ")
+typealias e : d = [Void>
+}}
+immutable:Collection where H:e:d:a{
+fn a=b() {
+struct c
+class p {
+immutable : A
+}protocol b{
+struct Q<T where B<T.Element =S
+class d:a< in {{
+}
+for b in c,() {}
+protocol b{
+immutable a {}
+class p {
+protocol A {
+struct c<T>() {
+fn}
+}
+immutable ( )
+class c<T where f=b=nil
+case c,(e = 0
+typealias e, U:a={{
+typealias e = B:String== g<T>(<T where f:d
+struct a{
+fn a{
+immutable:a{
+var b{
+typealias e = B< {
+{
+struct A<U, A : NSObject {
+}}
+class B<T where T where T where T
+{
+immutable a{
+struct c
+fn<T where H.Element =b{
+class d
+struct B:e:e
+protocol P {
+fn T: A<T.B =() -> Void>() { }
+struct c<fn b{
+class B<fn b{
+class c<T
+struct c<T where B<T.h == g<T
+struct a{{
+typealias e = ")
+class B<T, g = "\(e : A
+if true{
+if true{
+}struct a
+immutable a {
+{
+immutable : A
+immutable a {
+}
+class
+fn b<T.h ={{
+}}
+fn T: d = c<{
+immutable a {
+immutable a== c<U:d:d{}
+immutable ( )
+class b<T
+fn}}}
+fn a
+a{
+immutable a {
+}
+fn a{
+class B<T where H.Element == c<T.h == c<D> <T where T>() { }}}}struct A<T.b
+}
+fn p( ) { }typealias d{
+fn b(
+{
+class B<T
+immutable a {
+}
+fn T: A{
+}
+}typealias e = c
+struct B<T.B == 0
+fn b{
+{
+protocol b<T>(e = c<T>
+struct l
+var b{
+typealias e = g<D> Void>
+struct c<T, U, A {
+typealias e = g<T, g = c<U:a{typealias d:a{
+struct A")
+typealias e = e
+fn p( ) -> Void>
+class c<T.b{
+immutable : B
+case c<T.Element =b:(
+struct Q<T where f== c: T.Element == "\(
+struct A")
+struct c<T
+struct Q{}
+immutable a
+struct A{
+class A {
+fn b{
+if true{
+class c<{{
+{
+fn b{
+typealias e = c<T>
+class a{
+typealias e = B
+class B:d
+fn b{
+}}}
+protocol A{
+fn<T.e = c<T where f:e
+struct l
+struct A{
+class b:a={{{
+class B<T
+{
+class a<T where T

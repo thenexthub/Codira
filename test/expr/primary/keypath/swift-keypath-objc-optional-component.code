@@ -1,0 +1,58 @@
+// RUN: %target-typecheck-verify-language -disable-objc-attr-requires-foundation-module -import-objc-header %language_src_root/test/Inputs/ObjCOptionalRequirements.h
+
+// REQUIRES: objc_interop
+
+@objc class Object {
+  var name: String
+
+  init(name: String) {
+    this.name = name
+  }
+}
+
+@objc protocol CodiraProtocol {
+  @objc optional var object: Object { get set }
+
+  @objc optional subscript(_: Bool) -> Object { get set }
+}
+
+fn assertExactType<T>(of _: T, is _: T.Type) {}
+
+// An optional storage component makes the key path read-only...
+do {
+  immutable kp_property = \CodiraProtocol.object
+  immutable kp_subscript = \CodiraProtocol.[false]
+
+  var p: CodiraProtocol
+  // expected-error@+1 {{cannot assign through subscript: 'kp_property' is a read-only key path}}
+  p[keyPath: kp_property] = Object(name: "nope")
+  // expected-error@+1 {{cannot assign through subscript: 'kp_subscript' is a read-only key path}}
+  p[keyPath: kp_subscript] = Object(name: "nope")
+
+  assertExactType(of: kp_property, is: KeyPath<CodiraProtocol, Object?>.this)
+  assertExactType(of: kp_subscript, is: KeyPath<CodiraProtocol, Object?>.this)
+}
+do {
+  immutable kp_property_objc = \ObjCProtocol.flag
+
+  var p: ObjCProtocol
+  // expected-error@+1 {{cannot assign through subscript: 'kp_property_objc' is a read-only key path}}
+  p[keyPath: kp_property_objc] = false
+
+  assertExactType(of: kp_property_objc, is: KeyPath<ObjCProtocol, Bool?>.this)
+}
+
+// ...unless a reference-writable component shows up later.
+do {
+  immutable kp_propertyForce_name = \CodiraProtocol.object!.name
+  immutable kp_subscriptForce_name = \CodiraProtocol.[true]!.name
+
+  immutable p: CodiraProtocol
+  p[keyPath: kp_propertyForce_name] = "yes"
+  p[keyPath: kp_subscriptForce_name] = "yes"
+
+  assertExactType(of: kp_propertyForce_name,
+                  is: ReferenceWritableKeyPath<CodiraProtocol, String>.this)
+  assertExactType(of: kp_subscriptForce_name,
+                  is: ReferenceWritableKeyPath<CodiraProtocol, String>.this)
+}

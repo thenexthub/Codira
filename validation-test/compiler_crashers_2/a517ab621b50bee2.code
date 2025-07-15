@@ -1,0 +1,3 @@
+// {"signature":"language::GenericEnvironment::getOrCreateArchetypeFromInterfaceType(language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@resultBuilder enum a < b { struct c{@a d:

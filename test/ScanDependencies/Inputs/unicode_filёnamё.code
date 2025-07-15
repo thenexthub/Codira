@@ -1,0 +1,3 @@
+fn foo() {
+    print(1)
+}

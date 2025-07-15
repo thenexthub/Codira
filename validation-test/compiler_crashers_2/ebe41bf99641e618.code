@@ -1,0 +1,6 @@
+// {"signature":"language::constraints::ConstraintSystem::recordDisjunctionChoice(language::constraints::ConstraintLocator*, unsigned int)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  init! ( b: Int, () -> Int = {
+    }
+() -> Int = a(b : 1) {

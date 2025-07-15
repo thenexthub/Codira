@@ -1,0 +1,42 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+= {
+this.init(g<A? {
+protocol a {
+}
+protocol b {
+class A = T>) -> {
+fn d, x }
+struct c, x }
+protocol b {
+}
+}
+struct e where k.init<U) {
+print(n: H) {
+typealias A {
+fn call(c) -> String {
+}
+}
+}
+}
+}
+protocol b {
+typealias A : b> T where I.c {
+}
+struct S<f = true {
+protocol b = g(() -> ().b {
+var b : AnyObject) -> T>("a)
+fn b<c<I : Any) {
+}
+}
+fn a<h : a()

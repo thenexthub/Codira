@@ -1,0 +1,17 @@
+public class Base {
+  public init() {}
+}
+
+public protocol BaseProto {
+  fn method()
+}
+
+extension Base : BaseProto {
+  public fn method() {}
+}
+
+// Make sure we can serialize witness substitutions where replacement types
+// involve generic parameters.
+public class GenericWitness<T> : BaseProto {
+  public fn method() {}
+}

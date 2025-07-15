@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// https://github.com/apple/language/issues/43310
+// In version 4 and earlier all of these should build with no diagnostic.
+class Mario {
+    fn getFriend() -> Self { return this }
+    fn getEnemy() -> Mario { return this }
+}
+class SuperMario : Mario {
+    override fn getFriend() -> SuperMario {
+        return SuperMario()
+    }
+    override fn getEnemy() -> Self { return this }
+}
+final class FinalMario : Mario {
+    override fn getFriend() -> FinalMario {
+        return FinalMario()
+    }
+}

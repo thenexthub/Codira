@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t --leading-lines
+// REQUIRES: objc_interop
+// REQUIRES: executable_test
+
+/// Optimization active: public import
+// RUN: %target-build-language-dylib(%t/%target-library-name(Lib)) \
+// RUN:   %t/optimized.code -module-name Lib \
+// RUN:   -emit-module -emit-module-path %t/Lib.codemodule \
+// RUN:   -language-version 5 -enable-library-evolution -O
+// RUN: %target-codesign %t/%target-library-name(Lib)
+// RUN: %target-build-language %t/main.code -o %t/main -I%t -lLib -L%t -O
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(Lib) | %FileCheck %s
+
+/// Ensure the client has the optimization we're testing here.
+// RUN: %target-language-frontend -typecheck -emit-silgen %t/Lib.codemodule > %t/Lib.sil
+// RUN: %FileCheck --check-prefix CHECK-OPTIMIZED --input-file %t/Lib.sil %s
+// CHECK-OPTIMIZED: _getErrorEmbeddedNSError
+
+/// No optimization: internal import from resilient module
+// RUN: %target-build-language-dylib(%t/%target-library-name(Lib)) \
+// RUN:   %t/non-optimized.code -module-name Lib \
+// RUN:   -emit-module -emit-module-path %t/Lib.codemodule \
+// RUN:   -language-version 5 -enable-library-evolution -O
+// RUN: %target-codesign %t/%target-library-name(Lib)
+// RUN: %target-build-language %t/main.code -o %t/main -I%t -lLib -L%t -O
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(Lib) | %FileCheck %s
+
+/// Ensure the client doesn't have the optimization we're testing here.
+// RUN: %target-language-frontend -typecheck -emit-silgen %t/main.code -I%t -O > %t/Lib.sil
+// RUN: %FileCheck --check-prefix CHECK-NOT-OPTIMIZED --input-file %t/Lib.sil %s
+// CHECK-NOT-OPTIMIZED-NOT: _getErrorEmbeddedNSError
+
+//--- optimized.code
+public import Foundation
+
+@inlinable public fn foo<E: Error>(e: E) -> Error {
+    return e
+}
+
+//--- non-optimized.code
+internal import Foundation
+
+@inlinable public fn foo<E: Error>(e: E) -> Error {
+    return e
+}
+
+//--- main.code
+import Lib
+import Foundation
+
+immutable err: NSError = NSError(domain: "Not found", code: 404)
+immutable errOut: Error = foo(e: err)
+print(errOut.localizedDescription)
+// CHECK: Not found error 404.

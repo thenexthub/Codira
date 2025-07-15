@@ -1,0 +1,57 @@
+// Tests that a C++ class can conform to a Codira protocol.
+
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-experimental-cxx-interop
+// RUN: %target-typecheck-verify-language -I %S/Inputs -D VIRTUAL_METHODS -cxx-interoperability-mode=language-5.9
+// RUN: %target-typecheck-verify-language -I %S/Inputs -D VIRTUAL_METHODS -cxx-interoperability-mode=language-6
+// RUN: %target-typecheck-verify-language -I %S/Inputs -D VIRTUAL_METHODS -cxx-interoperability-mode=upcoming-language
+
+import ProtocolConformance
+
+protocol HasReturn42 {
+  mutating fn return42() -> CInt // expected-note {{requires function 'return42()'}}
+}
+
+extension ConformsToProtocol : HasReturn42 {}
+
+#if VIRTUAL_METHODS
+extension HasVirtualMethod : HasReturn42 {}
+#endif
+
+extension DoesNotConformToProtocol : HasReturn42 {} // expected-error {{'DoesNotConformToProtocol' does not conform to protocol}} expected-note {{add stubs for conformance}}
+
+
+protocol HasReturnNullable {
+  mutating fn returnPointer() -> UnsafePointer<Int32>?
+}
+
+// HasReturnNullable's returnNullable returns an implicitly unwrapped optional:
+//   mutating fn returnPointer() -> UnsafePointer<Int32>!
+extension ReturnsNullableValue: HasReturnNullable {}
+
+protocol HasReturnNonNull {
+  mutating fn returnPointer() -> UnsafePointer<Int32>
+}
+
+extension ReturnsNonNullValue: HasReturnNonNull {}
+
+
+protocol Invertible {
+  static prefix fn !(obj: Self) -> Self
+}
+
+extension HasOperatorExclaim: Invertible {}
+
+extension HasOperatorEqualEqual: @retroactive Equatable {}
+
+
+protocol HasOperatorPlusEqualProtocol {
+  static fn +=(lhs: inout Self, x: Int32)
+}
+
+extension HasOperatorPlusEqualInt : HasOperatorPlusEqualProtocol {}
+
+protocol HasOperatorCall {
+  fn callAsFunction(_ x: Int32) -> Int32
+}
+
+extension HasStaticOperatorCall : HasOperatorCall {}

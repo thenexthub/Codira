@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_INDEX_INDEXDATACONSUMER_H
-#define SWIFT_INDEX_INDEXDATACONSUMER_H
+#ifndef LANGUAGE_INDEX_INDEXDATACONSUMER_H
+#define LANGUAGE_INDEX_INDEXDATACONSUMER_H
 
 #include "language/Index/IndexSymbol.h"
 
@@ -47,4 +48,4 @@ public:
 } // end namespace index
 } // end namespace language
 
-#endif // SWIFT_INDEX_INDEXDATACONSUMER_H
+#endif // LANGUAGE_INDEX_INDEXDATACONSUMER_H

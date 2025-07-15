@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h)
+
+// CHECK-NOT: LANGUAGE_EXTERN bool $s9Functions24alwaysEmitIntoClientFuncyS2bF(bool x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // alwaysEmitIntoClientFunc(_:)
+
+// CHECK:       namespace Functions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Functions") {
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: // Unavailable in C++: Codira global function 'alwaysEmitIntoClientFunc(_:)'.
+// CHECK-EMPTY:
+// CHECK-NEXT:  } // namespace Functions
+
+
+
+@_alwaysEmitIntoClient
+public fn alwaysEmitIntoClientFunc(_ x: Bool) -> Bool { return !x }

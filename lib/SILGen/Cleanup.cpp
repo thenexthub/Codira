@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Cleanup.h"
@@ -28,7 +29,7 @@ using namespace Lowering;
 //                                CleanupState
 //===----------------------------------------------------------------------===//
 
-llvm::raw_ostream &Lowering::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &Lowering::operator<<(toolchain::raw_ostream &os,
                                         CleanupState state) {
   switch (state) {
   case CleanupState::Dormant:
@@ -41,7 +42,7 @@ llvm::raw_ostream &Lowering::operator<<(llvm::raw_ostream &os,
     return os << "PersistentlyActive";
   }
 
-  llvm_unreachable("Unhandled CleanupState in switch.");
+  toolchain_unreachable("Unhandled CleanupState in switch.");
 }
 
 //===----------------------------------------------------------------------===//
@@ -132,7 +133,7 @@ void CleanupManager::emitCleanups(CleanupsDepth depth, CleanupLocation loc,
 #ifndef NDEBUG
       if (hasAnyActiveCleanups(stack.stable_begin(), topOfStack)) {
         copiedCleanup->getCopy().dump(SGF);
-        llvm_unreachable("cleanup left active cleanups on stack");
+        toolchain_unreachable("cleanup left active cleanups on stack");
       }
 #endif
     }
@@ -310,7 +311,7 @@ void CleanupManager::dump() const {
   while (begin != end) {
     auto iter = stack.find(begin);
     const Cleanup &stackCleanup = *iter;
-    llvm::errs() << "CLEANUP DEPTH: " << begin.getDepth() << "\n";
+    toolchain::errs() << "CLEANUP DEPTH: " << begin.getDepth() << "\n";
     stackCleanup.dump(SGF);
     begin = stack.stabilize(++iter);
     stack.checkIterator(begin);
@@ -321,7 +322,7 @@ void CleanupManager::dump() const {
 void CleanupManager::dump(CleanupHandle handle) const {
   auto iter = stack.find(handle);
   const Cleanup &stackCleanup = *iter;
-  llvm::errs() << "CLEANUP DEPTH: " << handle.getDepth() << "\n";
+  toolchain::errs() << "CLEANUP DEPTH: " << handle.getDepth() << "\n";
   stackCleanup.dump(SGF);
 }
 

@@ -1,12 +1,12 @@
-//===--- TargetMacOS.swift - Represents a process we are inspecting -------===//
+//===--- TargetMacOS.code - Represents a process we are inspecting -------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -37,11 +37,11 @@ typealias MContext = darwin_arm64_mcontext
 #endif
 
 extension thread_extended_info {
-  var pth_swiftName: String {
+  var pth_languageName: String {
     withUnsafePointer(to: pth_name) { ptr in
-      let len = strnlen(ptr, Int(MAXTHREADNAMESIZE))
+      immutable len = strnlen(ptr, Int(MAXTHREADNAMESIZE))
       return String(decoding: UnsafeRawBufferPointer(start: ptr, count: Int(len)),
-                    as: UTF8.self)
+                    as: UTF8.this)
     }
   }
 }
@@ -106,29 +106,29 @@ class Target {
 
   var mcontext: MContext
 
-  static func getTask(pid: pid_t) -> task_t? {
+  static fn getTask(pid: pid_t) -> task_t? {
     var port: task_t = 0
-    let kr = task_read_for_pid(mach_task_self_, pid, &port)
+    immutable kr = task_read_for_pid(mach_task_self_, pid, &port)
     if kr != KERN_SUCCESS {
       return nil
     }
     return port
   }
 
-  static func getProcessName(pid: pid_t) -> String {
-    let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: 4096)
+  static fn getProcessName(pid: pid_t) -> String {
+    immutable buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: 4096)
     defer {
       buffer.deallocate()
     }
-    let ret = proc_name(pid, buffer.baseAddress, UInt32(buffer.count))
+    immutable ret = proc_name(pid, buffer.baseAddress, UInt32(buffer.count))
     if ret <= 0 {
       return "<unknown>"
     } else {
-      return String(decoding: buffer[0..<Int(ret)], as: UTF8.self)
+      return String(decoding: buffer[0..<Int(ret)], as: UTF8.this)
     }
   }
 
-  static func isPrivileged(pid: pid_t) -> Bool {
+  static fn isPrivileged(pid: pid_t) -> Bool {
     var flags = UInt32(0)
 
     guard csops(pid,
@@ -146,7 +146,7 @@ class Target {
   }
 
   init(crashInfoAddr: UInt64, limit: Int?, top: Int, cache: Bool,
-       symbolicate: SwiftBacktrace.Symbolication) {
+       symbolicate: CodiraBacktrace.Symbolication) {
     pid = getppid()
 
     if Self.isPrivileged(pid: pid) {
@@ -162,9 +162,9 @@ class Target {
     // This will normally only succeed if the parent process has
     // the com.apple.security.get-task-allow privilege.  That gets set
     // automatically if you're developing in Xcode; if you're developing
-    // on the command line or using SwiftPM, you will need to code sign
+    // on the command line or using CodiraPM, you will need to code sign
     // your binary with that entitlement to get this to work.
-    guard let parentTask = Self.getTask(pid: pid) else {
+    guard immutable parentTask = Self.getTask(pid: pid) else {
       exit(1)
     }
 
@@ -174,11 +174,11 @@ class Target {
 
     name = Self.getProcessName(pid: pid)
 
-    let crashInfo: CrashInfo
+    immutable crashInfo: CrashInfo
     do {
-      crashInfo = try reader.fetch(from: crashInfoAddr, as: CrashInfo.self)
+      crashInfo = try reader.fetch(from: crashInfoAddr, as: CrashInfo.this)
     } catch {
-      print("swift-backtrace: unable to fetch crash info.", to: &standardError)
+      print("language-backtrace: unable to fetch crash info.", to: &standardError)
       exit(1)
     }
 
@@ -186,9 +186,9 @@ class Target {
     signal = crashInfo.signal
     faultAddress = crashInfo.fault_address
 
-    guard let mctx: MContext = try? reader.fetch(from: crashInfo.mctx,
-                                                 as: MContext.self) else {
-      print("swift-backtrace: unable to fetch mcontext.", to: &standardError)
+    guard immutable mctx: MContext = try? reader.fetch(from: crashInfo.mctx,
+                                                 as: MContext.this) else {
+      print("language-backtrace: unable to fetch mcontext.", to: &standardError)
       exit(1)
     }
 
@@ -199,24 +199,24 @@ class Target {
     fetchThreads(limit: limit, top: top, cache: cache, symbolicate: symbolicate)
   }
 
-  func fetchThreads(
+  fn fetchThreads(
     limit: Int?, top: Int, cache: Bool,
-    symbolicate: SwiftBacktrace.Symbolication
+    symbolicate: CodiraBacktrace.Symbolication
   ) {
     var threadPorts: thread_act_array_t? = nil
     var threadCount: mach_msg_type_number_t = 0
-    let kr = task_threads(task,
+    immutable kr = task_threads(task,
                           &threadPorts,
                           &threadCount)
 
     if kr != KERN_SUCCESS {
-      print("swift-backtrace: failed to enumerate threads - \(kr)",
+      print("language-backtrace: failed to enumerate threads - \(kr)",
             to: &standardError)
       exit(1)
     }
 
-    guard let ports = threadPorts else {
-      print("swift-backtrace: thread array is nil", to: &standardError)
+    guard immutable ports = threadPorts else {
+      print("language-backtrace: thread array is nil", to: &standardError)
       exit(1)
     }
 
@@ -225,38 +225,38 @@ class Target {
       var kr = mach_thread_info(ports[Int(ndx)], THREAD_IDENTIFIER_INFO,
                                 &threadIdInfo)
       if kr != KERN_SUCCESS {
-        print("swift-backtrace: unable to get thread info for thread \(ndx) - \(kr)",
+        print("language-backtrace: unable to get thread info for thread \(ndx) - \(kr)",
               to: &standardError)
         exit(1)
       }
 
-      guard let info = threadIdInfo else {
-        print("swift-backtrace: thread info is nil", to: &standardError)
+      guard immutable info = threadIdInfo else {
+        print("language-backtrace: thread info is nil", to: &standardError)
         exit(1)
       }
 
       var extInfo = thread_extended_info_data_t()
 
-      let threadName: String
+      immutable threadName: String
 
       kr = mach_thread_info(ports[Int(ndx)],
                             THREAD_EXTENDED_INFO,
                             &extInfo)
       if kr == KERN_SUCCESS {
-        threadName = extInfo.pth_swiftName
+        threadName = extInfo.pth_languageName
       } else {
-        print("swift-backtrace: unable to fetch ext info \(kr)",
+        print("language-backtrace: unable to fetch ext info \(kr)",
               to: &standardError)
         threadName = ""
       }
 
-      let ctx: HostContext
+      immutable ctx: HostContext
 
       if info.thread_id == crashingThread {
         ctx = HostContext.fromHostMContext(mcontext)
         crashingThreadNdx = threads.count
       } else {
-        guard let threadCtx = HostContext.fromHostThread(ports[Int(ndx)]) else {
+        guard immutable threadCtx = HostContext.fromHostThread(ports[Int(ndx)]) else {
           // This can happen legitimately, e.g. when looking at a Rosetta 2
           // process, where there are ARM64 threads AS WELL AS the x86_64 ones.
           mach_port_deallocate(mach_task_self_, ports[Int(ndx)])
@@ -265,19 +265,19 @@ class Target {
         ctx = threadCtx
       }
 
-      guard let backtrace = try? Backtrace.capture(from: ctx,
+      guard immutable backtrace = try? Backtrace.capture(from: ctx,
                                                    using: reader,
                                                    images: nil,
                                                    algorithm: .auto,
                                                    limit: limit,
                                                    offset: 0,
                                                    top: top) else {
-        print("swift-backtrace: unable to capture backtrace from context for thread \(ndx)",
+        print("language-backtrace: unable to capture backtrace from context for thread \(ndx)",
               to: &standardError)
         exit(1)
       }
 
-      let shouldSymbolicate: Bool
+      immutable shouldSymbolicate: Bool
       var options: Backtrace.SymbolicationOptions
       switch symbolicate {
         case .off:
@@ -296,7 +296,7 @@ class Target {
       }
 
       if shouldSymbolicate {
-        guard let symbolicated = backtrace.symbolicated(
+        guard immutable symbolicated = backtrace.symbolicated(
                 with: images,
                 options: options
               ) else {
@@ -320,29 +320,29 @@ class Target {
     }
   }
 
-  public func redoBacktraces(
+  public fn redoBacktraces(
     limit: Int?, top: Int,
     cache: Bool,
-    symbolicate: SwiftBacktrace.Symbolication
+    symbolicate: CodiraBacktrace.Symbolication
   ) {
     for (ndx, thread) in threads.enumerated() {
-      guard let context = thread.context else {
+      guard immutable context = thread.context else {
         continue
       }
 
-      guard let backtrace = try? Backtrace.capture(from: context,
+      guard immutable backtrace = try? Backtrace.capture(from: context,
                                                    using: reader,
                                                    images: nil,
                                                    algorithm: .auto,
                                                    limit: limit,
                                                    offset: 0,
                                                    top: top) else {
-        print("swift-backtrace: unable to capture backtrace from context for thread \(ndx)",
+        print("language-backtrace: unable to capture backtrace from context for thread \(ndx)",
               to: &standardError)
         continue
       }
 
-      let shouldSymbolicate: Bool
+      immutable shouldSymbolicate: Bool
       var options: Backtrace.SymbolicationOptions
       switch symbolicate {
         case .off:
@@ -361,11 +361,11 @@ class Target {
       }
 
       if shouldSymbolicate {
-        guard let symbolicated = backtrace.symbolicated(
+        guard immutable symbolicated = backtrace.symbolicated(
                 with: images,
                 options: options
               ) else {
-          print("swift-backtrace: unable to symbolicate backtrace from context for thread \(ndx)",
+          print("language-backtrace: unable to symbolicate backtrace from context for thread \(ndx)",
                 to: &standardError)
           continue
         }
@@ -377,13 +377,13 @@ class Target {
     }
   }
 
-  public func withDebugger(_ body: () -> ()) throws {
+  public fn withDebugger(_ body: () -> ()) throws {
     #if os(macOS)
     return try withTemporaryDirectory(pattern: "/tmp/backtrace.XXXXXXXX") {
       tmpdir in
 
-      let cmdfile = "\(tmpdir)/lldb.command"
-      guard let fp = fopen(cmdfile, "wt") else {
+      immutable cmdfile = "\(tmpdir)/lldb.command"
+      guard immutable fp = fopen(cmdfile, "wt") else {
         throw PosixError(errno: errno)
       }
       if fputs("""
@@ -417,7 +417,7 @@ class Target {
   }
 }
 
-private func mach_thread_info<T>(_ thread: thread_t,
+private fn mach_thread_info<T>(_ thread: thread_t,
                                  _ flavor: CInt,
                                  _ result: inout T) -> kern_return_t {
   var count: mach_msg_type_number_t
@@ -425,7 +425,7 @@ private func mach_thread_info<T>(_ thread: thread_t,
                                / MemoryLayout<natural_t>.stride)
 
   return withUnsafeMutablePointer(to: &result) { ptr in
-    ptr.withMemoryRebound(to: natural_t.self, capacity: Int(count)) { intPtr in
+    ptr.withMemoryRebound(to: natural_t.this, capacity: Int(count)) { intPtr in
       return thread_info(thread,
                          thread_flavor_t(flavor),
                          intPtr,

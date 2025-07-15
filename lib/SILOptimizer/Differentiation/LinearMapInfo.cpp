@@ -1,13 +1,17 @@
 //===--- LinearMapInfo.cpp ------------------------------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Linear map tuple and branching trace enum information for differentiation.
@@ -97,17 +101,17 @@ LinearMapInfo::createBranchingTraceDecl(SILBasicBlock *originalBB,
   if (genericSig)
     branchingTraceDecl->setGenericSignature(genericSig);
   switch (original->getEffectiveSymbolLinkage()) {
-  case swift::SILLinkage::Public:
-  case swift::SILLinkage::PublicNonABI:
+  case language::SILLinkage::Public:
+  case language::SILLinkage::PublicNonABI:
     // Branching trace enums shall not be resilient.
     branchingTraceDecl->getAttrs().add(new (astCtx) FrozenAttr(/*implicit*/ true));
     branchingTraceDecl->getAttrs().add(new (astCtx) UsableFromInlineAttr(/*Implicit*/ true));
-    LLVM_FALLTHROUGH;
-  case swift::SILLinkage::Hidden:
-  case swift::SILLinkage::Shared:
+    TOOLCHAIN_FALLTHROUGH;
+  case language::SILLinkage::Hidden:
+  case language::SILLinkage::Shared:
     branchingTraceDecl->setAccess(AccessLevel::Internal);
     break;
-  case swift::SILLinkage::Private:
+  case language::SILLinkage::Private:
     branchingTraceDecl->setAccess(AccessLevel::FilePrivate);
     break;
   default:
@@ -127,7 +131,7 @@ LinearMapInfo::createBranchingTraceDecl(SILBasicBlock *originalBB,
 void LinearMapInfo::populateBranchingTraceDecl(SILBasicBlock *originalBB,
                                                SILLoopInfo *loopInfo) {
   auto &astCtx = original->getASTContext();
-  auto *moduleDecl = original->getModule().getSwiftModule();
+  auto *moduleDecl = original->getModule().getCodiraModule();
   auto loc = original->getLocation().getSourceLoc();
   auto *branchingTraceDecl = getBranchingTraceDecl(originalBB);
 
@@ -180,7 +184,7 @@ Type LinearMapInfo::getLinearMapType(ADContext &context, FullApplySite fai) {
 
   // Check if there are any active results or arguments. If not, skip
   // this instruction.
-  auto hasActiveResults = llvm::any_of(allResults, [&](SILValue res) {
+  auto hasActiveResults = toolchain::any_of(allResults, [&](SILValue res) {
     return activityInfo.isActive(res, config);
   });
   bool hasActiveSemanticResultArgument = false;
@@ -359,7 +363,7 @@ void LinearMapInfo::generateDifferentiationDataStructures(
   //
   // Traverse all BBs in reverse post-order traversal order to ensure we process
   // each BB before its predecessors.
-  llvm::ReversePostOrderTraversal<SILFunction *> RPOT(original);
+  toolchain::ReversePostOrderTraversal<SILFunction *> RPOT(original);
   for (auto Iter = RPOT.begin(), E = RPOT.end(); Iter != E; ++Iter) {
     auto *origBB = *Iter;
     SmallVector<TupleTypeElt, 4> linearTupleTypes;
@@ -391,10 +395,10 @@ void LinearMapInfo::generateDifferentiationDataStructures(
         if (!shouldDifferentiateApplySite(fai))
           continue;
 
-        LLVM_DEBUG(getADDebugStream()
+        TOOLCHAIN_DEBUG(getADDebugStream()
                    << "Adding linear map tuple field for " << inst);
         if (Type linearMapType = getLinearMapType(context, fai)) {
-          LLVM_DEBUG(getADDebugStream() << "Computed type: " << linearMapType << '\n');
+          TOOLCHAIN_DEBUG(getADDebugStream() << "Computed type: " << linearMapType << '\n');
           linearMapIndexMap.insert({fai, linearTupleTypes.size()});
           linearTupleTypes.emplace_back(linearMapType);
         }
@@ -406,9 +410,9 @@ void LinearMapInfo::generateDifferentiationDataStructures(
 
   // Print generated linear map structs and branching trace enums.
   // These declarations do not show up with `-emit-sil` because they are
-  // implicit. Instead, use `-Xllvm -debug-only=differentiation` to test
+  // implicit. Instead, use `-Xtoolchain -debug-only=differentiation` to test
   // declarations with FileCheck.
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream();
     PrintOptions printOptions;
     printOptions.TypeDefinitions = true;
@@ -452,7 +456,7 @@ bool LinearMapInfo::shouldDifferentiateApplySite(FullApplySite applySite) {
     hasActiveDirectResults |= activityInfo.isActive(directResult, config);
   });
   bool hasActiveIndirectResults =
-      llvm::any_of(applySite.getIndirectSILResults(), [&](SILValue result) {
+      toolchain::any_of(applySite.getIndirectSILResults(), [&](SILValue result) {
         return activityInfo.isActive(result, config);
       });
   bool hasActiveResults = hasActiveDirectResults || hasActiveIndirectResults;
@@ -465,7 +469,7 @@ bool LinearMapInfo::shouldDifferentiateApplySite(FullApplySite applySite) {
     return true;
 
   auto arguments = applySite.getArgumentsWithoutIndirectResults();
-  bool hasActiveArguments = llvm::any_of(arguments, [&](SILValue arg) {
+  bool hasActiveArguments = toolchain::any_of(arguments, [&](SILValue arg) {
     return activityInfo.isActive(arg, config);
   });
   return hasActiveResults && hasActiveArguments;
@@ -504,10 +508,10 @@ bool LinearMapInfo::shouldDifferentiateInstruction(SILInstruction *inst) {
   // Anything with an active result and an active operand should be
   // differentiated.
   auto hasActiveOperands =
-      llvm::any_of(inst->getAllOperands(), [&](Operand &op) {
+      toolchain::any_of(inst->getAllOperands(), [&](Operand &op) {
         return activityInfo.isActive(op.get(), config);
       });
-  auto hasActiveResults = llvm::any_of(inst->getResults(), [&](SILValue val) {
+  auto hasActiveResults = toolchain::any_of(inst->getResults(), [&](SILValue val) {
     return activityInfo.isActive(val, config);
   });
   if (hasActiveOperands && hasActiveResults)

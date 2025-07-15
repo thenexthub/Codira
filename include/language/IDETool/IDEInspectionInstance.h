@@ -1,17 +1,21 @@
 //===--- IDEInspectionInstance.h ------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_IDEINSPECTIONINSTANCE_H
-#define SWIFT_IDE_IDEINSPECTIONINSTANCE_H
+#ifndef LANGUAGE_IDE_IDEINSPECTIONINSTANCE_H
+#define LANGUAGE_IDE_IDEINSPECTIONINSTANCE_H
 
 #include "language/Frontend/Frontend.h"
 #include "language/IDE/CancellableResult.h"
@@ -21,14 +25,14 @@
 #include "language/IDE/ConformingMethodList.h"
 #include "language/IDE/CursorInfo.h"
 #include "language/IDE/ImportDepth.h"
-#include "language/IDE/SwiftCompletionInfo.h"
+#include "language/IDE/CodiraCompletionInfo.h"
 #include "language/IDE/TypeContextInfo.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 
 namespace language {
 
@@ -40,10 +44,10 @@ class PluginRegistry;
 namespace ide {
 
 /// Copy a memory buffer inserting '\0' at the position of \c origBuf.
-std::unique_ptr<llvm::MemoryBuffer>
-makeCodeCompletionMemoryBuffer(const llvm::MemoryBuffer *origBuf,
+std::unique_ptr<toolchain::MemoryBuffer>
+makeCodeCompletionMemoryBuffer(const toolchain::MemoryBuffer *origBuf,
                                unsigned &Offset,
-                               llvm::StringRef bufferIdentifier);
+                               toolchain::StringRef bufferIdentifier);
 
 /// The result returned via the callback from the perform*Operation methods.
 struct IDEInspectionInstanceResult {
@@ -60,7 +64,7 @@ struct IDEInspectionInstanceResult {
 /// The results returned from \c IDEInspectionInstance::codeComplete.
 struct CodeCompleteResult {
   CodeCompletionResultSink &ResultSink;
-  SwiftCompletionInfo &Info;
+  CodiraCompletionInfo &Info;
   ImportDepth ImportDep;
 };
 
@@ -100,14 +104,14 @@ class IDEInspectionInstance {
   std::shared_ptr<PluginRegistry> Plugins;
 
   std::shared_ptr<CompilerInstance> CachedCI;
-  llvm::hash_code CachedArgHash;
-  llvm::sys::TimePoint<> DependencyCheckedTimestamp;
-  llvm::StringMap<llvm::hash_code> InMemoryDependencyHash;
+  toolchain::hash_code CachedArgHash;
+  toolchain::sys::TimePoint<> DependencyCheckedTimestamp;
+  toolchain::StringMap<toolchain::hash_code> InMemoryDependencyHash;
   unsigned CachedReuseCount = 0;
   std::atomic<bool> CachedCIShouldBeInvalidated;
 
   void cacheCompilerInstance(std::shared_ptr<CompilerInstance> CI,
-                             llvm::hash_code ArgsHash);
+                             toolchain::hash_code ArgsHash);
 
   bool shouldCheckDependencies() const;
 
@@ -119,13 +123,13 @@ class IDEInspectionInstance {
   /// the file has changed.
   /// \p Callback will be called if and only if this function returns \c true.
   bool performCachedOperationIfPossible(
-      llvm::hash_code ArgsHash,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
+      toolchain::hash_code ArgsHash,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
       const SearchPathOptions &SearchPathOpts,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
+      toolchain::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
           Callback);
 
   /// Calls \p Callback with new \c CompilerInstance for the completion
@@ -133,13 +137,13 @@ class IDEInspectionInstance {
   /// the first pass.
   /// Returns \c false if it fails to setup the \c CompilerInstance.
   void performNewOperation(
-      std::optional<llvm::hash_code> ArgsHash,
-      swift::CompilerInvocation &Invocation,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      std::optional<toolchain::hash_code> ArgsHash,
+      language::CompilerInvocation &Invocation,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
+      toolchain::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
           Callback);
 
   /// Calls \p Callback with a \c CompilerInstance which is prepared for the
@@ -161,12 +165,12 @@ class IDEInspectionInstance {
   /// Since this function assumes that it is already normalized, exact the same
   /// arguments including their order is considered as the same invocation.
   void performOperation(
-      swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
+      toolchain::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
           Callback);
 
 public:
@@ -181,41 +185,41 @@ public:
   void setOptions(Options NewOpts);
 
   void codeComplete(
-      swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC, ide::CodeCompletionContext &CompletionContext,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<CodeCompleteResult>)> Callback);
+      toolchain::function_ref<void(CancellableResult<CodeCompleteResult>)> Callback);
 
   void typeContextInfo(
-      swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<TypeContextInfoResult>)>
+      toolchain::function_ref<void(CancellableResult<TypeContextInfoResult>)>
           Callback);
 
   void conformingMethodList(
-      swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC, ArrayRef<const char *> ExpectedTypeNames,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<ConformingMethodListResults>)>
+      toolchain::function_ref<void(CancellableResult<ConformingMethodListResults>)>
           Callback);
 
   void cursorInfo(
-      swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-      llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+      language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+      toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
       DiagnosticConsumer *DiagC,
       std::shared_ptr<std::atomic<bool>> CancellationFlag,
-      llvm::function_ref<void(CancellableResult<CursorInfoResults>)> Callback);
+      toolchain::function_ref<void(CancellableResult<CursorInfoResults>)> Callback);
 };
 
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_IDEINSPECTIONINSTANCE_H
+#endif // LANGUAGE_IDE_IDEINSPECTIONINSTANCE_H

@@ -1,0 +1,31 @@
+// RUN: %target-run-simple-language(-Xfrontend -sil-verify-all)
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all)
+
+// REQUIRES: executable_test
+struct FileDescriptor: ~Copyable {
+  immutable desc: Int
+
+  var empty: Bool { return desc == Int.min }
+  fn isEmpty() -> Bool { return empty }
+}
+
+final class Wrapper {
+  var val: FileDescriptor = FileDescriptor(desc: 0)
+
+  fn isEmpty_bug() -> Bool {
+    // error: 'this.val' has consuming use that cannot 
+    // be eliminated due to a tight exclusivity scope
+    return val.empty // note: consuming use here
+  }
+
+  fn isEmpty_ok() -> Bool {
+    return val.isEmpty()
+  }
+}
+
+immutable w = Wrapper()
+// CHECK: is not empty
+print(w.isEmpty_bug() ? "is empty" : "is not empty")
+w.val = FileDescriptor(desc: Int.min)
+// CHECK: is empty
+print(w.isEmpty_bug() ? "is empty" : "is not empty")

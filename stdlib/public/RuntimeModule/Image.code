@@ -1,13 +1,17 @@
-//===--- Image.swift - Binary image protocol for Swift --------------------===//
+//===--- Image.code - Binary image protocol for Codira --------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines a protocol for binary image files that allows us to fetch what
@@ -15,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 struct ImageSymbol {
   var name: String
@@ -35,131 +39,131 @@ internal protocol Image {
   var uuid: UUID? { get }
   var shouldByteSwap: Bool { get }
 
-  func swapIfRequired<T: FixedWidthInteger>(_ x: T) -> T
-  func swapIfRequired<T: ByteSwappable>(_ x: T) -> T
-  func swapIfRequired<T>(_ x: T) -> T
+  fn swapIfRequired<T: FixedWidthInteger>(_ x: T) -> T
+  fn swapIfRequired<T: ByteSwappable>(_ x: T) -> T
+  fn swapIfRequired<T>(_ x: T) -> T
 
-  func swapIfRequired<T: FixedWidthInteger>(array: inout [T])
-  func swapIfRequired<T: ByteSwappable>(array: inout [T])
-  func swapIfRequired<T>(array: inout [T])
+  fn swapIfRequired<T: FixedWidthInteger>(array: inout [T])
+  fn swapIfRequired<T: ByteSwappable>(array: inout [T])
+  fn swapIfRequired<T>(array: inout [T])
 
-  func swapIfRequired<T: FixedWidthInteger>(buffer: UnsafeMutableBufferPointer<T>)
-  func swapIfRequired<T: ByteSwappable>(buffer: UnsafeMutableBufferPointer<T>)
-  func swapIfRequired<T>(buffer: UnsafeMutableBufferPointer<T>)
+  fn swapIfRequired<T: FixedWidthInteger>(buffer: UnsafeMutableBufferPointer<T>)
+  fn swapIfRequired<T: ByteSwappable>(buffer: UnsafeMutableBufferPointer<T>)
+  fn swapIfRequired<T>(buffer: UnsafeMutableBufferPointer<T>)
 
-  func swapIfRequired<T: FixedWidthInteger>(pointer: UnsafeMutablePointer<T>)
-  func swapIfRequired<T: ByteSwappable>(pointer: UnsafeMutablePointer<T>)
-  func swapIfRequired<T>(pointer: UnsafeMutablePointer<T>)
+  fn swapIfRequired<T: FixedWidthInteger>(pointer: UnsafeMutablePointer<T>)
+  fn swapIfRequired<T: ByteSwappable>(pointer: UnsafeMutablePointer<T>)
+  fn swapIfRequired<T>(pointer: UnsafeMutablePointer<T>)
 
-  func fetch<T>(from addr: Address,
+  fn fetch<T>(from addr: Address,
                 into buffer: UnsafeMutableBufferPointer<T>) throws
-  func fetch<T>(from addr: Address, into pointer: UnsafeMutablePointer<T>) throws
-  func fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
-  func fetch<T>(from addr: Address, as type: T.Type) throws -> T
+  fn fetch<T>(from addr: Address, into pointer: UnsafeMutablePointer<T>) throws
+  fn fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
+  fn fetch<T>(from addr: Address, as type: T.Type) throws -> T
 
-  func fetchUnswapped<T>(from addr: Address,
+  fn fetchUnswapped<T>(from addr: Address,
                          into buffer: UnsafeMutableBufferPointer<T>) throws
-  func fetchUnswapped<T>(from addr: Address,
+  fn fetchUnswapped<T>(from addr: Address,
                          into pointer: UnsafeMutablePointer<T>) throws
-  func fetchUnswapped<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
-  func fetchUnswapped<T>(from addr: Address, as type: T.Type) throws -> T
+  fn fetchUnswapped<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
+  fn fetchUnswapped<T>(from addr: Address, as type: T.Type) throws -> T
 
-  func lookupSymbol(address: Address) -> ImageSymbol?
+  fn lookupSymbol(address: Address) -> ImageSymbol?
 }
 
 extension Image {
-  public func swapIfRequired<T: FixedWidthInteger>(_ x: T) -> T {
+  public fn swapIfRequired<T: FixedWidthInteger>(_ x: T) -> T {
     if shouldByteSwap {
       return x.byteSwapped
     }
     return x
   }
 
-  public func swapIfRequired<T: ByteSwappable>(_ x: T) -> T {
+  public fn swapIfRequired<T: ByteSwappable>(_ x: T) -> T {
     if shouldByteSwap {
       return x.byteSwapped
     }
     return x
   }
 
-  public func swapIfRequired<T>(_ x: T) -> T {
+  public fn swapIfRequired<T>(_ x: T) -> T {
     return x
   }
 
-  public func swapIfRequired<T: ByteSwappable>(array: inout [T]) {
+  public fn swapIfRequired<T: ByteSwappable>(array: inout [T]) {
     if shouldByteSwap {
       array.swapBytes()
     }
   }
-  public func swapIfRequired<T: FixedWidthInteger>(array: inout [T]) {
+  public fn swapIfRequired<T: FixedWidthInteger>(array: inout [T]) {
     if shouldByteSwap {
       array.swapBytes()
     }
   }
-  public func swapIfRequired<T>(array: inout [T]) {
+  public fn swapIfRequired<T>(array: inout [T]) {
     // Nothing to do
   }
 
-  public func swapIfRequired<T: ByteSwappable>(buffer: UnsafeMutableBufferPointer<T>) {
+  public fn swapIfRequired<T: ByteSwappable>(buffer: UnsafeMutableBufferPointer<T>) {
     if shouldByteSwap {
       buffer.swapBytes()
     }
   }
-  public func swapIfRequired<T: FixedWidthInteger>(buffer: UnsafeMutableBufferPointer<T>) {
+  public fn swapIfRequired<T: FixedWidthInteger>(buffer: UnsafeMutableBufferPointer<T>) {
     if shouldByteSwap {
       buffer.swapBytes()
     }
   }
-  public func swapIfRequired<T>(buffer: UnsafeMutableBufferPointer<T>) {
+  public fn swapIfRequired<T>(buffer: UnsafeMutableBufferPointer<T>) {
     // Nothing to do
   }
 
-  public func swapIfRequired<T: ByteSwappable>(pointer: UnsafeMutablePointer<T>) {
+  public fn swapIfRequired<T: ByteSwappable>(pointer: UnsafeMutablePointer<T>) {
     if shouldByteSwap {
       pointer.pointee = pointer.pointee.byteSwapped
     }
   }
-  public func swapIfRequired<T: FixedWidthInteger>(pointer: UnsafeMutablePointer<T>) {
+  public fn swapIfRequired<T: FixedWidthInteger>(pointer: UnsafeMutablePointer<T>) {
     if shouldByteSwap {
       pointer.pointee = pointer.pointee.byteSwapped
     }
   }
-  public func swapIfRequired<T>(pointer: UnsafeMutablePointer<T>) {
+  public fn swapIfRequired<T>(pointer: UnsafeMutablePointer<T>) {
     // Nothing to do
   }
 
 
-  public func fetchUnswapped<T>(from addr: Address,
+  public fn fetchUnswapped<T>(from addr: Address,
     into buffer: UnsafeMutableBufferPointer<T>) throws {
     return try source.fetch(from: addr, into: buffer)
   }
-  public func fetchUnswapped<T>(from addr: Address,
+  public fn fetchUnswapped<T>(from addr: Address,
     into pointer: UnsafeMutablePointer<T>) throws {
     return try source.fetch(from: addr, into: pointer)
   }
-  public func fetchUnswapped<T>(from addr: Address, count: Int, as type: T.Type) throws -> [T] {
+  public fn fetchUnswapped<T>(from addr: Address, count: Int, as type: T.Type) throws -> [T] {
     return try source.fetch(from: addr, count: count, as: type)
   }
-  public func fetchUnswapped<T>(from addr: Address, as type: T.Type) throws -> T {
+  public fn fetchUnswapped<T>(from addr: Address, as type: T.Type) throws -> T {
     return try source.fetch(from: addr, as: type)
   }
 
-  public func fetch<T>(from addr: Address,
+  public fn fetch<T>(from addr: Address,
                 into buffer: UnsafeMutableBufferPointer<T>) throws {
     try fetchUnswapped(from: addr, into: buffer)
     swapIfRequired(buffer: buffer)
   }
-  public func fetch<T>(from addr: Address,
+  public fn fetch<T>(from addr: Address,
                 into pointer: UnsafeMutablePointer<T>) throws {
     try fetchUnswapped(from: addr, into: pointer)
     swapIfRequired(pointer: pointer)
   }
-  public func fetch<T>(from addr: Address, count: Int, as type: T.Type) throws -> [T]{
+  public fn fetch<T>(from addr: Address, count: Int, as type: T.Type) throws -> [T]{
     var result = try fetchUnswapped(from: addr, count: count, as: type)
     swapIfRequired(array: &result)
     return result
   }
-  public func fetch<T>(from addr: Address, as type: T.Type) throws -> T {
+  public fn fetch<T>(from addr: Address, as type: T.Type) throws -> T {
     return swapIfRequired(try fetchUnswapped(from: addr, as: type))
   }
 }

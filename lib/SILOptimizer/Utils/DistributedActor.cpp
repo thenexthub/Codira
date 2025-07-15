@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/DistributedActor.h"
@@ -136,7 +137,7 @@ void emitDistributedActorSystemWitnessCall(
   }
 
   // Local function to emit a cleanup after the call.
-  auto emitCleanup = [&](llvm::function_ref<void(SILBuilder &builder)> fn) {
+  auto emitCleanup = [&](toolchain::function_ref<void(SILBuilder &builder)> fn) {
     if (tryTargets) {
       {
         SILBuilderWithScope normalBuilder(tryTargets->first, apply);

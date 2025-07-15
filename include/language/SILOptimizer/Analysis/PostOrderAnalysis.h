@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_POSTORDERANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_POSTORDERANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_POSTORDERANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_POSTORDERANALYSIS_H
 
 #include "language/Basic/Range.h"
 #include "language/SIL/CFG.h"
@@ -22,8 +23,8 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/iterator_range.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/iterator_range.h"
 
 namespace language {
 

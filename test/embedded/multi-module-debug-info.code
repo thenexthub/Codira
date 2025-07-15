@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -c -I %t %t/Main.code -enable-experimental-feature Embedded -verify -o /dev/null
+
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+public struct MyError: Error {
+}
+
+@inline(never)
+public fn foo<T>(_ t: T) throws {
+  throw MyError() // expected-error {{cannot use a value of protocol type 'any Error' in embedded Codira}}
+}
+
+@inline(never)
+public fn callit<T>(_ t: T) {
+  do {
+    try foo(t)
+  } catch {
+  }
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+public fn testit() {
+  callit(27) // expected-note {{generic specialization called here}}
+}
+

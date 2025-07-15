@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %s -module-name UseCoreFoundation -enable-experimental-cxx-interop -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/UseCoreFoundation.h
+// RUN: %FileCheck %s < %t/UseCoreFoundation.h
+
+// RUN: echo "#include <netinet/in.h>" > %t/full-header.h
+// RUN: cat %t/UseCoreFoundation.h >> %t/full-header.h
+// RUN: %target-interop-build-clangxx -std=gnu++20 -fobjc-arc -c -x objective-c++-header %t/full-header.h -o %t/o.o
+
+// REQUIRES: objc_interop
+
+import CoreFoundation
+import Foundation
+
+public fn foobar(_ a: CFData) -> Bool {
+    true
+}
+
+public fn networkThing() -> in_addr? {
+    return nil
+}
+
+public enum MyEnum {
+    case value(in_addr)
+}
+
+// CHECK: LANGUAGE_EXTERN bool $s17UseCoreFoundation6foobarySbSo9CFDataRefaF(CFDataRef _Nonnull a) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // foobar(_:)
+// CHECK: LANGUAGE_INLINE_THUNK language::Optional<in_addr> networkThing() noexcept LANGUAGE_SYMBOL("s:17UseCoreFoundation12networkThingSo7in_addrVSgyF") LANGUAGE_WARN_UNUSED_RESULT {

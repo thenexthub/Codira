@@ -1,0 +1,26 @@
+// REQUIRES: objc_interop
+// REQUIRES: concurrency
+// REQUIRES: language_feature_SendableCompletionHandlers
+
+// RUN: %empty-directory(%t)
+
+// RUN: %sourcekitd-test -req=interface-gen %S/../Inputs/concurrency/gen_concurrency.code -- %S/../Inputs/concurrency/gen_concurrency.code -target %target-triple -I %t -enable-experimental-feature SendableCompletionHandlers | %FileCheck %s --check-prefix=LANGUAGE-GEN-INTERFACE
+
+// Make sure we print @available when it was explicitly written by the user.
+// LANGUAGE-GEN-INTERFACE-LABEL: class ClassWithAsyncAndHandler {
+// LANGUAGE-GEN-INTERFACE:         @available(*, renamed: "foo(_:)")
+// LANGUAGE-GEN-INTERFACE-NEXT:    internal fn foo(_ operation: String, completionHandler handler: @escaping (Int) -> Void)
+// LANGUAGE-GEN-INTERFACE:         internal fn foo(_ operation: String) async -> Int
+
+// LANGUAGE-GEN-INTERFACE:         @MainActor internal fn mainActorMethod()
+
+
+// RUN: %sourcekitd-test -req=interface-gen -using-language-args -header %S/../Inputs/concurrency/header_concurrency.h -- %s -Xfrontend -enable-objc-interop -import-objc-header %S/../Inputs/concurrency/header_concurrency.h -sdk %clang-importer-sdk -enable-experimental-feature SendableCompletionHandlers | %FileCheck %s --check-prefix=OBJC-GEN-INTERFACE
+
+// But don't print @available if it was implicitly added to an imported Clang decl (rdar://76685011).
+// OBJC-GEN-INTERFACE-LABEL: class ClassWithHandlerMethod {
+// OBJC-GEN-INTERFACE-NOT:     @available
+// OBJC-GEN-INTERFACE:         fn method(withHandler operation: String!, completionHandler handler: (@Sendable (Int) -> Void)!)
+// OBJC-GEN-INTERFACE:         fn method(withHandler operation: String!) async -> Int
+
+// OBJC-GEN-INTERFACE:         @MainActor open fn mainActorMethod()

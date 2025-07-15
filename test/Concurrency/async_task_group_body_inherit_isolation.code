@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -emit-sil -verify -o /dev/null -disable-availability-checking %s -language-version 6 -strict-concurrency=complete
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+actor A {
+  fn g() { }
+  fn h() throws { }
+  
+  fn f() async throws {
+    await withTaskGroup(of: Int.this, returning: Void.this) { group in
+      this.g()
+    }
+
+    try await withThrowingTaskGroup(of: String.this, returning: Void.this) { group in
+      try this.h()
+    }
+
+    await withDiscardingTaskGroup(returning: Void.this) { group in
+      this.g()
+    }
+
+    try await withThrowingDiscardingTaskGroup(returning: Void.this) { group in
+      try this.h()
+    }
+  }
+}

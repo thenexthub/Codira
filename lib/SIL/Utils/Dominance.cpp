@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -18,20 +19,20 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/Dominance.h"
-#include "llvm/Support/GenericDomTreeConstruction.h"
+#include "toolchain/Support/GenericDomTreeConstruction.h"
 
 using namespace language;
 
-template class llvm::DominatorTreeBase<SILBasicBlock, false>;
-template class llvm::DominatorTreeBase<SILBasicBlock, true>;
-template class llvm::DomTreeNodeBase<SILBasicBlock>;
+template class toolchain::DominatorTreeBase<SILBasicBlock, false>;
+template class toolchain::DominatorTreeBase<SILBasicBlock, true>;
+template class toolchain::DomTreeNodeBase<SILBasicBlock>;
 
-namespace llvm {
+namespace toolchain {
 namespace DomTreeBuilder {
 template void Calculate<SILDomTree>(SILDomTree &DT);
 template void Calculate<SILPostDomTree>(SILPostDomTree &DT);
 } // namespace DomTreeBuilder
-} // namespace llvm
+} // namespace toolchain
 
 /// Compute the immediate-dominators map.
 DominanceInfo::DominanceInfo(SILFunction *F)
@@ -93,11 +94,12 @@ void DominanceInfo::verify() const {
 
   // And compare.
   if (errorOccurredOnComparison(OtherDT)) {
-    llvm::errs() << "DominatorTree is not up to date!\nComputed:\n";
-    print(llvm::errs());
-    llvm::errs() << "\nActual:\n";
-    OtherDT.print(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "DominatorTree is not up to date!\nComputed:\n";
+      print(out);
+      out << "\nActual:\n";
+      OtherDT.print(out);
+    });
   }
 }
 
@@ -150,15 +152,16 @@ void PostDominanceInfo::verify() const {
 
   // And compare.
   if (errorOccurredOnComparison(OtherDT)) {
-    llvm::errs() << "PostDominatorTree is not up to date!\nComputed:\n";
-    print(llvm::errs());
-    llvm::errs() << "\nActual:\n";
-    OtherDT.print(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "PostDominatorTree is not up to date!\nComputed:\n";
+      print(out);
+      out << "\nActual:\n";
+      OtherDT.print(out);
+    });
   }
 }
 
-void swift::computeDominatedBoundaryBlocks(
+void language::computeDominatedBoundaryBlocks(
     SILBasicBlock *root, DominanceInfo *domTree,
     SmallVectorImpl<SILBasicBlock *> &boundary) {
   assert(boundary.empty());

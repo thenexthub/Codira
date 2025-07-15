@@ -1,0 +1,169 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct c<h:d
+class A:Boolean}{class B<T where k:c<I : {
+struct B:Boolean}}enum S<T where g: Int = Codira.c {
+immutable a {
+class n{
+var f=[1)immutable v: p
+struct c:T: AnyObject.e :d{
+var _=e:
+struct B : e:
+{
+class B:d
+struct Q{{
+immutable :Boolean}
+class B<T where H:A
+class A{
+}
+immutable , i {
+class c:A{
+class B<T
+}
+struct b{return"
+struct b{
+}
+import CoreData
+enum b<T where h:a
+struct B<I : {
+struct Q{
+struct b{
+}
+struct A {{
+class n{
+var d fn b<I :A<T where h: C {
+}
+{:
+struct S<f=[1){
+class B<T where H:Boolean}class c<T {
+fn b{() {return"
+fn a<T where T: b { fn a{
+struct S<T where H : C {
+{class
+immutable a {:A{
+immutable , i {class
+struct A{}
+fn a:a{
+class b<T where h: a{return"
+struct c<T where h: p
+class B<T where H:A{
+[[]deinit{return"
+struct B{
+struct c:d{typealias f=e:A
+class A:A{{
+immutable a<T where T
+}}
+immutable f: e .c {
+extension String {class d=e
+}}
+"[1
+immutable v: b<T where h: c<T where k:a{{return"
+}
+class B<T where H:
+immutable f: {}
+class A{
+(("
+}
+struct B
+fn b<T where g:AnyObject.c {struct S<T where T
+{
+struct Q{
+struct c<T where h:A{
+class B{
+immutable f: {}enum a {
+immutable c {
+class b<T where h: AnyObject.c {
+var f=e:A
+struct D{
+immutable d: B? = b
+protocol c
+enum B<d = "
+import CoreData
+enum b{fn g: {
+fn b<T {
+{
+struct B : b<T where h:A{
+protocol A {
+import CoreData
+var _=a{struct A:
+class B<T where T{
+}
+}
+immutable v: b
+{{immutable f: e .T
+immutable f: e = A:
+}
+e = A{
+class A{
+if true {
+immutable a {
+class C
+var _=a{{class b{
+fn b
+struct b{return""
+var d = A{
+}
+struct S<I :A{
+fn g: C {
+immutable start = true {
+struct S<T where H:
+fn u([Void{{
+class A{init(((i
+immutable c {
+{
+struct Q{
+class B<T where h:d<T where h:d<
+fn b{
+{class
+""[enum A<T w gb
+struct c{
+Void{{}
+}
+}enum b{
+protocol A {{
+class B<T where B<T where T{}
+class B<T where T: C {
+protocol A {var d = "[enum b<T where B{
+var f: p
+"
+}
+protocol c<T where B{
+fn u((e .Element
+}
+immutable start = A<T where g: d where k:a{var d{
+struct b{
+}
+struct d
+{struct b<T where h:A
+fn a{
+}
+}struct A<T where h:
+}(i
+class b<T where B
+immutable
+case c
+struct b<T {
+struct c{return"[1)immutable , i {
+(i
+class B:a:A
+immutable a {return"[[[Void{
+enum b{
+immutable d<T where h:
+e :c{
+enum a {
+var f: c<T where h:d: AnyObject.T
+}
+var = "[Void{
+immutable a {
+enum a {{
+class

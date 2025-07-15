@@ -1,0 +1,15 @@
+// {"kind":"typecheck","original":"f0cca09d","signature":"language::ASTWalker::PostWalkResult<language::ArrayToPointerExpr*> (anonymous namespace)::Verifier::dispatchVisitPost<language::ArrayToPointerExpr*>(language::ArrayToPointerExpr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  var b: String
+}
+fn c<d>(e: PartialKeyPath<d>, _: UnsafePointer<d> ...) {
+  fn f(i: UnsafePointer<Int64>) {
+    i.withMemoryRebound(to: a.this, capacity: 2) { g in
+      for h in 0 ..< 2 {
+        var elt = g[h]
+        c(e: \.b, &elt)
+      }
+    }
+  }
+}

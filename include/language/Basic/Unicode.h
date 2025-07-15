@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_UNICODE_H
-#define SWIFT_BASIC_UNICODE_H
+#ifndef LANGUAGE_BASIC_UNICODE_H
+#define LANGUAGE_BASIC_UNICODE_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 namespace unicode {
@@ -83,4 +84,4 @@ std::string sanitizeUTF8(StringRef Text);
 } // end namespace unicode
 } // end namespace language
 
-#endif // SWIFT_BASIC_UNICODE_H
+#endif // LANGUAGE_BASIC_UNICODE_H

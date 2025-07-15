@@ -1,0 +1,4 @@
+Name: ImportAsMemberSubmodules
+Tags:
+- Name: IAMSInner
+  CodiraName: IAMSOuter.Inner

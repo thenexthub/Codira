@@ -1,4 +1,4 @@
-//===--- GenObjC.h - Swift IR generation for Objective-C --------*- C++ -*-===//
+//===--- GenObjC.h - Codira IR generation for Objective-C --------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to Objective-C emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENOBJC_H
-#define SWIFT_IRGEN_GENOBJC_H
+#ifndef LANGUAGE_IRGEN_GENOBJC_H
+#define LANGUAGE_IRGEN_GENOBJC_H
 
 #include "language/SIL/SILDeclRef.h"
 
-namespace llvm {
+namespace toolchain {
   class Type;
   class Value;
 }
@@ -59,7 +60,7 @@ namespace irgen {
     /// For a bounded call, the static type that provides the lower bound for
     /// the search. Null for unbounded calls that will look for the method in
     /// the dynamic type of the object.
-    llvm::PointerIntPair<SILType, 1, bool> searchTypeAndSuper;
+    toolchain::PointerIntPair<SILType, 1, bool> searchTypeAndSuper;
 
   public:
     ObjCMethod(SILDeclRef method, SILType searchType, bool startAtSuper)
@@ -70,9 +71,9 @@ namespace irgen {
     SILType getSearchType() const { return searchTypeAndSuper.getPointer(); }
     bool shouldStartAtSuper() const { return searchTypeAndSuper.getInt(); }
     
-    /// FIXME: Thunk down to a Swift function value?
-    llvm::Value *getExplosionValue(IRGenFunction &IGF) const {
-      llvm_unreachable("thunking unapplied objc method to swift function "
+    /// FIXME: Thunk down to a Codira function value?
+    toolchain::Value *getExplosionValue(IRGenFunction &IGF) const {
+      toolchain_unreachable("thunking unapplied objc method to language function "
                        "not yet implemented");
     }
     
@@ -89,11 +90,11 @@ namespace irgen {
 
   /// Prepare a callee for an Objective-C method.
   Callee getObjCMethodCallee(IRGenFunction &IGF, const ObjCMethod &method,
-                             llvm::Value *selfValue, CalleeInfo &&info);
+                             toolchain::Value *selfValue, CalleeInfo &&info);
 
   /// Prepare a callee for an Objective-C method with the `objc_direct` attribute.
   Callee getObjCDirectMethodCallee(CalleeInfo &&info, const FunctionPointer &fn,
-                                   llvm::Value *selfValue);
+                                   toolchain::Value *selfValue);
 
   /// Emit a partial application of an Objective-C method to its 'self'
   /// argument.
@@ -101,22 +102,22 @@ namespace irgen {
                                   ObjCMethod method,
                                   CanSILFunctionType origType,
                                   CanSILFunctionType partialAppliedType,
-                                  llvm::Value *self,
+                                  toolchain::Value *self,
                                   SILType selfType,
                                   Explosion &out);
 
   /// Reclaim an autoreleased return value.
-  llvm::Value *emitObjCRetainAutoreleasedReturnValue(IRGenFunction &IGF,
-                                                     llvm::Value *value);
+  toolchain::Value *emitObjCRetainAutoreleasedReturnValue(IRGenFunction &IGF,
+                                                     toolchain::Value *value);
 
   /// Autorelease a return value.
-  llvm::Value *emitObjCAutoreleaseReturnValue(IRGenFunction &IGF,
-                                              llvm::Value *value);
+  toolchain::Value *emitObjCAutoreleaseReturnValue(IRGenFunction &IGF,
+                                              toolchain::Value *value);
 
   struct ObjCMethodDescriptor {
-    llvm::Constant *selectorRef = nullptr;
-    llvm::Constant *typeEncoding = nullptr;
-    llvm::Constant *impl = nullptr;
+    toolchain::Constant *selectorRef = nullptr;
+    toolchain::Constant *typeEncoding = nullptr;
+    toolchain::Constant *impl = nullptr;
     SILFunction *silFunction = nullptr;
   };
 
@@ -170,7 +171,7 @@ namespace irgen {
   void emitObjCIVarInitDestroyDescriptor(IRGenModule &IGM,
                                          ConstantArrayBuilder &descriptors,
                                          ClassDecl *cd,
-                                         llvm::Function *impl,
+                                         toolchain::Function *impl,
                                          bool isDestroyer);
 
   /// Get the type encoding for an ObjC property.
@@ -179,12 +180,12 @@ namespace irgen {
   
   /// Produces extended encoding of ObjC block signature.
   /// \returns the encoded type.
-  llvm::Constant *getBlockTypeExtendedEncoding(IRGenModule &IGM,
+  toolchain::Constant *getBlockTypeExtendedEncoding(IRGenModule &IGM,
                                                CanSILFunctionType invokeTy);
   
   /// Produces extended encoding of method type.
   /// \returns the encoded type.
-  llvm::Constant *getMethodTypeExtendedEncoding(IRGenModule &IGM,
+  toolchain::Constant *getMethodTypeExtendedEncoding(IRGenModule &IGM,
                                                 AbstractFunctionDecl *method);
   
   /// Build an Objective-C method descriptor for the given getter method.
@@ -213,8 +214,8 @@ namespace irgen {
                                        SubscriptDecl *subscript);
 
   /// Allocate an Objective-C object.
-  llvm::Value *emitObjCAllocObjectCall(IRGenFunction &IGF,
-                                       llvm::Value *classPtr,
+  toolchain::Value *emitObjCAllocObjectCall(IRGenFunction &IGF,
+                                       toolchain::Value *classPtr,
                                        SILType resultType);
 
 } // end namespace irgen

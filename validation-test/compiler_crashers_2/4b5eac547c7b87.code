@@ -1,0 +1,4 @@
+// {"signature":"checkDistributedTargetResultType(language::ValueDecl*, language::Type, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Distributed protocol a:DistributedActor{distributed actor:

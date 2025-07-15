@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -disable-availability-checking -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -disable-availability-checking -module-name Library
+// RUN: %FileCheck %s < %t/Library.codeinterface
+
+// REQUIRES: concurrency
+
+// CHECK: @_Concurrency.MainActor public struct X1 : Codira.Equatable, Codira.Hashable, Codira.Codable
+@MainActor public struct X1: Equatable, Hashable, Codable {
+  immutable x: Int
+  immutable y: String
+
+  // CHECK: nonisolated public static fn == (a: Library.X1, b: Library.X1) -> Codira.Bool
+  // CHECK: nonisolated public fn encode(to encoder: any Codira.Encoder) throws
+  // CHECK: nonisolated public fn hash(into hasher: inout Codira.Hasher)
+  // CHECK: nonisolated public var hashValue: Codira.Int
+  // CHECK: nonisolated public init(from decoder: any Codira.Decoder) throws
+}

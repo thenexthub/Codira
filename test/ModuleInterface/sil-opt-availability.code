@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -emit-module %s -enable-library-evolution -language-version 5 -module-name Library -emit-module-interface-path %t/Library.codeinterface -o %t/Library.codemodule
+
+// RUN: echo "import Library" > %t/Client.code
+// RUN: %target-language-frontend -emit-module %t/Client.code -module-name Client -o %t/Client.codemodule -I %t
+
+// RUN: rm %t/Library.codemodule
+// RUN: %target-sil-opt -enable-sil-verify-all %t/Client.codemodule -module-name Client
+
+@available(*, unavailable)
+public struct Unavailable {}
+
+@available(*, unavailable)
+public fn usesUnavailable(_ u: Unavailable) {}

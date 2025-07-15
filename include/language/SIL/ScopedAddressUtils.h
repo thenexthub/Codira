@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SCOPEDADDRESSUTILS_H
-#define SWIFT_SIL_SCOPEDADDRESSUTILS_H
+#ifndef LANGUAGE_SIL_SCOPEDADDRESSUTILS_H
+#define LANGUAGE_SIL_SCOPEDADDRESSUTILS_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/OwnershipUtils.h"
 #include "language/SIL/PrunedLiveness.h"
 #include "language/SIL/SILBasicBlock.h"
@@ -54,11 +55,11 @@ public:
 
   operator Kind() const { return value; }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               ScopedAddressValueKind kind);
 
 struct ScopedAddressValue {
@@ -86,8 +87,8 @@ struct ScopedAddressValue {
     return ScopedAddressValue();
   }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
   // Helpers to allow a ScopedAddressValue to easily be used as a SILValue
   // programatically.
@@ -132,7 +133,7 @@ struct ScopedAddressValue {
   void endScopeAtLivenessBoundary(SSAPrunedLiveness *liveness) const;
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               const ScopedAddressValue &value);
 
 /// Returns true if there are other store_borrows enclosed within a store_borrow

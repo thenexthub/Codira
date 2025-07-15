@@ -1,19 +1,19 @@
 
-add_library(swiftWinSDK
-  WinSDK.swift)
-set_target_properties(swiftWinSDK PROPERTIES
-  Swift_MODULE_NAME WinSDK)
-target_compile_definitions(swiftCRT PRIVATE
-  $<$<BOOL:${SwiftOverlay_ENABLE_REFLECTION}>:SWIFT_ENABLE_REFLECTION>)
-target_link_libraries(swiftWinSDK PRIVATE
+add_library(languageWinSDK
+  WinSDK.code)
+set_target_properties(languageWinSDK PROPERTIES
+  Codira_MODULE_NAME WinSDK)
+target_compile_definitions(languageCRT PRIVATE
+  $<$<BOOL:${CodiraOverlay_ENABLE_REFLECTION}>:LANGUAGE_ENABLE_REFLECTION>)
+target_link_libraries(languageWinSDK PRIVATE
   ClangModules
-  swiftCore)
+  languageCore)
 
-install(TARGETS swiftWinSDK
-  ARCHIVE DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
-  LIBRARY DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
+install(TARGETS languageWinSDK
+  ARCHIVE DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-emit_swift_interface(swiftWinSDK)
-install_swift_interface(swiftWinSDK)
+emit_language_interface(languageWinSDK)
+install_language_interface(languageWinSDK)
 
-embed_manifest(swiftWinSDK)
+embed_manifest(languageWinSDK)

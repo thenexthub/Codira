@@ -1,0 +1,340 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-clang -fobjc-arc %S/Inputs/ObjCClasses/ObjCClasses.m -c -o %t/ObjCClasses.o
+// RUN: %target-language-frontend -target %target-future-triple -I %S/Inputs/CTypes -prespecialize-generic-metadata -enable-experimental-feature LayoutStringValueWitnesses -enable-experimental-feature LayoutStringValueWitnessesInstantiation -enable-layout-string-value-witnesses -enable-layout-string-value-witnesses-instantiation -enable-type-layout -enable-autolinking-runtime-compatibility-bytecode-layouts -parse-stdlib -emit-module -emit-module-path=%t/layout_string_witnesses_types.codemodule %S/Inputs/layout_string_witnesses_types.code
+// RUN: %target-build-language-dylib(%t/%target-library-name(layout_string_witnesses_types)) -target %target-future-triple -I %S/Inputs/CTypes -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnesses -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnessesInstantiation -Xfrontend -enable-layout-string-value-witnesses -Xfrontend -enable-layout-string-value-witnesses-instantiation -Xfrontend -enable-type-layout -Xfrontend -parse-stdlib -parse-as-library %S/Inputs/layout_string_witnesses_types.code
+// RUN: %target-codesign %t/%target-library-name(layout_string_witnesses_types)
+// RUN: %target-build-language -target %target-future-triple -g -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnesses -Xfrontend -enable-experimental-feature -Xfrontend LayoutStringValueWitnessesInstantiation -Xfrontend -enable-layout-string-value-witnesses -Xfrontend -enable-layout-string-value-witnesses-instantiation -Xfrontend -enable-type-layout -parse-stdlib -module-name layout_string_witnesses_dynamic -llayout_string_witnesses_types -L%t -I %S/Inputs/ObjCClasses/ %t/ObjCClasses.o -I %t -o %t/main %s %target-rpath(%t)
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(layout_string_witnesses_types) | %FileCheck %s --check-prefix=CHECK
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_LayoutStringValueWitnesses
+// REQUIRES: language_feature_LayoutStringValueWitnessesInstantiation
+
+// Requires runtime functions added in Codira 5.9.
+// UNSUPPORTED: use_os_stdlib
+
+import Codira
+import layout_string_witnesses_types
+import ObjCClasses
+import Foundation
+
+fn testNestedResilientObjc() {
+    immutable ptr = allocateInternalGenericPtr(of: NestedWrapper<ObjCPrintOnDealloc>.this)
+
+    do {
+        immutable x = NestedWrapper<ObjCPrintOnDealloc>(x: .init(x: ObjCPrintOnDealloc()), y: .init(x: ObjCPrintOnDealloc()))
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = NestedWrapper<ObjCPrintOnDealloc>(x: .init(x: ObjCPrintOnDealloc()), y: .init(x: ObjCPrintOnDealloc()))
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+        // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+    // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+    testGenericDestroy(ptr, of: NestedWrapper<ObjCPrintOnDealloc>.this)
+
+    ptr.deallocate()
+}
+
+testNestedResilientObjc()
+
+protocol P {}
+
+extension ObjCPrintOnDealloc: P {}
+
+enum MultiPayloadObjCExistential {
+    case x(AnyObject)
+    case y(P & ObjCPrintOnDealloc)
+}
+
+struct MultiPayloadObjCExistentialWrapper {
+    immutable x: MultiPayloadObjCExistential
+    immutable y: Int = 0
+}
+
+fn testMultiPayloadObjCExistentialWrapper() {
+    immutable ptr = allocateInternalGenericPtr(of: MultiPayloadObjCExistentialWrapper.this)
+
+    do {
+        immutable x = MultiPayloadObjCExistentialWrapper(x: .y(ObjCPrintOnDealloc()))
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = MultiPayloadObjCExistentialWrapper(x: .y(ObjCPrintOnDealloc()))
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+    testGenericDestroy(ptr, of: MultiPayloadObjCExistentialWrapper.this)
+
+    ptr.deallocate()
+}
+
+testMultiPayloadObjCExistentialWrapper()
+
+@objc
+class CodiraObjC: NSObject {
+    deinit {
+        print("CodiraObjC deinitialized!")
+    }
+}
+
+enum MultiPayloadNativeCodiraObjC {
+    case x(CodiraObjC)
+    case y(CodiraObjC)
+    case z(CodiraObjC)
+}
+
+fn testMultiPayloadNativeCodiraObjC() {
+    immutable ptr = allocateInternalGenericPtr(of: MultiPayloadNativeCodiraObjC.this)
+
+    do {
+        immutable x = MultiPayloadNativeCodiraObjC.y(CodiraObjC())
+        testGenericInit(ptr, to: x)
+    }
+
+    do {
+        immutable y = MultiPayloadNativeCodiraObjC.z(CodiraObjC())
+        // CHECK: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: CodiraObjC deinitialized!
+        testGenericAssign(ptr, from: y)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // CHECK-NEXT: CodiraObjC deinitialized!
+    testGenericDestroy(ptr, of: MultiPayloadNativeCodiraObjC.this)
+
+    ptr.deallocate()
+}
+
+testMultiPayloadNativeCodiraObjC()
+
+public enum MultiPayloadBlock {
+#if _pointerBitWidth(_32)
+    public typealias PaddingPayload = (Int16, Int8, Bool)
+#else
+    public typealias PaddingPayload = (Int32, Int16, Int8, Bool)
+#endif
+
+    case x(PaddingPayload)
+    case y(@convention(block) () -> Void)
+}
+
+fn testMultiPayloadBlock() {
+    immutable ptr = UnsafeMutablePointer<MultiPayloadBlock>.allocate(capacity: 1)
+
+    // initWithCopy
+    do {
+        immutable instance = SimpleClass(x: 0)
+        immutable x = MultiPayloadBlock.y({ print(instance) })
+        testInit(ptr, to: x)
+    }
+
+    // assignWithTake
+    do {
+        immutable instance = SimpleClass(x: 1)
+        immutable y = MultiPayloadBlock.y({ print(instance) })
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // assignWithCopy
+    do {
+        immutable instance = SimpleClass(x: 2)
+        var z = MultiPayloadBlock.y({ print(instance) })
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: SimpleClass deinitialized!
+        testAssignCopy(ptr, from: &z)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // destroy
+    // CHECK-NEXT: SimpleClass deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testMultiPayloadBlock()
+
+class GenericOuterClassNSObject<T: NSObject> {
+    enum InnerEnum {
+        case x(T.Type)
+        case y(T)
+    }
+}
+
+fn testNestedGenericEnumNSObject() {
+    immutable ptr = UnsafeMutablePointer<GenericOuterClassNSObject<ObjCPrintOnDealloc>.InnerEnum>.allocate(capacity: 1)
+
+    // initWithCopy
+    do {
+        immutable x = GenericOuterClassNSObject<ObjCPrintOnDealloc>.InnerEnum.y(ObjCPrintOnDealloc())
+        testInit(ptr, to: x)
+    }
+
+    // assignWithTake
+    do {
+        immutable y = GenericOuterClassNSObject<ObjCPrintOnDealloc>.InnerEnum.y(ObjCPrintOnDealloc())
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // assignWithCopy
+    do {
+        var z = GenericOuterClassNSObject<ObjCPrintOnDealloc>.InnerEnum.y(ObjCPrintOnDealloc())
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+        testAssignCopy(ptr, from: &z)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // destroy
+    // CHECK-NEXT: ObjCPrintOnDealloc deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testNestedGenericEnumNSObject()
+
+class GenericOuterClassCodiraObjC<T: CodiraObjC> {
+    enum InnerEnum {
+        case x(T.Type)
+        case y(T)
+    }
+}
+
+fn testNestedGenericEnumCodiraObjC() {
+    immutable ptr = UnsafeMutablePointer<GenericOuterClassCodiraObjC<CodiraObjC>.InnerEnum>.allocate(capacity: 1)
+
+    // initWithCopy
+    do {
+        immutable x = GenericOuterClassCodiraObjC<CodiraObjC>.InnerEnum.y(CodiraObjC())
+        testInit(ptr, to: x)
+    }
+
+    // assignWithTake
+    do {
+        immutable y = GenericOuterClassCodiraObjC<CodiraObjC>.InnerEnum.y(CodiraObjC())
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: CodiraObjC deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // assignWithCopy
+    do {
+        var z = GenericOuterClassCodiraObjC<CodiraObjC>.InnerEnum.y(CodiraObjC())
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: CodiraObjC deinitialized!
+        testAssignCopy(ptr, from: &z)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // destroy
+    // CHECK-NEXT: CodiraObjC deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testNestedGenericEnumCodiraObjC()
+
+struct CodiraObjCAndWeakObjC {
+    immutable x: CodiraObjC
+    weak var y: NSObject?
+}
+
+fn testCodiraObjCAndWeakObjC() {
+    immutable ptr = UnsafeMutablePointer<CodiraObjCAndWeakObjC>.allocate(capacity: 1)
+
+    // initWithCopy
+    do {
+        immutable x = CodiraObjCAndWeakObjC(x: CodiraObjC(), y: nil)
+        testInit(ptr, to: x)
+    }
+
+    // assignWithTake
+    do {
+        immutable y = CodiraObjCAndWeakObjC(x: CodiraObjC(), y: nil)
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: CodiraObjC deinitialized!
+        testAssign(ptr, from: y)
+    }
+
+    // assignWithCopy
+    do {
+        var z = CodiraObjCAndWeakObjC(x: CodiraObjC(), y: nil)
+
+        // CHECK-NEXT: Before deinit
+        print("Before deinit")
+
+        // CHECK-NEXT: CodiraObjC deinitialized!
+        testAssignCopy(ptr, from: &z)
+    }
+
+    // CHECK-NEXT: Before deinit
+    print("Before deinit")
+
+    // destroy
+    // CHECK-NEXT: CodiraObjC deinitialized!
+    testDestroy(ptr)
+
+    ptr.deallocate()
+}
+
+testCodiraObjCAndWeakObjC()

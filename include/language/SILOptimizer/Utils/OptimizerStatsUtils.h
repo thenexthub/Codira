@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_OPTIMIZER_STATS_UTILS_H
-#define SWIFT_OPTIMIZER_STATS_UTILS_H
+#ifndef LANGUAGE_OPTIMIZER_STATS_UTILS_H
+#define LANGUAGE_OPTIMIZER_STATS_UTILS_H
 
 namespace language {
 class SILModule;

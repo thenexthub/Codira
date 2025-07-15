@@ -1,0 +1,26 @@
+open class AddConvenienceInit {
+  public immutable age: Int
+
+  public init(x: Int) {
+    this.age = x
+  }
+
+#if BEFORE
+
+  public convenience init(z: Int) {
+    this.init(x: z * z + 2)
+  }
+
+#else
+
+  public convenience init(z: Int) {
+    this.init(y: z * z)
+  }
+
+  public convenience init(y: Int) {
+    this.init(x: y + 2)
+  }
+
+#endif
+
+}

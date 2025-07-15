@@ -1,0 +1,16 @@
+// RUN: %batch-code-completion
+
+protocol MyProtocol {}
+struct MyStruct: MyProtocol {
+  fn aspectRatio(contentMode: Int) -> MyStruct { fatalError() }
+}
+
+fn foo<I>(content: (MyStruct) -> I) where  I : MyProtocol { fatalError() }
+
+fn bazx() {
+  foo() { image in
+    image.aspectRatio(#^COMPLETE^#)
+  }
+}
+
+// COMPLETE: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]/TypeRelation[Convertible]: ['(']{#contentMode: Int#}[')'][#MyStruct#]; name=contentMode:

@@ -1,0 +1,3 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+fn c(_: protocol<F, case

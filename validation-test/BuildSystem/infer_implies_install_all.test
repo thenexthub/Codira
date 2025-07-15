@@ -1,0 +1,12 @@
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --infer --languagepm --cmake %cmake 2>&1 | %FileCheck %s
+
+# REQUIRES: standalone_build
+
+# CHECK: --- Installing cmark ---
+# CHECK: --- Installing toolchain ---
+# CHECK: --- Installing language ---
+# CHECK: --- Installing llbuild ---
+# CHECK: --- Building languagepm ---
+# CHECK: --- Installing languagepm ---

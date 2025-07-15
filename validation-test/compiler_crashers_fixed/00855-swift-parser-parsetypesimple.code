@@ -1,0 +1,61 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class fn g<e() {
+for c {
+class fn g() {
+convenience init((n: NSObject {
+class a: T>(")
+}
+}
+class b: C {
+struct A = a: P {
+class a {
+}
+}
+}
+protocol a {
+public var f = [], object2).c: AnyObject, T>(t.e : T : (x: B<T) {
+}
+typealias e)
+}
+fn b([Any, length: a {
+}
+class C(array: A"))
+d<U {
+fn d(A? {
+}
+struct S {
+fn c(range.a<T>? = {
+}
+}
+c(n: AnyObject, e: T) -> Any {
+case b where Optional<A, x in a {
+}
+i() -> {
+fn g<I : c> T>: Boolean, Any) {
+}
+protocol A {
+}
+immutable c() -> {
+}
+public var b {
+b<T, e, immutable start = i(n: Any) -> {
+})
+}
+}
+}
+get {
+protocol b {
+}
+init(x: A, a)
+}

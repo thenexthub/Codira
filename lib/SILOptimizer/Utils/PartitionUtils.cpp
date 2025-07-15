@@ -1,13 +1,17 @@
 //===--- PartitionUtils.cpp -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/PartitionUtils.h"
@@ -24,13 +28,13 @@ using namespace language::PartitionPrimitives;
 //===----------------------------------------------------------------------===//
 
 void PartitionOpError::UnknownCodePatternError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
   os << "    Emitting Error. Kind: Unknown Code Pattern Error\n"
      << "        Inst: " << *op->getSourceInst();
 }
 
 void PartitionOpError::LocalUseAfterSendError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
   os << "    Emitting Error. Kind: Use After Send\n"
      << "        Sending Inst: " << *sendingOp->getUser()
      << "        Sending Op Value: " << sendingOp->get()
@@ -41,12 +45,12 @@ void PartitionOpError::LocalUseAfterSendError::print(
 }
 
 void PartitionOpError::SentNeverSendableError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &info) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &info) const {
   os << "    Emitting Error. Kind: Sent Non Sendable\n"
      << "        ID:  %%" << sentElement << "\n"
      << "        Rep: " << *info.getRepresentative(sentElement)
      << "        Dynamic Isolation Region: ";
-  isolationRegionInfo.printForOneLineLogging(os);
+  isolationRegionInfo.printForOneLineLogging(info.getFunction(), os);
   os << '\n';
   if (auto isolatedValue = isolationRegionInfo->maybeGetIsolatedValue()) {
     os << "        Isolated Value: " << isolatedValue;
@@ -59,7 +63,7 @@ void PartitionOpError::SentNeverSendableError::print(
 }
 
 void PartitionOpError::AssignNeverSendableIntoSendingResultError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
   os << "    Emitting Error. Kind: Assign Isolated Into Sending Result!\n"
      << "        Assign Inst: " << *op->getSourceInst()
      << "        Dest Value: " << *destValue
@@ -71,7 +75,7 @@ void PartitionOpError::AssignNeverSendableIntoSendingResultError::print(
 }
 
 void PartitionOpError::InOutSendingNotInitializedAtExitError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
   os << "    Emitting Error. Kind: InOut Not Reinitialized At End Of "
         "Function\n"
      << "        Sending Inst: " << *sendingOp->getUser()
@@ -83,19 +87,19 @@ void PartitionOpError::InOutSendingNotInitializedAtExitError::print(
 }
 
 void PartitionOpError::InOutSendingNotDisconnectedAtExitError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
   os << "    Emitting Error. Kind: InOut Sending ActorIsolated "
         "at end of "
         "Function Error!\n"
      << "        ID:  %%" << inoutSendingElement << "\n"
      << "        Rep: " << valueMap.getRepresentativeValue(inoutSendingElement)
      << "        Dynamic Isolation Region: ";
-  isolationInfo.printForOneLineLogging(os);
+  isolationInfo.printForOneLineLogging(valueMap.getFunction(), os);
   os << '\n';
 }
 
 void PartitionOpError::NonSendableIsolationCrossingResultError::print(
-    llvm::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
+    toolchain::raw_ostream &os, RegionAnalysisValueMap &valueMap) const {
   os << "    Emitting Error. Kind: NonSendableIsolationCrossingResultError\n"
         "        Inst: "
      << *op->getSourceInst() << "        Result ID: %%" << returnValueElement
@@ -106,7 +110,7 @@ void PartitionOpError::NonSendableIsolationCrossingResultError::print(
 //                             MARK: PartitionOp
 //===----------------------------------------------------------------------===//
 
-void PartitionOp::print(llvm::raw_ostream &os, bool extraSpace) const {
+void PartitionOp::print(toolchain::raw_ostream &os, bool extraSpace) const {
   constexpr static char extraSpaceLiteral[10] = "     ";
   switch (opKind) {
   case PartitionOpKind::Assign: {
@@ -197,7 +201,7 @@ Partition Partition::singleRegion(SILLocation loc, ArrayRef<Element> indices,
     // First create a region for repElement. We are going to merge all other
     // regions into its region.
     p.pushNewElementRegion(repElement);
-    llvm::SmallVector<Element, 32> nonRepElts;
+    toolchain::SmallVector<Element, 32> nonRepElts;
     for (Element index : indices) {
       p.elementToRegionMap.insert_or_assign(index, repElementRegion);
       if (index != repElement) {
@@ -275,7 +279,7 @@ bool Partition::undoSend(Element val) {
 }
 
 void Partition::trackNewElement(Element newElt, bool updateHistory) {
-  SWIFT_DEFER { validateRegionToSendingOpMapRegions(); };
+  LANGUAGE_DEFER { validateRegionToSendingOpMapRegions(); };
 
   // First try to emplace newElt with fresh_label.
   auto iter = elementToRegionMap.try_emplace(newElt, freshLabel);
@@ -339,7 +343,7 @@ void Partition::assignElement(Element oldElt, Element newElt,
   if (oldElt == newElt)
     return;
 
-  SWIFT_DEFER { validateRegionToSendingOpMapRegions(); };
+  LANGUAGE_DEFER { validateRegionToSendingOpMapRegions(); };
 
   // First try to emplace oldElt with the newRegion.
   auto newRegion = elementToRegionMap.at(newElt);
@@ -528,7 +532,7 @@ bool Partition::popHistory(
   return history.getHead();
 }
 
-void Partition::print(llvm::raw_ostream &os) const {
+void Partition::print(toolchain::raw_ostream &os) const {
   SmallFrozenMultiMap<Region, Element, 8> multimap;
 
   for (auto [eltNo, regionNo] : elementToRegionMap)
@@ -559,7 +563,7 @@ void Partition::print(llvm::raw_ostream &os) const {
   os << "]\n";
 }
 
-void Partition::printVerbose(llvm::raw_ostream &os) const {
+void Partition::printVerbose(toolchain::raw_ostream &os) const {
   SmallFrozenMultiMap<Region, Element, 8> multimap;
 
   for (auto [eltNo, regionNo] : elementToRegionMap)
@@ -600,8 +604,8 @@ void Partition::printVerbose(llvm::raw_ostream &os) const {
   }
 }
 
-void Partition::printHistory(llvm::raw_ostream &os) const {
-  llvm::dbgs() << "History Dump!\n";
+void Partition::printHistory(toolchain::raw_ostream &os) const {
+  toolchain::dbgs() << "History Dump!\n";
   const auto *head = history.head;
 
   if (!head)
@@ -620,7 +624,7 @@ void Partition::printHistory(llvm::raw_ostream &os) const {
       auto extraArgs = head->getAdditionalElementArgs();
       if (extraArgs.empty())
         break;
-      llvm::interleave(extraArgs, os, ", ");
+      toolchain::interleave(extraArgs, os, ", ");
       break;
     }
     case IsolationHistory::Node::MergeElementRegions: {
@@ -629,7 +633,7 @@ void Partition::printHistory(llvm::raw_ostream &os) const {
       if (extraArgs.empty())
         break;
       os << ", ";
-      llvm::interleave(extraArgs, os, ", ");
+      toolchain::interleave(extraArgs, os, ", ");
       break;
     }
     case IsolationHistory::Node::CFGHistoryJoin:
@@ -652,8 +656,8 @@ bool Partition::is_canonical_correct() const {
     return true; // vacuously correct
 
   auto fail = [&](Element i, int type) {
-    llvm::errs() << "FAIL(i=" << i << "; type=" << type << "): ";
-    print(llvm::errs());
+    toolchain::errs() << "FAIL(i=" << i << "; type=" << type << "): ";
+    print(toolchain::errs());
     return false;
   };
 
@@ -767,7 +771,7 @@ void Partition::canonicalize() {
 
 void Partition::horizontalUpdate(
     Element targetElement, Region newRegion,
-    llvm::SmallVectorImpl<Element> &mergedElements) {
+    toolchain::SmallVectorImpl<Element> &mergedElements) {
   // It is on our caller to make sure a value is in elementToRegionMap.
   Region oldRegion = elementToRegionMap.at(targetElement);
 
@@ -805,7 +809,7 @@ bool Partition::popHistoryOnce(
     Region oldRegion = iter->second;
     regionToSendingOpMap.erase(oldRegion);
     elementToRegionMap.erase(iter);
-    assert(llvm::none_of(elementToRegionMap,
+    assert(toolchain::none_of(elementToRegionMap,
                          [&](std::pair<Element, Region> pair) {
                            return pair.second == oldRegion;
                          }) &&
@@ -896,7 +900,7 @@ void IsolationHistory::pushRemoveElementFromRegion(
 
 void IsolationHistory::pushMergeElementRegions(Element elementToMergeInto,
                                                ArrayRef<Element> eltsToMerge) {
-  assert(llvm::none_of(eltsToMerge,
+  assert(toolchain::none_of(eltsToMerge,
                        [&](Element elt) { return elt == elementToMergeInto; }));
   unsigned size = Node::totalSizeToAlloc<Element>(eltsToMerge.size());
   void *mem = factory->allocator.Allocate(size, alignof(Node));

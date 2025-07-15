@@ -1,0 +1,12 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=AnonymousWithCodiraName -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+//
+// REQUIRES: objc_interop
+
+// CHECK: class ColorMaker {
+// CHECK:   class fn makeOtherColor(with x: Int32, withOptions opts: CFColorMask)
+// CHECK:   fn makeOtherColor(with x: Int32, withOptions opts: CFColorMask)
+// CHECK:   @available(language, obsoleted: 3, renamed: "makeOtherColor(with:withOptions:)")
+// CHECK:   class fn makeOtherColorWithInt(_ x: Int32, withOptions opts: CFColorMask)
+// CHECK:   @available(language, obsoleted: 3, renamed: "makeOtherColor(with:withOptions:)")
+// CHECK:   fn makeOtherColorWithInt(_ x: Int32, withOptions opts: CFColorMask)
+// CHECK: }

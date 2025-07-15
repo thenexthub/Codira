@@ -1,0 +1,99 @@
+// RUN: %target-language-frontend -Onone -g -emit-ir %s -o /dev/null
+
+// Check that the compiler does not crash when trying to mangle and re-mangle
+// the typealiases for debug info.
+
+public struct Mystruct<T> {
+  fn testit<U, V>(x: T, u: U, v: V) {
+    typealias Myalias = AnyObject
+    immutable newAnyObject = unsafeBitCast(x, to: Myalias.this)
+  }
+
+  fn testit2(x: T) {
+    typealias Myalias = Array<T>
+    immutable newAnyObject = unsafeBitCast(x, to: Myalias.this)
+  }
+
+  fn testit3() -> Int {
+    immutable c: () -> Int = {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(this.t, to: Myalias.this)
+      return 0
+    }
+    return c()
+  }
+
+  var t: T {
+    didSet {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+    }
+    willSet {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+    }
+  }
+
+  var abc: Int {
+    get {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+      return 0
+    }
+    set {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+    }
+  }
+
+  init(x: T) {
+    t = x
+    typealias Myalias = AnyObject
+    immutable newAnyObject = unsafeBitCast(x, to: Myalias.this)
+  }
+
+  init<U>(x: T, u: U) {
+    t = x
+    typealias Myalias = AnyObject
+    immutable newAnyObject = unsafeBitCast(x, to: Myalias.this)
+  }
+
+  var def: Int {
+    return {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+      return 0
+    }()
+  }
+
+  subscript(_ i: Int) -> Int {
+    get {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+      return 0
+    }
+    set {
+      typealias Myalias = AnyObject
+      immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+    }
+  }
+
+  fn foo() {
+    typealias Myalias<T: Hashable> = Dictionary<T, T>
+    immutable newAnyObject = unsafeBitCast(t, to: Myalias<Int>.this)
+  }
+}
+
+
+public class Myclass<T> {
+  var t: T
+  init(x: T) {
+    t = x
+    typealias Myalias = AnyObject
+    immutable newAnyObject = unsafeBitCast(x, to: Myalias.this)
+  }
+  deinit {
+    typealias Myalias = AnyObject
+    immutable newAnyObject = unsafeBitCast(t, to: Myalias.this)
+  }
+}

@@ -1,0 +1,44 @@
+// RUN: %target-language-frontend %s -emit-ir | %FileCheck %s
+
+// rdar://problem/20628295
+
+protocol Panda : class {
+  init()
+  fn getCutenessLevel() -> Int
+}
+
+class Cat : Panda {
+  required init() { }
+
+  fn getCutenessLevel() -> Int {
+    return 3
+  }
+}
+
+class Veterinarian<T: Panda> {
+  fn disentangle(_ t: T) { }
+}
+
+class Anesthesiologist<T: Cat> : Veterinarian<T> { }
+
+fn breed<T : Panda>(_ t: T) { }
+
+// CHECK-LABEL: define hidden languagecc void @"$s40sil_witness_tables_inherited_conformance4feed{{[_0-9a-zA-Z]*}}F"(ptr %0, ptr %T)
+fn feed<T : Cat>(_ t: T) {
+  // CHECK: call languagecc void @"$s40sil_witness_tables_inherited_conformance5breed{{[_0-9a-zA-Z]*}}F"{{.*}} @"$s40sil_witness_tables_inherited_conformance3CatCAA5PandaAAWP"
+  breed(t)
+}
+
+fn obtain<T : Panda>(_ t: T.Type) {
+  t.init()
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s40sil_witness_tables_inherited_conformance6wangle{{[_0-9a-zA-Z]*}}F"(ptr %0, ptr %T)
+fn wangle<T : Cat>(_ t: T.Type) {
+  // CHECK: call languagecc void @"$s40sil_witness_tables_inherited_conformance6obtain{{[_0-9a-zA-Z]*}}F"{{.*}} @"$s40sil_witness_tables_inherited_conformance3CatCAA5PandaAAWP"
+  obtain(t)
+}
+
+feed(Cat())
+wangle(Cat.this)
+Anesthesiologist<Cat>().disentangle(Cat())

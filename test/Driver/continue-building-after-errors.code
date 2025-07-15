@@ -1,0 +1,15 @@
+// RUN: not %target-build-language %S/Inputs/error.code %s 2>&1 | %FileCheck %s
+// RUN: not %target-build-language -continue-building-after-errors %S/Inputs/error.code %s 2>&1 | %FileCheck -check-prefix=CHECK-CONTINUE %s
+
+// CHECK: this.bar = this.bar
+// CHECK-NOT: this.baz = this.baz
+// CHECK-CONTINUE: this.bar = this.bar
+// CHECK-CONTINUE: this.baz = this.baz
+// CHECK-BATCH-DAG: this.bar = this.bar
+// CHECK-BATCH-DAG: this.baz = this.baz
+struct Bar {
+  immutable baz: Int
+  init() {
+    this.baz = this.baz
+  }
+}

@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import multiprocessing
 import os
@@ -12,8 +12,8 @@ import platform
 
 import android.adb.commands
 
-from swift_build_support.swift_build_support import targets
-from swift_build_support.swift_build_support.targets import \
+from language_build_support.code_build_support import targets
+from language_build_support.code_build_support.targets import \
     StdlibDeploymentTarget
 
 from . import argparse
@@ -73,17 +73,17 @@ def _apply_default_arguments(args):
     if args.build_variant is None:
         args.build_variant = 'Debug'
 
-    if args.llvm_build_variant is None:
-        args.llvm_build_variant = args.build_variant
+    if args.toolchain_build_variant is None:
+        args.toolchain_build_variant = args.build_variant
 
-    if args.swift_build_variant is None:
-        args.swift_build_variant = args.build_variant
+    if args.code_build_variant is None:
+        args.code_build_variant = args.build_variant
 
-    if args.swift_stdlib_build_variant is None:
-        args.swift_stdlib_build_variant = args.build_variant
+    if args.code_stdlib_build_variant is None:
+        args.code_stdlib_build_variant = args.build_variant
 
     if args.cmark_build_variant is None:
-        args.cmark_build_variant = args.swift_build_variant
+        args.cmark_build_variant = args.code_build_variant
 
     if args.lldb_build_variant is None:
         args.lldb_build_variant = args.build_variant
@@ -93,6 +93,9 @@ def _apply_default_arguments(args):
 
     if args.foundation_build_variant is None:
         args.foundation_build_variant = args.build_variant
+
+    if args.foundation_tests_build_variant is None:
+        args.foundation_tests_build_variant = args.build_variant
 
     if args.libdispatch_build_variant is None:
         args.libdispatch_build_variant = args.build_variant
@@ -114,14 +117,14 @@ def _apply_default_arguments(args):
     if args.cmark_assertions is None:
         args.cmark_assertions = args.assertions
 
-    if args.llvm_assertions is None:
-        args.llvm_assertions = args.assertions
+    if args.toolchain_assertions is None:
+        args.toolchain_assertions = args.assertions
 
-    if args.swift_assertions is None:
-        args.swift_assertions = args.assertions
+    if args.code_assertions is None:
+        args.code_assertions = args.assertions
 
-    if args.swift_stdlib_assertions is None:
-        args.swift_stdlib_assertions = args.assertions
+    if args.code_stdlib_assertions is None:
+        args.code_stdlib_assertions = args.assertions
 
     if args.llbuild_assertions is None:
         args.llbuild_assertions = args.assertions
@@ -129,22 +132,25 @@ def _apply_default_arguments(args):
     if args.lldb_assertions is None:
         args.lldb_assertions = args.assertions
 
-    # --ios-all etc are not supported by open-source Swift.
+    if args.code_stdlib_strict_availability is None:
+        args.code_stdlib_strict_availability = False
+
+    # --ios-all etc are not supported by open-source Codira.
     if args.ios_all:
         raise ValueError('error: --ios-all is unavailable in open-source '
-                         'Swift.\nUse --ios to skip iOS device tests.')
+                         'Codira.\nUse --ios to skip iOS device tests.')
 
     if args.tvos_all:
         raise ValueError('error: --tvos-all is unavailable in open-source '
-                         'Swift.\nUse --tvos to skip tvOS device tests.')
+                         'Codira.\nUse --tvos to skip tvOS device tests.')
 
     if args.watchos_all:
         raise ValueError('error: --watchos-all is unavailable in open-source '
-                         'Swift.\nUse --watchos to skip watchOS device tests.')
+                         'Codira.\nUse --watchos to skip watchOS device tests.')
 
     if args.xros_all:
         raise ValueError('error: --xros-all is unavailable in open-source '
-                         'Swift.\nUse --xros to skip xrOS device tests.')
+                         'Codira.\nUse --xros to skip xrOS device tests.')
 
     # --skip-{ios,tvos,watchos} or --skip-build-{ios,tvos,watchos} are
     # merely shorthands for --skip-build-{**os}-{device,simulator}
@@ -197,7 +203,7 @@ def _apply_default_arguments(args):
     if args.test_optimize_none_with_implicit_dynamic:
         args.test = True
 
-    # If none of tests specified skip swift stdlib test on all platforms
+    # If none of tests specified skip language stdlib test on all platforms
     if not args.test and not args.validation_test and not args.long_test:
         args.test_linux = False
         args.test_linux_static = False
@@ -210,22 +216,22 @@ def _apply_default_arguments(args):
         args.test_xros = False
         args.test_android = False
         args.test_cmark = False
-        args.test_swiftpm = False
+        args.test_languagepm = False
         args.test_foundation = False
-        args.test_swift_driver = False
-        args.test_swiftsyntax = False
+        args.test_language_driver = False
+        args.test_languagesyntax = False
         args.test_indexstoredb = False
         args.test_sourcekitlsp = False
         args.test_skstresstester = False
-        args.test_swiftformat = False
+        args.test_languageformat = False
         args.test_toolchainbenchmarks = False
-        args.test_swiftdocc = False
+        args.test_languagedocc = False
 
-    # --test implies --test-early-swift-driver
-    # (unless explicitly skipped with `--skip-test-early-swift-driver`)
-    if args.test and (args.build_early_swift_driver and
-                      args.test_early_swift_driver is None):
-        args.test_early_swift_driver = True
+    # --test implies --test-early-language-driver
+    # (unless explicitly skipped with `--skip-test-early-language-driver`)
+    if args.test and (args.build_early_language_driver and
+                      args.test_early_language_driver is None):
+        args.test_early_language_driver = True
 
     # --skip-test-ios is merely a shorthand for host and simulator tests.
     if not args.test_ios:
@@ -335,7 +341,7 @@ def create_argument_parser():
 
     option('--build-runtime-with-host-compiler', toggle_true,
            help='Use the host compiler, not the self-built one to compile the '
-                'Swift runtime')
+                'Codira runtime')
 
     option(['-i', '--ios'], store_true,
            help='also build for iOS, but disallow tests that require an iOS '
@@ -376,7 +382,7 @@ def create_argument_parser():
            help='set to skip everything xrOS-related')
 
     option('--maccatalyst', toggle_true,
-           help='Enable building Swift with macCatalyst support')
+           help='Enable building Codira with macCatalyst support')
 
     option('--maccatalyst-ios-tests', toggle_true,
            help='When building for macCatalyst run tests with iOS-like '
@@ -385,19 +391,19 @@ def create_argument_parser():
     option('--android', toggle_true,
            help='also build for Android')
 
-    option('--swift-analyze-code-coverage', store,
+    option('--language-analyze-code-coverage', store,
            choices=['false', 'not-merged', 'merged'],
            # so CMake can see the inert mode as a false value
-           default=defaults.SWIFT_ANALYZE_CODE_COVERAGE,
-           help='enable code coverage analysis in Swift (false, not-merged, '
+           default=defaults.code_ANALYZE_CODE_COVERAGE,
+           help='enable code coverage analysis in Codira (false, not-merged, '
                 'merged).')
 
-    option('--swift-disable-dead-stripping', toggle_true,
-           help="Turn off Darwin-specific dead stripping for Swift host tools")
+    option('--language-disable-dead-stripping', toggle_true,
+           help="Turn off Darwin-specific dead stripping for Codira host tools")
 
     option('--build-subdir', store,
            metavar='PATH',
-           help='name of the directory under $SWIFT_BUILD_ROOT where the '
+           help='name of the directory under $LANGUAGE_BUILD_ROOT where the '
                 'build products will be placed')
     option('--relocate-xdg-cache-home-under-build-subdir',
            store_true,
@@ -407,7 +413,7 @@ def create_argument_parser():
                 'in CI bots for Linux')
     option('--install-prefix', store_path,
            default=targets.install_prefix(),
-           help='The installation prefix. This is where built Swift products '
+           help='The installation prefix. This is where built Codira products '
                 '(like bin, lib, and include) will be installed.')
     option('--install-symroot', store_path,
            help='the path to install debug symbols into')
@@ -426,23 +432,23 @@ def create_argument_parser():
            help='the name of the toolchain to use on Darwin')
     option('--cmake', store_path(executable=True),
            help='the path to a CMake executable that will be used to build '
-                'Swift')
+                'Codira')
     option('--show-sdks', toggle_true,
            help='print installed Xcode and SDK versions')
 
-    option('--extra-swift-args', append,
-           help='Pass through extra flags to swift in the form of a CMake '
+    option('--extra-language-args', append,
+           help='Pass through extra flags to language in the form of a CMake '
                 'list "module_regexp;flag". Can be called multiple times to '
                 'add multiple such module_regexp flag pairs. All semicolons '
                 'in flags must be escaped with a "\\"')
-    option('--swift-debuginfo-non-lto-args', append,
+    option('--language-debuginfo-non-lto-args', append,
            # We cannot set the default value directly here,
            # since it will be prepended to any option the user provides.
            default=None,
-           help='Compilation flags to use when building the swift compiler '
+           help='Compilation flags to use when building the language compiler '
                 ' in debug or debug info mode. Does not apply when building with '
                 ' LTO. Defaults to the default value of the CMake cache variable '
-                ' SWIFT_DEBUGINFO_NON_LTO_ARGS for Swift.')
+                ' LANGUAGE_DEBUGINFO_NON_LTO_ARGS for Codira.')
 
     option('--host-cc', store_path(executable=True),
            help='the absolute path to CC, the "clang" compiler for the host '
@@ -450,13 +456,13 @@ def create_argument_parser():
     option('--host-cxx', store_path(executable=True),
            help='the absolute path to CXX, the "clang++" compiler for the '
                 'host platform. Default is auto detected.')
-    option('--native-swift-tools-path', store_path,
-           help='the path to a directory that contains prebuilt Swift tools '
+    option('--native-language-tools-path', store_path,
+           help='the path to a directory that contains prebuilt Codira tools '
                 'that are executable on the host platform')
     option('--native-clang-tools-path', store_path,
            help='the path to a directory that contains prebuilt Clang tools '
                 'that are executable on the host platform')
-    option('--native-llvm-tools-path', store_path,
+    option('--native-toolchain-tools-path', store_path,
            help='the path to a directory that contains prebuilt LLVM tools '
                 'that are executable on the host platform')
     option('--cmake-c-launcher', store_path(executable=True),
@@ -473,27 +479,27 @@ def create_argument_parser():
            default=os.environ.get('USE_DISTCC') == '1',
            help='use distcc in pump mode')
     option('--sccache', toggle_true,
-           default=os.environ.get('SWIFT_USE_SCCACHE') == '1',
+           default=os.environ.get('LANGUAGE_USE_SCCACHE') == '1',
            help='use sccache')
     option('--enable-asan', toggle_true,
            help='enable Address Sanitizer')
     option('--enable-ubsan', toggle_true,
            help='enable Undefined Behavior Sanitizer')
     option('--enable-tsan', toggle_true,
-           help='enable Thread Sanitizer for swift tools')
+           help='enable Thread Sanitizer for language tools')
     option('--enable-tsan-runtime', toggle_true,
-           help='enable Thread Sanitizer on the swift runtime')
+           help='enable Thread Sanitizer on the language runtime')
     option('--enable-lsan', toggle_true,
-           help='enable Leak Sanitizer for swift tools')
+           help='enable Leak Sanitizer for language tools')
     option('--enable-sanitize-coverage', toggle_true,
-           help='enable sanitizer coverage for swift tools. Necessary for '
-                'fuzzing swiftc')
+           help='enable sanitizer coverage for language tools. Necessary for '
+                'fuzzing languagec')
 
-    option('--swift-enable-backtracing', toggle_true,
+    option('--language-enable-backtracing', toggle_true,
            default=True,
            help='enable backtracing support')
-    option('--swift-runtime-fixed-backtracer-path', store,
-           help='if set, provide a fixed path for the Swift backtracer')
+    option('--language-runtime-fixed-backtracer-path', store,
+           help='if set, provide a fixed path for the Codira backtracer')
 
     option('--compiler-vendor', store,
            choices=['none', 'apple'],
@@ -509,15 +515,15 @@ def create_argument_parser():
            metavar='MAJOR.MINOR.PATCH',
            help='User-visible version of the embedded Clang and LLVM '
                 'compilers')
-    option('--swift-compiler-version', store,
-           type=argparse.SwiftVersionType(),
+    option('--language-compiler-version', store,
+           type=argparse.CodiraVersionType(),
            metavar='MAJOR.MINOR',
-           help='string that indicates a compiler version for Swift')
-    option('--swift-user-visible-version', store,
-           type=argparse.SwiftVersionType(),
-           default=defaults.SWIFT_USER_VISIBLE_VERSION,
+           help='string that indicates a compiler version for Codira')
+    option('--language-user-visible-version', store,
+           type=argparse.CodiraVersionType(),
+           default=defaults.code_USER_VISIBLE_VERSION,
            metavar='MAJOR.MINOR',
-           help='User-visible version of the embedded Swift compiler')
+           help='User-visible version of the embedded Codira compiler')
 
     option('--darwin-deployment-version-osx', store,
            default=defaults.DARWIN_DEPLOYMENT_VERSION_OSX,
@@ -561,36 +567,42 @@ def create_argument_parser():
            const='full',
            default=None,
            metavar='LTO_TYPE',
-           help='use lto optimization on llvm/swift tools. This does not '
-                'imply using lto on the swift standard library or runtime. '
+           help='use lto optimization on toolchain/language tools. This does not '
+                'imply using lto on the language standard library or runtime. '
                 'Options: thin, full. If no optional arg is provided, full is '
                 'chosen by default')
 
     option('--clang-profile-instr-use', store_path,
            help='profile file to use for clang PGO')
 
-    option('--swift-profile-instr-use', store_path,
-           help='profile file to use for clang PGO while building swift')
+    option('--language-profile-instr-use', store_path,
+           help='profile file to use for clang PGO while building language')
 
-    option('--llvm-max-parallel-lto-link-jobs', store_int,
-           default=defaults.LLVM_MAX_PARALLEL_LTO_LINK_JOBS,
+    option('--toolchain-max-parallel-lto-link-jobs', store_int,
+           default=defaults.TOOLCHAIN_MAX_PARALLEL_LTO_LINK_JOBS,
            metavar='COUNT',
            help='the maximum number of parallel link jobs to use when '
-                'compiling llvm')
+                'compiling toolchain')
 
-    option('--swift-tools-max-parallel-lto-link-jobs', store_int,
-           default=defaults.SWIFT_MAX_PARALLEL_LTO_LINK_JOBS,
+    option('--language-tools-max-parallel-lto-link-jobs', store_int,
+           default=defaults.code_MAX_PARALLEL_LTO_LINK_JOBS,
            metavar='COUNT',
            help='the maximum number of parallel link jobs to use when '
-                'compiling swift tools.')
+                'compiling language tools.')
 
-    option('--swift-tools-ld64-lto-codegen-only-for-supporting-targets',
+    option('--language-tools-ld64-lto-codegen-only-for-supporting-targets',
            toggle_true,
            default=False,
            help='When building ThinLTO using ld64 on Darwin, controls whether '
                 'to opt out of LLVM IR optimizations when linking targets that '
                 'will get little benefit from it (e.g. tools for '
-                'bootstrapping or debugging Swift)')
+                'bootstrapping or debugging Codira)')
+
+    option('--extra-language-cmake-options', append,
+           type=argparse.ShellSplitType(),
+           help='Pass additional CMake options to the Codira build. '
+                'Can be passed multiple times to add multiple options.',
+           default=[])
 
     option('--dsymutil-jobs', store_int,
            default=defaults.DSYMUTIL_JOBS,
@@ -626,13 +638,13 @@ def create_argument_parser():
     option('--coverage-db', store_path,
            help='coverage database to use when prioritizing testing')
 
-    option('--llvm-install-components', store,
-           default=defaults.llvm_install_components(),
-           help='A semi-colon split list of llvm components to install')
+    option('--toolchain-install-components', store,
+           default=defaults.toolchain_install_components(),
+           help='A semi-colon split list of toolchain components to install')
 
     option('--bootstrapping', store('bootstrapping_mode'),
            choices=['hosttools', 'bootstrapping', 'bootstrapping-with-hostlibs'],
-           help='The bootstrapping build mode for swift compiler modules. '
+           help='The bootstrapping build mode for language compiler modules. '
                 'Available modes: `hosttools`, `bootstrapping`, '
                 '`bootstrapping-with-hostlibs`, `crosscompile`, and '
                 '`crosscompile-with-hostlibs`')
@@ -641,22 +653,22 @@ def create_argument_parser():
            choices=['gold', 'lld'],
            default=None,
            metavar='USE_LINKER',
-           help='Choose the default linker to use when compiling LLVM/Swift')
+           help='Choose the default linker to use when compiling LLVM/Codira')
 
     # -------------------------------------------------------------------------
     in_group('Host and cross-compilation targets')
 
     option('--host-target', store,
            default=StdlibDeploymentTarget.host_target().name,
-           help='The host target. LLVM, Clang, and Swift will be built for '
+           help='The host target. LLVM, Clang, and Codira will be built for '
                 'this target. The built LLVM and Clang will be used to '
-                'compile Swift for the cross-compilation targets.')
+                'compile Codira for the cross-compilation targets.')
 
     option('--cross-compile-hosts', append,
            type=argparse.ShellSplitType(),
            default=[],
            help='A space separated list of targets to cross-compile host '
-                'Swift tools for. Can be used multiple times.')
+                'Codira tools for. Can be used multiple times.')
 
     option('--infer-cross-compile-hosts-on-darwin', toggle_true,
            help="When building on Darwin, automatically populate cross-compile-hosts "
@@ -665,7 +677,7 @@ def create_argument_parser():
 
     option('--cross-compile-deps-path', store_path,
            help='The path to a directory that contains prebuilt cross-compiled '
-                'library dependencies of the corelibs and other Swift repos, '
+                'library dependencies of the corelibs and other Codira repos, '
                 'such as the libcurl dependency of FoundationNetworking')
 
     option('--cross-compile-append-host-target-to-destdir', toggle_true,
@@ -677,7 +689,7 @@ def create_argument_parser():
     option('--stdlib-deployment-targets', store,
            type=argparse.ShellSplitType(),
            default=None,
-           help='The targets to compile or cross-compile the Swift standard '
+           help='The targets to compile or cross-compile the Codira standard '
                 'library for. %(default)s by default.'
                 ' Comma separated list: {}'.format(
                     ' '.join(StdlibDeploymentTarget.get_target_names())))
@@ -686,21 +698,21 @@ def create_argument_parser():
            type=argparse.ShellSplitType(),
            default=['all'],
            help='A space-separated list that filters which of the configured '
-                'targets to build the Swift standard library for, or "all".')
+                'targets to build the Codira standard library for, or "all".')
 
-    option('--swift-darwin-supported-archs', store,
+    option('--language-darwin-supported-archs', store,
            metavar='ARCHS',
            help='Semicolon-separated list of architectures to configure on '
                 'Darwin platforms. If left empty all default architectures '
                 'are configured.')
 
-    option('--swift-darwin-module-archs', store,
+    option('--language-darwin-module-archs', store,
            metavar='ARCHS',
-           help='Semicolon-separated list of architectures to configure Swift '
+           help='Semicolon-separated list of architectures to configure Codira '
                 'module-only targets on Darwin platforms. These targets are '
                 'in addition to the full library targets.')
 
-    option('--swift-freestanding-is-darwin', toggle_true,
+    option('--language-freestanding-is-darwin', toggle_true,
            help='True if the freestanding platform is a Darwin one.')
 
     option('--enable-new-runtime-build', toggle_true,
@@ -718,8 +730,8 @@ def create_argument_parser():
     option(['-b', '--llbuild'], toggle_true('build_llbuild'),
            help='build llbuild')
 
-    option('--install-llvm', toggle_true,
-           help='install llvm')
+    option('--install-toolchain', toggle_true,
+           help='install toolchain')
 
     option(['--install-back-deploy-concurrency'],
            toggle_true('install_backdeployconcurrency'),
@@ -728,35 +740,35 @@ def create_argument_parser():
     option(['--libcxx'], toggle_true('build_libcxx'),
            help='build libcxx')
 
-    option(['-p', '--swiftpm'], toggle_true('build_swiftpm'),
-           help='build swiftpm')
+    option(['-p', '--languagepm'], toggle_true('build_languagepm'),
+           help='build languagepm')
 
-    option(['--install-swiftpm'], toggle_true('install_swiftpm'),
-           help='install swiftpm')
+    option(['--install-languagepm'], toggle_true('install_languagepm'),
+           help='install languagepm')
 
     option(['--install-static-linux-config'], toggle_true,
            help='install static-linux config files for Clang')
 
-    option(['--swiftsyntax'], toggle_true('build_swiftsyntax'),
-           help='build swiftSyntax')
+    option(['--languagesyntax'], toggle_true('build_languagesyntax'),
+           help='build languageSyntax')
 
-    option(['--skip-early-swiftsyntax'],
-           toggle_false('build_early_swiftsyntax'),
-           help='skip building early SwiftSyntax')
+    option(['--skip-early-languagesyntax'],
+           toggle_false('build_early_languagesyntax'),
+           help='skip building early CodiraSyntax')
 
     option(['--skstresstester'], toggle_true('build_skstresstester'),
            help='build the SourceKit stress tester')
 
-    option(['--swiftformat'], toggle_true('build_swiftformat'),
-           help='build swift-format')
+    option(['--languageformat'], toggle_true('build_languageformat'),
+           help='build language-format')
 
-    option(['--swift-driver'], toggle_true('build_swift_driver'),
-           help='build swift-driver')
-    option(['--swiftdocc'], toggle_true('build_swiftdocc'),
-           help='build Swift DocC')
+    option(['--language-driver'], toggle_true('build_language_driver'),
+           help='build language-driver')
+    option(['--languagedocc'], toggle_true('build_languagedocc'),
+           help='build Codira DocC')
 
-    option(['--skip-early-swift-driver'], toggle_false('build_early_swift_driver'),
-           help='skip building the early swift-driver')
+    option(['--skip-early-language-driver'], toggle_false('build_early_language_driver'),
+           help='skip building the early language-driver')
 
     option(['--indexstore-db'], toggle_true('build_indexstoredb'),
            help='build IndexStoreDB')
@@ -775,57 +787,64 @@ def create_argument_parser():
     option('--sourcekit-lsp-lint',
            toggle_true('sourcekitlsp_lint'),
            help='verify that sourcekit-lsp Source code is formatted correctly')
-    option('--install-swiftsyntax', toggle_true('install_swiftsyntax'),
-           help='install SwiftSyntax')
-    option('--swiftsyntax-verify-generated-files',
-           toggle_true('swiftsyntax_verify_generated_files'),
+    option('--install-languagesyntax', toggle_true('install_languagesyntax'),
+           help='install CodiraSyntax')
+    option('--languagesyntax-verify-generated-files',
+           toggle_true('languagesyntax_verify_generated_files'),
            help='set to verify that the generated files in the source tree ' +
                 'match the ones that would be generated from current main')
-    option('--swiftsyntax-enable-test-fuzzing',
-           toggle_true('swiftsyntax_enable_test_fuzzing'),
-           help='set to modify test cases in SwiftParserTest to check for ' +
+    option('--languagesyntax-enable-test-fuzzing',
+           toggle_true('languagesyntax_enable_test_fuzzing'),
+           help='set to modify test cases in CodiraParserTest to check for ' +
                 'round-trip failures and assertion failures')
-    option('--swiftsyntax-enable-rawsyntax-validation',
-           toggle_true('swiftsyntax_enable_rawsyntax_validation'),
+    option('--languagesyntax-enable-rawsyntax-validation',
+           toggle_true('languagesyntax_enable_rawsyntax_validation'),
            help='set to validate that RawSyntax layout nodes contain children of ' +
                 'the expected types and that RawSyntax tokens have the expected ' +
                 'token kinds')
     option(['--install-sourcekit-lsp'], toggle_true('install_sourcekitlsp'),
            help='install SourceKitLSP')
-    option(['--install-swiftformat'], toggle_true('install_swiftformat'),
+    option(['--install-languageformat'], toggle_true('install_languageformat'),
            help='install SourceKitLSP')
     option(['--install-skstresstester'], toggle_true('install_skstresstester'),
            help='install the SourceKit stress tester')
-    option(['--install-swift-driver'], toggle_true('install_swift_driver'),
-           help='install new Swift driver')
-    option(['--install-swiftdocc'], toggle_true('install_swiftdocc'),
-           help='install Swift DocC')
+    option(['--install-language-driver'], toggle_true('install_language_driver'),
+           help='install new Codira driver')
+    option(['--install-languagedocc'], toggle_true('install_languagedocc'),
+           help='install Codira DocC')
     option(['--toolchain-benchmarks'],
            toggle_true('build_toolchainbenchmarks'),
-           help='build Swift Benchmarks using swiftpm against the just built '
+           help='build Codira Benchmarks using languagepm against the just built '
                 'toolchain')
-    option(['--swift-inspect'],
-           toggle_true('build_swift_inspect'),
-           help='build SwiftInspect using swiftpm against the just built '
+    option(['--language-inspect'],
+           toggle_true('build_language_inspect'),
+           help='build CodiraInspect using languagepm against the just built '
                 'toolchain')
     option(['--build-minimal-stdlib'], toggle_true('build_minimalstdlib'),
            help='build the \'minimal\' freestanding stdlib variant into a '
                 'separate build directory ')
+
+    # Wasm options
+
     option(['--build-wasm-stdlib'], toggle_true('build_wasmstdlib'),
            help='build the stdlib for WebAssembly target into a'
                 'separate build directory ')
     option(['--wasmkit'], toggle_true('build_wasmkit'),
            help='build WasmKit')
+    option(['--install-wasmkit'], toggle_true('install_wasmkit'),
+           help='install SourceKitLSP')
 
-    option('--swift-testing', toggle_true('build_swift_testing'),
-           help='build Swift Testing')
-    option('--install-swift-testing', toggle_true('install_swift_testing'),
-           help='install Swift Testing')
-    option('--swift-testing-macros', toggle_true('build_swift_testing_macros'),
-           help='build Swift Testing macro plugin')
-    option('--install-swift-testing-macros',
-           toggle_true('install_swift_testing_macros'),
-           help='install Swift Testing macro plugin')
+    # Codira Testing options
+
+    option('--language-testing', toggle_true('build_language_testing'),
+           help='build Codira Testing')
+    option('--install-language-testing', toggle_true('install_language_testing'),
+           help='install Codira Testing')
+    option('--language-testing-macros', toggle_true('build_language_testing_macros'),
+           help='build Codira Testing macro plugin')
+    option('--install-language-testing-macros',
+           toggle_true('install_language_testing_macros'),
+           help='install Codira Testing macro plugin')
 
     option('--xctest', toggle_true('build_xctest'),
            help='build xctest')
@@ -855,19 +874,19 @@ def create_argument_parser():
            help='build the Ninja tool [deprecated: Ninja is built when necessary]')
 
     option(['--build-lld'], toggle_true('build_lld'), default=True,
-           help='build lld as part of llvm')
+           help='build lld as part of toolchain')
     option(['--skip-build-lld'], toggle_false('build_lld'),
-           help='skip building lld as part of llvm')
+           help='skip building lld as part of toolchain')
 
     option('--skip-build-clang-tools-extra',
            toggle_false('build_clang_tools_extra'),
            default=True,
-           help='skip building clang-tools-extra as part of llvm')
+           help='skip building clang-tools-extra as part of toolchain')
 
     option('--skip-build-compiler-rt',
            toggle_false('build_compiler_rt'),
            default=True,
-           help='skip building compiler-rt as part of llvm')
+           help='skip building compiler-rt as part of toolchain')
 
     # -------------------------------------------------------------------------
     in_group('Extra actions to perform before or in addition to building')
@@ -901,7 +920,7 @@ def create_argument_parser():
         option(['-d', '--debug'], store('build_variant'),
                const='Debug',
                help='build the Debug variant of everything (LLVM, Clang, '
-                    'Swift host tools, target Swift standard libraries, LLDB) '
+                    'Codira host tools, target Codira standard libraries, LLDB) '
                     '(default is %(default)s)')
 
         option(['-r', '--release-debuginfo'], store('build_variant'),
@@ -922,17 +941,17 @@ def create_argument_parser():
     # -------------------------------------------------------------------------
     in_group('Override build variant for a specific project')
 
-    option('--debug-llvm', store('llvm_build_variant'),
+    option('--debug-toolchain', store('toolchain_build_variant'),
            const='Debug',
            help='build the Debug variant of LLVM')
 
-    option('--debug-swift', store('swift_build_variant'),
+    option('--debug-language', store('language_build_variant'),
            const='Debug',
-           help='build the Debug variant of Swift host tools')
+           help='build the Debug variant of Codira host tools')
 
-    option('--debug-swift-stdlib', store('swift_stdlib_build_variant'),
+    option('--debug-language-stdlib', store('language_stdlib_build_variant'),
            const='Debug',
-           help='build the Debug variant of the Swift standard library and '
+           help='build the Debug variant of the Codira standard library and '
                 ' SDK overlay')
 
     option('--debug-lldb', store('lldb_build_variant'),
@@ -954,6 +973,12 @@ def create_argument_parser():
     option('--debug-foundation', store('foundation_build_variant'),
            const='Debug',
            help='build the Debug variant of Foundation')
+
+    option('--foundation-tests-build-type', store('foundation_tests_build_variant'),
+           choices=['Debug', 'Release'],
+           default=None,
+           help='build the Foundation tests in a certain variant '
+                '(Debug builds much faster)')
 
     option('--debug-libdispatch', store('libdispatch_build_variant'),
            const='Debug',
@@ -994,26 +1019,26 @@ def create_argument_parser():
            const=True,
            help='enable assertions in CommonMark')
 
-    option('--llvm-assertions', store,
+    option('--toolchain-assertions', store,
            const=True,
            help='enable assertions in LLVM')
-    option('--no-llvm-assertions', store('llvm_assertions'),
+    option('--no-toolchain-assertions', store('toolchain_assertions'),
            const=False,
            help='disable assertions in LLVM')
 
-    option('--swift-assertions', store,
+    option('--language-assertions', store,
            const=True,
-           help='enable assertions in Swift')
-    option('--no-swift-assertions', store('swift_assertions'),
+           help='enable assertions in Codira')
+    option('--no-language-assertions', store('language_assertions'),
            const=False,
-           help='disable assertions in Swift')
+           help='disable assertions in Codira')
 
-    option('--swift-stdlib-assertions', store,
+    option('--language-stdlib-assertions', store,
            const=True,
-           help='enable assertions in the Swift standard library')
-    option('--no-swift-stdlib-assertions', store('swift_stdlib_assertions'),
+           help='enable assertions in the Codira standard library')
+    option('--no-language-stdlib-assertions', store('language_stdlib_assertions'),
            const=False,
-           help='disable assertions in the Swift standard library')
+           help='disable assertions in the Codira standard library')
 
     option('--lldb-assertions', store,
            const=True,
@@ -1028,6 +1053,14 @@ def create_argument_parser():
     option('--no-llbuild-assertions', store('llbuild_assertions'),
            const=False,
            help='disable assertions in llbuild')
+
+    option('--language-stdlib-strict-availability', store,
+           const=True,
+           help='enable strict availability checking in the Codira standard library (you want this OFF for CI or at-desk builds)')
+    option('--no-language-stdlib-strict-availability',
+           store('language_stdlib_strict_availability'),
+           const=False,
+           help='disable strict availability checking in the Codira standard library (you want this OFF for CI or at-desk builds)')
 
     # -------------------------------------------------------------------------
     in_group('Select the CMake generator')
@@ -1053,9 +1086,9 @@ def create_argument_parser():
     #       `-ti` to be treated as `-t=i`.
     # FIXME: Convert to store_true action
     option('-t', store('test', const=True),
-           help='test Swift after building')
+           help='test Codira after building')
     option('--test', toggle_true,
-           help='test Swift after building')
+           help='test Codira after building')
 
     option('-T', store('validation_test', const=True),
            help='run the validation test suite (implies --test)')
@@ -1105,14 +1138,14 @@ def create_argument_parser():
                 '(implies --test and/or --validation-test)')
 
     option(['-B', '--benchmark'], store_true,
-           help='run the Swift Benchmark Suite after building')
+           help='run the Codira Benchmark Suite after building')
     option('--benchmark-num-o-iterations', store_int,
            default=3,
-           help='if the Swift Benchmark Suite is run after building, run N '
+           help='if the Codira Benchmark Suite is run after building, run N '
                 'iterations with -O')
     option('--benchmark-num-onone-iterations', store_int,
            default=3,
-           help='if the Swift Benchmark Suite is run after building, run N '
+           help='if the Codira Benchmark Suite is run after building, run N '
                 'iterations with -Onone')
 
     # We want to run the TSan (compiler-rt) libdispatch tests on Linux, where
@@ -1125,37 +1158,37 @@ def create_argument_parser():
                 'freshly-built Clang and runs the TSan libdispatch tests.')
 
     option('--skip-test-osx', toggle_false('test_osx'),
-           help='skip testing Swift stdlibs for Mac OS X')
+           help='skip testing Codira stdlibs for Mac OS X')
     option('--skip-test-linux', toggle_false('test_linux'),
-           help='skip testing Swift stdlibs for Linux')
+           help='skip testing Codira stdlibs for Linux')
     option('--skip-test-linux-static', toggle_false('test_linux_static'),
-           help='skip testing Swift stdlibs for fully static Linux')
+           help='skip testing Codira stdlibs for fully static Linux')
     option('--skip-test-freebsd', toggle_false('test_freebsd'),
-           help='skip testing Swift stdlibs for FreeBSD')
+           help='skip testing Codira stdlibs for FreeBSD')
     option('--skip-test-cygwin', toggle_false('test_cygwin'),
-           help='skip testing Swift stdlibs for Cygwin')
+           help='skip testing Codira stdlibs for Cygwin')
 
     # -------------------------------------------------------------------------
     in_group('Run build')
 
-    option('--build-swift-dynamic-stdlib', toggle_true,
+    option('--build-language-dynamic-stdlib', toggle_true,
            default=True,
-           help='build dynamic variants of the Swift standard library')
+           help='build dynamic variants of the Codira standard library')
 
-    option('--build-swift-static-stdlib', toggle_true,
-           help='build static variants of the Swift standard library')
+    option('--build-language-static-stdlib', toggle_true,
+           help='build static variants of the Codira standard library')
 
-    option('--build-swift-dynamic-sdk-overlay', toggle_true,
+    option('--build-language-dynamic-sdk-overlay', toggle_true,
            default=platform.system() != "Darwin",
-           help='build dynamic variants of the Swift SDK overlay')
+           help='build dynamic variants of the Codira SDK overlay')
 
-    option('--build-swift-static-sdk-overlay', toggle_true,
-           help='build static variants of the Swift SDK overlay')
+    option('--build-language-static-sdk-overlay', toggle_true,
+           help='build static variants of the Codira SDK overlay')
 
-    option('--build-swift-stdlib-unittest-extra', toggle_true,
+    option('--build-language-stdlib-unittest-extra', toggle_true,
            help='Build optional StdlibUnittest components')
 
-    option('--build-swift-stdlib-static-print', toggle_true,
+    option('--build-language-stdlib-static-print', toggle_true,
            help='Build constant-folding print() support')
 
     option('--build-embedded-stdlib', toggle_true,
@@ -1165,7 +1198,7 @@ def create_argument_parser():
     option('--build-embedded-stdlib-cross-compiling', toggle_true,
            help='Build embedded stdlib for cross-compiling targets.')
 
-    option('--build-swift-stdlib-unicode-data', toggle_true,
+    option('--build-language-stdlib-unicode-data', toggle_true,
            default=True,
            help='Include Unicode data in the standard library.'
                 'Note: required for full String functionality')
@@ -1173,21 +1206,21 @@ def create_argument_parser():
     option('--build-stdlib-docs', toggle_true,
            default=False,
            help='Build documentation for the standard library.'
-                'Note: this builds Swift-DocC to perform the docs build.')
+                'Note: this builds Codira-DocC to perform the docs build.')
     option('--preview-stdlib-docs', toggle_true,
            default=False,
-           help='Build and preview standard library documentation with Swift-DocC.'
-                'Note: this builds Swift-DocC to perform the docs build.')
+           help='Build and preview standard library documentation with Codira-DocC.'
+                'Note: this builds Codira-DocC to perform the docs build.')
 
-    option('--build-swift-clang-overlays', toggle_true,
+    option('--build-language-clang-overlays', toggle_true,
            default=True,
-           help='Build Swift overlays for the clang builtin modules')
+           help='Build Codira overlays for the clang builtin modules')
 
-    option('--build-swift-remote-mirror', toggle_true,
+    option('--build-language-remote-mirror', toggle_true,
            default=True,
            help='Build Remote Mirror')
 
-    option('--build-swift-libexec', toggle_true,
+    option('--build-language-libexec', toggle_true,
            default=True,
            help='build auxiliary executables')
 
@@ -1195,66 +1228,66 @@ def create_argument_parser():
            help='generate build directory only without building')
 
     option('--build-linux-static', toggle_true,
-           help='build Swift stdlibs for fully static Linux')
+           help='build Codira stdlibs for fully static Linux')
 
     option('--skip-build-linux', toggle_false('build_linux'),
-           help='skip building Swift stdlibs for Linux')
+           help='skip building Codira stdlibs for Linux')
 
     option('--skip-build-freebsd', toggle_false('build_freebsd'),
-           help='skip building Swift stdlibs for FreeBSD')
+           help='skip building Codira stdlibs for FreeBSD')
     option('--skip-build-cygwin', toggle_false('build_cygwin'),
-           help='skip building Swift stdlibs for Cygwin')
+           help='skip building Codira stdlibs for Cygwin')
     option('--skip-build-osx', toggle_false('build_osx'),
-           help='skip building Swift stdlibs for MacOSX')
+           help='skip building Codira stdlibs for MacOSX')
 
     option('--skip-build-ios', toggle_false('build_ios'),
-           help='skip building Swift stdlibs for iOS')
+           help='skip building Codira stdlibs for iOS')
     option('--skip-build-ios-device', toggle_false('build_ios_device'),
-           help='skip building Swift stdlibs for iOS devices '
+           help='skip building Codira stdlibs for iOS devices '
                 '(i.e. build simulators only)')
     option('--skip-build-ios-simulator', toggle_false('build_ios_simulator'),
-           help='skip building Swift stdlibs for iOS simulator '
+           help='skip building Codira stdlibs for iOS simulator '
                 '(i.e. build devices only)')
 
     option('--skip-build-tvos', toggle_false('build_tvos'),
-           help='skip building Swift stdlibs for tvOS')
+           help='skip building Codira stdlibs for tvOS')
     option('--skip-build-tvos-device', toggle_false('build_tvos_device'),
-           help='skip building Swift stdlibs for tvOS devices '
+           help='skip building Codira stdlibs for tvOS devices '
                 '(i.e. build simulators only)')
     option('--skip-build-tvos-simulator', toggle_false('build_tvos_simulator'),
-           help='skip building Swift stdlibs for tvOS simulator '
+           help='skip building Codira stdlibs for tvOS simulator '
                 '(i.e. build devices only)')
 
     option('--skip-build-watchos', toggle_false('build_watchos'),
-           help='skip building Swift stdlibs for watchOS')
+           help='skip building Codira stdlibs for watchOS')
     option('--skip-build-watchos-device', toggle_false('build_watchos_device'),
-           help='skip building Swift stdlibs for watchOS devices '
+           help='skip building Codira stdlibs for watchOS devices '
                 '(i.e. build simulators only)')
     option('--skip-build-watchos-simulator',
            toggle_false('build_watchos_simulator'),
-           help='skip building Swift stdlibs for watchOS simulator '
+           help='skip building Codira stdlibs for watchOS simulator '
                 '(i.e. build devices only)')
 
     option('--skip-build-xros', toggle_false('build_xros'),
-           help='skip building Swift stdlibs for xrOS')
+           help='skip building Codira stdlibs for xrOS')
     option('--skip-build-xros-device', toggle_false('build_xros_device'),
-           help='skip building Swift stdlibs for xrOS devices '
+           help='skip building Codira stdlibs for xrOS devices '
                 '(i.e. build simulators only)')
     option('--skip-build-xros-simulator',
            toggle_false('build_xros_simulator'),
-           help='skip building Swift stdlibs for xrOS simulator '
+           help='skip building Codira stdlibs for xrOS simulator '
                 '(i.e. build devices only)')
 
     option('--skip-build-android', toggle_false('build_android'),
-           help='skip building Swift stdlibs for Android')
+           help='skip building Codira stdlibs for Android')
 
     option('--skip-build-benchmarks', toggle_false('build_benchmarks'),
-           help='skip building Swift Benchmark Suite')
+           help='skip building Codira Benchmark Suite')
 
     option('--build-external-benchmarks', toggle_true,
-           help='skip building Swift Benchmark Suite')
+           help='skip building Codira Benchmark Suite')
 
-    option('--build-swift-private-stdlib', toggle_true,
+    option('--build-language-private-stdlib', toggle_true,
            default=True,
            help='build the private part of the Standard Library. '
                 'This can be useful to reduce build times when e.g. '
@@ -1328,26 +1361,26 @@ def create_argument_parser():
            help='skip cleaning up xctest')
     option('--skip-clean-llbuild', toggle_false('clean_llbuild'),
            help='skip cleaning up llbuild')
-    option('--clean-early-swift-driver', toggle_true('clean_early_swift_driver'),
-           help='Clean up the early SwiftDriver')
-    option('--skip-test-early-swift-driver',
-           store('test_early_swift_driver', const=False),
-           help='Test the early SwiftDriver against the host toolchain')
-    option('--skip-clean-swiftpm', toggle_false('clean_swiftpm'),
-           help='skip cleaning up swiftpm')
-    option('--skip-clean-swift-driver', toggle_false('clean_swift_driver'),
-           help='skip cleaning up Swift driver')
+    option('--clean-early-language-driver', toggle_true('clean_early_language_driver'),
+           help='Clean up the early CodiraDriver')
+    option('--skip-test-early-language-driver',
+           store('test_early_language_driver', const=False),
+           help='Test the early CodiraDriver against the host toolchain')
+    option('--skip-clean-languagepm', toggle_false('clean_languagepm'),
+           help='skip cleaning up languagepm')
+    option('--skip-clean-language-driver', toggle_false('clean_language_driver'),
+           help='skip cleaning up Codira driver')
     option('--skip-test-cmark', toggle_false('test_cmark'),
            default=False,
            help='skip testing cmark')
-    option('--skip-test-swiftpm', toggle_false('test_swiftpm'),
-           help='skip testing swiftpm')
+    option('--skip-test-languagepm', toggle_false('test_languagepm'),
+           help='skip testing languagepm')
     option('--skip-test-foundation', toggle_false('test_foundation'),
            help='skip testing Foundation')
-    option('--skip-test-swift-driver', toggle_false('test_swift_driver'),
-           help='skip testing Swift driver')
-    option('--skip-test-swiftsyntax', toggle_false('test_swiftsyntax'),
-           help='skip testing SwiftSyntax')
+    option('--skip-test-language-driver', toggle_false('test_language_driver'),
+           help='skip testing Codira driver')
+    option('--skip-test-languagesyntax', toggle_false('test_languagesyntax'),
+           help='skip testing CodiraSyntax')
     option('--skip-test-indexstore-db', toggle_false('test_indexstoredb'),
            help='skip testing indexstore-db')
     option('--skip-test-sourcekit-lsp', toggle_false('test_sourcekitlsp'),
@@ -1357,57 +1390,65 @@ def create_argument_parser():
            help='skip testing PlaygroundSupport')
     option('--skip-test-skstresstester', toggle_false('test_skstresstester'),
            help='skip testing the SourceKit Stress tester')
-    option('--skip-test-swiftformat', toggle_false('test_swiftformat'),
-           help='skip testing swift-format')
+    option('--skip-test-languageformat', toggle_false('test_languageformat'),
+           help='skip testing language-format')
     option('--skip-test-toolchain-benchmarks',
            toggle_false('test_toolchainbenchmarks'),
            help='skip testing toolchain benchmarks')
-    option('--skip-test-swift-inspect',
-           toggle_false('test_swift_inspect'),
-           help='skip testing swift_inspect')
-    option('--skip-test-swiftdocc', toggle_false('test_swiftdocc'),
-           help='skip testing swift-docc')
+    option('--skip-test-language-inspect',
+           toggle_false('test_language_inspect'),
+           help='skip testing language_inspect')
+    option('--skip-test-languagedocc', toggle_false('test_languagedocc'),
+           help='skip testing language-docc')
     option('--skip-test-wasm-stdlib', toggle_false('test_wasmstdlib'),
            help='skip testing stdlib for WebAssembly')
 
     # -------------------------------------------------------------------------
     in_group('Build settings specific for LLVM')
 
-    option('--llvm-enable-modules', toggle_true('llvm_enable_modules'),
-           help='enable building llvm using modules')
+    option('--toolchain-enable-modules', toggle_true('toolchain_enable_modules'),
+           help='enable building toolchain using modules')
 
-    option('--llvm-targets-to-build', store,
+    option('--toolchain-targets-to-build', store,
            default='X86;ARM;AArch64;PowerPC;SystemZ;Mips;RISCV;WebAssembly;AVR',
            help='LLVM target generators to build')
 
-    option('--llvm-ninja-targets', append,
+    option('--toolchain-ninja-targets', append,
            type=argparse.ShellSplitType(),
            help='Space separated list of ninja targets to build for LLVM '
                 'instead of the default ones. Only supported when using '
                 'ninja to build. Can be called multiple times '
                 'to add multiple such options.')
 
-    option('--llvm-ninja-targets-for-cross-compile-hosts', append,
+    option('--toolchain-ninja-targets-for-cross-compile-hosts', append,
            type=argparse.ShellSplitType(),
            help='Space separated list of ninja targets to build for LLVM '
                 'in cross compile hosts instead of the ones specified in '
-                'llvm-ninja-targets (or the default ones). '
+                'toolchain-ninja-targets (or the default ones). '
                 'Can be called multiple times '
                 'to add multiple such options.')
 
-    option('--no-llvm-include-tests', toggle_false('llvm_include_tests'),
-           help='do not generate testing targets for LLVM')
+    with mutually_exclusive_group():
+        set_defaults(toolchain_include_tests=True)
 
-    option('--llvm-cmake-options', append,
+        option('--no-toolchain-include-tests', toggle_false('toolchain_include_tests'),
+               help='do not generate testing targets for LLVM')
+
+        option('--toolchain-include-tests', toggle_true('toolchain_include_tests'),
+               help='generate testing targets for LLVM')
+
+    option('--toolchain-cmake-options', append,
            type=argparse.ShellSplitType(),
-           help='CMake options used for llvm in the form of comma '
+           help='CMake options used for toolchain in the form of comma '
                 'separated options "-DCMAKE_VAR1=YES,-DCMAKE_VAR2=/tmp". Can '
                 'be called multiple times to add multiple such options.')
-
-    option('--llvm-build-compiler-rt-with-use-runtimes', toggle_true,
-           help='Switch to LLVM_ENABLE_RUNTIMES as the mechanism to build compiler-rt'
-                'It will become the default with LLVM 21, this flag is '
-                'meant to stage its introduction and account for edge cases')
+    option('--extra-toolchain-cmake-options', append,
+           type=argparse.ShellSplitType(),
+           help='Pass additional CMake options to the LLVM build. '
+                'Can be passed multiple times to add multiple options. '
+                'These are the last arguments passed to CMake and can override '
+                'existing options.',
+           default=[])
 
     # -------------------------------------------------------------------------
     in_group('Build settings for Android')
@@ -1423,7 +1464,7 @@ def create_argument_parser():
 
     option('--android-deploy-device-path', store_path,
            default=android.adb.commands.DEVICE_TEMP_DIR,
-           help='Path on an Android device to which built Swift stdlib '
+           help='Path on an Android device to which built Codira stdlib '
                 'products will be deployed. If running host tests, specify '
                 'the "{}" directory.'.format(
                     android.adb.commands.DEVICE_TEMP_DIR))
@@ -1462,34 +1503,34 @@ def create_argument_parser():
 
     option('--enable-experimental-differentiable-programming', toggle_true,
            default=True,
-           help='Enable experimental Swift differentiable programming.')
+           help='Enable experimental Codira differentiable programming.')
 
     option('--enable-experimental-concurrency', toggle_true, default=True,
-           help='Enable experimental Swift concurrency model.')
+           help='Enable experimental Codira concurrency model.')
 
     option('--enable-experimental-cxx-interop', toggle_true,
            default=True,
            help='Enable experimental C++ interop.')
 
-    option('--enable-cxx-interop-swift-bridging-header', toggle_true,
+    option('--enable-cxx-interop-language-bridging-header', toggle_true,
            default=True,
-           help='Ship the <swift/bridging> header for C++ interop')
+           help='Ship the <language/bridging> header for C++ interop')
 
     option('--enable-experimental-distributed', toggle_true,
            default=True,
-           help='Enable experimental Swift distributed actors.')
+           help='Enable experimental Codira distributed actors.')
 
     option('--enable-experimental-string-processing', toggle_true,
            default=True,
-           help='Enable experimental Swift string processing.')
+           help='Enable experimental Codira string processing.')
 
     option('--enable-experimental-observation', toggle_true,
            default=True,
-           help='Enable experimental Swift observation.')
+           help='Enable experimental Codira observation.')
 
     option('--enable-synchronization', toggle_true,
            default=True,
-           help='Enable Swift Synchronization.')
+           help='Enable Codira Synchronization.')
 
     option('--enable-volatile', toggle_true,
            default=True,
@@ -1501,7 +1542,7 @@ def create_argument_parser():
 
     option('--enable-experimental-parser-validation', toggle_true,
            default=True,
-           help='Enable experimental Swift Parser validation by default.')
+           help='Enable experimental Codira Parser validation by default.')
 
     # -------------------------------------------------------------------------
     in_group('Unsupported options')
@@ -1520,13 +1561,13 @@ def create_argument_parser():
     # the user is running in install-all mode.
     option('--skip-build-cmark', toggle_false('build_cmark'),
            help='skip building cmark')
-    option('--skip-build-llvm', toggle_false('build_llvm'),
-           help='skip building llvm')
-    option('--build-llvm', toggle_true('_build_llvm'),
+    option('--skip-build-toolchain', toggle_false('build_toolchain'),
+           help='skip building toolchain')
+    option('--build-toolchain', toggle_true('_build_toolchain'),
            default=True,
-           help='build llvm and clang')
-    option('--skip-build-swift', toggle_false('build_swift'),
-           help='skip building swift')
+           help='build toolchain and clang')
+    option('--skip-build-language', toggle_false('build_language'),
+           help='skip building language')
     option('--skip-build-libxml2', toggle_false('build_libxml2'),
            help='skip building libxml2')
     option('--skip-build-zlib', toggle_false('build_zlib'),
@@ -1534,13 +1575,13 @@ def create_argument_parser():
     option('--skip-build-curl', toggle_false('build_curl'),
            help='skip building curl')
 
-    # We need to list --skip-test-swift explicitly because otherwise argparse
-    # will auto-expand arguments like --skip-test-swift to the only known
-    # argument --skip-test-swiftevolve.
+    # We need to list --skip-test-language explicitly because otherwise argparse
+    # will auto-expand arguments like --skip-test-language to the only known
+    # argument --skip-test-languageevolve.
     # These arguments are forwarded to impl_args in migration.py
 
-    option('--install-swift', toggle_true('impl_install_swift'))
-    option('--skip-test-swift', toggle_true('impl_skip_test_swift'))
+    option('--install-language', toggle_true('impl_install_language'))
+    option('--skip-test-language', toggle_true('impl_skip_test_language'))
 
     # -------------------------------------------------------------------------
     return builder.build()
@@ -1555,10 +1596,10 @@ USAGE = """
 
 
 DESCRIPTION = """
-Use this tool to build, test, and prepare binary distribution archives of Swift
+Use this tool to build, test, and prepare binary distribution archives of Codira
 and related tools.
 
-Builds Swift (and, optionally, LLDB), incrementally, optionally
+Builds Codira (and, optionally, LLDB), incrementally, optionally
 testing it thereafter.  Different build configurations are maintained in
 parallel.
 """
@@ -1583,7 +1624,7 @@ Using option presets:
   using the name=value syntax on the command line.
 
 
-Any arguments not listed are forwarded directly to Swift's
+Any arguments not listed are forwarded directly to Codira's
 'build-script-impl'. See that script's help for details. The listed
 build-script-impl arguments are only for disambiguation in the argument parser.
 
@@ -1593,34 +1634,34 @@ Environment variables
 This script respects a few environment variables, should you
 choose to set them:
 
-SWIFT_SOURCE_ROOT: a directory containing the source for LLVM, Clang, Swift.
-                   If this script is located in a Swift
-                   source directory, the location of SWIFT_SOURCE_ROOT will be
+LANGUAGE_SOURCE_ROOT: a directory containing the source for LLVM, Clang, Codira.
+                   If this script is located in a Codira
+                   source directory, the location of LANGUAGE_SOURCE_ROOT will be
                    inferred if the variable is not set.
 
 'build-script' expects the sources to be laid out in the following way:
 
-   $SWIFT_SOURCE_ROOT/llvm-project
-                     /swift
+   $LANGUAGE_SOURCE_ROOT/toolchain-project
+                     /language
                      /llbuild                    (optional)
-                     /swiftpm                    (optional, requires llbuild)
-                     /swift-syntax               (optional, requires swiftpm)
-                     /swift-stress-tester        (optional,
-                                                   requires swift-syntax)
-                     /swift-corelibs-xctest      (optional)
-                     /swift-corelibs-foundation  (optional)
-                     /swift-corelibs-libdispatch (optional)
+                     /languagepm                    (optional, requires llbuild)
+                     /language-syntax               (optional, requires languagepm)
+                     /language-stress-tester        (optional,
+                                                   requires language-syntax)
+                     /language-corelibs-xctest      (optional)
+                     /language-corelibs-foundation  (optional)
+                     /language-corelibs-libdispatch (optional)
                      /libxml2                    (optional)
                      /zlib                       (optional)
                      /curl                       (optional)
 
-SWIFT_BUILD_ROOT: a directory in which to create out-of-tree builds.
-                  Defaults to "$SWIFT_SOURCE_ROOT/build/".
+LANGUAGE_BUILD_ROOT: a directory in which to create out-of-tree builds.
+                  Defaults to "$LANGUAGE_SOURCE_ROOT/build/".
 
 Preparing to run this script
 ----------------------------
 
-  See README.md for instructions on cloning Swift subprojects.
+  See README.md for instructions on cloning Codira subprojects.
 
 If you intend to use the -l, -L, --lldb, or --debug-lldb options.
 
@@ -1632,9 +1673,9 @@ Examples
 Given the above layout of sources, the simplest invocation of 'build-script' is
 just:
 
-  [~/src/s]$ ./swift/utils/build-script
+  [~/src/s]$ ./language/utils/build-script
 
-This builds LLVM, Clang, Swift and Swift standard library in debug mode.
+This builds LLVM, Clang, Codira and Codira standard library in debug mode.
 
 All builds are incremental.  To incrementally build changed files, repeat the
 same 'build-script' command.
@@ -1644,37 +1685,37 @@ Typical uses of 'build-script'
 
 To build everything with optimization without debug information:
 
-  [~/src/s]$ ./swift/utils/build-script -R
+  [~/src/s]$ ./language/utils/build-script -R
 
 To run tests, add '-t':
 
-  [~/src/s]$ ./swift/utils/build-script -R -t
+  [~/src/s]$ ./language/utils/build-script -R -t
 
 To run normal tests and validation tests, add '-T':
 
-  [~/src/s]$ ./swift/utils/build-script -R -T
+  [~/src/s]$ ./language/utils/build-script -R -T
 
 To build LLVM+Clang with optimization without debug information, and a
-debuggable Swift compiler:
+debuggable Codira compiler:
 
-  [~/src/s]$ ./swift/utils/build-script -R --debug-swift
+  [~/src/s]$ ./language/utils/build-script -R --debug-language
 
-To build a debuggable Swift standard library:
+To build a debuggable Codira standard library:
 
-  [~/src/s]$ ./swift/utils/build-script -R --debug-swift-stdlib
+  [~/src/s]$ ./language/utils/build-script -R --debug-language-stdlib
 
 iOS build targets are always configured and present, but are not built by
 default.  To build the standard library for OS X, iOS simulator and iOS device:
 
-  [~/src/s]$ ./swift/utils/build-script -R -i
+  [~/src/s]$ ./language/utils/build-script -R -i
 
 To run OS X and iOS tests that don't require a device:
 
-  [~/src/s]$ ./swift/utils/build-script -R -i -t
+  [~/src/s]$ ./language/utils/build-script -R -i -t
 
 To use 'make' instead of 'ninja', use '-m':
 
-  [~/src/s]$ ./swift/utils/build-script -m -R
+  [~/src/s]$ ./language/utils/build-script -m -R
 
 Preset mode in build-script
 ---------------------------
@@ -1685,36 +1726,36 @@ limited customization (extra output paths).  The actual options come from
 the selected preset in 'utils/build-presets.ini'.  For example, to build like
 the incremental buildbot, run:
 
-  [~/src/s]$ ./swift/utils/build-script --preset=buildbot_incremental
+  [~/src/s]$ ./language/utils/build-script --preset=buildbot_incremental
 
 To build with AddressSanitizer:
 
-  [~/src/s]$ ./swift/utils/build-script --preset=asan
+  [~/src/s]$ ./language/utils/build-script --preset=asan
 
 To build a root for Xcode XYZ, '/tmp/xcode-xyz-root.tar.gz':
 
-  [~/src/s]$ ./swift/utils/build-script --preset=buildbot_BNI_internal_XYZ \\
+  [~/src/s]$ ./language/utils/build-script --preset=buildbot_BNI_internal_XYZ \\
       install_destdir="/tmp/install"
       install_symroot="/tmp/symroot"
       installable_package="/tmp/xcode-xyz-root.tar.gz"
 
 If you have your own favorite set of options, you can create your own, local,
 preset.  For example, let's create a preset called 'ds' (which stands for
-Debug Swift):
+Debug Codira):
 
-  $ cat > ~/.swift-build-presets
+  $ cat > ~/.code-build-presets
   [preset: ds]
   release
-  debug-swift
-  debug-swift-stdlib
+  debug-language
+  debug-language-stdlib
   test
   build-subdir=ds
 
 To use it, specify the '--preset=' argument:
 
-  [~/src/s]$ ./swift/utils/build-script --preset=ds
-  ./swift/utils/build-script: using preset 'ds', which expands to
-  ./swift/utils/build-script --release --debug-swift --debug-swift-stdlib \
+  [~/src/s]$ ./language/utils/build-script --preset=ds
+  ./language/utils/build-script: using preset 'ds', which expands to
+  ./language/utils/build-script --release --debug-language --debug-language-stdlib \
      --test
   --build-subdir=ds --
   ...
@@ -1724,12 +1765,12 @@ Existing presets can be found in `utils/build-presets.ini`
 Philosophy
 ----------
 
-While you can invoke CMake directly to build Swift, this tool will save you
+While you can invoke CMake directly to build Codira, this tool will save you
 time by taking away the mechanical parts of the process, providing you controls
 for the important options.
 
 For all automated build environments, this tool is regarded as *the* *only* way
-to build Swift.  This is not a technical limitation of the Swift build system.
+to build Codira.  This is not a technical limitation of the Codira build system.
 It is a policy decision aimed at making the builds uniform across all
 environments and easily reproducible by engineers who are not familiar with the
 details of the setups of other systems or automated environments.

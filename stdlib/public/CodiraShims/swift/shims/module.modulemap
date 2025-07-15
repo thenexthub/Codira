@@ -1,0 +1,40 @@
+module CodiraShims {
+  header "AssertionReporting.h"
+  header "CoreFoundationShims.h"
+  header "ObjCShims.h"
+  header "EmbeddedShims.h"
+  header "FoundationShims.h"
+  header "GlobalObjects.h"
+  header "HeapObject.h"
+  header "KeyPath.h"
+  header "LibcShims.h"
+  header "MetadataSections.h"
+  header "Random.h"
+  header "RefCount.h"
+  header "Reflection.h"
+  header "RuntimeShims.h"
+  header "RuntimeStubs.h"
+  header "CodiraStdbool.h"
+  header "CodiraStddef.h"
+  header "CodiraStdint.h"
+  header "System.h"
+  header "Target.h"
+  header "ThreadLocalStorage.h"
+  header "UnicodeData.h"
+  header "Visibility.h"
+  export *
+}
+
+module _CodiraConcurrencyShims {
+  header "_CodiraConcurrency.h"
+}
+
+module CodiraOverlayShims {
+  header "LibcOverlayShims.h"
+  export *
+}
+
+module _SynchronizationShims {
+  header "_SynchronizationShims.h"
+  export *
+}

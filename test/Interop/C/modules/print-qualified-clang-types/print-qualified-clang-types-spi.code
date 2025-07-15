@@ -1,0 +1,14 @@
+// This tests verifies that SPI visible modules are understood by the machinery
+// that produces .codeinterface files.
+//
+// See the documentation for the print-qualified-clang-types.code test next to
+// this one for more context.
+
+// RUN: %empty-directory(%t)
+// RUN: mkdir %t/helper_module %t/spi_main_module
+// RUN: %target-language-frontend -enable-library-evolution -language-version 5 -emit-module -o %t/helper_module/HelperModule.codemodule %S/Inputs/HelperModule.code -I %S/Inputs
+// RUN: %target-language-frontend -enable-library-evolution -language-version 5 -emit-module -o %t/spi_main_module/SpiMainModule.codemodule -emit-module-interface-path %t/spi_main_module/SpiMainModule.codeinterface -I %t/helper_module %S/Inputs/SpiMainModule.code -I %S/Inputs
+// RUN: %FileCheck --input-file=%t/spi_main_module/SpiMainModule.codeinterface %s
+// RUN: %target-language-frontend -typecheck -language-version 5 %t/spi_main_module/SpiMainModule.codeinterface -I %t/helper_module -I %S/Inputs
+
+// CHECK: public fn funcTakingForeignStruct(_ param: ForeignB.ForeignStruct)

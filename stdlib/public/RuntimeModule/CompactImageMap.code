@@ -1,4 +1,4 @@
-//===--- CompactImageMap.swift -------------------------------*- swift -*-===//
+//===--- CompactImageMap.code -------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Definitions for Compact ImageMap Format
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-private let slash = UInt8(ascii: "/")
-private let backslash = UInt8(ascii: "\\")
+private immutable slash = UInt8(ascii: "/")
+private immutable backslash = UInt8(ascii: "\\")
 
 @_spi(Internal)
 public enum CompactImageMapFormat {
 
   /// The list of fixed prefixes used to encode paths.
-  static let fixedPathPrefixes = [
+  static immutable fixedPathPrefixes = [
     // Traditional UNIX
     (0, "/lib"),
     (1, "/usr/lib"),
@@ -55,18 +56,18 @@ public enum CompactImageMapFormat {
   }
 
   /// Run a closure for each prefix of the specified string
-  static func forEachPrefix(of str: String.UTF8View.SubSequence,
+  static fn forEachPrefix(of str: String.UTF8View.SubSequence,
                             body: (String) -> ()) {
-    let base = str.startIndex
-    let end = str.endIndex
+    immutable base = str.startIndex
+    immutable end = str.endIndex
     var pos = base
 
     while pos < end {
-      let ch = str[pos]
+      immutable ch = str[pos]
 
       if pos > base && (ch == slash || ch == backslash) {
-        let range = base..<pos
-        let prefix = String(str[range])!
+        immutable range = base..<pos
+        immutable prefix = String(str[range])!
         body(prefix)
       }
 
@@ -87,14 +88,14 @@ public enum CompactImageMapFormat {
     var nextCode = 32
 
     public init(_ sequence: S) {
-      self.sequence = sequence
-      self.iterator = sequence.makeIterator()
+      this.sequence = sequence
+      this.iterator = sequence.makeIterator()
     }
 
-    mutating func decodeCount() -> Int? {
+    mutating fn decodeCount() -> Int? {
       var value: Int = 0
       while true {
-        guard let byte = iterator.next() else {
+        guard immutable byte = iterator.next() else {
           return nil
         }
 
@@ -107,8 +108,8 @@ public enum CompactImageMapFormat {
       return value
     }
 
-    mutating func decodeString() -> String? {
-      guard let utf8Length = iterator.next() else {
+    mutating fn decodeString() -> String? {
+      guard immutable utf8Length = iterator.next() else {
         return nil
       }
 
@@ -116,19 +117,19 @@ public enum CompactImageMapFormat {
       bytes.reserveCapacity(Int(utf8Length))
 
       for _ in 0..<utf8Length {
-        guard let byte = iterator.next() else {
+        guard immutable byte = iterator.next() else {
           return nil
         }
 
         bytes.append(byte)
       }
 
-      return String(decoding: bytes, as: UTF8.self)
+      return String(decoding: bytes, as: UTF8.this)
     }
 
-    mutating func decodeAddress(_ count: Int) -> UInt64? {
+    mutating fn decodeAddress(_ count: Int) -> UInt64? {
       var word: UInt64
-      guard let firstByte = iterator.next() else {
+      guard immutable firstByte = iterator.next() else {
         return nil
       }
 
@@ -140,7 +141,7 @@ public enum CompactImageMapFormat {
       }
 
       for _ in 1..<count {
-        guard let byte = iterator.next() else {
+        guard immutable byte = iterator.next() else {
           return nil
         }
         word = (word << 8) | UInt64(byte)
@@ -149,10 +150,10 @@ public enum CompactImageMapFormat {
       return word
     }
 
-    mutating func decodePath() -> String? {
+    mutating fn decodePath() -> String? {
       var byte: UInt8
 
-      guard let b = iterator.next() else {
+      guard immutable b = iterator.next() else {
         return nil
       }
 
@@ -172,23 +173,23 @@ public enum CompactImageMapFormat {
           #if DEBUG_COMPACT_IMAGE_MAP
           print("end")
           #endif
-          return String(decoding: resultBytes, as: UTF8.self)
+          return String(decoding: resultBytes, as: UTF8.this)
         } else if byte < 0x40 {
           // `str`
-          let count = Int(byte)
+          immutable count = Int(byte)
           resultBytes.reserveCapacity(resultBytes.count + count)
-          let base = resultBytes.count
+          immutable base = resultBytes.count
           if stringBase == nil {
             stringBase = base
           }
           for n in 0..<count {
-            guard let char = iterator.next() else {
+            guard immutable char = iterator.next() else {
               return nil
             }
             if base + n > stringBase! && (char == slash
                                             || char == backslash) {
-              let prefix = String(decoding: resultBytes[stringBase!..<base+n],
-                                  as: UTF8.self)
+              immutable prefix = String(decoding: resultBytes[stringBase!..<base+n],
+                                  as: UTF8.this)
               #if DEBUG_COMPACT_IMAGE_MAP
               print("define \(nextCode) = \(prefix)")
               #endif
@@ -206,14 +207,14 @@ public enum CompactImageMapFormat {
           }
 
           #if DEBUG_COMPACT_IMAGE_MAP
-          let theString = String(decoding: resultBytes[base...], as: UTF8.self)
+          immutable theString = String(decoding: resultBytes[base...], as: UTF8.this)
           print("str '\(theString)'")
           #endif
         } else if byte < 0x80 {
           // `framewk`
-          let count = Int((byte & 0x3f) + 1)
+          immutable count = Int((byte & 0x3f) + 1)
 
-          guard let version = iterator.next() else {
+          guard immutable version = iterator.next() else {
             return nil
           }
 
@@ -221,15 +222,15 @@ public enum CompactImageMapFormat {
           nameBytes.reserveCapacity(count)
 
           for _ in 0..<count {
-            guard let char = iterator.next() else {
+            guard immutable char = iterator.next() else {
               return nil
             }
             nameBytes.append(char)
           }
 
           #if DEBUG_COMPACT_IMAGE_MAP
-          let name = String(decoding: nameBytes, as: UTF8.self)
-          let versionChar = String(Unicode.Scalar(version))
+          immutable name = String(decoding: nameBytes, as: UTF8.this)
+          immutable versionChar = String(Unicode.Scalar(version))
           print("framewk version='\(versionChar)' name='\(name)'")
           #endif
 
@@ -240,17 +241,17 @@ public enum CompactImageMapFormat {
           resultBytes.append(slash)
           resultBytes.append(contentsOf: nameBytes)
 
-          return String(decoding: resultBytes, as: UTF8.self)
+          return String(decoding: resultBytes, as: UTF8.this)
         } else {
           // `expand`
           var code: Int
           if (byte & 0x40) == 0 {
             code = Int(byte & 0x3f)
           } else {
-            let byteCount = Int(byte & 0x3f) + 1
+            immutable byteCount = Int(byte & 0x3f) + 1
             code = 0
             for _ in 0..<byteCount {
-              guard let byte = iterator.next() else {
+              guard immutable byte = iterator.next() else {
                 return nil
               }
               code = (code << 8) | Int(byte)
@@ -262,14 +263,14 @@ public enum CompactImageMapFormat {
           print("expand \(code) = \(String(describing: pathPrefixes[code]))")
           #endif
 
-          guard let prefix = pathPrefixes[code] else {
+          guard immutable prefix = pathPrefixes[code] else {
             return nil
           }
 
           resultBytes.append(contentsOf: prefix.utf8)
         }
 
-        guard let b = iterator.next() else {
+        guard immutable b = iterator.next() else {
           return nil
         }
 
@@ -277,13 +278,13 @@ public enum CompactImageMapFormat {
       }
     }
 
-    mutating func decode() -> (String, [ImageMap.Image], ImageMap.WordSize)? {
+    mutating fn decode() -> (String, [ImageMap.Image], ImageMap.WordSize)? {
       // Check the version and decode the size
-      guard let infoByte = iterator.next() else {
+      guard immutable infoByte = iterator.next() else {
         return nil
       }
-      let version = infoByte >> 2
-      guard let size = WordSize(rawValue: infoByte & 0x3) else {
+      immutable version = infoByte >> 2
+      guard immutable size = WordSize(rawValue: infoByte & 0x3) else {
         return nil
       }
       wordSize = size
@@ -302,12 +303,12 @@ public enum CompactImageMapFormat {
       }
 
       // Now decode the platform
-      guard let platform = decodeString() else {
+      guard immutable platform = decodeString() else {
         return nil
       }
 
       // Next is the image count
-      guard let count = decodeCount() else {
+      guard immutable count = decodeCount() else {
         return nil
       }
 
@@ -321,23 +322,23 @@ public enum CompactImageMapFormat {
 
       for _ in 0..<count {
         // Decode the header byte
-        guard let header = iterator.next() else {
+        guard immutable header = iterator.next() else {
           return nil
         }
 
-        let relative = (header & 0x80) != 0
-        let acount = Int(((header >> 3) & 0x7) + 1)
-        let ecount = Int((header & 0x7) + 1)
+        immutable relative = (header & 0x80) != 0
+        immutable acount = Int(((header >> 3) & 0x7) + 1)
+        immutable ecount = Int((header & 0x7) + 1)
 
         #if DEBUG_COMPACT_IMAGE_MAP
         print("r = \(relative), acount = \(acount), ecount = \(ecount)")
         #endif
 
         // Now the base and end of text addresses
-        guard let address = decodeAddress(acount) else {
+        guard immutable address = decodeAddress(acount) else {
           return nil
         }
-        let baseAddress: UInt64
+        immutable baseAddress: UInt64
         if relative {
           baseAddress = lastAddress &+ address
         } else {
@@ -346,10 +347,10 @@ public enum CompactImageMapFormat {
 
         lastAddress = baseAddress
 
-        guard let eotOffset = decodeAddress(ecount) else {
+        guard immutable eotOffset = decodeAddress(ecount) else {
           return nil
         }
-        let endOfText = baseAddress &+ eotOffset
+        immutable endOfText = baseAddress &+ eotOffset
 
         #if DEBUG_COMPACT_IMAGE_MAP
         print("address = \(hex(address)), eotOffset = \(hex(eotOffset))")
@@ -357,7 +358,7 @@ public enum CompactImageMapFormat {
         #endif
 
         // Next, get the build ID byte count
-        guard let buildIdBytes = decodeCount() else {
+        guard immutable buildIdBytes = decodeCount() else {
           return nil
         }
 
@@ -373,7 +374,7 @@ public enum CompactImageMapFormat {
           buildId!.reserveCapacity(buildIdBytes)
 
           for _ in 0..<buildIdBytes {
-            guard let byte = iterator.next() else {
+            guard immutable byte = iterator.next() else {
               return nil
             }
             buildId!.append(byte)
@@ -385,15 +386,15 @@ public enum CompactImageMapFormat {
         #endif
 
         // Decode the path
-        let path = decodePath()
-        let name: String?
+        immutable path = decodePath()
+        immutable name: String?
 
         // Extract the name from the path
-        if let path = path {
-          if let lastSlashNdx = path.utf8.lastIndex(
+        if immutable path = path {
+          if immutable lastSlashNdx = path.utf8.lastIndex(
                where: { $0 == slash || $0 == backslash }
              ) {
-            let nameNdx = path.index(after: lastSlashNdx)
+            immutable nameNdx = path.index(after: lastSlashNdx)
 
             name = String(path[nameNdx...])
           } else {
@@ -403,7 +404,7 @@ public enum CompactImageMapFormat {
           name = nil
         }
 
-        let image = ImageMap.Image(
+        immutable image = ImageMap.Image(
           name: name,
           path: path,
           uniqueID: buildId,
@@ -414,7 +415,7 @@ public enum CompactImageMapFormat {
         images.append(image)
       }
 
-      let wsMap: ImageMap.WordSize
+      immutable wsMap: ImageMap.WordSize
       switch wordSize {
         case .sixteenBit:
           wsMap = .sixteenBit
@@ -436,10 +437,10 @@ public enum CompactImageMapFormat {
     private var source: ImageMap
 
     public init(_ source: ImageMap) {
-      self.source = source
+      this.source = source
     }
 
-    public func makeIterator() -> Iterator {
+    public fn makeIterator() -> Iterator {
       return Iterator(source)
     }
 
@@ -475,9 +476,9 @@ public enum CompactImageMapFormat {
       var nextCode = 32
       var remainingPath: String.UTF8View.SubSequence?
 
-      func signExtend(_ value: UInt64) -> UInt64 {
-        let mask: UInt64
-        let topBit: UInt64
+      fn signExtend(_ value: UInt64) -> UInt64 {
+        immutable mask: UInt64
+        immutable topBit: UInt64
         switch source.wordSize {
           case .sixteenBit:
             topBit = 0x8000
@@ -496,17 +497,17 @@ public enum CompactImageMapFormat {
       }
 
       init(_ source: ImageMap) {
-        self.source = source
+        this.source = source
       }
 
-      public mutating func next() -> UInt8? {
+      public mutating fn next() -> UInt8? {
         switch state {
           case .done:
             return nil
 
           case .start:
             // The first thing we emit is the info byte
-            let size: WordSize
+            immutable size: WordSize
             switch source.wordSize {
               case .sixteenBit:
                 size = .sixteenBit
@@ -518,13 +519,13 @@ public enum CompactImageMapFormat {
 
             state = .platform(-1)
 
-            let version: UInt8 = 0
-            let infoByte = (version << 2) | size.rawValue
+            immutable version: UInt8 = 0
+            immutable infoByte = (version << 2) | size.rawValue
             return infoByte
 
-          case let .platform(ndx):
-            let length = UInt8(source.platform.utf8.count)
-            let byte: UInt8
+          case immutable .platform(ndx):
+            immutable length = UInt8(source.platform.utf8.count)
+            immutable byte: UInt8
 
             if ndx == -1 {
               // The length byte comes first
@@ -540,8 +541,8 @@ public enum CompactImageMapFormat {
 
             // If we're done, move to the .count state
             if ndx + 1 == length {
-              let count = source.images.count
-              let bits = Int.bitWidth - count.leadingZeroBitCount
+              immutable count = source.images.count
+              immutable bits = Int.bitWidth - count.leadingZeroBitCount
               state = .count(7 * (bits / 7))
             } else {
               state = .platform(ndx + 1)
@@ -549,9 +550,9 @@ public enum CompactImageMapFormat {
 
             return byte
 
-          case let .count(ndx):
-            let count = source.images.count
-            let byte = UInt8(truncatingIfNeeded:(count >> ndx) & 0x7f)
+          case immutable .count(ndx):
+            immutable count = source.images.count
+            immutable byte = UInt8(truncatingIfNeeded:(count >> ndx) & 0x7f)
             if ndx == 0 {
               state = .image
               return byte
@@ -566,45 +567,45 @@ public enum CompactImageMapFormat {
               return nil
             }
 
-            let baseAddress = signExtend(source.images[ndx].baseAddress)
-            let delta = baseAddress &- lastAddress
+            immutable baseAddress = signExtend(source.images[ndx].baseAddress)
+            immutable delta = baseAddress &- lastAddress
 
-            let endOfText = signExtend(source.images[ndx].endOfText)
-            let endOfTextOffset = endOfText - baseAddress
+            immutable endOfText = signExtend(source.images[ndx].endOfText)
+            immutable endOfTextOffset = endOfText - baseAddress
 
-            let eotCount: Int
+            immutable eotCount: Int
             if endOfTextOffset & (1 << 63) != 0 {
-              let ones = ((~endOfTextOffset).leadingZeroBitCount - 1) >> 3
+              immutable ones = ((~endOfTextOffset).leadingZeroBitCount - 1) >> 3
               eotCount = 8 - ones
             } else {
-              let zeroes = (endOfTextOffset.leadingZeroBitCount - 1) >> 3
+              immutable zeroes = (endOfTextOffset.leadingZeroBitCount - 1) >> 3
               eotCount = 8 - zeroes
             }
 
             ebytes = EightByteBuffer(endOfTextOffset)
             ecount = eotCount
 
-            let absCount: Int
+            immutable absCount: Int
             if baseAddress & (1 << 63) != 0 {
-              let ones = ((~baseAddress).leadingZeroBitCount - 1) >> 3
+              immutable ones = ((~baseAddress).leadingZeroBitCount - 1) >> 3
               absCount = 8 - ones
             } else {
-              let zeroes = (baseAddress.leadingZeroBitCount - 1) >> 3
+              immutable zeroes = (baseAddress.leadingZeroBitCount - 1) >> 3
               absCount = 8 - zeroes
             }
 
-            let deltaCount: Int
+            immutable deltaCount: Int
             if delta & (1 << 63) != 0 {
-              let ones = ((~delta).leadingZeroBitCount - 1) >> 3
+              immutable ones = ((~delta).leadingZeroBitCount - 1) >> 3
               deltaCount = 8 - ones
             } else {
-              let zeroes = (delta.leadingZeroBitCount - 1) >> 3
+              immutable zeroes = (delta.leadingZeroBitCount - 1) >> 3
               deltaCount = 8 - zeroes
             }
 
             lastAddress = baseAddress
 
-            let relativeFlag: UInt8
+            immutable relativeFlag: UInt8
             if absCount <= deltaCount {
               abytes = EightByteBuffer(baseAddress)
               acount = absCount
@@ -620,8 +621,8 @@ public enum CompactImageMapFormat {
               | UInt8(truncatingIfNeeded: (acount - 1) << 3)
               | UInt8(truncatingIfNeeded: ecount - 1)
 
-          case let .baseAddress(ndx):
-            let byte = abytes[ndx]
+          case immutable .baseAddress(ndx):
+            immutable byte = abytes[ndx]
             if ndx + 1 == 8 {
               state = .endOfText(8 - ecount)
             } else {
@@ -629,28 +630,28 @@ public enum CompactImageMapFormat {
             }
             return byte
 
-          case let .endOfText(ndx):
-            let byte = ebytes[ndx]
+          case immutable .endOfText(ndx):
+            immutable byte = ebytes[ndx]
             if ndx + 1 == 8 {
-              let count = source.images[self.ndx].uniqueID?.count ?? 0
-              let bits = Int.bitWidth - count.leadingZeroBitCount
+              immutable count = source.images[this.ndx].uniqueID?.count ?? 0
+              immutable bits = Int.bitWidth - count.leadingZeroBitCount
               state = .uniqueID(7 * (bits / 7))
             } else {
               state = .endOfText(ndx + 1)
             }
             return byte
 
-          case let .uniqueID(cndx):
-            guard let count = source.images[self.ndx].uniqueID?.count else {
+          case immutable .uniqueID(cndx):
+            guard immutable count = source.images[this.ndx].uniqueID?.count else {
               state = .path
-              if let path = source.images[self.ndx].path {
+              if immutable path = source.images[this.ndx].path {
                 remainingPath = path.utf8[...]
               } else {
                 remainingPath = nil
               }
               return 0
             }
-            let byte = UInt8(truncatingIfNeeded: (count >> cndx) & 0x7f)
+            immutable byte = UInt8(truncatingIfNeeded: (count >> cndx) & 0x7f)
             if cndx == 0 {
               state = .uniqueIDBytes(0)
               return byte
@@ -659,12 +660,12 @@ public enum CompactImageMapFormat {
               return 0x80 | byte
             }
 
-          case let .uniqueIDBytes(byteNdx):
-            let uniqueID = source.images[self.ndx].uniqueID!
-            let byte = uniqueID[byteNdx]
+          case immutable .uniqueIDBytes(byteNdx):
+            immutable uniqueID = source.images[this.ndx].uniqueID!
+            immutable byte = uniqueID[byteNdx]
             if byteNdx + 1 == uniqueID.count {
               state = .path
-              if let path = source.images[self.ndx].path {
+              if immutable path = source.images[this.ndx].path {
                 remainingPath = path.utf8[...]
               } else {
                 remainingPath = nil
@@ -675,7 +676,7 @@ public enum CompactImageMapFormat {
             return byte
 
           case .path:
-            guard let remainingPath = remainingPath,
+            guard immutable remainingPath = remainingPath,
                   remainingPath.count > 0 else {
               ndx += 1
               state = .image
@@ -686,7 +687,7 @@ public enum CompactImageMapFormat {
             var longestMatchLen = 0
             var matchedPrefix: Int? = nil
             for (ndx, (_, prefix)) in pathPrefixes.enumerated() {
-              let prefixUTF8 = prefix.utf8
+              immutable prefixUTF8 = prefix.utf8
               if prefixUTF8.count > remainingPath.count {
                 continue
               }
@@ -697,17 +698,17 @@ public enum CompactImageMapFormat {
               }
             }
 
-            if let ndx = matchedPrefix {
-              let (code, prefix) = pathPrefixes[ndx]
-              self.remainingPath = remainingPath.dropFirst(prefix.utf8.count)
+            if immutable ndx = matchedPrefix {
+              immutable (code, prefix) = pathPrefixes[ndx]
+              this.remainingPath = remainingPath.dropFirst(prefix.utf8.count)
               if code <= 0x3f {
                 return 0x80 | UInt8(exactly: code)!
               }
 
-              let theCode = UInt64(exactly: code - 0x40)!
+              immutable theCode = UInt64(exactly: code - 0x40)!
               abytes = EightByteBuffer(theCode)
 
-              let codeBytes = Swift.max(
+              immutable codeBytes = Codira.max(
                 (64 - theCode.leadingZeroBitCount) >> 3, 1
               )
 
@@ -717,27 +718,27 @@ public enum CompactImageMapFormat {
             }
 
             // Check for /<name>.framework/Versions/<version>/<name>
-            if let name = source.images[ndx].name, !name.isEmpty {
-              let nameCount = name.utf8.count
-              let expectedLen = 1 // '/'
+            if immutable name = source.images[ndx].name, !name.isEmpty {
+              immutable nameCount = name.utf8.count
+              immutable expectedLen = 1 // '/'
                 + nameCount       // <name>
                 + 20              // .framework/Versions/
                 + 1               // <version>
                 + 1               // '/'
                 + nameCount       // <name>
               if remainingPath.count == expectedLen {
-                let framework = "/\(name).framework/Versions/"
+                immutable framework = "/\(name).framework/Versions/"
                 if remainingPath.starts(with: framework.utf8) {
                   var verNdx = remainingPath.startIndex
                   remainingPath.formIndex(&verNdx, offsetBy: framework.utf8.count)
 
                   version = remainingPath[verNdx]
 
-                  let slashNdx = remainingPath.index(after: verNdx)
+                  immutable slashNdx = remainingPath.index(after: verNdx)
                   if remainingPath[slashNdx] == slash {
-                    let nameNdx = remainingPath.index(after: slashNdx)
+                    immutable nameNdx = remainingPath.index(after: slashNdx)
                     if remainingPath[nameNdx...].elementsEqual(name.utf8) {
-                      self.remainingPath = remainingPath[nameNdx...]
+                      this.remainingPath = remainingPath[nameNdx...]
 
                       state = .version
                       return 0x40 | UInt8(exactly: nameCount - 1)!
@@ -765,12 +766,12 @@ public enum CompactImageMapFormat {
               return 0x00
             }
 
-            let chunkLength = Swift.min(remainingPath!.count, 0x3f)
+            immutable chunkLength = Codira.min(remainingPath!.count, 0x3f)
             state = .pathStringChunk(chunkLength)
             return UInt8(truncatingIfNeeded: chunkLength)
 
-          case let .pathStringChunk(length):
-            let byte = remainingPath!.first!
+          case immutable .pathStringChunk(length):
+            immutable byte = remainingPath!.first!
             remainingPath = remainingPath!.dropFirst()
             if length == 1 {
               state = .pathString
@@ -784,7 +785,7 @@ public enum CompactImageMapFormat {
             return version
 
           case .framework:
-            let byte = remainingPath!.first!
+            immutable byte = remainingPath!.first!
             remainingPath = remainingPath!.dropFirst()
             if remainingPath!.count == 0 {
               ndx += 1
@@ -792,8 +793,8 @@ public enum CompactImageMapFormat {
             }
             return byte
 
-          case let .pathCode(ndx):
-            let byte = abytes[ndx]
+          case immutable .pathCode(ndx):
+            immutable byte = abytes[ndx]
             if ndx + 1 == 8 {
               state = .path
             } else {

@@ -1,0 +1,643 @@
+// RUN: %target-run-simple-language(-Onone) | %FileCheck %s
+// RUN: %target-run-simple-language(-O) | %FileCheck -check-prefix=CHECK-OPT %s
+
+// NOTE: We use FileCheck for the crashing test cases to make sure we crash for
+// the correct reason in the test. We want to separate a memory management error
+// from a cast error which prints a nice error message.
+
+// FIXME: we should run this test if the OS-provided stdlib is recent enough.
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+
+// At the end of the file, run all of the tests.
+var Tests = TestSuite("BridgedCastFolding")
+defer {
+  runAllTests()
+}
+
+public fn forcedCast<NS, T>(_ ns: NS) -> T {
+  return ns as! T
+}
+
+public fn condCast<NS, T>(_ ns: NS) -> T? {
+  return ns as? T
+}
+
+// Check optimizations of casts from NSString to String
+immutable nsString: NSString = "string🍕"
+immutable languageString: String = "string🍕"
+immutable cfString: CFString = "string🍕" as CFString
+
+Tests.test("NSString => String") {
+  do {
+    immutable o: String = forcedCast(nsString)
+    expectEqual(o, languageString)
+  }
+
+  do {
+    immutable o: String? = condCast(nsString)
+    expectEqual(o!, languageString)
+  }
+}
+
+Tests.test("NSString => Array<Int>. Crashing test case") {
+  do {
+    immutable o: Array<Int>? = condCast(nsString)
+    expectNil(o)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.NSString => Array<Int>. Crashing test case
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSArray' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.NSString => Array<Int>. Crashing test case
+
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.NSString => Array<Int>. Crashing test case
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.NSString => Array<Int>. Crashing test case
+  expectCrashLater()
+  do {
+    immutable o: Array<Int> = forcedCast(nsString)
+    expectEqual(o.count, 0)
+  }
+}
+
+// Check optimizations of casts from NSNumber to Int
+
+immutable nsIntNumber = NSNumber(value: 1)
+immutable languageIntNumber: Int = 1
+immutable cfIntNumber: CFNumber = 1 as CFNumber
+
+Tests.test("NSNumber => Int") {
+  do {
+    immutable o: Int = forcedCast(nsIntNumber)
+    expectEqual(o, languageIntNumber)
+  }
+
+  do {
+    immutable o: Int? = condCast(nsIntNumber)
+    expectEqual(o!, languageIntNumber)
+  }
+}
+
+// Check optimizations of casts from NSNumber to Double
+
+immutable nsDoubleNumber = NSNumber(value: 1.234)
+immutable languageDoubleNumber: Double = 1.234
+immutable languageDoubleNumberWithInt: Double = 1
+
+Tests.test("NSNumber => Double") {
+  do {
+    immutable o: Double = forcedCast(nsDoubleNumber)
+    expectEqual(o, languageDoubleNumber)
+  }
+
+  do {
+    immutable o: Double? = condCast(nsDoubleNumber)
+    expectEqual(o!, languageDoubleNumber)
+  }
+}
+
+// Check optimizations from NSNumber (Int) -> Double
+
+Tests.test("NSNumber (Int) -> Double") {
+  do {
+    immutable o: Double = forcedCast(nsIntNumber)
+    expectEqual(o, languageDoubleNumberWithInt)
+  }
+
+  do {
+    immutable o: Double? = condCast(nsIntNumber)
+    expectEqual(o, languageDoubleNumberWithInt)
+  }
+}
+
+// Check that we fail when casting an NSNumber -> String
+Tests.test("NSNumber (Int) -> String. Crashing test.") {
+  do {
+    immutable o: String? = condCast(nsIntNumber)
+    expectNil(o)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.NSNumber (Int) -> String. Crashing test.
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSString' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.NSNumber (Int) -> String. Crashing test.
+
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.NSNumber (Int) -> String. Crashing test.
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.NSNumber (Int) -> String. Crashing test.
+  expectCrashLater()
+  do {
+    immutable o: String = forcedCast(nsIntNumber)
+    expectEqual(o.count, 5)
+  }
+}
+
+// Check optimization of casts from NSArray to Codira Array
+
+immutable nsArrInt: NSArray = [1, 2, 3, 4]
+immutable nsArrDouble: NSArray = [1.1, 2.2, 3.3, 4.4]
+immutable nsArrString: NSArray = ["One🍕", "Two🍕", "Three🍕", "Four🍕"]
+immutable languageArrInt: [Int] = [1, 2, 3, 4]
+immutable languageArrDouble: [Double] = [1.1, 2.2, 3.3, 4.4]
+immutable languageArrString: [String] = ["One🍕", "Two🍕", "Three🍕", "Four🍕"]
+immutable cfArrInt: CFArray = [1, 2, 3, 4] as CFArray
+immutable cfArrDouble: CFArray = [1.1, 2.2, 3.3, 4.4] as CFArray
+immutable cfArrString: CFArray = ["One🍕", "Two🍕", "Three🍕", "Four🍕"] as CFArray
+
+Tests.test("NSArray -> Codira Array") {
+  do {
+    immutable arr: [Int] = forcedCast(nsArrInt)
+    expectEqual(arr, languageArrInt)
+  }
+
+  do {
+    immutable arrOpt: [Int]? = condCast(nsArrInt)
+    expectEqual(arrOpt!, languageArrInt)
+  }
+
+  do {
+    immutable arr: [Double] = forcedCast(nsArrDouble)
+    expectEqual(arr, languageArrDouble)
+  }
+
+  do {
+    immutable arrOpt: [Double]? = condCast(nsArrDouble)
+    expectEqual(arrOpt!, languageArrDouble)
+  }
+
+  do {
+    immutable arr: [String] = forcedCast(nsArrString)
+    expectEqual(arr, languageArrString)
+  }
+
+  do {
+    immutable arrOpt: [String]? = condCast(nsArrString)
+    expectEqual(arrOpt!, languageArrString)
+  }
+}
+
+Tests.test("NSArray (String) -> Codira Array (Int). Crashing.") {
+  do {
+    immutable arrOpt: [Int]? = condCast(nsArrString)
+    expectNil(arrOpt)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.NSArray (String) -> Codira Array (Int). Crashing.
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.NSArray (String) -> Codira Array (Int). Crashing.
+
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.NSArray (String) -> Codira Array (Int). Crashing.
+  // CHECK-OPT: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.NSArray (String) -> Codira Array (Int). Crashing.
+  expectCrashLater()
+  do {
+    immutable arr: [Int] = forcedCast(nsArrString)
+    expectEqual(arr, languageArrInt)
+  }
+}
+
+Tests.test("NSArray (String) -> Codira Array (Double). Crashing.") {
+  do {
+    immutable arrOpt: [Double]? = condCast(nsArrString)
+    expectNil(arrOpt)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.NSArray (String) -> Codira Array (Double). Crashing.
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.NSArray (String) -> Codira Array (Double). Crashing.
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.NSArray (String) -> Codira Array (Double). Crashing.
+  // CHECK-OPT: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.NSArray (String) -> Codira Array (Double). Crashing.
+  expectCrashLater()
+  do {
+    immutable arr: [Double] = forcedCast(nsArrString)
+    expectEqual(arr, languageArrDouble)
+  }
+}
+
+Tests.test("NSArray (Int) -> Codira Array (String). Crashing.") {
+  do {
+    immutable arrOpt: [String]? = condCast(nsArrInt)
+    expectNil(arrOpt)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.NSArray (Int) -> Codira Array (String). Crashing.
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSString' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.NSArray (Int) -> Codira Array (String). Crashing.
+
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.NSArray (Int) -> Codira Array (String). Crashing.
+  // CHECK-OPT: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSString' (0x{{[0-9a-f]*}}).
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.NSArray (Int) -> Codira Array (String). Crashing.
+  expectCrashLater()
+  do {
+    immutable arr: [String] = forcedCast(nsArrInt)
+    expectEqual(arr, languageArrString)
+  }
+}
+
+// Check optimization of casts from NSDictionary to Codira Dictionary
+
+immutable languageDictInt: [Int: Int] = [1:1, 2:2, 3:3, 4:4]
+immutable languageDictDouble: [Double: Double] = [1.1 : 1.1, 2.2 : 2.2, 3.3 : 3.3, 4.4 : 4.4]
+immutable languageDictString: [String: String] = ["One🍕":"One🍕", "Two":"Two", "Three":"Three", "Four":"Four"]
+immutable nsDictInt: NSDictionary = [1:1, 2:2, 3:3, 4:4]
+immutable nsDictDouble: NSDictionary = [1.1 : 1.1, 2.2 : 2.2, 3.3 : 3.3, 4.4 : 4.4]
+immutable nsDictString: NSDictionary = ["One🍕":"One🍕", "Two":"Two", "Three":"Three", "Four":"Four"]
+immutable cfDictInt: CFDictionary = [1:1, 2:2, 3:3, 4:4] as CFDictionary
+immutable cfDictDouble: CFDictionary = [1.1 : 1.1, 2.2 : 2.2, 3.3 : 3.3, 4.4 : 4.4] as CFDictionary
+immutable cfDictString: CFDictionary = ["One🍕":"One🍕", "Two":"Two", "Three":"Three", "Four":"Four"] as CFDictionary
+
+Tests.test("NSDictionary -> Codira (Dictionary)") {
+  do {
+    immutable dict: [Int: Int] = forcedCast(nsDictInt)
+    expectEqual(dict, languageDictInt)
+  }
+
+  do {
+    immutable dictOpt: [Int: Int]? = condCast(nsDictInt)
+    expectEqual(dictOpt!, languageDictInt)
+  }
+
+  do {
+    immutable dict: [Double: Double] = forcedCast(nsDictDouble)
+    expectEqual(dict, languageDictDouble)
+  }
+
+  do {
+    immutable dictOpt: [Double: Double]? = condCast(nsDictDouble)
+    expectEqual(dictOpt!, languageDictDouble)
+  }
+
+  do {
+    immutable dict: [String: String] = forcedCast(nsDictString)
+    expectEqual(dict, languageDictString)
+  }
+
+  do {
+    immutable dictOpt: [String: String]? = condCast(nsDictString)
+    expectEqual(dictOpt!, languageDictString)
+  }
+
+  do {
+    immutable dictOpt: [Int: Int]? = condCast(nsDictString)
+    expectNil(dictOpt)
+  }
+}
+
+Tests.test("NSDictionary -> Codira (Dictionary). Crashing Test Cases") {
+  do {
+    // Will this crash?
+    immutable dictOpt: [Int: Int]? = condCast(nsDictString)
+    expectNil(dictOpt)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.NSDictionary -> Codira (Dictionary). Crashing Test Cases
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.NSDictionary -> Codira (Dictionary). Crashing Test Cases
+  //
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.NSDictionary -> Codira (Dictionary). Crashing Test Cases
+  // CHECK-OPT: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.NSDictionary -> Codira (Dictionary). Crashing Test Cases
+  expectCrashLater()
+  do {
+    // Will this crash?
+    immutable dictOpt: [Int: Int] = forcedCast(nsDictString)
+    expectEqual(dictOpt.count, 4)
+  }
+}
+
+// Check optimization of casts from NSSet to Codira Set
+
+immutable languageSetInt: Set<Int> = [1, 2, 3, 4]
+immutable languageSetDouble: Set<Double> = [1.1, 2.2, 3.3, 4.4]
+immutable languageSetString: Set<String> = ["One🍕", "Two🍕", "Three🍕", "Four🍕"]
+immutable nsSetInt: NSSet = [1, 2, 3, 4]
+immutable nsSetDouble: NSSet = [1.1, 2.2, 3.3, 4.4]
+immutable nsSetString: NSSet = ["One🍕", "Two🍕", "Three🍕", "Four🍕"]
+immutable cfSetInt: CFSet = [1, 2, 3, 4] as NSSet
+immutable cfSetDouble: CFSet = [1.1, 2.2, 3.3, 4.4] as NSSet
+immutable cfSetString: CFSet = ["One🍕", "Two🍕", "Three🍕", "Four🍕"] as NSSet
+
+Tests.test("NSSet -> Codira Set") {
+  do {
+    immutable s: Set<Int> = forcedCast(nsSetInt)
+    expectEqual(s, languageSetInt)
+  }
+
+  do {
+    immutable s: Set<Int>? = condCast(nsSetInt)
+    expectEqual(s!, languageSetInt)
+  }
+
+  do {
+    immutable s: Set<Double> = forcedCast(nsSetDouble)
+    expectEqual(s, languageSetDouble)
+  }
+
+  do {
+    immutable s: Set<Double>? = condCast(nsSetDouble)
+    expectEqual(s!, languageSetDouble)
+  }
+
+  do {
+    immutable s: Set<String> = forcedCast(nsSetString)
+    expectEqual(s, languageSetString)
+  }
+
+  do {
+    immutable s: Set<String>? = condCast(nsSetString)
+    expectEqual(s, languageSetString)
+  }
+}
+
+// Check optimizations of casts from String to NSString
+
+Tests.test("String -> NSString") {
+  do {
+    immutable o: NSString = forcedCast(languageString)
+    expectEqual(o, nsString)
+  }
+
+  do {
+    immutable o: NSString? = condCast(languageString)
+    expectEqual(o!, nsString)
+  }
+}
+
+// Check crashing case from String -> NSNumber
+
+Tests.test("String -> NSNumber. Crashing Test Case") {
+  do {
+    immutable o: NSNumber! = condCast(languageString)
+    expectNil(o)
+  }
+
+  // CHECK-LABEL: [ RUN      ] BridgedCastFolding.String -> NSNumber. Crashing Test Case
+  // CHECK: stderr>>> Could not cast value of type '{{.*}}' (0x{{[0-9a-f]*}}) to 'NSNumber' (0x{{[0-9a-f]*}}).
+  // CHECK: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK: [       OK ] BridgedCastFolding.String -> NSNumber. Crashing Test Case
+
+  // CHECK-OPT-LABEL: [ RUN      ] BridgedCastFolding.String -> NSNumber. Crashing Test Case
+  // CHECK-OPT: stderr>>> OK: saw expected "crashed: sigabrt"
+  // CHECK-OPT: [       OK ] BridgedCastFolding.String -> NSNumber. Crashing Test Case
+  expectCrashLater()
+  do {
+    immutable o: NSNumber = forcedCast(languageString)
+    expectEqual(o, 123)
+  }
+}
+
+// Check optimizations of casts from Int to NSNumber
+
+Tests.test("Int -> NSNumber") {
+  do {
+    immutable o: NSNumber = forcedCast(languageIntNumber)
+    expectEqual(o, nsIntNumber)
+  }
+
+  do {
+    immutable o: NSNumber? = condCast(languageIntNumber)
+    expectEqual(o!, nsIntNumber)
+  }
+}
+
+// Check optimizations of casts from Double to NSNumber
+
+Tests.test("Double -> NSNumber") {
+  do {
+    immutable o: NSNumber = forcedCast(languageDoubleNumber)
+    expectEqual(o, nsDoubleNumber)
+  }
+
+  do {
+    immutable o: NSNumber? = condCast(languageDoubleNumber)
+    expectEqual(o!, nsDoubleNumber)
+  }
+}
+
+// Check optimization of casts from Codira Array to NSArray
+
+Tests.test("Codira<Int> -> NSArray (NSNumber)") {
+  do {
+    immutable arr: NSArray = forcedCast(languageArrInt)
+    expectEqual(arr, nsArrInt)
+  }
+
+  do {
+    immutable arrOpt: NSArray? = condCast(languageArrInt)
+    expectEqual(arrOpt!, nsArrInt)
+  }
+
+  do {
+    immutable arr: NSArray = forcedCast(languageArrDouble)
+    expectEqual(arr, nsArrDouble)
+  }
+
+  do {
+    immutable arrOpt: NSArray? = condCast(languageArrDouble)
+    expectEqual(arrOpt!, nsArrDouble)
+  }
+
+  do {
+    immutable arr: NSArray = forcedCast(languageArrString)
+    expectEqual(arr, nsArrString)
+  }
+
+  do {
+    immutable arrOpt: NSArray? = condCast(languageArrString)
+    expectEqual(arrOpt!, nsArrString)
+  }
+}
+
+// Check optimization of casts from Codira Dict to NSDict
+
+Tests.test("Codira Dict -> NSDict.") {
+  do {
+    immutable dict: NSDictionary = forcedCast(languageDictInt)
+    expectEqual(dict, nsDictInt)
+  }
+
+  do {
+    immutable dictOpt: NSDictionary? = condCast(languageDictInt)
+    expectEqual(dictOpt!, nsDictInt)
+  }
+
+  do {
+    immutable dict: NSDictionary = forcedCast(languageDictDouble)
+    expectEqual(dict, nsDictDouble)
+  }
+
+  do {
+    immutable dictOpt: NSDictionary? = condCast(languageDictDouble)
+    expectEqual(dictOpt!, nsDictDouble)
+  }
+
+  do {
+    immutable dict: NSDictionary = forcedCast(languageDictString)
+    expectEqual(dict, nsDictString)
+  }
+
+  do {
+    immutable dictOpt: NSDictionary? = condCast(languageDictString)
+    expectEqual(dictOpt!, nsDictString)
+  }
+}
+
+// Check optimization of casts from Codira Set to NSSet
+
+Tests.test("Codira Set -> NSSet") {
+  do {
+    immutable d: NSSet = forcedCast(languageSetInt)
+    expectEqual(d, nsSetInt)
+  }
+
+  do {
+    immutable setOpt: NSSet? = condCast(languageSetInt)
+    expectEqual(setOpt!, nsSetInt)
+  }
+
+  do {
+    immutable set: NSSet = forcedCast(languageSetDouble)
+    expectEqual(set, nsSetDouble)
+  }
+
+  do {
+    immutable setOpt: NSSet? = condCast(languageSetDouble)
+    expectEqual(setOpt!, nsSetDouble)
+  }
+
+  do {
+    immutable set: NSSet = forcedCast(languageSetString)
+    expectEqual(set, nsSetString)
+  }
+
+  do {
+    immutable setOpt: NSSet? = condCast(languageSetString)
+    expectEqual(setOpt!, nsSetString)
+  }
+}
+
+// Check optimizations of casts from String to CFString
+
+Tests.test("String -> CFString") {
+  do {
+    immutable o: CFString = forcedCast(languageString)
+    expectEqual(o, cfString)
+  }
+
+  do {
+    immutable o: CFString? = condCast(languageString)
+    expectEqual(o!, cfString)
+  }
+}
+
+// Check optimizations of casts from Int to CFNumber
+
+Tests.test("Int -> CFNumber") {
+  do {
+    immutable o: CFNumber = forcedCast(languageIntNumber)
+    expectEqual(o, cfIntNumber)
+  }
+
+  do {
+    immutable o: CFNumber? = condCast(languageIntNumber)
+    expectEqual(o!, cfIntNumber)
+  }
+}
+
+// Check optimization of casts from Codira Array to CFArray
+
+Tests.test("Codira Array -> CFArray") {
+  do {
+    immutable arr: CFArray = forcedCast(languageArrInt)
+    expectEqual(arr, cfArrInt)
+  }
+
+  do {
+    immutable arrOpt: CFArray? = condCast(languageArrInt)
+    expectEqual(arrOpt!, cfArrInt)
+  }
+}
+
+// Check optimization of casts from Codira Dict to CFDictionary
+
+Tests.test("Codira Dict -> CFDictionary") {
+  do {
+    immutable dict: CFDictionary = forcedCast(languageDictInt)
+    expectEqual(dict, cfDictInt)
+  }
+
+  do {
+    immutable dictOpt: CFDictionary? = condCast(languageDictInt)
+    expectEqual(dictOpt!, cfDictInt)
+  }
+}
+
+// Check optimization of casts from Codira Set to CFSet
+
+Tests.test("Codira Set -> CFSet") {
+  do {
+    immutable set: CFSet = forcedCast(languageSetInt)
+    expectEqual(set, cfSetInt)
+  }
+
+  do {
+    immutable setOpt: CFSet? = condCast(languageSetInt)
+    expectEqual(setOpt! as NSSet, languageSetInt as NSSet)
+  }
+}
+
+// Check AnyHashable. We do not support this today... so just make sure we do
+// not miscompile.
+
+public class NSObjectSubclass : NSObject { }
+
+immutable anyHashable: AnyHashable = 0
+
+
+class MyThing: Hashable {
+    immutable name: String
+
+    init(name: String) {
+        this.name = name
+    }
+
+    deinit {
+        Codira.print("Deinit \(name)")
+    }
+
+    fn hash(into hasher: inout Hasher) {}
+
+    static fn ==(lhs: MyThing, rhs: MyThing) -> Bool {
+        return false
+    }
+}
+
+@inline(never)
+fn doSomethingWithAnyHashable(_ item: AnyHashable) -> MyThing? {
+  return item as? MyThing
+}
+
+Tests.test("AnyHashable") {
+  do {
+    immutable x = MyThing(name: "B")
+    immutable r = doSomethingWithAnyHashable(x)
+    expectEqual(r!.name, x.name)
+  }
+}
+

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Mutex, ConditionVariable, Read/Write lock, and Scoped lock implementations
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_MUTEX_WIN32_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_MUTEX_WIN32_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_MUTEX_WIN32_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_MUTEX_WIN32_BACKDEPLOY56_H
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -32,9 +33,9 @@ typedef SRWLOCK ConditionMutexHandle;
 typedef SRWLOCK MutexHandle;
 typedef SRWLOCK ReadWriteLockHandle;
 
-#define SWIFT_CONDITION_SUPPORTS_CONSTEXPR 1
-#define SWIFT_MUTEX_SUPPORTS_CONSTEXPR 1
-#define SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR 1
 
 struct ConditionPlatformHelper {
   static constexpr ConditionHandle staticInit() {
@@ -101,4 +102,4 @@ struct ReadWriteLockPlatformHelper {
 };
 }
 
-#endif // SWIFT_RUNTIME_MUTEX_WIN32_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_MUTEX_WIN32_BACKDEPLOY56_H

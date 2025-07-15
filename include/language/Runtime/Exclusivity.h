@@ -1,4 +1,4 @@
-//===--- Exclusivity.h - Swift exclusivity-checking support -----*- C++ -*-===//
+//===--- Exclusivity.h - Codira exclusivity-checking support -----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime support for dynamic checking of the Law of Exclusivity.
+// Codira runtime support for dynamic checking of the Law of Exclusivity.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_EXCLUSIVITY_H
-#define SWIFT_RUNTIME_EXCLUSIVITY_H
+#ifndef LANGUAGE_RUNTIME_EXCLUSIVITY_H
+#define LANGUAGE_RUNTIME_EXCLUSIVITY_H
 
 #include <cstdint>
 
@@ -38,15 +39,15 @@ using ValueBuffer = TargetValueBuffer<InProcess>;
 ///
 /// The PC argument is an instruction pointer to associate with the start
 /// of the access.  If it is null, the return address of the call to
-/// swift_beginAccess will be used.
-SWIFT_RUNTIME_EXPORT
-void swift_beginAccess(void *pointer, ValueBuffer *buffer,
+/// language_beginAccess will be used.
+LANGUAGE_RUNTIME_EXPORT
+void language_beginAccess(void *pointer, ValueBuffer *buffer,
                        ExclusivityFlags flags, void *pc);
 
 
 /// Stop dynamically tracking an access.
-SWIFT_RUNTIME_EXPORT
-void swift_endAccess(ValueBuffer *buffer);
+LANGUAGE_RUNTIME_EXPORT
+void language_endAccess(ValueBuffer *buffer);
 
 /// A flag which, if set, causes access tracking to be suspended.
 /// Accesses which begin while this flag is set will not be tracked,
@@ -59,8 +60,8 @@ void swift_endAccess(ValueBuffer *buffer);
 /// without leaving various objects in a permanent "accessed"
 /// state.  (We also need to not leave references to scratch
 /// buffers on the stack sitting around in the runtime.)
-SWIFT_RUNTIME_EXPORT
-bool _swift_disableExclusivityChecking;
+LANGUAGE_RUNTIME_EXPORT
+bool _language_disableExclusivityChecking;
 
 #ifndef NDEBUG
 
@@ -70,53 +71,53 @@ bool _swift_disableExclusivityChecking;
 /// compiled out when asserts are disabled. The intention is that it allows one
 /// to dump the access state to easily see if/when exclusivity violations will
 /// happen. This eases debugging.
-SWIFT_RUNTIME_EXPORT
-void swift_dumpTrackedAccesses();
+LANGUAGE_RUNTIME_EXPORT
+void language_dumpTrackedAccesses();
 
 #endif
 
-#ifdef SWIFT_COMPATIBILITY56
-/// Backdeploy56 shim calls swift_task_enterThreadLocalContext if it is
+#ifdef LANGUAGE_COMPATIBILITY56
+/// Backdeploy56 shim calls language_task_enterThreadLocalContext if it is
 /// available in the underlying runtime, otherwise does nothing
 __attribute__((visibility("hidden"), weak))
-void swift_task_enterThreadLocalContextBackdeploy56(char *state);
+void language_task_enterThreadLocalContextBackdeploy56(char *state);
 
-/// Backdeploy56 shim calls swift_task_exitThreadLocalContext if it is available
+/// Backdeploy56 shim calls language_task_exitThreadLocalContext if it is available
 /// in the underlying runtime, otherwise does nothing
 __attribute__((visibility("hidden"), weak))
-void swift_task_exitThreadLocalContextBackdeploy56(char *state);
+void language_task_exitThreadLocalContextBackdeploy56(char *state);
 #else
 
 // When building the concurrency library for back deployment, we rename these
 // symbols uniformly so they don't conflict with the real concurrency library.
-#ifdef SWIFT_CONCURRENCY_BACK_DEPLOYMENT
-#  define swift_task_enterThreadLocalContext swift_task_enterThreadLocalContextBackDeploy
-#  define swift_task_exitThreadLocalContext swift_task_exitThreadLocalContextBackDeploy
+#ifdef LANGUAGE_CONCURRENCY_BACK_DEPLOYMENT
+#  define language_task_enterThreadLocalContext language_task_enterThreadLocalContextBackDeploy
+#  define language_task_exitThreadLocalContext language_task_exitThreadLocalContextBackDeploy
 #endif
 
 /// Called when a task inits, resumes and returns control to caller synchronous
 /// code to update any exclusivity specific state associated with the task.
 ///
 /// State is assumed to point to a buffer of memory with
-/// swift_task_threadLocalContextSize bytes that was initialized with
-/// swift_task_initThreadLocalContext.
+/// language_task_threadLocalContextSize bytes that was initialized with
+/// language_task_initThreadLocalContext.
 ///
-/// We describe the algorithm in detail on SwiftTaskThreadLocalContext in
+/// We describe the algorithm in detail on CodiraTaskThreadLocalContext in
 /// Exclusivity.cpp.
-SWIFT_RUNTIME_EXPORT
-void swift_task_enterThreadLocalContext(char *state);
+LANGUAGE_RUNTIME_EXPORT
+void language_task_enterThreadLocalContext(char *state);
 
 /// Called when a task suspends and returns control to caller synchronous code
 /// to update any exclusivity specific state associated with the task.
 ///
 /// State is assumed to point to a buffer of memory with
-/// swift_task_threadLocalContextSize bytes that was initialized with
-/// swift_task_initThreadLocalContext.
+/// language_task_threadLocalContextSize bytes that was initialized with
+/// language_task_initThreadLocalContext.
 ///
-/// We describe the algorithm in detail on SwiftTaskThreadLocalContext in
+/// We describe the algorithm in detail on CodiraTaskThreadLocalContext in
 /// Exclusivity.cpp.
-SWIFT_RUNTIME_EXPORT
-void swift_task_exitThreadLocalContext(char *state);
+LANGUAGE_RUNTIME_EXPORT
+void language_task_exitThreadLocalContext(char *state);
 
 #endif
 

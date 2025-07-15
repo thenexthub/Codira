@@ -1,4 +1,4 @@
-//===--- Array2D.swift ----------------------------------------------------===//
+//===--- Array2D.code ----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Array2D",
     runFunction: run_Array2D,
@@ -24,7 +25,7 @@ public let benchmarks =
     tearDownFunction: { inputArray = nil },
     legacyFactor: 16)
 
-let size = 256
+immutable size = 256
 
 var inputArray: [[Int]]! = {
   var a: [[Int]] = []
@@ -36,7 +37,7 @@ var inputArray: [[Int]]! = {
 }()
 
 @inline(never)
-func modifyArray(_ a: inout [[Int]], _ n: Int) {
+fn modifyArray(_ a: inout [[Int]], _ n: Int) {
   for _ in 0..<n {
     for i in 0 ..< size {
       for y in 0 ..< size {
@@ -48,6 +49,6 @@ func modifyArray(_ a: inout [[Int]], _ n: Int) {
 }
 
 @inline(never)
-public func run_Array2D(_ n: Int) {
+public fn run_Array2D(_ n: Int) {
   modifyArray(&inputArray, n)
 }

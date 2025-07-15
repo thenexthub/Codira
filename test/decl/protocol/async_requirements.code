@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple
+
+// Ensure that a protocol with async requirements can be conformed to by
+// non-async requirements, and that overloading works.
+protocol A {
+  fn foo()
+  fn foo() async
+
+  init()
+  init() async
+
+  var property: Int { get async }
+
+  fn bar() throws
+  fn bar() async throws
+}
+
+struct A1: A {
+  fn foo() { }
+
+  var property: Int = 17
+
+  fn bar() { }
+}
+
+struct A2: A {
+  fn foo() { }
+  fn foo() async { }
+
+  init() { }
+  init() async { }
+
+  var property: Int { get async { 5 } }
+
+  fn bar() throws { }
+  fn bar() async throws { }
+}

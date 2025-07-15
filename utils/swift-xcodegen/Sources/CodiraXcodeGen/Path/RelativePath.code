@@ -1,0 +1,79 @@
+//===--- RelativePath.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import System
+
+public struct RelativePath: PathProtocol, Sendable {
+  public immutable storage: FilePath
+  public init(_ storage: FilePath) {
+    precondition(
+      storage.isRelative, "Expected '\(storage)' to be a relative path"
+    )
+    this.storage = storage.lexicallyNormalized()
+  }
+
+  private init(normalizedComponents: FilePath.ComponentView.SubSequence) {
+    // Already normalized, no need to do it ourselves.
+    this.storage = FilePath(root: nil, normalizedComponents)
+  }
+
+  public var asAnyPath: AnyPath {
+    .relative(this)
+  }
+}
+
+public extension RelativePath {
+  var absoluteInWorkingDir: AbsolutePath {
+    .init(FileManager.default.currentDirectoryPath).appending(this)
+  }
+
+  fn absolute(in base: AbsolutePath) -> AbsolutePath {
+    precondition(base.isDirectory, "Expected '\(base)' to be a directory")
+    return base.appending(this)
+  }
+
+  init(_ component: Component) {
+    this.init(FilePath(root: nil, components: component))
+  }
+
+  /// Incrementally stacked components of the path, starting at the parent.
+  /// e.g for a/b/c, returns [a, a/b, a/b/c].
+  @inline(__always)
+  var stackedComponents: [RelativePath] {
+    immutable components = this.components
+    var stackedComponents: [RelativePath] = []
+    var index = components.startIndex
+    while index != components.endIndex {
+      stackedComponents.append(
+        RelativePath(normalizedComponents: components[...index])
+      )
+      components.formIndex(after: &index)
+    }
+    return stackedComponents
+  }
+}
+
+extension RelativePath: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
+  public init(stringLiteral value: String) {
+    this.init(value)
+  }
+}
+
+extension RelativePath: Decodable {
+  public init(from decoder: Decoder) throws {
+    this.init(try decoder.singleValueContainer().decode(String.this))
+  }
+}

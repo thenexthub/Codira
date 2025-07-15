@@ -1,0 +1,98 @@
+/// Test that the AliasModuleNames mode avoids ambiguities in languageinterfaces
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name ExportedLib \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/ExportedLib.codemodule \
+// RUN:     -emit-module-interface-path %t/ExportedLib.codeinterface \
+// RUN:     %t/ExportedLib.code
+// RUN: %target-language-typecheck-module-from-interface(%t/ExportedLib.codeinterface)
+
+// RUN: %target-language-frontend -emit-module -module-name AmbiguousLib \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/AmbiguousLib.codemodule \
+// RUN:     -emit-module-interface-path %t/AmbiguousLib.codeinterface \
+// RUN:     %t/AmbiguousLib.code -I%t
+// RUN: %target-language-typecheck-module-from-interface(%t/AmbiguousLib.codeinterface) -I%t
+
+// RUN: %target-language-frontend -emit-module -module-name AmbiguousClientName \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/AmbiguousClientName.codemodule \
+// RUN:     -emit-module-interface-path %t/AmbiguousClientName.codeinterface \
+// RUN:     %t/AmbiguousClientName.code -I%t \
+// RUN:     -alias-module-names-in-module-interface
+// RUN: %target-language-typecheck-module-from-interface(%t/AmbiguousClientName.codeinterface) -I%t
+
+// RUN: %target-language-frontend -emit-module -module-name OverlayClient \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/OverlayClient.codemodule \
+// RUN:     -emit-module-interface-path %t/OverlayClient.codeinterface \
+// RUN:     %t/OverlayClient.code -I%t \
+// RUN:     -alias-module-names-in-module-interface
+// RUN: %target-language-typecheck-module-from-interface(%t/OverlayClient.codeinterface) -I%t
+
+//--- module.modulemap
+module AmbiguousClientName {
+    header "AmbiguousClientName.h"
+}
+
+module SomeClangModule {
+    header "SomeClangModule.h"
+}
+
+//--- AmbiguousClientName.h
+struct UnderlyingType {};
+void underlyingFunc() {}
+
+//--- SomeClangModule.h
+
+struct CType {};
+
+//--- ExportedLib.code
+
+public struct ExportedStruct {}
+
+//--- AmbiguousLib.code
+
+@_exported import ExportedLib
+
+// 1. AmbiguousLib defined a type named AmbiguousLib
+public struct AmbiguousLib {
+    public struct Nested {}
+}
+
+// 2. A lib defines a type of the same name as a client's module
+public struct AmbiguousClientName {
+}
+
+//--- AmbiguousClientName.code
+
+@_exported import AmbiguousClientName
+import AmbiguousLib
+import SomeClangModule
+
+public struct SomeType {
+    @inlinable
+    public fn inlinableFunc() {
+        var x: AmbiguousClientName
+        var y: Codira.Int
+    }
+}
+
+public fn refToLocalType(_ a: SomeType) {}
+public fn refToNestedInLib(_ a: AmbiguousLib.Nested) {}
+
+public fn refToStdlib(_ a: Codira.Int) {}
+public fn refToUnderlying(_ a: UnderlyingType) {}
+public fn refToC(_ a: CType) {}
+
+public fn refToReexport(_ a: ExportedStruct) {}
+
+//--- OverlayClient.code
+
+import AmbiguousClientName
+
+public fn refToImportedType(_ a: SomeType) {}
+public fn refToImportedUnderlying(_ a: UnderlyingType) {}

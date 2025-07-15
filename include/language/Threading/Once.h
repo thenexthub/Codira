@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime functions in support of lazy initialization.
+// Codira runtime functions in support of lazy initialization.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_ONCE_H
-#define SWIFT_THREADING_ONCE_H
+#ifndef LANGUAGE_THREADING_ONCE_H
+#define LANGUAGE_THREADING_ONCE_H
 
 #include "Impl.h"
 
@@ -28,7 +29,7 @@ using once_t = threading_impl::once_t;
 
 /// Runs the given function with the given context argument exactly once.
 /// The predicate argument must refer to a global or static variable of static
-/// extent of type swift::once_t.
+/// extent of type language::once_t.
 inline void once(once_t &predicate, void (*fn)(void *),
                  void *context = nullptr) {
   threading_impl::once_impl(predicate, fn, context);
@@ -36,7 +37,7 @@ inline void once(once_t &predicate, void (*fn)(void *),
 
 /// Executes the given callable exactly once.
 /// The predicate argument must refer to a global or static variable of static
-/// extent of type swift::once_t.
+/// extent of type language::once_t.
 template <typename Callable>
 inline void once(once_t &predicate, const Callable &callable) {
   once(predicate, [](void *ctx) {
@@ -47,4 +48,4 @@ inline void once(once_t &predicate, const Callable &callable) {
 
 } // namespace language
 
-#endif // SWIFT_THREADING_ONCE_H
+#endif // LANGUAGE_THREADING_ONCE_H

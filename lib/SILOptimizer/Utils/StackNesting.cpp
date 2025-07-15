@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/StackNesting.h"
@@ -19,7 +20,7 @@
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/Test.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -148,7 +149,7 @@ bool StackNesting::solve() {
   do {
     changed = false;
 
-    for (auto bd : llvm::reverse(BlockInfos)) {
+    for (auto bd : toolchain::reverse(BlockInfos)) {
       // Collect the alive-bits (at the block exit) from the successor blocks.
       for (SILBasicBlock *SuccBB : bd.block.getSuccessorBlocks()) {
         bd.data.AliveStackLocsAtExit |= BlockInfos[SuccBB].AliveStackLocsAtEntry;
@@ -174,7 +175,7 @@ bool StackNesting::solve() {
         }
         bd.data.AliveStackLocsAtExit = Bits;
       }
-      for (SILInstruction *StackInst : llvm::reverse(bd.data.StackInsts)) {
+      for (SILInstruction *StackInst : toolchain::reverse(bd.data.StackInsts)) {
         if (StackInst->isAllocatingStack()) {
           int BitNr = bitNumberForAlloc(StackInst);
           if (Bits != StackLocs[BitNr].AliveLocs) {
@@ -244,7 +245,7 @@ static SILInstruction *createDealloc(SILInstruction *Alloc,
       return B.createDeallocPackMetadata(Location,
                                          cast<AllocPackMetadataInst>(Alloc));
     default:
-      llvm_unreachable("unknown stack allocation");
+      toolchain_unreachable("unknown stack allocation");
   }
 }
 
@@ -285,9 +286,9 @@ bool StackNesting::insertDeallocs(const BitVector &AliveBefore,
 //   dealloc_stack %1
 StackNesting::Changes StackNesting::insertDeallocsAtBlockBoundaries() {
   Changes changes = Changes::None;
-   for (auto bd : llvm::reverse(BlockInfos)) {
+   for (auto bd : toolchain::reverse(BlockInfos)) {
     // Collect the alive-bits (at the block exit) from the successor blocks.
-    for (auto succAndIdx : llvm::enumerate(bd.block.getSuccessorBlocks())) {
+    for (auto succAndIdx : toolchain::enumerate(bd.block.getSuccessorBlocks())) {
       BlockInfo &SuccBI = BlockInfos[succAndIdx.value()];
       if (SuccBI.AliveStackLocsAtEntry == bd.data.AliveStackLocsAtExit)
         continue;
@@ -319,11 +320,11 @@ StackNesting::Changes StackNesting::adaptDeallocs() {
 
   // Visit all blocks. Actually the order doesn't matter, but let's to it in
   // the same order as in solve().
-   for (auto bd : llvm::reverse(BlockInfos)) {
+   for (auto bd : toolchain::reverse(BlockInfos)) {
     Bits = bd.data.AliveStackLocsAtExit;
 
     // Insert/remove deallocations inside blocks.
-    for (SILInstruction *StackInst : llvm::reverse(bd.data.StackInsts)) {
+    for (SILInstruction *StackInst : toolchain::reverse(bd.data.StackInsts)) {
       if (StackInst->isAllocatingStack()) {
         // For allocations we just update the bit-set.
         int BitNr = bitNumberForAlloc(StackInst);
@@ -384,25 +385,25 @@ StackNesting::Changes StackNesting::fixNesting(SILFunction *F) {
 
 void StackNesting::dump() const {
   for (auto bd : BlockInfos) {
-    llvm::dbgs() << "Block " << bd.block.getDebugID();
+    toolchain::dbgs() << "Block " << bd.block.getDebugID();
     if (bd.data.isDeadEnd)
-      llvm::dbgs() << "(deadend)";
-    llvm::dbgs() << ": entry-bits=";
+      toolchain::dbgs() << "(deadend)";
+    toolchain::dbgs() << ": entry-bits=";
     dumpBits(bd.data.AliveStackLocsAtEntry);
-    llvm::dbgs() << ": exit-bits=";
+    toolchain::dbgs() << ": exit-bits=";
     dumpBits(bd.data.AliveStackLocsAtExit);
-    llvm::dbgs() << '\n';
+    toolchain::dbgs() << '\n';
     for (SILInstruction *StackInst : bd.data.StackInsts) {
       if (StackInst->isAllocatingStack()) {
         auto AllocInst = StackInst;
         int BitNr = StackLoc2BitNumbers.lookup(AllocInst);
-        llvm::dbgs() << "  alloc #" << BitNr << ": alive=";
+        toolchain::dbgs() << "  alloc #" << BitNr << ": alive=";
         dumpBits(StackLocs[BitNr].AliveLocs);
-        llvm::dbgs() << ",     " << *StackInst;
+        toolchain::dbgs() << ",     " << *StackInst;
       } else if (StackInst->isDeallocatingStack()) {
         auto *AllocInst = getAllocForDealloc(StackInst);
         int BitNr = StackLoc2BitNumbers.lookup(AllocInst);
-        llvm::dbgs() << "  dealloc for #" << BitNr << "\n"
+        toolchain::dbgs() << "  dealloc for #" << BitNr << "\n"
                         "    " << *StackInst;
       }
     }
@@ -410,19 +411,19 @@ void StackNesting::dump() const {
 }
 
 void StackNesting::dumpBits(const BitVector &Bits) {
-  llvm::dbgs() << '<';
+  toolchain::dbgs() << '<';
   const char *separator = "";
   for (int Bit = Bits.find_first(); Bit >= 0; Bit = Bits.find_next(Bit)) {
-    llvm::dbgs() << separator << Bit;
+    toolchain::dbgs() << separator << Bit;
     separator = ",";
   }
-  llvm::dbgs() << '>';
+  toolchain::dbgs() << '>';
 }
 
 namespace language::test {
 static FunctionTest MyNewTest("stack_nesting_fixup",
                               [](auto &function, auto &arguments, auto &test) {
                                 StackNesting::fixNesting(&function);
-                                function.print(llvm::outs());
+                                function.print(toolchain::outs());
                               });
 } // end namespace language::test

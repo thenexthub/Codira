@@ -1,4 +1,4 @@
-//===--- RGBHistogram.swift -----------------------------------------------===//
+//===--- RGBHistogram.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Performance benchmark for creating RGB histograms
@@ -20,7 +21,7 @@
 //     Create a sorted sparse RGB histogram from an array of 300 RGB values.
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "RGBHistogram",
     runFunction: run_RGBHistogram,
     tags: [.validation, .algorithm],
@@ -32,7 +33,7 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_RGBHistogram(_ n: Int) {
+public fn run_RGBHistogram(_ n: Int) {
     var histogram = [(key: rrggbb_t, value: Int)]()
     for _ in 1...10*n {
         histogram = createSortedSparseRGBHistogram(samples)
@@ -45,7 +46,7 @@ public func run_RGBHistogram(_ n: Int) {
 
 typealias rrggbb_t = UInt32
 
-let samples: [rrggbb_t] = [
+immutable samples: [rrggbb_t] = [
     0x00808080, 0x00808080, 0x00808080, 0x00808080, 0x00808080, 0x00808080,
     0x00FF0000, 0x00FF0000, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF,
     0x00000000, 0x00555555, 0x00AAAAAA, 0x00FFFFFF, 0x00AAAAAA, 0x00FFFFFF,
@@ -98,13 +99,13 @@ let samples: [rrggbb_t] = [
     0x607F4D9F, 0x9733E55E, 0xA360439D, 0x1DB568FD, 0xB7A5C3A1, 0xBE84492D
 ]
 
-func isCorrectHistogram(_ histogram: [(key: rrggbb_t, value: Int)]) -> Bool {
+fn isCorrectHistogram(_ histogram: [(key: rrggbb_t, value: Int)]) -> Bool {
     return histogram.count  == 157 &&
            histogram[0].0   == 0x00808080 && histogram[0].1   == 54 &&
            histogram[156].0 == 0x003B8D96 && histogram[156].1 == 1
 }
 
-func createSortedSparseRGBHistogram<S : Sequence>(
+fn createSortedSparseRGBHistogram<S : Sequence>(
   _ samples: S
 ) -> [(key: rrggbb_t, value: Int)]
   where S.Element == rrggbb_t
@@ -112,7 +113,7 @@ func createSortedSparseRGBHistogram<S : Sequence>(
     var histogram = Dictionary<rrggbb_t, Int>()
 
     for sample in samples {
-        let i = histogram.index(forKey: sample)
+        immutable i = histogram.index(forKey: sample)
         histogram[sample] = ((i != nil) ? histogram[i!].1 : 0) + 1
     }
 
@@ -132,22 +133,22 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
-func isCorrectHistogramOfObjects(_ histogram: [(key: Box<rrggbb_t>, value: Box<Int>)]) -> Bool {
+fn isCorrectHistogramOfObjects(_ histogram: [(key: Box<rrggbb_t>, value: Box<Int>)]) -> Bool {
     return histogram.count  == 157 &&
            histogram[0].0.value   == 0x00808080 && histogram[0].1.value   == 54 &&
            histogram[156].0.value == 0x003B8D96 && histogram[156].1.value == 1
 }
 
-func createSortedSparseRGBHistogramOfObjects<S : Sequence>(
+fn createSortedSparseRGBHistogramOfObjects<S : Sequence>(
   _ samples: S
 ) -> [(key: Box<rrggbb_t>, value: Box<Int>)]
   where S.Element == rrggbb_t
@@ -155,8 +156,8 @@ func createSortedSparseRGBHistogramOfObjects<S : Sequence>(
     var histogram = Dictionary<Box<rrggbb_t>, Box<Int>>()
 
     for sample in samples {
-        let boxedSample = Box(sample)
-        let i = histogram.index(forKey: boxedSample)
+        immutable boxedSample = Box(sample)
+        immutable i = histogram.index(forKey: boxedSample)
         histogram[boxedSample] = Box(((i != nil) ? histogram[i!].1.value : 0) + 1)
     }
 
@@ -170,7 +171,7 @@ func createSortedSparseRGBHistogramOfObjects<S : Sequence>(
 }
 
 @inline(never)
-public func run_RGBHistogramOfObjects(_ n: Int) {
+public fn run_RGBHistogramOfObjects(_ n: Int) {
     var histogram = [(key: Box<rrggbb_t>, value: Box<Int>)]()
     for _ in 1...n {
         histogram = createSortedSparseRGBHistogramOfObjects(samples)

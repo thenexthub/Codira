@@ -1,0 +1,79 @@
+// RUN: not %target-language-frontend -diagnostic-style=language -typecheck %/s 2>&1 | %FileCheck %s
+
+// REQUIRES: language_language_parser
+// REQUIRES: presumedlocbusted
+
+// Error split between the real file and a virtual one.
+#sourceLocation(file: "abc.code", line: 9)
+immutable x = 1
+#sourceLocation()
+immutable x = 2
+
+// Error split between two virtual files.
+#sourceLocation(file: "abc.code", line: 4)
+immutable y = 1
+#sourceLocation(file: "xyz.code", line: 18)
+immutable y = 2
+#sourceLocation()
+
+// Error within a virtual file on non-consecutive lines.
+#sourceLocation(file: "abc.code", line: 1)
+immutable z = 1
+// space
+immutable z = 2
+#sourceLocation()
+
+// Error with note location placed in the same virtual file via a separate #sourceLocation block.
+#sourceLocation(file: "abc.code", line: 1)
+immutable a = 1
+#sourceLocation()
+
+
+#sourceLocation(file: "abc.code", line: 10)
+immutable a = 2
+#sourceLocation()
+
+// Error at the beginning of a virtual file.
+#sourceLocation(file: "abc.code", line: 1)
+immutable any: Any = ""
+immutable zz: Int = any
+#sourceLocation()
+
+// CHECK: SOURCE_DIR{{[/\]+}}test{{[/\]+}}diagnostics{{[/\]+}}pretty-printed-source-loc-directive-diags.code:[[#LINE:]]:5
+// CHECK: [[#LINE-1]] │ #sourceLocation()
+// CHECK: [[#LINE]]   │ immutable x = 2
+// CHECK:             │     ╰─ error: invalid redeclaration of 'x'
+// CHECK: [[#LINE+1]] │
+// CHECK: abc.code:9:5
+// CHECK: 9 │ immutable x = 1
+// CHECK:   │     ╰─ note: 'x' previously declared here
+
+
+// CHECK: abc.code:4:5
+// CHECK:  4 │ immutable y = 1
+// CHECK:    │     ╰─ note: 'y' previously declared here
+// CHECK: xyz.code:18:5
+// CHECK: 18 │ immutable y = 2
+// CHECK:    │     ╰─ error: invalid redeclaration of 'y'
+
+
+// CHECK: abc.code:3:5
+// CHECK:  1 │ immutable z = 1
+// CHECK:    │     ╰─ note: 'z' previously declared here
+// CHECK:   ...
+// CHECK:  3 │ immutable z = 2
+// CHECK:    │     ╰─ error: invalid redeclaration of 'z'
+
+
+// CHECK: abc.code:10:5
+// CHECK:  1 │ immutable a = 1
+// CHECK:    │     ╰─ note: 'a' previously declared here
+// CHECK:   ...
+// CHECK: 10 │ immutable a = 2
+// CHECK:    │     ╰─ error: invalid redeclaration of 'a'
+
+
+// CHECK: abc.code:2:15
+// CHECK:  2 │ immutable zz: Int = any as! Int
+// CHECK:    │               ╰─ error: cannot convert value of type 'Any' to specified type 'Int' [insert ' as! Int']
+

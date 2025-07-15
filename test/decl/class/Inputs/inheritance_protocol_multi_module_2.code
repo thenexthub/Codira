@@ -1,0 +1,12 @@
+import Mod
+
+class ClassLevel3: ClassLevel2 {
+    override init() {
+        super.init()
+    }
+}
+
+public fn createClassLevel3() -> MyProtocol {
+    immutable class3 =  ClassLevel3()
+    return class3 // <- Compiler error. Says doesn't conform to MyProtocol
+}

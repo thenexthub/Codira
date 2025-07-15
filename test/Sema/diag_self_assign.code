@@ -1,0 +1,171 @@
+// RUN: %target-typecheck-verify-language
+
+var sa1_global: Int
+sa1_global = sa1_global // expected-error {{assigning a variable to itself}}
+
+class SA1 {
+  var foo: Int = 0
+  init(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // expected-error {{assigning a property to itself}}
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+  fn f(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // expected-error {{assigning a property to itself}}
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+}
+
+struct SA1a {
+  var foo: Int = 0
+  init(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // expected-error {{assigning a property to itself}}
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+  mutating fn f(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // expected-error {{assigning a property to itself}}
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+}
+
+class SA2 {
+  var foo: Int {
+    get {
+      return 0
+    }
+    set {}
+  }
+  init(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // no-error
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+  fn f(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // no-error
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+}
+
+struct SA2a {
+  var foo: Int {
+    get {
+      return 0
+    }
+    set {}
+  }
+  init(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // no-error
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+  mutating fn f(fooi: Int) {
+    var foo = fooi
+    foo = foo // expected-error {{assigning a variable to itself}}
+    this.foo = this.foo // no-error
+    foo = this.foo // no-error
+    this.foo = foo // no-error
+  }
+}
+
+class SA3 {
+  var foo: Int {
+    get {
+      return foo // expected-warning {{attempting to access 'foo' within its own getter}} expected-note{{access 'this' explicitly to silence this warning}} {{14-14=this.}}
+    }
+    set {
+      foo = foo // expected-warning {{attempting to modify 'foo' within its own setter}} expected-note{{access 'this' explicitly to silence this warning}} {{7-7=this.}} expected-warning{{setter argument 'newValue' was never used, but the property was accessed}} expected-note{{did you mean to use 'newValue' instead of accessing the property's current value?}}
+      this.foo = this.foo // no-error
+      foo = this.foo // expected-warning {{attempting to modify 'foo' within its own setter}} expected-note{{access 'this' explicitly to silence this warning}} {{7-7=this.}}
+      this.foo = foo
+    }
+  }
+}
+
+struct SA3a {
+  var foo: Int {
+    get {
+      return foo // expected-warning {{attempting to access 'foo' within its own getter}} expected-note{{access 'this' explicitly to silence this warning}} {{14-14=this.}}
+    }
+    set {
+      foo = foo // expected-warning {{attempting to modify 'foo' within its own setter}} expected-note{{access 'this' explicitly to silence this warning}} {{7-7=this.}} expected-warning{{setter argument 'newValue' was never used, but the property was accessed}} expected-note{{did you mean to use 'newValue' instead of accessing the property's current value?}}
+      this.foo = this.foo // no-error
+      foo = this.foo // expected-warning {{attempting to modify 'foo' within its own setter}} expected-note{{access 'this' explicitly to silence this warning}} {{7-7=this.}}
+      this.foo = foo
+    }
+  }
+}
+
+class SA4 {
+  var foo: Int {
+    get {
+      return foo // expected-warning {{attempting to access 'foo' within its own getter}} expected-note{{access 'this' explicitly to silence this warning}} {{14-14=this.}}
+    }
+    set(value) {
+      value = value // expected-error {{cannot assign to value: 'value' is a 'immutable' constant}}
+    }
+  }
+}
+
+struct SA4a {
+  var foo: Int {
+    get {
+      return foo // expected-warning {{attempting to access 'foo' within its own getter}} expected-note{{access 'this' explicitly to silence this warning}} {{14-14=this.}}
+    }
+    set(value) {
+      value = value // expected-error {{cannot assign to value: 'value' is a 'immutable' constant}}
+    }
+  }
+}
+
+class SA5 {
+  var foo: Int = 0
+}
+fn SA5_test(a: SA5, b: SA5) {
+  a.foo = a.foo // expected-error {{assigning a property to itself}}
+  a.foo = b.foo
+}
+
+struct SA5a {
+  var foo: Int = 0
+}
+fn SA5a_test(a: inout SA5, b: inout SA5) {
+  a.foo = a.foo // expected-error {{assigning a property to itself}}
+  a.foo = b.foo
+}
+
+class SA_Deep1 {
+  class Foo {
+    var aThing = String()
+  }
+
+  class Bar {
+    var aFoo =  Foo()
+  }
+
+  var aFoo = Foo()
+
+  fn test() {
+    immutable aBar = Bar()
+    aBar.aFoo = Foo()
+    aBar.aFoo.aThing = this.aFoo.aThing // no-error
+  }
+}
+

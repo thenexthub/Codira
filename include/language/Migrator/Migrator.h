@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// The top-level Swift Migrator driver.
+// The top-level Codira Migrator driver.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_MIGRATOR_H
-#define SWIFT_MIGRATOR_MIGRATOR_H
+#ifndef LANGUAGE_MIGRATOR_MIGRATOR_H
+#define LANGUAGE_MIGRATOR_MIGRATOR_H
 
 #include "language/Migrator/MigrationState.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
 
 namespace language {
 class CompilerInstance;
@@ -42,7 +43,7 @@ struct Migrator {
   CompilerInstance *StartInstance;
   const CompilerInvocation &StartInvocation;
   SourceManager SrcMgr;
-  std::vector<llvm::IntrusiveRefCntPtr<MigrationState>> States;
+  std::vector<toolchain::IntrusiveRefCntPtr<MigrationState>> States;
 
   Migrator(CompilerInstance *StartInstance,
            const CompilerInvocation &StartInvocation);
@@ -59,22 +60,22 @@ struct Migrator {
   /// Returns the last CompilerInstance used in the iterations, provided
   /// that the CompilerInvocation used to set it up was successful. Otherwise,
   /// returns nullptr.
-  std::unique_ptr<swift::CompilerInstance>
+  std::unique_ptr<language::CompilerInstance>
   repeatFixitMigrations(const unsigned Iterations,
-                        swift::version::Version SwiftLanguageVersion);
+                        language::version::Version CodiraLanguageVersion);
 
   /// Perform a single compiler fix-it migration on the last state, and push
   /// the result onto the state history.
   ///
   /// Returns the CompilerInstance used for the fix-it run, provided its
   /// setup from a CompilerInvocation was successful.
-  std::unique_ptr<swift::CompilerInstance>
-  performAFixItMigration(swift::version::Version SwiftLanguageVersion);
+  std::unique_ptr<language::CompilerInstance>
+  performAFixItMigration(language::version::Version CodiraLanguageVersion);
 
   /// Starting with the last state, perform the following migration passes.
   ///
   /// Returns true if failed:
-  ///   - Setting up the Swift CompilerInstance failed.
+  ///   - Setting up the Codira CompilerInstance failed.
   ///   - performSema emitted fatal errors along the way.
   bool performSyntacticPasses(SyntacticPassOptions Opts);
 
@@ -104,4 +105,4 @@ struct Migrator {
 } // end namespace migrator
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_MIGRATOR_H
+#endif // LANGUAGE_MIGRATOR_MIGRATOR_H

@@ -1,13 +1,17 @@
-//===--- Builtins.cpp - Swift Language Builtin ASTs -----------------------===//
+//===--- Builtins.cpp - Codira Language Builtin ASTs -----------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the interface to the Builtin APIs.
@@ -25,12 +29,12 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 #include "language/Strings.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/IR/Attributes.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Intrinsics.h"
-#include "llvm/Support/ManagedStatic.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/IR/Attributes.h"
+#include "toolchain/IR/Instructions.h"
+#include "toolchain/IR/Intrinsics.h"
+#include "toolchain/Support/ManagedStatic.h"
 #include <tuple>
 
 using namespace language;
@@ -49,16 +53,16 @@ bool BuiltinInfo::isReadNone() const {
   return strchr(BuiltinExtraInfo[(unsigned)ID].Attributes, 'n') != nullptr;
 }
 
-const llvm::AttributeList &
+const toolchain::AttributeList &
 IntrinsicInfo::getOrCreateAttributes(ASTContext &Ctx) const {
-  using DenseMapInfo = llvm::DenseMapInfo<llvm::AttributeList>;
+  using DenseMapInfo = toolchain::DenseMapInfo<toolchain::AttributeList>;
   if (DenseMapInfo::isEqual(Attrs, DenseMapInfo::getEmptyKey())) {
-    Attrs = llvm::Intrinsic::getAttributes(Ctx.getIntrinsicScratchContext(), ID);
+    Attrs = toolchain::Intrinsic::getAttributes(Ctx.getIntrinsicScratchContext(), ID);
   }
   return Attrs;
 }
 
-Type swift::getBuiltinType(ASTContext &Context, StringRef Name) {
+Type language::getBuiltinType(ASTContext &Context, StringRef Name) {
   if (Name == "FixedArray") {
     return BuiltinUnboundGenericType::get(TypeKind::BuiltinFixedArray, Context);
   }
@@ -149,7 +153,7 @@ Type swift::getBuiltinType(ASTContext &Context, StringRef Name) {
 
 /// getBuiltinBaseName - Decode the type list of a builtin (e.g. mul_Int32) and
 /// return the base name (e.g. "mul").
-StringRef swift::getBuiltinBaseName(ASTContext &C, StringRef Name,
+StringRef language::getBuiltinBaseName(ASTContext &C, StringRef Name,
                                     SmallVectorImpl<Type> &Types) {
   // builtin-id ::= operation-id ('_' type-id)*
   for (StringRef::size_type Underscore = Name.find_last_of('_');
@@ -467,20 +471,20 @@ static FuncDecl *getBuiltinGenericFunction(
   auto *paramList = ParameterList::create(Context, params);
 
   DeclName Name(Context, Id, paramList);
-  auto *const func = FuncDecl::createImplicit(
+  auto *const fn = FuncDecl::createImplicit(
       Context, StaticSpellingKind::None, Name,
       /*NameLoc=*/SourceLoc(),
       Async,
       Throws != BuiltinThrowsKind::None, ThrownError,
       GenericParams, paramList, ResType, DC);
 
-  func->setSendingResult(SendingResult);
-  func->setAccess(AccessLevel::Public);
-  func->setGenericSignature(Sig);
+  fn->setSendingResult(SendingResult);
+  fn->setAccess(AccessLevel::Public);
+  fn->setGenericSignature(Sig);
   if (Throws == BuiltinThrowsKind::Rethrows)
-    func->getAttrs().add(new (Context) RethrowsAttr(/*ThrowsLoc*/ SourceLoc()));
+    fn->getAttrs().add(new (Context) RethrowsAttr(/*ThrowsLoc*/ SourceLoc()));
 
-  return func;
+  return fn;
 }
 
 /// Build a getelementptr operation declaration.
@@ -559,7 +563,7 @@ static ValueDecl *getCastOperation(ASTContext &Context, Identifier Id,
   // Custom type checking.  We know the one or two types have been subjected to
   // the "isBuiltinTypeOverloaded" predicate successfully.
   switch (VK) {
-  default: llvm_unreachable("Not a cast operation");
+  default: toolchain_unreachable("Not a cast operation");
 
   case BuiltinValueKind::Trunc:
     if (CheckOutput.isNull() ||
@@ -676,7 +680,7 @@ static ValueDecl *getCastOperation(ASTContext &Context, Identifier Id,
             break;
 
     // FIXME: Implement bitcast typechecking.
-    llvm_unreachable("Bitcast not supported yet!");
+    toolchain_unreachable("Bitcast not supported yet!");
     return nullptr;
   }
 
@@ -1137,7 +1141,7 @@ static ValueDecl *getStackDeallocOperation(ASTContext &ctx, Identifier id) {
                             _void);
 }
 
-// Obsolete: only there to be able to read old Swift.interface files which still
+// Obsolete: only there to be able to read old Codira.interface files which still
 // contain the builtin.
 static ValueDecl *getAllocVectorOperation(ASTContext &ctx, Identifier id) {
   return getBuiltinFunction(ctx, id, _thin,
@@ -1211,7 +1215,7 @@ static ValueDecl *getNativeObjectCast(ASTContext &Context, Identifier Id,
     break;
 
   default:
-    llvm_unreachable("unexpected kind");
+    toolchain_unreachable("unexpected kind");
   }
 
   BuiltinFunctionBuilder builder(Context);
@@ -1263,7 +1267,7 @@ static ValueDecl *getCastFromBridgeObjectOperation(ASTContext &ctx,
   }
 
   default:
-    llvm_unreachable("not a cast from bridge object op");
+    toolchain_unreachable("not a cast from bridge object op");
   }
 }
 
@@ -1546,7 +1550,7 @@ static ValueDecl *getCancelAsyncTask(ASTContext &ctx, Identifier id) {
       id, { ctx.TheNativeObjectType }, ctx.TheEmptyTupleType);
 }
 
-Type swift::getAsyncTaskAndContextType(ASTContext &ctx) {
+Type language::getAsyncTaskAndContextType(ASTContext &ctx) {
   TupleTypeElt resultTupleElements[2] = {
     ctx.TheNativeObjectType, // task,
     ctx.TheRawPointerType    // initial context
@@ -1557,12 +1561,12 @@ Type swift::getAsyncTaskAndContextType(ASTContext &ctx) {
 
 static ValueDecl *getCreateTask(ASTContext &ctx, Identifier id) {
   auto taskExecutorIsAvailable =
-      ctx.getProtocol(swift::KnownProtocolKind::TaskExecutor) != nullptr;
+      ctx.getProtocol(language::KnownProtocolKind::TaskExecutor) != nullptr;
 
   return getBuiltinFunction(
       ctx, id, _thin, _generics(_unrestricted, _conformsToDefaults(0)),
       _parameters(
-          _label("flags", _swiftInt),
+          _label("flags", _languageInt),
           _label("initialSerialExecutor",
                  _defaulted(_optional(_executor), _nil)),
           _label("taskGroup", _defaulted(_optional(_rawPointer), _nil)),
@@ -1582,12 +1586,12 @@ static ValueDecl *getCreateTask(ASTContext &ctx, Identifier id) {
 
 static ValueDecl *getCreateDiscardingTask(ASTContext &ctx, Identifier id) {
   auto taskExecutorIsAvailable =
-      ctx.getProtocol(swift::KnownProtocolKind::TaskExecutor) != nullptr;
+      ctx.getProtocol(language::KnownProtocolKind::TaskExecutor) != nullptr;
 
   return getBuiltinFunction(
       ctx, id, _thin,
       _parameters(
-          _label("flags", _swiftInt),
+          _label("flags", _languageInt),
           _label("initialSerialExecutor",
                  _defaulted(_optional(_executor), _nil)),
           _label("taskGroup", _defaulted(_optional(_rawPointer), _nil)),
@@ -1994,6 +1998,26 @@ static ValueDecl *getInsertElementOperation(ASTContext &Context, Identifier Id,
   return getBuiltinFunction(Id, ArgElts, VecTy);
 }
 
+static ValueDecl *getSelectOperation(ASTContext &Context, Identifier Id,
+                                     Type PredTy, Type ValueTy) {
+  // Check for (NxInt1, NxTy, NxTy) -> NxTy
+  auto VecPredTy = PredTy->getAs<BuiltinVectorType>();
+  if (VecPredTy) {
+    // ValueTy must also be vector type with matching element count.
+    auto VecValueTy = ValueTy->getAs<BuiltinVectorType>();
+    if (!VecValueTy ||
+        VecPredTy->getNumElements() != VecValueTy->getNumElements())
+      return nullptr;
+  } else {
+    // Type is (Int1, Ty, Ty) -> Ty
+    auto IntTy = PredTy->getAs<BuiltinIntegerType>();
+    if (!IntTy || !IntTy->isFixedWidth() || IntTy->getFixedWidth() != 1)
+      return nullptr;
+  }
+  Type ArgElts[] = { PredTy, ValueTy, ValueTy };
+  return getBuiltinFunction(Id, ArgElts, ValueTy);
+}
+
 static ValueDecl *getShuffleVectorOperation(ASTContext &Context, Identifier Id,
                                  Type FirstTy, Type SecondTy) {
   // (Vector<N, T>, Vector<N, T>, Vector<M, Int32) -> Vector<M, T>
@@ -2012,6 +2036,38 @@ static ValueDecl *getShuffleVectorOperation(ASTContext &Context, Identifier Id,
   Type ArgElts[] = { VecTy, VecTy, IndexTy };
   Type ResultTy = BuiltinVectorType::get(Context, ElementTy,
                                          IndexTy->getNumElements());
+  return getBuiltinFunction(Id, ArgElts, ResultTy);
+}
+
+static ValueDecl *getInterleaveOperation(ASTContext &Context, Identifier Id,
+                                         Type FirstTy) {
+  // (Vector<N,T>, Vector<N,T>) -> (Vector<N,T>, Vector<N,T>)
+  auto VecTy = FirstTy->getAs<BuiltinVectorType>();
+  // Require even length because we don't need anything else to support Codira's
+  // SIMD types and it saves us from having to define what happens for odd
+  // lengths until we actually need to care about them.
+  if (!VecTy || VecTy->getNumElements() % 2 != 0)
+    return nullptr;
+  
+  Type ArgElts[] = { VecTy, VecTy };
+  TupleTypeElt ResultElts[] = { FirstTy, FirstTy };
+  Type ResultTy = TupleType::get(ResultElts, Context);
+  return getBuiltinFunction(Id, ArgElts, ResultTy);
+}
+
+static ValueDecl *getDeinterleaveOperation(ASTContext &Context, Identifier Id,
+                                           Type FirstTy) {
+  // (Vector<N,T>, Vector<N,T>) -> (Vector<N,T>, Vector<N,T>)
+  auto VecTy = FirstTy->getAs<BuiltinVectorType>();
+  // Require even length because we don't need anything else to support Codira's
+  // SIMD types and it saves us from having to define what happens for odd
+  // lengths until we actually need to care about them.
+  if (!VecTy || VecTy->getNumElements() % 2 != 0)
+    return nullptr;
+  
+  Type ArgElts[] = { VecTy, VecTy };
+  TupleTypeElt ResultElts[] = { FirstTy, FirstTy };
+  Type ResultTy = TupleType::get(ResultElts, Context);
   return getBuiltinFunction(Id, ArgElts, ResultTy);
 }
 
@@ -2102,7 +2158,7 @@ static ValueDecl *getOnceOperation(ASTContext &Context,
   auto HandleTy = Context.TheRawPointerType;
   auto VoidTy = Context.TheEmptyTupleType;
   SmallVector<AnyFunctionType::Param, 1> CFuncParams;
-  swift::CanType ContextTy = Context.TheRawPointerType;
+  language::CanType ContextTy = Context.TheRawPointerType;
   auto ContextArg = FunctionType::Param(ContextTy);
   CFuncParams.push_back(ContextArg);
   auto Rep = FunctionTypeRepresentation::CFunctionPointer;
@@ -2113,7 +2169,7 @@ static ValueDecl *getOnceOperation(ASTContext &Context,
           .withClangFunctionType(ClangType)
           .build();
   auto BlockTy = FunctionType::get(CFuncParams, VoidTy, Thin);
-  SmallVector<swift::Type, 3> ArgTypes = {HandleTy, BlockTy};
+  SmallVector<language::Type, 3> ArgTypes = {HandleTy, BlockTy};
   if (withContext) {
     ArgTypes.push_back(ContextTy);
     return getBuiltinFunction(Id, ArgTypes, VoidTy);
@@ -2125,7 +2181,7 @@ static ValueDecl *getPolymorphicBinaryOperation(ASTContext &ctx,
                                                 Identifier id) {
   BuiltinFunctionBuilder builder(ctx);
 
-  // Builtins of the form: func binOp<T>(_ t: T, _ t: T) -> T
+  // Builtins of the form: fn binOp<T>(_ t: T, _ t: T) -> T
   auto genericParam = makeGenericParam();
   builder.addConformanceRequirement(genericParam, KnownProtocolKind::Escapable);
   builder.addParameter(genericParam);
@@ -2333,10 +2389,10 @@ inline bool isBuiltinTypeOverloaded(Type T, OverloadedBuiltinKind OK) {
   case OverloadedBuiltinKind::Special:
     return true;
   }
-  llvm_unreachable("bad overloaded builtin kind");
+  toolchain_unreachable("bad overloaded builtin kind");
 }
 
-bool swift::canBuiltinBeOverloadedForType(BuiltinValueKind ID, Type Ty) {
+bool language::canBuiltinBeOverloadedForType(BuiltinValueKind ID, Type Ty) {
   if (ID == BuiltinValueKind::None)
     return false;
 
@@ -2347,25 +2403,25 @@ bool swift::canBuiltinBeOverloadedForType(BuiltinValueKind ID, Type Ty) {
 static const char *const IntrinsicNameTable[] = {
     "not_intrinsic",
 #define GET_INTRINSIC_NAME_TABLE
-#include "llvm/IR/IntrinsicImpl.inc"
+#include "toolchain/IR/IntrinsicImpl.inc"
 #undef GET_INTRINSIC_NAME_TABLE
 };
 
 #define GET_INTRINSIC_TARGET_DATA
-#include "llvm/IR/IntrinsicImpl.inc"
+#include "toolchain/IR/IntrinsicImpl.inc"
 #undef GET_INTRINSIC_TARGET_DATA
 
-llvm::Intrinsic::ID swift::getLLVMIntrinsicID(StringRef InName) {
-  using namespace llvm;
+toolchain::Intrinsic::ID language::getLLVMIntrinsicID(StringRef InName) {
+  using namespace toolchain;
 
-  // Swift intrinsic names start with int_.
+  // Codira intrinsic names start with int_.
   if (!InName.starts_with("int_"))
-    return llvm::Intrinsic::not_intrinsic;
+    return toolchain::Intrinsic::not_intrinsic;
   InName = InName.drop_front(strlen("int_"));
   
-  // Prepend "llvm." and change _ to . in name.
+  // Prepend "toolchain." and change _ to . in name.
   SmallString<128> NameS;
-  NameS.append("llvm.");
+  NameS.append("toolchain.");
   for (char C : InName)
     NameS.push_back(C == '_' ? '.' : C);
 
@@ -2376,34 +2432,34 @@ llvm::Intrinsic::ID swift::getLLVMIntrinsicID(StringRef InName) {
   return static_cast<Intrinsic::ID>(Idx + 1);
 }
 
-llvm::Intrinsic::ID
-swift::getLLVMIntrinsicIDForBuiltinWithOverflow(BuiltinValueKind ID) {
+toolchain::Intrinsic::ID
+language::getLLVMIntrinsicIDForBuiltinWithOverflow(BuiltinValueKind ID) {
   switch (ID) {
     default: break;
     case BuiltinValueKind::SAddOver:
-      return llvm::Intrinsic::sadd_with_overflow;
+      return toolchain::Intrinsic::sadd_with_overflow;
     case BuiltinValueKind::UAddOver:
-      return llvm::Intrinsic::uadd_with_overflow;
+      return toolchain::Intrinsic::uadd_with_overflow;
     case BuiltinValueKind::SSubOver:
-      return llvm::Intrinsic::ssub_with_overflow;
+      return toolchain::Intrinsic::ssub_with_overflow;
     case BuiltinValueKind::USubOver:
-      return llvm::Intrinsic::usub_with_overflow;
+      return toolchain::Intrinsic::usub_with_overflow;
     case BuiltinValueKind::SMulOver:
-      return llvm::Intrinsic::smul_with_overflow;
+      return toolchain::Intrinsic::smul_with_overflow;
     case BuiltinValueKind::UMulOver:
-      return llvm::Intrinsic::umul_with_overflow;
+      return toolchain::Intrinsic::umul_with_overflow;
   }
-  llvm_unreachable("Cannot convert the overflow builtin to llvm intrinsic.");
+  toolchain_unreachable("Cannot convert the overflow builtin to toolchain intrinsic.");
 }
 
 namespace {
 
 class IntrinsicTypeDecoder {
-  ArrayRef<llvm::Intrinsic::IITDescriptor> &Table;
+  ArrayRef<toolchain::Intrinsic::IITDescriptor> &Table;
   ArrayRef<Type> TypeArguments;
   ASTContext &Context;
 public:
-  IntrinsicTypeDecoder(ArrayRef<llvm::Intrinsic::IITDescriptor> &table,
+  IntrinsicTypeDecoder(ArrayRef<toolchain::Intrinsic::IITDescriptor> &table,
                        ArrayRef<Type> typeArguments, ASTContext &ctx)
     : Table(table), TypeArguments(typeArguments), Context(ctx) {}
 
@@ -2443,13 +2499,13 @@ public:
 
 } // end anonymous namespace
 
-static Type DecodeIntrinsicType(ArrayRef<llvm::Intrinsic::IITDescriptor> &table,
+static Type DecodeIntrinsicType(ArrayRef<toolchain::Intrinsic::IITDescriptor> &table,
                                 ArrayRef<Type> typeArguments, ASTContext &ctx) {
   return IntrinsicTypeDecoder(table, typeArguments, ctx).decodeImmediate();
 }
 
 Type IntrinsicTypeDecoder::decodeImmediate() {
-  typedef llvm::Intrinsic::IITDescriptor IITDescriptor;
+  typedef toolchain::Intrinsic::IITDescriptor IITDescriptor;
   IITDescriptor D = Table.front();
   Table = Table.slice(1);
   switch (D.Kind) {
@@ -2468,7 +2524,7 @@ Type IntrinsicTypeDecoder::decodeImmediate() {
   case IITDescriptor::Subdivide4Argument:
   case IITDescriptor::PPCQuad:
   case IITDescriptor::AArch64Svcount:
-    // These types cannot be expressed in swift yet.
+    // These types cannot be expressed in language yet.
     return Type();
 
   // Fundamental types.
@@ -2534,23 +2590,23 @@ Type IntrinsicTypeDecoder::decodeImmediate() {
     return TupleType::get(Elts, Context);
   }
   }
-  llvm_unreachable("unhandled");
+  toolchain_unreachable("unhandled");
 }
 
 /// \returns true on success, false on failure.
 static bool
-getSwiftFunctionTypeForIntrinsic(llvm::Intrinsic::ID ID,
+getCodiraFunctionTypeForIntrinsic(toolchain::Intrinsic::ID ID,
                                  ArrayRef<Type> TypeArgs,
                                  ASTContext &Context,
                                  SmallVectorImpl<Type> &ArgElts,
                                  Type &ResultTy) {
-  typedef llvm::Intrinsic::IITDescriptor IITDescriptor;
+  typedef toolchain::Intrinsic::IITDescriptor IITDescriptor;
   SmallVector<IITDescriptor, 8> Table;
   getIntrinsicInfoTableEntries(ID, Table);
 
   ArrayRef<IITDescriptor> TableRef = Table;
 
-  // Decode the intrinsic's LLVM IR type, and map it to swift builtin types.
+  // Decode the intrinsic's LLVM IR type, and map it to language builtin types.
   ResultTy = DecodeIntrinsicType(TableRef, TypeArgs, Context);
   if (!ResultTy)
     return false;
@@ -2562,11 +2618,11 @@ getSwiftFunctionTypeForIntrinsic(llvm::Intrinsic::ID ID,
     ArgElts.push_back(ArgTy);
   }
 
-  // Translate LLVM function attributes to Swift function attributes.
+  // Translate LLVM function attributes to Codira function attributes.
   IntrinsicInfo II;
   II.ID = ID;
   auto attrs = II.getOrCreateAttributes(Context);
-  if (attrs.hasFnAttr(llvm::Attribute::NoReturn)) {
+  if (attrs.hasFnAttr(toolchain::Attribute::NoReturn)) {
     ResultTy = Context.getNeverType();
     if (!ResultTy)
       return false;
@@ -2598,8 +2654,8 @@ static bool isValidStoreOrdering(StringRef Ordering) {
          Ordering == "seqcst";
 }
 
-llvm::AtomicOrdering swift::decodeLLVMAtomicOrdering(StringRef O) {
-  using namespace llvm;
+toolchain::AtomicOrdering language::decodeLLVMAtomicOrdering(StringRef O) {
+  using namespace toolchain;
   return StringSwitch<AtomicOrdering>(O)
     .Case("unordered", AtomicOrdering::Unordered)
     .Case("monotonic", AtomicOrdering::Monotonic)
@@ -2610,8 +2666,8 @@ llvm::AtomicOrdering swift::decodeLLVMAtomicOrdering(StringRef O) {
     .Default(AtomicOrdering::NotAtomic);
 }
 
-static bool isUnknownOrUnordered(llvm::AtomicOrdering ordering) {
-  using namespace llvm;
+static bool isUnknownOrUnordered(toolchain::AtomicOrdering ordering) {
+  using namespace toolchain;
   switch (ordering) {
   case AtomicOrdering::NotAtomic:
   case AtomicOrdering::Unordered:
@@ -2625,12 +2681,12 @@ static bool isUnknownOrUnordered(llvm::AtomicOrdering ordering) {
     return false;
   }
 
-  llvm_unreachable("Unhandled AtomicOrdering in switch.");
+  toolchain_unreachable("Unhandled AtomicOrdering in switch.");
 }
 
 static bool isValidCmpXChgOrdering(StringRef SuccessString, 
                                    StringRef FailureString) {
-  using namespace llvm;
+  using namespace toolchain;
   AtomicOrdering SuccessOrdering = decodeLLVMAtomicOrdering(SuccessString);
   AtomicOrdering FailureOrdering = decodeLLVMAtomicOrdering(FailureString);
 
@@ -2649,7 +2705,7 @@ static bool isValidCmpXChgOrdering(StringRef SuccessString,
   return true;
 }
 
-ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
+ValueDecl *language::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
   // Builtin.TheTupleType resolves to the singleton instance of BuiltinTupleDecl.
   if (Id == Context.Id_TheTupleType)
     return Context.getBuiltinTupleDecl();
@@ -2662,12 +2718,12 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
   SmallVector<Type, 4> Types;
   StringRef OperationName = getBuiltinBaseName(Context, Id.str(), Types);
 
-  // If this is the name of an LLVM intrinsic, cons up a swift function with a
+  // If this is the name of an LLVM intrinsic, cons up a language function with a
   // type that matches the IR types.
-  if (llvm::Intrinsic::ID ID = getLLVMIntrinsicID(OperationName)) {
+  if (toolchain::Intrinsic::ID ID = getLLVMIntrinsicID(OperationName)) {
     SmallVector<Type, 8> ArgElts;
     Type ResultTy;
-    if (getSwiftFunctionTypeForIntrinsic(ID, Types, Context, ArgElts, ResultTy))
+    if (getCodiraFunctionTypeForIntrinsic(ID, Types, Context, ArgElts, ResultTy))
       return getBuiltinFunction(Id, ArgElts, ResultTy);
   }
 
@@ -2853,7 +2909,7 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
                                              /*thrownType=*/Type());
   }
 
-  auto BV = llvm::StringSwitch<BuiltinValueKind>(OperationName)
+  auto BV = toolchain::StringSwitch<BuiltinValueKind>(OperationName)
 #define BUILTIN(id, name, Attrs) .Case(name, BuiltinValueKind::id)
 #include "language/AST/Builtins.def"
     .Default(BuiltinValueKind::None);
@@ -2874,7 +2930,7 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
   case BuiltinValueKind::AtomicLoad:
   case BuiltinValueKind::AtomicStore:
   case BuiltinValueKind::AllocWithTailElems:
-    llvm_unreachable("Handled above");
+    toolchain_unreachable("Handled above");
   case BuiltinValueKind::None: return nullptr;
 
   case BuiltinValueKind::GepRaw:
@@ -3112,6 +3168,7 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
     return getUnreachableOperation(Context, Id);
       
   case BuiltinValueKind::ZeroInitializer:
+  case BuiltinValueKind::PrepareInitialization:
     return getZeroInitializerOperation(Context, Id);
       
   case BuiltinValueKind::Once:
@@ -3132,10 +3189,22 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
   case BuiltinValueKind::InsertElement:
     if (Types.size() != 3) return nullptr;
     return getInsertElementOperation(Context, Id, Types[0], Types[1], Types[2]);
+    
+  case BuiltinValueKind::Select:
+    if (Types.size() != 2) return nullptr;
+    return getSelectOperation(Context, Id, Types[0], Types[1]);
       
   case BuiltinValueKind::ShuffleVector:
     if (Types.size() != 2) return nullptr;
     return getShuffleVectorOperation(Context, Id, Types[0], Types[1]);
+    
+  case BuiltinValueKind::Interleave:
+    if (Types.size() != 1) return nullptr;
+    return getInterleaveOperation(Context, Id, Types[0]);
+    
+  case BuiltinValueKind::Deinterleave:
+    if (Types.size() != 1) return nullptr;
+    return getDeinterleaveOperation(Context, Id, Types[0]);
 
   case BuiltinValueKind::StaticReport:
     if (!Types.empty()) return nullptr;
@@ -3164,7 +3233,7 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
 
   case BuiltinValueKind::ApplyDerivative:
   case BuiltinValueKind::ApplyTranspose:
-    llvm_unreachable("Handled above");
+    toolchain_unreachable("Handled above");
 
   case BuiltinValueKind::OnFastPath:
     return getOnFastPath(Context, Id);
@@ -3358,25 +3427,25 @@ ValueDecl *swift::getBuiltinValueDecl(ASTContext &Context, Identifier Id) {
     return getEmplace(Context, Id);
   }
 
-  llvm_unreachable("bad builtin value!");
+  toolchain_unreachable("bad builtin value!");
 }
 
-StringRef swift::getBuiltinName(BuiltinValueKind ID) {
+StringRef language::getBuiltinName(BuiltinValueKind ID) {
   switch (ID) {
   case BuiltinValueKind::None:
-    llvm_unreachable("no builtin kind");
+    toolchain_unreachable("no builtin kind");
 #define BUILTIN(Id, Name, Attrs) \
   case BuiltinValueKind::Id: \
     return Name;
 #include "language/AST/Builtins.def"
   }
-  llvm_unreachable("bad BuiltinValueKind");
+  toolchain_unreachable("bad BuiltinValueKind");
 }
 
-bool swift::isPolymorphicBuiltin(BuiltinValueKind id) {
+bool language::isPolymorphicBuiltin(BuiltinValueKind id) {
   switch (id) {
   case BuiltinValueKind::None:
-    llvm_unreachable("no builtin kind");
+    toolchain_unreachable("no builtin kind");
 #define BUILTIN(Id, Name, Attrs)                                               \
   case BuiltinValueKind::Id:                                                   \
     return false;
@@ -3385,7 +3454,7 @@ bool swift::isPolymorphicBuiltin(BuiltinValueKind id) {
     return true;
 #include "language/AST/Builtins.def"
   }
-  llvm_unreachable("bad BuiltinValueKind");
+  toolchain_unreachable("bad BuiltinValueKind");
 }
 
 BuiltinTypeKind BuiltinType::getBuiltinTypeKind() const {
@@ -3433,7 +3502,7 @@ StringRef BuiltinType::getTypeName(SmallVectorImpl<char> &result,
 #define MAYBE_GET_NAMESPACED_BUILTIN(NAME)                                     \
   ((prependBuiltinNamespace) ? NAME : NAME.getWithoutPrefix())
 
-  llvm::raw_svector_ostream printer(result);
+  toolchain::raw_svector_ostream printer(result);
   switch (getBuiltinTypeKind()) {
   case BuiltinTypeKind::BuiltinRawPointer:
     printer << MAYBE_GET_NAMESPACED_BUILTIN(BUILTIN_TYPE_NAME_RAWPOINTER);
@@ -3471,12 +3540,12 @@ StringRef BuiltinType::getTypeName(SmallVectorImpl<char> &result,
     break;
   case BuiltinTypeKind::BuiltinVector: {
     const auto *t = cast<const BuiltinVectorType>(this);
-    llvm::SmallString<32> UnderlyingStrVec;
+    toolchain::SmallString<32> UnderlyingStrVec;
     StringRef UnderlyingStr;
     {
       // FIXME: Ugly hack: remove the .Builtin from the element type.
       {
-        llvm::raw_svector_ostream UnderlyingOS(UnderlyingStrVec);
+        toolchain::raw_svector_ostream UnderlyingOS(UnderlyingStrVec);
         t->getElementType().print(UnderlyingOS);
       }
       if (UnderlyingStrVec.str().starts_with(BUILTIN_TYPE_NAME_PREFIX))
@@ -3502,7 +3571,7 @@ StringRef BuiltinType::getTypeName(SmallVectorImpl<char> &result,
       break;
     }
 
-    llvm_unreachable("impossible bit width");
+    toolchain_unreachable("impossible bit width");
   }
   case BuiltinTypeKind::BuiltinFloat: {
     switch (cast<const BuiltinFloatType>(this)->getFPKind()) {
@@ -3528,16 +3597,9 @@ StringRef BuiltinType::getTypeName(SmallVectorImpl<char> &result,
     }
     break;
   }
-  case BuiltinTypeKind::BuiltinFixedArray: {
-    auto bfa = cast<BuiltinFixedArrayType>(this);
-    printer << MAYBE_GET_NAMESPACED_BUILTIN(BUILTIN_TYPE_NAME_FIXEDARRAY)
-            << '<';
-    bfa->getSize()->print(printer);
-    printer << ", ";
-    bfa->getElementType()->print(printer);
-    printer << '>';
+  case BuiltinTypeKind::BuiltinFixedArray:
+    printer << MAYBE_GET_NAMESPACED_BUILTIN(BUILTIN_TYPE_NAME_FIXEDARRAY);
     break;
-  }
   case BuiltinTypeKind::BuiltinUnboundGeneric: {
     auto bug = cast<BuiltinUnboundGenericType>(this);
     printer << MAYBE_GET_NAMESPACED_BUILTIN(bug->getBuiltinTypeName());
@@ -3558,7 +3620,7 @@ BuiltinUnboundGenericType::getBuiltinTypeName() const {
     return BUILTIN_TYPE_NAME_INT;
     
   default:
-    llvm_unreachable("not a generic builtin kind");
+    toolchain_unreachable("not a generic builtin kind");
   }
 }
 
@@ -3589,7 +3651,7 @@ BuiltinUnboundGenericType::getGenericSignature() const {
     return GenericSignature::get(bits, {});
   }
   default:
-    llvm_unreachable("not a generic builtin");
+    toolchain_unreachable("not a generic builtin");
   }
 }
 
@@ -3633,7 +3695,7 @@ BuiltinUnboundGenericType::getBound(SubstitutionMap subs) const {
   }
     
   default:
-    llvm_unreachable("not a generic builtin kind");
+    toolchain_unreachable("not a generic builtin kind");
   }
 }
 

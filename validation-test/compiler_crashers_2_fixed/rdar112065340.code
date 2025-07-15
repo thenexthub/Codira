@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public fn test<each T: BinaryInteger>(_ values: repeat each T) {
+    var values = (repeat UInt32(truncatingIfNeeded: each values))
+    withUnsafePointer(to: &values) { ptr in
+        _ = ptr[0]
+    }
+}

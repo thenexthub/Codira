@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/ImmutableTextBuffer.h"
 #include "clang/Rewrite/Core/RewriteRope.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/SourceMgr.h"
 
 using namespace SourceKit;
-using namespace llvm;
+using namespace toolchain;
 using clang::RewriteRope;
 
 void ImmutableTextUpdate::anchor() {}
 
 ImmutableTextBuffer::ImmutableTextBuffer(
-    std::unique_ptr<llvm::MemoryBuffer> MemBuf, uint64_t Stamp)
+    std::unique_ptr<toolchain::MemoryBuffer> MemBuf, uint64_t Stamp)
   : ImmutableTextUpdate(Kind::Buffer, Stamp) {
     SrcMgr.reset(new SourceMgr);
     BufId = SrcMgr->AddNewSourceBuffer(std::move(MemBuf), SMLoc());
@@ -34,7 +35,7 @@ ImmutableTextBuffer::ImmutableTextBuffer(
 ImmutableTextBuffer::ImmutableTextBuffer(StringRef Filename, StringRef Text,
                                          uint64_t Stamp)
   : ImmutableTextBuffer(
-      std::unique_ptr<llvm::MemoryBuffer>(
+      std::unique_ptr<toolchain::MemoryBuffer>(
         MemoryBuffer::getMemBufferCopy(Text, Filename)),
       Stamp) {
 }
@@ -48,7 +49,7 @@ StringRef ImmutableTextBuffer::getText() const {
   return SrcMgr->getMemoryBuffer(BufId)->getBuffer();
 }
 
-const llvm::MemoryBuffer *ImmutableTextBuffer::getInternalBuffer() const {
+const toolchain::MemoryBuffer *ImmutableTextBuffer::getInternalBuffer() const {
   return SrcMgr->getMemoryBuffer(BufId);
 }
 
@@ -66,7 +67,7 @@ ReplaceImmutableTextUpdate::ReplaceImmutableTextUpdate(
     unsigned ByteOffset, unsigned Length,
     StringRef Text, uint64_t Stamp)
   : ImmutableTextUpdate(Kind::Replace, Stamp),
-    Buf(llvm::MemoryBuffer::getMemBufferCopy(Text)),
+    Buf(toolchain::MemoryBuffer::getMemBufferCopy(Text)),
     ByteOffset(ByteOffset), Length(Length) {
 }
 
@@ -146,7 +147,7 @@ EditableTextBuffer::EditableTextBuffer(StringRef Filename, StringRef Text) {
 }
 
 ImmutableTextSnapshotRef EditableTextBuffer::getSnapshot() const {
-  llvm::sys::ScopedLock L(EditMtx);
+  toolchain::sys::ScopedLock L(EditMtx);
   return new ImmutableTextSnapshot(const_cast<EditableTextBuffer*>(this), Root,
                                    CurrUpd);
 }
@@ -178,7 +179,7 @@ ImmutableTextSnapshotRef EditableTextBuffer::replace(unsigned ByteOffset,
 ImmutableTextSnapshotRef EditableTextBuffer::addAtomicUpdate(
     ImmutableTextUpdateRef NewUpd) {
 
-  llvm::sys::ScopedLock L(EditMtx);
+  toolchain::sys::ScopedLock L(EditMtx);
 
   refresh();
 
@@ -189,7 +190,7 @@ ImmutableTextSnapshotRef EditableTextBuffer::addAtomicUpdate(
   return new ImmutableTextSnapshot(this, Root, CurrUpd);
 }
 
-static std::unique_ptr<llvm::MemoryBuffer>
+static std::unique_ptr<toolchain::MemoryBuffer>
 getMemBufferFromRope(StringRef Filename, const RewriteRope &Rope) {
   size_t Length = 0;
   for (RewriteRope::iterator I = Rope.begin(), E = Rope.end(); I != E;
@@ -198,7 +199,7 @@ getMemBufferFromRope(StringRef Filename, const RewriteRope &Rope) {
   }
 
   auto MemBuf =
-    llvm::WritableMemoryBuffer::getNewUninitMemBuffer(Length, Filename);
+    toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(Length, Filename);
   char *Ptr = (char*)MemBuf->getBufferStart();
   for (RewriteRope::iterator I = Rope.begin(), E = Rope.end(); I != E;
        I.MoveToNextPiece()) {
@@ -251,7 +252,7 @@ ImmutableTextBufferRef EditableTextBuffer::getBufferForSnapshot(
                                                           Snap.getStamp());
 
   {
-    llvm::sys::ScopedLock L(EditMtx);
+    toolchain::sys::ScopedLock L(EditMtx);
     ImmBuf->Next = Snap.DiffEnd->Next;
     Snap.DiffEnd->Next = ImmBuf;
     refresh();
@@ -302,7 +303,7 @@ EditableTextBufferRef EditableTextBufferManager::getOrCreateBuffer(
     StringRef Filename,
     StringRef Text) {
 
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
 
   assert(!Filename.empty());
   EditableTextBufferRef &EdBuf = FileBufferMap[Filename];
@@ -314,7 +315,7 @@ EditableTextBufferRef EditableTextBufferManager::getOrCreateBuffer(
 
 EditableTextBufferRef
 EditableTextBufferManager::resetBuffer(StringRef Filename, StringRef Text) {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
 
   assert(!Filename.empty());
   EditableTextBufferRef &EdBuf = FileBufferMap[Filename];

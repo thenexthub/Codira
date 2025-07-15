@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -emit-ir %s -disable-availability-checking
+
+// https://github.com/languagelang/language/issues/75329
+
+struct GPack1<each P, T> {}
+struct GPack2<each P> {
+  struct G<T> {}
+}
+
+fn test<each T>(
+  example1: repeat GPack1<repeat each T, each T>,
+  example2: repeat GPack2<repeat each T>.G<each T>
+) {
+  immutable _ = (repeat each example1) // Boom
+}

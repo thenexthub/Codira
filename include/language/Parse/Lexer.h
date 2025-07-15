@@ -1,4 +1,4 @@
-//===--- Lexer.h - Swift Language Lexer -------------------------*- C++ -*-===//
+//===--- Lexer.h - Codira Language Lexer -------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the Lexer interface.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LEXER_H
-#define SWIFT_LEXER_H
+#ifndef LANGUAGE_LEXER_H
+#define LANGUAGE_LEXER_H
 
 #include "language/AST/DiagnosticEngine.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Parse/LexerState.h"
 #include "language/Parse/Token.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 namespace language {
 
@@ -53,8 +54,8 @@ enum class HashbangMode : bool {
 };
 
 enum class LexerMode {
-  Swift,
-  SwiftInterface,
+  Codira,
+  CodiraInterface,
   SIL
 };
 
@@ -213,9 +214,9 @@ public:
     return CodeCompletionPtr != nullptr;
   }
 
-  /// Whether we are lexing a Swift interface file.
-  bool isSwiftInterface() const {
-    return LexMode == LexerMode::SwiftInterface;
+  /// Whether we are lexing a Codira interface file.
+  bool isCodiraInterface() const {
+    return LexMode == LexerMode::CodiraInterface;
   }
 
   /// Lex a token.
@@ -366,7 +367,7 @@ public:
   ///
   /// Due to the parser splitting tokens the adjustment may be incorrect, e.g:
   /// \code
-  ///   func +<T>(a : T, b : T)
+  ///   fn +<T>(a : T, b : T)
   /// \endcode
   /// The start of the '<' token is '<', but the lexer will produce "+<" before
   /// the parser splits it up.
@@ -417,7 +418,7 @@ public:
   static bool isOperator(StringRef string);
 
   SourceLoc getLocForStartOfBuffer() const {
-    return SourceLoc(llvm::SMLoc::getFromPointer(BufferStart));
+    return SourceLoc(toolchain::SMLoc::getFromPointer(BufferStart));
   }
   
   /// StringSegment - A segment of a (potentially interpolated) string.
@@ -519,7 +520,7 @@ public:
   }
 
   static SourceLoc getSourceLoc(const char *Loc) {
-    return SourceLoc(llvm::SMLoc::getFromPointer(Loc));
+    return SourceLoc(toolchain::SMLoc::getFromPointer(Loc));
   }
 
   /// Get the token that starts at the given location.
@@ -544,7 +545,7 @@ public:
   /// A RAII object for switching the lexer into forward slash regex `/.../`
   /// lexing mode.
   class ForwardSlashRegexRAII final {
-    llvm::SaveAndRestore<LexerForwardSlashRegexMode> Scope;
+    toolchain::SaveAndRestore<LexerForwardSlashRegexMode> Scope;
 
   public:
     ForwardSlashRegexRAII(Lexer &L, bool MustBeRegex)

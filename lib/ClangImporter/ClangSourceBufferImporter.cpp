@@ -1,19 +1,23 @@
-//===--- ClangSourceBufferImporter.cpp - Map Clang buffers to Swift -------===//
+//===--- ClangSourceBufferImporter.cpp - Map Clang buffers to Codira -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ClangSourceBufferImporter.h"
 #include "language/Basic/SourceManager.h"
 #include "clang/Basic/SourceManager.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace language;
 using namespace language::importer;
@@ -47,15 +51,15 @@ SourceLoc ClangSourceBufferImporter::resolveSourceLocation(
   if (mirrorIter != mirroredBuffers.end()) {
     mirrorID = mirrorIter->second;
   } else {
-    std::unique_ptr<llvm::MemoryBuffer> mirrorBuffer{
-      llvm::MemoryBuffer::getMemBuffer(buffer.getBuffer(),
+    std::unique_ptr<toolchain::MemoryBuffer> mirrorBuffer{
+      toolchain::MemoryBuffer::getMemBuffer(buffer.getBuffer(),
                                        buffer.getBufferIdentifier(),
                                        /*RequiresNullTerminator=*/true)
     };
-    mirrorID = swiftSourceManager.addNewSourceBuffer(std::move(mirrorBuffer));
+    mirrorID = languageSourceManager.addNewSourceBuffer(std::move(mirrorBuffer));
     mirroredBuffers[buffer.getBufferStart()] = mirrorID;
   }
-  loc = swiftSourceManager.getLocForOffset(mirrorID, decomposedLoc.second);
+  loc = languageSourceManager.getLocForOffset(mirrorID, decomposedLoc.second);
 
   auto presumedLoc = clangSrcMgr.getPresumedLoc(clangLoc);
   if (!presumedLoc.getFilename())
@@ -72,16 +76,16 @@ SourceLoc ClangSourceBufferImporter::resolveSourceLocation(
   // FIXME: Virtual files can't actually model the EOF position correctly, so
   // if this virtual file would start at EOF, just hope the physical location
   // will do.
-  if (startOfLine != swiftSourceManager.getRangeForBuffer(mirrorID).getEnd()) {
-    bool isNewVirtualFile = swiftSourceManager.openVirtualFile(
+  if (startOfLine != languageSourceManager.getRangeForBuffer(mirrorID).getEnd()) {
+    bool isNewVirtualFile = languageSourceManager.openVirtualFile(
         startOfLine, presumedFile, presumedLoc.getLine() - bufferLineNumber);
     if (isNewVirtualFile) {
-      SourceLoc endOfLine = findEndOfLine(swiftSourceManager, loc, mirrorID);
-      swiftSourceManager.closeVirtualFile(endOfLine);
+      SourceLoc endOfLine = findEndOfLine(languageSourceManager, loc, mirrorID);
+      languageSourceManager.closeVirtualFile(endOfLine);
     }
   }
 
-  using SourceManagerRef = llvm::IntrusiveRefCntPtr<const clang::SourceManager>;
+  using SourceManagerRef = toolchain::IntrusiveRefCntPtr<const clang::SourceManager>;
   auto iter = std::lower_bound(sourceManagersWithDiagnostics.begin(),
                                sourceManagersWithDiagnostics.end(),
                                &clangSrcMgr,

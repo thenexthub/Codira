@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
 #include "RefCountState.h"
 #include "RCStateTransition.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -147,7 +148,7 @@ bool BottomUpRefCountState::isRefCountStateModified() const {
     return false;
   }
 
-  llvm_unreachable("Unhandled TermKind in switch.");
+  toolchain_unreachable("Unhandled TermKind in switch.");
 }
 
 /// Returns true if given the current lattice state, do we care if the value
@@ -162,7 +163,7 @@ bool BottomUpRefCountState::valueCanBeDecrementedGivenLatticeState() const {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// If advance the state's sequence appropriately for a decrement. If we do
@@ -178,7 +179,7 @@ bool BottomUpRefCountState::handleDecrement() {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Returns true if given the current lattice state, do we care if the value we
@@ -193,7 +194,7 @@ bool BottomUpRefCountState::valueCanBeUsedGivenLatticeState() const {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Given the current lattice state, if we have seen a use, advance the
@@ -213,7 +214,7 @@ bool BottomUpRefCountState::handleUser() {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Returns true if given the current lattice state, do we care if the value
@@ -229,7 +230,7 @@ valueCanBeGuaranteedUsedGivenLatticeState() const {
     return true;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Given the current lattice state, if we have seen a use, advance the
@@ -252,7 +253,7 @@ bool BottomUpRefCountState::handleGuaranteedUser() {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 // Returns true if the passed in ref count inst matches the ref count inst
@@ -286,25 +287,25 @@ bool BottomUpRefCountState::handleRefCountInstMatch() {
     return true;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 bool BottomUpRefCountState::merge(const BottomUpRefCountState &Other) {
 
   auto NewState = MergeBottomUpLatticeStates(LatState, Other.LatState);
-  LLVM_DEBUG(llvm::dbgs() << "            Performing BottomUp Merge.\n");
-  LLVM_DEBUG(llvm::dbgs() << "                Left: " << LatState << "; Right: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Performing BottomUp Merge.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "                Left: " << LatState << "; Right: "
                           << Other.LatState << "; Result: " << NewState <<"\n");
-  LLVM_DEBUG(llvm::dbgs() << "                V: ";
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "                V: ";
              if (hasRCRoot())
                getRCRoot()->dump();
              else
-               llvm::dbgs() << "\n";
-             llvm::dbgs() << "                OtherV: ";
+               toolchain::dbgs() << "\n";
+             toolchain::dbgs() << "                OtherV: ";
              if (Other.hasRCRoot())
                Other.getRCRoot()->dump();
              else
-               llvm::dbgs() << "\n");
+               toolchain::dbgs() << "\n");
 
   LatState = NewState;
   KnownSafe &= Other.KnownSafe;
@@ -317,7 +318,7 @@ bool BottomUpRefCountState::merge(const BottomUpRefCountState &Other) {
   //
   // TODO: Add support for working around control dependence issues.
   if (LatState == BottomUpRefCountState::LatticeState::None) {
-    LLVM_DEBUG(llvm::dbgs() << "            Found LatticeState::None. "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found LatticeState::None. "
                                "Clearing State!\n");
     clear();
     return false;
@@ -325,7 +326,7 @@ bool BottomUpRefCountState::merge(const BottomUpRefCountState &Other) {
 
   if (!Transition.isValid() || !Other.Transition.isValid() ||
       !Transition.merge(Other.Transition)) {
-    LLVM_DEBUG(llvm::dbgs() << "            Failed merge!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Failed merge!\n");
     clear();
     return false;
   }
@@ -443,7 +444,7 @@ void BottomUpRefCountState::updateForSameLoopInst(SILInstruction *I,
   // pointer up to this point. This has the effect of performing a use and a
   // decrement.
   if (handlePotentialGuaranteedUser(I, AA)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found Potential Guaranteed Use:\n        "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Guaranteed Use:\n        "
                             << getRCRoot());
     return;
   }
@@ -452,7 +453,7 @@ void BottomUpRefCountState::updateForSameLoopInst(SILInstruction *I,
   // the reference counted value we are tracking... in a manner that could
   // cause us to change states. If we do change states continue...
   if (handlePotentialDecrement(I, AA)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found Potential Decrement:\n        "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Decrement:\n        "
                             << getRCRoot());
     return;
   }
@@ -461,7 +462,7 @@ void BottomUpRefCountState::updateForSameLoopInst(SILInstruction *I,
   // could be used by the given instruction.
   if (!handlePotentialUser(I, AA))
     return;
-  LLVM_DEBUG(llvm::dbgs() << "    Found Potential Use:\n        "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Use:\n        "
                           << getRCRoot());
 }
 
@@ -491,8 +492,8 @@ void BottomUpRefCountState::checkAndResetKnownSafety(
   // paired.
   if (!AA->mayAlias(VisitingRC, VisitedRC))
     return;
-  LLVM_DEBUG(llvm::dbgs() << "Clearing KnownSafe for: ");
-  LLVM_DEBUG(VisitedRC->dump());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Clearing KnownSafe for: ");
+  TOOLCHAIN_DEBUG(VisitedRC->dump());
   clearKnownSafe();
 }
 
@@ -509,7 +510,7 @@ void BottomUpRefCountState::updateForDifferentLoopInst(SILInstruction *I,
     // refcount will turn off CodeMotionSafety
     if (mayGuaranteedUseValue(I, getRCRoot(), AA) ||
         mayDecrementRefCount(I, getRCRoot(), AA)) {
-      LLVM_DEBUG(llvm::dbgs() << "    Found potential guaranteed use:\n        "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found potential guaranteed use:\n        "
                               << getRCRoot());
       handleGuaranteedUser();
       return;
@@ -521,7 +522,7 @@ void BottomUpRefCountState::updateForDifferentLoopInst(SILInstruction *I,
   // use.
   if (!handlePotentialUser(I, AA))
     return;
-  LLVM_DEBUG(llvm::dbgs() << "    Found Potential Use:\n        "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Use:\n        "
                           << getRCRoot());
 }
 
@@ -592,7 +593,7 @@ bool TopDownRefCountState::isRefCountStateModified() const {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Returns true if given the current lattice state, do we care if the value
@@ -607,7 +608,7 @@ bool TopDownRefCountState::valueCanBeDecrementedGivenLatticeState() const {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// If advance the state's sequence appropriately for a decrement. If we do
@@ -623,7 +624,7 @@ bool TopDownRefCountState::handleDecrement() {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Returns true if given the current lattice state, do we care if the value
@@ -638,7 +639,7 @@ bool TopDownRefCountState::valueCanBeUsedGivenLatticeState() const {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Given the current lattice state, if we have seen a use, advance the
@@ -658,7 +659,7 @@ bool TopDownRefCountState::handleUser() {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Returns true if given the current lattice state, do we care if the value
@@ -675,7 +676,7 @@ valueCanBeGuaranteedUsedGivenLatticeState() const {
     return true;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 /// Given the current lattice state, if we have seen a use, advance the
@@ -697,7 +698,7 @@ bool TopDownRefCountState::handleGuaranteedUser() {
     return false;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 // Returns true if the passed in ref count inst matches the ref count inst
@@ -731,25 +732,25 @@ bool TopDownRefCountState::handleRefCountInstMatch() {
     return true;
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
 bool TopDownRefCountState::merge(const TopDownRefCountState &Other) {
   auto NewState = MergeTopDownLatticeStates(LatState, Other.LatState);
-  LLVM_DEBUG(llvm::dbgs() << "        Performing TopDown Merge.\n");
-  LLVM_DEBUG(llvm::dbgs() << "            Left: " << LatState << "; Right: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Performing TopDown Merge.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Left: " << LatState << "; Right: "
                           << Other.LatState << "; Result: "
                           << NewState << "\n");
-  LLVM_DEBUG(llvm::dbgs() << "            V: ";
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "            V: ";
              if (hasRCRoot())
                getRCRoot()->dump();
              else
-               llvm::dbgs() << "\n";
-             llvm::dbgs() << "            OtherV: ";
+               toolchain::dbgs() << "\n";
+             toolchain::dbgs() << "            OtherV: ";
              if (Other.hasRCRoot())
                Other.getRCRoot()->dump();
              else
-               llvm::dbgs() << "\n");
+               toolchain::dbgs() << "\n");
 
   LatState = NewState;
   KnownSafe &= Other.KnownSafe;
@@ -762,14 +763,14 @@ bool TopDownRefCountState::merge(const TopDownRefCountState &Other) {
   // TODO: Add support for determining control dependence.
   if (LatState == TopDownRefCountState::LatticeState::None) {
     clear();
-    LLVM_DEBUG(llvm::dbgs() << "            Found LatticeState::None. "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found LatticeState::None. "
                                "Clearing State!\n");
     return false;
   }
 
   if (!Transition.isValid() || !Other.Transition.isValid() ||
       !Transition.merge(Other.Transition)) {
-    LLVM_DEBUG(llvm::dbgs() << "            Failed merge!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Failed merge!\n");
     clear();
     return false;
   }
@@ -870,7 +871,7 @@ void TopDownRefCountState::updateForSameLoopInst(SILInstruction *I,
   // pointer up to this point. This has the effect of performing a use and a
   // decrement.
   if (handlePotentialGuaranteedUser(I, AA)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found Potential Guaranteed Use:\n        "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Guaranteed Use:\n        "
                             << getRCRoot());
     return;
   }
@@ -879,7 +880,7 @@ void TopDownRefCountState::updateForSameLoopInst(SILInstruction *I,
   // the reference counted value we are tracking in a manner that could
   // cause us to change states. If we do change states continue...
   if (handlePotentialDecrement(I, AA)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found Potential Decrement:\n        "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Decrement:\n        "
                             << getRCRoot());
     return;
   }
@@ -888,7 +889,7 @@ void TopDownRefCountState::updateForSameLoopInst(SILInstruction *I,
   // could be used by the given instruction.
   if (!handlePotentialUser(I, AA))
     return;
-  LLVM_DEBUG(llvm::dbgs() << "    Found Potential Use:\n        "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Use:\n        "
                           << getRCRoot());
 }
 
@@ -918,8 +919,8 @@ void TopDownRefCountState::checkAndResetKnownSafety(
   // paired.
   if (!AA->mayAlias(VisitingRC, VisitedRC))
     return;
-  LLVM_DEBUG(llvm::dbgs() << "Clearing KnownSafe for: ");
-  LLVM_DEBUG(VisitedRC->dump());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Clearing KnownSafe for: ");
+  TOOLCHAIN_DEBUG(VisitedRC->dump());
   clearKnownSafe();
 }
 
@@ -936,7 +937,7 @@ void TopDownRefCountState::updateForDifferentLoopInst(SILInstruction *I,
   if (valueCanBeGuaranteedUsedGivenLatticeState()) {
     if (mayGuaranteedUseValue(I, getRCRoot(), AA) ||
         mayDecrementRefCount(I, getRCRoot(), AA)) {
-      LLVM_DEBUG(llvm::dbgs() << "    Found potential guaranteed use!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found potential guaranteed use!\n");
       handleGuaranteedUser();
       return;
     }
@@ -944,7 +945,7 @@ void TopDownRefCountState::updateForDifferentLoopInst(SILInstruction *I,
 
   if (!handlePotentialUser(I, AA))
     return;
-  LLVM_DEBUG(llvm::dbgs() << "    Found Potential Use:\n        "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Potential Use:\n        "
                           << getRCRoot());
 }
 
@@ -953,27 +954,27 @@ void TopDownRefCountState::updateForDifferentLoopInst(SILInstruction *I,
 //===----------------------------------------------------------------------===//
 
 void BottomUpRefCountState::dump() {
-  llvm::dbgs() << LatState << " "
+  toolchain::dbgs() << LatState << " "
                << (isKnownSafe() ? "KnownSafe" : "NotKnownSafe") << " "
                << (isCodeMotionSafe() ? "CodeMotionSafe" : "NotCodeMotionSafe")
                << "\n";
-  llvm::dbgs() << "Matching Instructions:\n";
+  toolchain::dbgs() << "Matching Instructions:\n";
   for (auto it : getInstructions()) {
     it->dump();
   }
 }
 void TopDownRefCountState::dump() {
-  llvm::dbgs() << LatState << " "
+  toolchain::dbgs() << LatState << " "
                << (isKnownSafe() ? "KnownSafe" : "NotKnownSafe") << " "
                << (isCodeMotionSafe() ? "CodeMotionSafe" : "NotCodeMotionSafe")
                << "\n";
-  llvm::dbgs() << "Matching Instructions:\n";
+  toolchain::dbgs() << "Matching Instructions:\n";
   for (auto it : getInstructions()) {
     it->dump();
   }
 }
 
-namespace llvm {
+namespace toolchain {
 
 raw_ostream &operator<<(raw_ostream &OS,
                         BottomUpRefCountState::LatticeState S) {
@@ -989,10 +990,10 @@ raw_ostream &operator<<(raw_ostream &OS,
     return OS << "MightBeDecremented";
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                               TopDownRefCountState::LatticeState S) {
   using LatticeState = TopDownRefCountState::LatticeState;
   switch (S) {
@@ -1006,6 +1007,6 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
     return OS << "MightBeDecremented";
   }
 
-  llvm_unreachable("Unhandled LatticeState in switch.");
+  toolchain_unreachable("Unhandled LatticeState in switch.");
 }
-} // end namespace llvm
+} // end namespace toolchain

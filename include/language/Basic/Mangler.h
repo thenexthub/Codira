@@ -1,4 +1,4 @@
-//===--- Mangler.h - Base class for Swift name mangling ---------*- C++ -*-===//
+//===--- Mangler.h - Base class for Codira name mangling ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,30 +11,31 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_MANGLER_H
-#define SWIFT_BASIC_MANGLER_H
+#ifndef LANGUAGE_BASIC_MANGLER_H
+#define LANGUAGE_BASIC_MANGLER_H
 
 #include "language/Demangling/ManglingFlavor.h"
 #include "language/Demangling/ManglingUtils.h"
 #include "language/Demangling/NamespaceMacros.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 namespace Mangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 void printManglingStats();
 
-/// The basic Swift symbol mangler.
+/// The basic Codira symbol mangler.
 ///
 /// This class serves as an abstract base class for specific manglers. It
 /// provides some basic utilities, like handling of substitutions, mangling of
@@ -46,19 +47,19 @@ protected:
   friend class SubstitutionMerging;
 
   /// The storage for the mangled symbol.
-  llvm::SmallString<128> Storage;
+  toolchain::SmallString<128> Storage;
 
   /// The output stream for the mangled symbol.
-  llvm::raw_svector_ostream Buffer;
+  toolchain::raw_svector_ostream Buffer;
 
   /// A temporary storage needed by the ::mangleIdentifier() template function.
-  llvm::SmallVector<WordReplacement, 8> SubstWordsInIdent;
+  toolchain::SmallVector<WordReplacement, 8> SubstWordsInIdent;
 
   /// Substitutions, except identifier substitutions.
-  llvm::DenseMap<const void *, unsigned> Substitutions;
+  toolchain::DenseMap<const void *, unsigned> Substitutions;
 
   /// Identifier substitutions.
-  llvm::StringMap<unsigned> StringSubstitutions;
+  toolchain::StringMap<unsigned> StringSubstitutions;
   
   /// Index to use for the next added substitution.
   /// Note that this is not simply the sum of the size of the \c Substitutions
@@ -67,7 +68,7 @@ protected:
   unsigned NextSubstitutionIndex = 0;
 
   /// Word substitutions in mangled identifiers.
-  llvm::SmallVector<SubstitutionWord, 26> Words;
+  toolchain::SmallVector<SubstitutionWord, 26> Words;
 
   /// Used for repeated substitutions and known substitutions, e.g. A3B, S2i.
   SubstitutionMerging SubstMerging;
@@ -88,7 +89,7 @@ protected:
     unsigned N;
   public:
     explicit Index(unsigned n) : N(n) {}
-    friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out, Index n) {
+    friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out, Index n) {
       if (n.N != 0) out << (n.N - 1);
       return (out << '_');
     }
@@ -107,14 +108,14 @@ protected:
     return StringRef(Storage.data(), Storage.size());
   }
 
-  void print(llvm::raw_ostream &os) const {
+  void print(toolchain::raw_ostream &os) const {
     os << getBufferStr() << '\n';
   }
 
 public:
   /// Dump the current stored state in the Mangler. Only for use in the debugger!
-  SWIFT_DEBUG_DUMPER(dumpBufferStr()) {
-    print(llvm::dbgs());
+  LANGUAGE_DEBUG_DUMPER(dumpBufferStr()) {
+    print(toolchain::dbgs());
   }
 
   /// Appends the given raw identifier to the buffer in the form required to
@@ -122,7 +123,7 @@ public:
   /// to retain compatibility with older runtimes.
   static void
   appendRawIdentifierForRuntime(StringRef ident,
-                                llvm::SmallVectorImpl<char> &buffer);
+                                toolchain::SmallVectorImpl<char> &buffer);
 
 protected:
   /// Removes the last characters of the buffer by setting it's size to a
@@ -145,12 +146,12 @@ protected:
 
   /// Finish the mangling of the symbol and write the mangled name into
   /// \p stream.
-  void finalize(llvm::raw_ostream &stream);
+  void finalize(toolchain::raw_ostream &stream);
 
   /// Verify that demangling and remangling works.
   static void verify(StringRef mangledName, ManglingFlavor Flavor);
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   /// Appends a mangled identifier string.
   void appendIdentifier(StringRef ident, bool allowRawIdentifiers = true);
@@ -235,8 +236,8 @@ protected:
   }
 };
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Mangle
 } // end namespace language
 
-#endif // SWIFT_BASIC_MANGLER_H
+#endif // LANGUAGE_BASIC_MANGLER_H

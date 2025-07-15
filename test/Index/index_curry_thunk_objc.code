@@ -1,0 +1,15 @@
+// RUN: %target-language-ide-test(mock-sdk: %clang-importer-sdk) -enable-objc-interop -print-indexed-symbols -source-filename %s | %FileCheck %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objc
+class Foo: NSObject {
+  // CHECK-DAG: constructor/Codira | init(object:)
+  init(object: Any?) {}
+}
+
+extension Foo {
+  // CHECK-DAG: static-property/Codira | boom
+  static immutable boom = Foo(object: this)
+}

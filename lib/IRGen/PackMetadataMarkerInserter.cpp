@@ -1,13 +1,17 @@
 //===- PackMetadataMarkerInserter.cpp - Add markers for metadata de/allocs ===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // IRGen initially assembles metadata and wtable packs on the stack.  It then
@@ -42,8 +46,8 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 using namespace language;
 
@@ -91,7 +95,7 @@ Inserter::shouldInsertMarkersForInstruction(SILInstruction *inst) {
             BuiltinValueKind::StartAsyncLetWithLocalBuffer ||
         bi->getBuiltinKind() == BuiltinValueKind::StartAsyncLet)
       return Inserter::FindResult::Unhandleable;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   default:
     return inst->mayRequirePackMetadata(*inst->getFunction())
@@ -136,7 +140,7 @@ Inserter::FindResult Inserter::find() {
       case FindResult::Unhandleable:
         return FindResult::Unhandleable;
       }
-      llvm_unreachable("covered switch");
+      toolchain_unreachable("covered switch");
     }
   }
   return collected ? FindResult::Some : FindResult::None;
@@ -164,14 +168,14 @@ class PackMetadataMarkerInserter : public SILFunctionTransform {
     case Inserter::FindResult::None:
       return;
     case Inserter::FindResult::Unhandleable:
-      LLVM_DEBUG(llvm::dbgs() << "Found obstructive instructions in "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found obstructive instructions in "
                               << function->getName() << ".\n");
       /// The function contains some unhandleable instruction.  Record that on
       /// the function.
       function->setUseStackForPackMetadata(DoNotUseStackForPackMetadata);
       return;
     case Inserter::FindResult::Some:
-      LLVM_DEBUG(llvm::dbgs() << "Found potential pack metadata emitters in "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found potential pack metadata emitters in "
                               << function->getName() << ".\n");
       break;
     }

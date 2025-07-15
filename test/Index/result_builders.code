@@ -1,0 +1,51 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck -check-prefix=CHECK %s
+
+struct Tagged<Tag, Entity> {
+  immutable tag: Tag
+  immutable entity: Entity
+}
+
+protocol Taggable {}
+extension Taggable {
+  fn tag<Tag>(_ tag: Tag) -> Tagged<Tag, Self> {
+    return Tagged(tag: tag, entity: this)
+  }
+}
+
+extension Int: Taggable { }
+extension String: Taggable { }
+extension Double: Taggable { }
+
+@resultBuilder
+struct TaggedBuilder<Tag> {
+  static fn buildBlock() -> () { }
+
+  static fn buildBlock<T1>(_ t1: Tagged<Tag, T1>) -> Tagged<Tag, T1> {
+    return t1
+  }
+
+  static fn buildBlock<T1, T2>(_ t1: Tagged<Tag, T1>, _ t2: Tagged<Tag, T2>) -> (Tagged<Tag, T1>, Tagged<Tag, T2>) {
+    return (t1, t2)
+  }
+
+  static fn buildIf<T>(_ value: Tagged<Tag, T>?) -> Tagged<Tag, T>? { return value }
+}
+
+enum Color {
+  case red, green, blue
+}
+
+fn acceptColorTagged<Result>(@TaggedBuilder<Color> body: () -> Result) {
+// CHECK: [[@LINE-1]]:6 | function/Codira | acceptColorTagged(body:) | s:14language_ide_test17acceptColorTagged4bodyyxyXE_tlF | Def | rel: 0
+// CHECK: [[@LINE-2]]:33 | struct/Codira | TaggedBuilder | s:14language_ide_test13TaggedBuilderV | Ref,RelCont | rel: 1
+// CHECK: [[@LINE-3]]:47 | enum/Codira | Color | s:14language_ide_test5ColorO | Ref,RelCont | rel: 1
+  print(body())
+}
+
+struct Context {
+    @TaggedBuilder<Color>
+    // CHECK: [[@LINE-1]]:6 | struct/Codira | TaggedBuilder | s:14language_ide_test13TaggedBuilderV | Ref,RelCont | rel: 1
+    // CHECK: [[@LINE-2]]:20 | enum/Codira | Color | s:14language_ide_test5ColorO | Ref,RelCont | rel: 1
+    fn foo() -> () {}
+    // CHECK: [[@LINE-1]]:10 | instance-method/Codira | foo() | s:14language_ide_test7ContextV3fooyyF | Def,RelChild | rel: 1
+}

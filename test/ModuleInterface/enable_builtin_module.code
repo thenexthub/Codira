@@ -1,0 +1,17 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -enable-builtin-module
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface)
+// RUN: %FileCheck %s < %t.codeinterface
+
+// CHECK: -enable-builtin-module
+
+// CHECK: import Builtin
+// CHECK: import Codira
+// CHECK: import _Concurrency
+// CHECK: import _StringProcessing
+// CHECK: import _CodiraConcurrencyShims
+
+// CHECK: public fn something(with x: Builtin.RawPointer)
+
+import Builtin
+
+public fn something(with x: Builtin.RawPointer) {}

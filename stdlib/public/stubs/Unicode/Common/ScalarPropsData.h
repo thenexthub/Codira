@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2021-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,11 +16,11 @@
 #ifndef SCALAR_PROP_DATA_H
 #define SCALAR_PROP_DATA_H
 
-#include "language/shims/SwiftStdint.h"
+#include "language/shims/CodiraStdint.h"
 
 #define BIN_PROPS_COUNT 5012
 
-static const __swift_uint64_t _swift_stdlib_scalar_binProps_data[190] = {
+static const __language_uint64_t _language_stdlib_scalar_binProps_data[190] = {
   0x6408, 0xC003124008BB, 0x400202400000, 0x400002400080, 0xC00012508080, 0xC00012404080, 0x410000,
   0xC00012400000, 0x200000400008, 0x400000, 0x400002400008, 0x800400400, 0x400002A00488,
   0x800410000, 0x400, 0x28000400000, 0xC00112408C88, 0x400003400008, 0xC00212400000, 0xA00400208,
@@ -53,7 +53,7 @@ static const __swift_uint64_t _swift_stdlib_scalar_binProps_data[190] = {
   0xC00012400480, 0xC000124008AF, 0x420002600408, 0x4D0000,
 };
 
-static const __swift_uint32_t _swift_stdlib_scalar_binProps[5012] = {
+static const __language_uint32_t _language_stdlib_scalar_binProps[5012] = {
   0x7000000, 0x13600009, 0x700000E, 0xCA00020, 0xA200021, 0x3200022, 0x1A00023, 0x8C00024,
   0xA400027, 0xC800028, 0x1A0002A, 0x1400002B, 0xAE0002C, 0x3E0002D, 0x8A0002E, 0x8C0002F,
   0xAA00030, 0x1520003A, 0xAE0003B, 0x10C0003C, 0x1400003D, 0x10C0003E, 0xA20003F, 0x8C00040,
@@ -645,7 +645,7 @@ static const __swift_uint32_t _swift_stdlib_scalar_binProps[5012] = {
 
 #define NUMERIC_TYPE_COUNT 253
 
-static const __swift_uint32_t _swift_stdlib_numeric_type[253] = {
+static const __language_uint32_t _language_stdlib_numeric_type[253] = {
   0x41200030, 0x202000B2, 0x200000B9, 0x4000BC, 0x41200660, 0x412006F0, 0x412007C0, 0x41200966,
   0x412009E6, 0xA009F4, 0x41200A66, 0x41200AE6, 0x41200B66, 0xA00B72, 0x41200BE6, 0x400BF0,
   0x41200C66, 0xC00C78, 0x41200CE6, 0xC00D58, 0x41200D66, 0x1000D70, 0x41200DE6, 0x41200E50,
@@ -676,7 +676,7 @@ static const __swift_uint32_t _swift_stdlib_numeric_type[253] = {
   0x20AFD, 0x20B19, 0x22390, 0x22998, 0x23B1B, 0x2626D, 0x2F890,
 };
 
-static const double _swift_stdlib_numeric_values[144] = {
+static const double _language_stdlib_numeric_values[144] = {
   (double) 80000, (double) 500000, (double) 1000000000000, (double) 23, (double) 45,
   (double) 200000, (double) 21, (double) 1, (double) 42, (double) 70, (double) 1/7, (double) 800,
   (double) 900, (double) 800000, (double) 46, (double) 28, (double) 3000, (double) 40, (double) 24,
@@ -704,11 +704,11 @@ static const double _swift_stdlib_numeric_values[144] = {
 
 #define NUMERIC_VALUES_LEVEL_COUNT 12
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_sizes[12] = {
+static const __language_uint16_t _language_stdlib_numeric_values_sizes[12] = {
   0x7D2, 0x4E6, 0x32F, 0x220, 0x14F, 0xDE, 0x92, 0x5B, 0x40, 0x40, 0x40, 0x40,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys0[32] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys0[32] = {
   0x7420AB3D5175C217, 0x1CB5F454608FD473, 0x8861DC80A4C20000, 0x38E0E84539C00932,
   0x484E7B50003C8048, 0x2842C1130124E03, 0xC9694220382A6E48, 0xE80A696BF8374C44, 0xC3D8332CA08A65D6,
   0x82C001199245493E, 0x426002A350CD1211, 0xF0747181369B4980, 0x1C136400C101EB75,
@@ -719,7 +719,7 @@ static const __swift_uint64_t _swift_stdlib_numeric_values_keys0[32] = {
   0xA3418400CE0D1184, 0x2E290,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys1[20] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys1[20] = {
   0xA07C842E40A81432, 0x11232A4120389E15, 0x8C91D223497121E1, 0x3D8972B4401B548F,
   0x130A897325220081, 0x8E10420604B02AA1, 0x601190C4BA826408, 0x40996031B50440E, 0x2D0400621350A141,
   0xD3CE56517AE061AB, 0x64E01706B022742E, 0x1E1A41246039012, 0xF00C426E260801D6, 0x7A50901B0C1162E0,
@@ -727,117 +727,117 @@ static const __swift_uint64_t _swift_stdlib_numeric_values_keys1[20] = {
   0x184D41A92E96A420, 0x11441D8E00,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys2[13] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys2[13] = {
   0x1064180033D79440, 0x82483714900C2A0, 0x8C1C1248934630C0, 0x160E01C214C26D27, 0x72728520D1008402,
   0x30449400152D6511, 0x18541060D559388, 0x2C026278406A76AD, 0xD0C002516C08E000, 0x285AB094B429B9E,
   0x800C27AB10028006, 0x23683280740E1600, 0x3170BD30938C,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys3[9] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys3[9] = {
   0xCB1AEB2148E80900, 0xAD2822E28068D594, 0x4A88920C18AAAB40, 0xC2082560C8686452,
   0x6BB202A212451F81, 0xAA7840A43E50C834, 0x828A609A54A1CAE4, 0x404CC65D0FDF2740, 0xAE32A0A2,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys4[6] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys4[6] = {
   0x4A01C0A8298A2846, 0x5316AE044231F601, 0xC10003A5CB19B180, 0xD2091E44448C4044,
   0x48912680F3C180C9, 0x400C,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys5[4] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys5[4] = {
   0x8F2100309B810C11, 0x18200A86D0972B28, 0x893033A804156643, 0x32061354,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys6[3] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys6[3] = {
   0x6108382A5A844D77, 0x15087444E4A40509, 0x16545,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys7[2] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys7[2] = {
   0xA070149A3371A461, 0x4288AE2,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys8[1] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys8[1] = {
   0x1D912341024A8E40,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys9[1] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys9[1] = {
   0x3840A500644A2F22,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys10[1] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys10[1] = {
   0x8004C00800004480,
 };
 
-static const __swift_uint64_t _swift_stdlib_numeric_values_keys11[1] = {
+static const __language_uint64_t _language_stdlib_numeric_values_keys11[1] = {
   0x8010008228000,
 };
 
-static const __swift_uint64_t * const _swift_stdlib_numeric_values_keys[12] = {
-  _swift_stdlib_numeric_values_keys0, _swift_stdlib_numeric_values_keys1,
-  _swift_stdlib_numeric_values_keys2, _swift_stdlib_numeric_values_keys3,
-  _swift_stdlib_numeric_values_keys4, _swift_stdlib_numeric_values_keys5,
-  _swift_stdlib_numeric_values_keys6, _swift_stdlib_numeric_values_keys7,
-  _swift_stdlib_numeric_values_keys8, _swift_stdlib_numeric_values_keys9,
-  _swift_stdlib_numeric_values_keys10, _swift_stdlib_numeric_values_keys11,
+static const __language_uint64_t * const _language_stdlib_numeric_values_keys[12] = {
+  _language_stdlib_numeric_values_keys0, _language_stdlib_numeric_values_keys1,
+  _language_stdlib_numeric_values_keys2, _language_stdlib_numeric_values_keys3,
+  _language_stdlib_numeric_values_keys4, _language_stdlib_numeric_values_keys5,
+  _language_stdlib_numeric_values_keys6, _language_stdlib_numeric_values_keys7,
+  _language_stdlib_numeric_values_keys8, _language_stdlib_numeric_values_keys9,
+  _language_stdlib_numeric_values_keys10, _language_stdlib_numeric_values_keys11,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks0[4] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks0[4] = {
   0x0, 0xC4, 0x18E, 0x241,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks1[3] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks1[3] = {
   0x2EC, 0x39E, 0x458,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks2[2] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks2[2] = {
   0x4A3, 0x54C,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks3[2] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks3[2] = {
   0x5B2, 0x676,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks4[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks4[1] = {
   0x683,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks5[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks5[1] = {
   0x6F4,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks6[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks6[1] = {
   0x740,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks7[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks7[1] = {
   0x777,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks8[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks8[1] = {
   0x79A,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks9[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks9[1] = {
   0x7AF,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks10[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks10[1] = {
   0x7C4,
 };
 
-static const __swift_uint16_t _swift_stdlib_numeric_values_ranks11[1] = {
+static const __language_uint16_t _language_stdlib_numeric_values_ranks11[1] = {
   0x7CC,
 };
 
-static const __swift_uint16_t * const _swift_stdlib_numeric_values_ranks[12] = {
-  _swift_stdlib_numeric_values_ranks0, _swift_stdlib_numeric_values_ranks1,
-  _swift_stdlib_numeric_values_ranks2, _swift_stdlib_numeric_values_ranks3,
-  _swift_stdlib_numeric_values_ranks4, _swift_stdlib_numeric_values_ranks5,
-  _swift_stdlib_numeric_values_ranks6, _swift_stdlib_numeric_values_ranks7,
-  _swift_stdlib_numeric_values_ranks8, _swift_stdlib_numeric_values_ranks9,
-  _swift_stdlib_numeric_values_ranks10, _swift_stdlib_numeric_values_ranks11,
+static const __language_uint16_t * const _language_stdlib_numeric_values_ranks[12] = {
+  _language_stdlib_numeric_values_ranks0, _language_stdlib_numeric_values_ranks1,
+  _language_stdlib_numeric_values_ranks2, _language_stdlib_numeric_values_ranks3,
+  _language_stdlib_numeric_values_ranks4, _language_stdlib_numeric_values_ranks5,
+  _language_stdlib_numeric_values_ranks6, _language_stdlib_numeric_values_ranks7,
+  _language_stdlib_numeric_values_ranks8, _language_stdlib_numeric_values_ranks9,
+  _language_stdlib_numeric_values_ranks10, _language_stdlib_numeric_values_ranks11,
 };
 
-static const __swift_uint8_t _swift_stdlib_numeric_values_indices[2002] = {
+static const __language_uint8_t _language_stdlib_numeric_values_indices[2002] = {
   0x1F, 0x8F, 0x65, 0x59, 0x7, 0x73, 0x31, 0x12, 0x6D, 0x19, 0x35, 0x65, 0x37, 0x10, 0x7, 0x2E,
   0x86, 0x7, 0x3E, 0x31, 0x8A, 0x7, 0x1B, 0x29, 0x7, 0x3E, 0x6D, 0x8C, 0x58, 0x55, 0x86, 0x31, 0x31,
   0x8C, 0x61, 0x86, 0x2E, 0x43, 0x16, 0x65, 0x3E, 0x31, 0x6D, 0x65, 0x80, 0x19, 0x2E, 0x1C, 0x5F,
@@ -964,7 +964,7 @@ static const __swift_uint8_t _swift_stdlib_numeric_values_indices[2002] = {
   0x6D, 0x80, 0x59, 0x6D, 0x37, 0x3E, 0x80,
 };
 
-static const char * const _swift_stdlib_nameAlias_data[35] = {
+static const char * const _language_stdlib_nameAlias_data[35] = {
   "LATIN CAPITAL LETTER GHA", "LATIN SMALL LETTER GHA",
   "ARABIC SMALL HIGH LIGATURE ALEF WITH YEH BARREE", "SYRIAC SUBLINEAR COLON SKEWED LEFT",
   "KANNADA LETTER LLLA", "LAO LETTER FO FON", "LAO LETTER FO FAY", "LAO LETTER RO", "LAO LETTER LO",
@@ -982,7 +982,7 @@ static const char * const _swift_stdlib_nameAlias_data[35] = {
   "MENDE KIKAKUI SYLLABLE M174 MBOO",
 };
 
-static const __swift_uint16_t _swift_stdlib_nameAlias_ranks[113] = {
+static const __language_uint16_t _language_stdlib_nameAlias_ranks[113] = {
   0x0, 0xB, 0xB, 0xD, 0xE, 0x10, 0x12, 0x14, 0x0, 0x0, 0x0, 0x2, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0,
   0x0, 0x0, 0x1, 0x1, 0x0, 0x1, 0x1, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x1,
   0x0, 0x0, 0x0, 0x0, 0x4, 0x0, 0x1, 0x1, 0x1, 0x1, 0x0, 0x1, 0x1, 0x1, 0x1, 0x0, 0x2, 0x2, 0x2,
@@ -991,7 +991,7 @@ static const __swift_uint16_t _swift_stdlib_nameAlias_ranks[113] = {
   0x0, 0x0, 0x4, 0x0, 0x0, 0x0, 0x1, 0x1, 0x0, 0x0, 0x1, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x2,
 };
 
-static const __swift_uint64_t _swift_stdlib_nameAlias[114] = {
+static const __language_uint64_t _language_stdlib_nameAlias[114] = {
   0x8, 0x10484017062, 0x0, 0x100400000, 0x800000000000, 0x60000, 0x1040000, 0x20000000400000, 0x800,
   0x0, 0x0, 0xC0000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x40, 0x20000, 0x0, 0x0, 0x20000000000, 0x0, 0x30000,
   0x40000000, 0x0, 0x0, 0x0, 0x40000, 0x0, 0x0, 0x0, 0x28A000, 0x50000, 0x0, 0x0, 0x0,
@@ -1004,7 +1004,7 @@ static const __swift_uint64_t _swift_stdlib_nameAlias[114] = {
   0x0, 0x0, 0x60000000000, 0x210000,
 };
 
-static const __swift_int32_t _swift_stdlib_mappings_data[177] = {
+static const __language_int32_t _language_stdlib_mappings_data[177] = {
   32, -47, -10749, -35384, -10783, 3008, -7517, -300, -63, -10792, -8383, 10792, 42261, 71, 126, -9,
   -42308, -219, 40, 69, -86, -7205, -48, -74, -130, 214, 79, -8, -6181, 42307, 112, 38864, 163,
   -209, 35384, 97, 84, -7615, 42282, -3008, -100, -203, -232, -42307, 1, 121, 48, -3814, -40, 205,
@@ -1018,7 +1018,7 @@ static const __swift_int32_t _swift_stdlib_mappings_data[177] = {
   2, -207, 37, 3814, -112, -217, -218, 209, -116,
 };
 
-static const __swift_uint32_t _swift_stdlib_mappings_data_indices[2933] = {
+static const __language_uint32_t _language_stdlib_mappings_data_indices[2933] = {
   0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF,
   0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF,
   0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0xFF00FF, 0x9BFF9B,
@@ -1347,7 +1347,7 @@ static const __swift_uint32_t _swift_stdlib_mappings_data_indices[2933] = {
   0x9CFF9C, 0x9CFF9C, 0x9CFF9C,
 };
 
-static const __swift_uint16_t _swift_stdlib_mappings_ranks[158] = {
+static const __language_uint16_t _language_stdlib_mappings_ranks[158] = {
   0x0, 0x11, 0x11, 0x15, 0x1B, 0x1C, 0x1D, 0x1D, 0x0, 0x0, 0x34, 0x35, 0x72, 0x0, 0x3E, 0x7D, 0xB4,
   0xF3, 0x0, 0x33, 0x4F, 0x4F, 0x4F, 0x0, 0x1, 0x30, 0x6C, 0xAA, 0x0, 0x40, 0x78, 0xB8, 0xF7, 0x0,
   0x2D, 0x2D, 0x2D, 0x2D, 0x0, 0x0, 0x0, 0x10, 0x48, 0x0, 0x0, 0x0, 0x40, 0x5C, 0x0, 0x0, 0x0, 0x0,
@@ -1359,7 +1359,7 @@ static const __swift_uint16_t _swift_stdlib_mappings_ranks[158] = {
   0x4F, 0x4F, 0x0, 0x20, 0x40, 0x40, 0x40, 0x0, 0x0, 0x0, 0x0, 0x40, 0x0, 0x0, 0x40, 0x44, 0x44,
 };
 
-static const __swift_uint64_t _swift_stdlib_mappings[159] = {
+static const __language_uint64_t _language_stdlib_mappings[159] = {
   0x8, 0x604FC04803F, 0x0, 0x270000000, 0x3071000000000000, 0x100, 0x1000000, 0x0, 0x1000, 0x0,
   0x7FFFFFE07FFFFFE, 0x20000000000000, 0xFF7FFFFF7F7FFFFF, 0xFFFF, 0xFDFFFEFFFFFFFFFF,
   0xDFFFFFFFFFFFFFFF, 0xFFF0B3FFF3FFFFFF, 0xFFFFFFFEFFFFFFFF, 0x82FFFF, 0x1ADFFFFFFC0FFFFD,
@@ -1383,7 +1383,7 @@ static const __swift_uint64_t _swift_stdlib_mappings[159] = {
   0xB310000,
 };
 
-static const __swift_uint8_t _swift_stdlib_special_mappings_data[980] = {
+static const __language_uint8_t _language_stdlib_special_mappings_data[980] = {
   0x4, 0xD4, 0xB5, 0xD5, 0x92, 0x0, 0x4, 0xD4, 0xB5, 0xD6, 0x82, 0x5, 0xE1, 0xBC, 0x8E, 0xCE, 0x99,
   0x0, 0x0, 0x4, 0xCE, 0x86, 0xCE, 0x99, 0x0, 0x4, 0xCE, 0x86, 0xCD, 0x85, 0x5, 0xE1, 0xBC, 0xAD,
   0xCE, 0x99, 0x0, 0x0, 0x3, 0xCA, 0xBC, 0x4E, 0x0, 0x3, 0xCA, 0xBC, 0x4E, 0x3, 0x48, 0xCC, 0xB1,
@@ -1444,7 +1444,7 @@ static const __swift_uint8_t _swift_stdlib_special_mappings_data[980] = {
   0xBF, 0xBA, 0xCE, 0x99, 0x0, 0x5, 0xE1, 0xBF, 0xBA, 0xCD, 0x85,
 };
 
-static const __swift_uint16_t _swift_stdlib_special_mappings_data_indices[103] = {
+static const __language_uint16_t _language_stdlib_special_mappings_data_indices[103] = {
   0x237, 0x9D, 0x26, 0x2A4, 0xA3, 0x27B, 0x0, 0x2F, 0x7D, 0x3BE, 0x338, 0x2D7, 0xCA, 0x321, 0x123,
   0x2B8, 0x169, 0x3B6, 0x28A, 0x75, 0x247, 0x38, 0xB, 0x2FE, 0x306, 0x210, 0x1F0, 0x2CF, 0x330,
   0x1CA, 0x178, 0x370, 0x378, 0x25E, 0xC2, 0x380, 0x228, 0x358, 0x1D9, 0x273, 0x144, 0x2EF, 0x218,
@@ -1455,20 +1455,20 @@ static const __swift_uint16_t _swift_stdlib_special_mappings_data_indices[103] =
   0x48, 0xDC, 0x132, 0x6A,
 };
 
-static const __swift_uint16_t _swift_stdlib_special_mappings_ranks[44] = {
+static const __language_uint16_t _language_stdlib_special_mappings_ranks[44] = {
   0x0, 0x7, 0x7, 0x7, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x2, 0x2, 0x2, 0x3, 0x0, 0x0, 0x1, 0x2, 0x2,
   0x0, 0x1, 0x1, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x5, 0x0, 0x0, 0x0, 0x14, 0x40, 0x0, 0xB, 0xB, 0xB,
   0xB, 0x0, 0x0, 0xC, 0xC, 0xC,
 };
 
-static const __swift_uint64_t _swift_stdlib_special_mappings[45] = {
+static const __language_uint64_t _language_stdlib_special_mappings[45] = {
   0x4, 0x7000002B, 0x0, 0x0, 0x100000000000, 0x0, 0x0, 0x0, 0x80000000, 0x0, 0x200000100000000, 0x0,
   0x0, 0x100000000, 0x10000, 0x0, 0x100000000, 0x1, 0x0, 0x40000, 0x80000000000000, 0x0, 0x0, 0x0,
   0x60000, 0x0, 0x0, 0x0, 0x7C00000, 0x70000, 0x0, 0x0, 0xFFFF000000000055, 0x10DC10DCFFFFFFFF,
   0xC00CC, 0x10DC00DC, 0x0, 0x0, 0x0, 0x500000, 0x0, 0xF8007F, 0x0, 0x0, 0x5B0000,
 };
 
-static const __swift_uint8_t _swift_stdlib_words[81988] = {
+static const __language_uint8_t _language_stdlib_words[81988] = {
   0x4C, 0x45, 0x54, 0x54, 0x45, 0xD2, 0x53, 0x49, 0x47, 0xCE, 0x57, 0x49, 0x54, 0xC8, 0x53, 0x4D,
   0x41, 0x4C, 0xCC, 0x53, 0x59, 0x4C, 0x4C, 0x41, 0x42, 0x4C, 0xC5, 0x43, 0x41, 0x50, 0x49, 0x54,
   0x41, 0xCC, 0x48, 0x49, 0x45, 0x52, 0x4F, 0x47, 0x4C, 0x59, 0x50, 0xC8, 0x4C, 0x41, 0x54, 0x49,
@@ -6596,7 +6596,7 @@ static const __swift_uint8_t _swift_stdlib_words[81988] = {
   0x4E, 0x4A, 0x49, 0xD0,
 };
 
-static const __swift_uint32_t _swift_stdlib_word_indices[13293] = {
+static const __language_uint32_t _language_stdlib_word_indices[13293] = {
   0x0, 0x6, 0xA, 0xE, 0x13, 0x1B, 0x22, 0x2C, 0x31, 0x37, 0x39, 0x42, 0x48, 0x54, 0x5C, 0x61, 0x66,
   0x6A, 0x70, 0x79, 0x81, 0x82, 0x8D, 0x92, 0x97, 0x9A, 0x9F, 0xA4, 0xA8, 0xB1, 0xB5, 0xBB, 0xC1,
   0xC7, 0xD0, 0xD8, 0xDD, 0xE5, 0xEC, 0xF4, 0xF9, 0xFC, 0x101, 0x104, 0x10A, 0x10E, 0x114, 0x117,
@@ -7719,7 +7719,7 @@ static const __swift_uint32_t _swift_stdlib_word_indices[13293] = {
 
 #define NAMES_LAST_SCALAR_OFFSET 227060
 
-static const __swift_uint8_t _swift_stdlib_names[227060] = {
+static const __language_uint8_t _language_stdlib_names[227060] = {
   0xFF, 0xBF, 0x2, 0xFF, 0x8D, 0x2, 0x2C, 0xFF, 0x52, 0x2, 0x2C, 0x1F, 0x1, 0xFF, 0x3F, 0x5, 0x1,
   0xFF, 0xBB, 0x6, 0x1, 0xFF, 0xEC, 0x4, 0xFF, 0x83, 0x4, 0x1D, 0xFF, 0xCF, 0x1, 0x1A, 0xFF, 0xCF,
   0x1, 0xFF, 0xCD, 0x1, 0x69, 0x1, 0xFF, 0x78, 0x1, 0xFF, 0x6D, 0x7, 0xFF, 0xA4, 0x1, 0xFF, 0x32,
@@ -21024,7 +21024,7 @@ static const __swift_uint8_t _swift_stdlib_names[227060] = {
 
 #define NAMES_SCALARS_MAX_INDEX 41215
 
-static const __swift_uint32_t _swift_stdlib_names_scalars[41216] = {
+static const __language_uint32_t _language_stdlib_names_scalars[41216] = {
   0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
   0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x7, 0xB, 0xD, 0x11,
   0x15, 0x18, 0x1B, 0x1F, 0x23, 0x26, 0x28, 0x2B, 0x2E, 0x34, 0x37, 0x39, 0x3B, 0x3D, 0x3F, 0x41,
@@ -24425,7 +24425,7 @@ static const __swift_uint32_t _swift_stdlib_names_scalars[41216] = {
   0x376E3, 0x376E8, 0x376EE, 0x376F0,
 };
 
-static const __swift_uint16_t _swift_stdlib_names_scalar_sets[8704] = {
+static const __language_uint16_t _language_stdlib_names_scalar_sets[8704] = {
   0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12,
   0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22,
   0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
@@ -25150,12 +25150,12 @@ static const __swift_uint16_t _swift_stdlib_names_scalar_sets[8704] = {
 
 #define AGE_COUNT 1741
 
-static const __swift_uint16_t _swift_stdlib_ages_data[27] = {
+static const __language_uint16_t _language_stdlib_ages_data[27] = {
   0x104, 0x8, 0x6, 0x205, 0xC, 0x103, 0x10F, 0x203, 0x9, 0xE, 0xF, 0xA, 0x10, 0xB, 0x105, 0x3,
   0x10C, 0x101, 0x206, 0x5, 0x106, 0x102, 0x4, 0x306, 0x2, 0x7, 0xD,
 };
 
-static const __swift_uint64_t _swift_stdlib_ages[1741] = {
+static const __language_uint64_t _language_stdlib_ages[1741] = {
   0x1F502200000, 0x301E001F6, 0x1D022001FA, 0x701E00218, 0xE00220, 0x2C00221, 0x1101E00222,
   0x202C00234, 0xA00000237, 0xD02600242, 0x5802200250, 0x401E002A9, 0x102C002AE, 0x2E022002B0,
   0x1E002DF, 0x9022002E0, 0x401E002EA, 0x1002C002EF, 0x4502200300, 0x801E00346, 0xE0034F,
@@ -25398,7 +25398,7 @@ static const __swift_uint64_t _swift_stdlib_ages[1741] = {
 
 #define GENERAL_CATEGORY_COUNT 4099
 
-static const __swift_uint64_t _swift_stdlib_generalCategory[4099] = {
+static const __language_uint64_t _language_stdlib_generalCategory[4099] = {
   0x1F03200000, 0x2C00020, 0x202200021, 0x2600024, 0x202200025, 0x1A00028, 0x1C00029, 0x220002A,
   0x240002B, 0x220002C, 0x180002D, 0x10220002E, 0x901000030, 0x10220003A, 0x20240003C, 0x10220003F,
   0x1900000041, 0x1A0005B, 0x220005C, 0x1C0005D, 0x280005E, 0x160005F, 0x2800060, 0x1900200061,

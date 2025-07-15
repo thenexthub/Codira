@@ -1,4 +1,4 @@
-//===--- Overrides.cpp - Compat override table for Swift 5.6 runtime ------===//
+//===--- Overrides.cpp - Compat override table for Codira 5.6 runtime ------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file provides compatibility override hooks for Swift 5.6 runtimes.
+//  This file provides compatibility override hooks for Codira 5.6 runtimes.
 //
 //===----------------------------------------------------------------------===//
 
@@ -45,19 +46,19 @@ struct ConcurrencyOverrideSection {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-designated-field-initializers"
 __attribute__((visibility("hidden")))
-ConcurrencyOverrideSection Swift56ConcurrencyOverrides
+ConcurrencyOverrideSection Codira56ConcurrencyOverrides
 __attribute__((used, section("__DATA,__s_async_hook"))) = {
   .version = 0,
 #if __POINTER_WIDTH__ == 64
-  .task_create_common = swift56override_swift_task_create_common,
+  .task_create_common = language56override_language_task_create_common,
 #endif
-  .task_future_wait = swift56override_swift_task_future_wait,
-  .task_future_wait_throwing = swift56override_swift_task_future_wait_throwing,
+  .task_future_wait = language56override_language_task_future_wait,
+  .task_future_wait_throwing = language56override_language_task_future_wait_throwing,
 };
 
 __attribute__((visibility("hidden")))
-RuntimeOverrideSection Swift56RuntimeOverrides
-__attribute__((used, section("__DATA,__swift56_hooks"))) = {
+RuntimeOverrideSection Codira56RuntimeOverrides
+__attribute__((used, section("__DATA,__language56_hooks"))) = {
   .version = 0,
 };
 #pragma clang diagnostic pop
@@ -65,4 +66,4 @@ __attribute__((used, section("__DATA,__swift56_hooks"))) = {
 // Allow this library to get force-loaded by autolinking
 __attribute__((weak, visibility("hidden")))
 extern "C"
-char _swift_FORCE_LOAD_$_swiftCompatibility56 = 0;
+char _language_FORCE_LOAD_$_languageCompatibility56 = 0;

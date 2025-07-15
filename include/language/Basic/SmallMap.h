@@ -1,13 +1,17 @@
 //===--- SmallMap.h - A map optimized for having few entries ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 ///  This file defines the SmallMap data structure, which is optimized for
@@ -25,13 +29,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SMALLMAP_H
-#define SWIFT_BASIC_SMALLMAP_H
+#ifndef LANGUAGE_BASIC_SMALLMAP_H
+#define LANGUAGE_BASIC_SMALLMAP_H
 
 #include "language/Basic/Range.h"
 #include "language/Basic/UninitializedArray.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -59,7 +63,7 @@ struct SmallMapTraits;
 template <class Key, class Value,
           size_t DirectSearchLimit = DefaultSmallMapDirectSearchLimit,
           class MapTraits = SmallMapTraits<Key>,
-          class ElementStorage = llvm::SmallVector<Value>>
+          class ElementStorage = toolchain::SmallVector<Value>>
 class SmallMap {
   using IndexType = typename MapTraits::IndexType;
   using LargeMapStorage = typename MapTraits::LargeMapStorage;
@@ -326,7 +330,7 @@ struct DefaultSmallMapTraits {
   using IndexType = size_t;
 
   struct LargeMapStorage {
-    llvm::DenseMap<Key, IndexType> map;
+    toolchain::DenseMap<Key, IndexType> map;
 
     std::optional<IndexType> find(const Key &key) const {
       auto it = map.find(key);

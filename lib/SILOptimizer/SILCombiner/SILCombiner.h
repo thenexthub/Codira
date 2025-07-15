@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A port of LLVM's InstCombiner to SIL. Its main purpose is for performing
@@ -21,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_SILCOMBINER_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_SILCOMBINER_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_SILCOMBINER_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_SILCOMBINER_H
 
 #include "language/Basic/Defer.h"
 #include "language/SIL/BasicBlockUtils.h"
@@ -44,8 +45,8 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -111,7 +112,7 @@ private:
 
   // The tracking list is used by `Builder` for newly added
   // instructions, which we will periodically move to our worklist.
-  llvm::SmallVector<SILInstruction *, 64> TrackingList;
+  toolchain::SmallVector<SILInstruction *, 64> TrackingList;
 
 public:
   /// Builder used to insert instructions.
@@ -130,8 +131,8 @@ private:
   /// External context struct used by \see ownershipRAUWHelper.
   OwnershipFixupContext ownershipFixupContext;
   
-  /// For invoking Swift instruction passes.
-  SwiftPassInvocation swiftPassInvocation;
+  /// For invoking Codira instruction passes.
+  CodiraPassInvocation languagePassInvocation;
 
 public:
   SILCombiner(SILFunctionTransform *parentTransform,
@@ -174,10 +175,10 @@ public:
   /// });
   ///
   /// Since this is meant to be just be syntactic, we always inline this method.
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   SingleValueInstruction *
   withBuilder(SILInstruction *insertPt,
-              llvm::function_ref<SingleValueInstruction * (SILBuilder &, SILLocation)> visitor) {
+              toolchain::function_ref<SingleValueInstruction * (SILBuilder &, SILLocation)> visitor) {
     SILBuilderWithScope builder(insertPt, Builder);
     return visitor(builder, insertPt->getLoc());
   }
@@ -223,8 +224,10 @@ public:
   // by this method.
   SILInstruction *eraseInstFromFunction(SILInstruction &I,
                                         SILBasicBlock::iterator &InstIter,
-                                        bool AddOperandsToWorklist = true) {
-    Worklist.eraseInstFromFunction(I, InstIter, AddOperandsToWorklist);
+                                        bool AddOperandsToWorklist = true,
+                                        bool salvageDebugInfo = true) {
+    Worklist.eraseInstFromFunction(I, InstIter, AddOperandsToWorklist,
+                                   salvageDebugInfo);
     MadeChange = true;
     // Dummy return, so the caller doesn't need to explicitly return nullptr.
     return nullptr;
@@ -235,9 +238,10 @@ public:
   void eraseInstIncludingUsers(SILInstruction *inst);
 
   SILInstruction *eraseInstFromFunction(SILInstruction &I,
-                                        bool AddOperandsToWorklist = true) {
+                                        bool AddOperandsToWorklist = true,
+                                        bool salvageDebugInfo = true) {
     SILBasicBlock::iterator nullIter;
-    return eraseInstFromFunction(I, nullIter, AddOperandsToWorklist);
+    return eraseInstFromFunction(I, nullIter, AddOperandsToWorklist, salvageDebugInfo);
   }
 
   void addInitialGroup(ArrayRef<SILInstruction *> List) {
@@ -263,7 +267,6 @@ public:
   bool optimizeStackAllocatedEnum(AllocStackInst *AS);
   SILInstruction *visitSwitchEnumAddrInst(SwitchEnumAddrInst *SEAI);
   SILInstruction *visitInjectEnumAddrInst(InjectEnumAddrInst *IEAI);
-  SILInstruction *visitUncheckedAddrCastInst(UncheckedAddrCastInst *UADCI);
   SILInstruction *visitUncheckedRefCastInst(UncheckedRefCastInst *URCI);
   SILInstruction *visitEndCOWMutationInst(EndCOWMutationInst *URCI);
   SILInstruction *visitUncheckedRefCastAddrInst(UncheckedRefCastAddrInst *URCI);
@@ -292,8 +295,6 @@ public:
   SILInstruction *visitUnreachableInst(UnreachableInst *UI);
   SILInstruction *visitAllocRefDynamicInst(AllocRefDynamicInst *ARDI);
       
-  SILInstruction *visitMarkDependenceInst(MarkDependenceInst *MDI);
-  SILInstruction *visitMarkDependenceAddrInst(MarkDependenceAddrInst *MDI);
   SILInstruction *visitConvertFunctionInst(ConvertFunctionInst *CFI);
   SILInstruction *
   visitConvertEscapeToNoEscapeInst(ConvertEscapeToNoEscapeInst *Cvt);
@@ -385,7 +386,7 @@ private:
   // arguments of an apply instruction.
   void buildConcreteOpenedExistentialInfos(
       FullApplySite Apply,
-      llvm::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COEIs,
+      toolchain::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COEIs,
       SILBuilderContext &BuilderCtx);
 
   bool canReplaceArg(FullApplySite Apply, const OpenedArchetypeInfo &OAI,
@@ -395,7 +396,7 @@ private:
 
   SILInstruction *createApplyWithConcreteType(
       FullApplySite Apply,
-      const llvm::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COEIs,
+      const toolchain::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COEIs,
       SILBuilderContext &BuilderCtx);
 
   // Common utility function to replace the WitnessMethodInst using a
@@ -447,7 +448,7 @@ private:
     return Builder.hasOwnership();
   }
   
-  void runSwiftInstructionPass(SILInstruction *inst,
+  void runCodiraInstructionPass(SILInstruction *inst,
                                void (*runFunction)(BridgedInstructionPassCtxt));
 
 };

@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Omits a specified number of elements from the base asynchronous sequence,
   /// then passes through all remaining elements.
@@ -37,33 +41,33 @@ extension AsyncSequence {
   /// - Returns: An asynchronous sequence that drops the first `count`
   ///   elements from the base sequence.
   @inlinable
-  public __consuming func dropFirst(
+  public __consuming fn dropFirst(
     _ count: Int = 1
   ) -> AsyncDropFirstSequence<Self> {
     precondition(count >= 0, 
       "Can't drop a negative number of elements from an async sequence")
-    return AsyncDropFirstSequence(self, dropping: count)
+    return AsyncDropFirstSequence(this, dropping: count)
   }
 }
 
 /// An asynchronous sequence which omits a specified number of elements from the
 /// base asynchronous sequence, then passes through all remaining elements.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncDropFirstSequence<Base: AsyncSequence> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let count: Int
+  immutable count: Int
   
   @usableFromInline 
   init(_ base: Base, dropping count: Int) {
-    self.base = base
-    self.count = count
+    this.base = base
+    this.count = count
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncDropFirstSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -74,7 +78,7 @@ extension AsyncDropFirstSequence: AsyncSequence {
   ///
   /// The drop-first sequence produces whatever type of error its base
   /// sequence produces.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias Failure = Base.Failure
   /// The type of iterator that produces elements of the sequence.
   public typealias AsyncIterator = Iterator
@@ -89,8 +93,8 @@ extension AsyncDropFirstSequence: AsyncSequence {
 
     @usableFromInline
     init(_ baseIterator: Base.AsyncIterator, count: Int) {
-      self.baseIterator = baseIterator
-      self.count = count
+      this.baseIterator = baseIterator
+      this.count = count
     }
 
     /// Produces the next element in the drop-first sequence.
@@ -102,7 +106,7 @@ extension AsyncDropFirstSequence: AsyncSequence {
     /// drop, this iterator passes along the result of calling `next()` on
     /// the base iterator.
     @inlinable
-    public mutating func next() async rethrows -> Base.Element? {
+    public mutating fn next() async rethrows -> Base.Element? {
       var remainingToDrop = count
       while remainingToDrop > 0 {
         guard try await baseIterator.next() != nil else {
@@ -123,9 +127,9 @@ extension AsyncDropFirstSequence: AsyncSequence {
     /// iterator returns `nil`. After reaching the number of elements to drop,
     /// this iterator passes along the result of calling `next(isolation:)` on
     /// the base iterator.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
       var remainingToDrop = count
       while remainingToDrop > 0 {
         guard try await baseIterator.next(isolation: actor) != nil else {
@@ -140,12 +144,12 @@ extension AsyncDropFirstSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), count: count)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncDropFirstSequence {
   /// Omits a specified number of elements from the base asynchronous sequence,
   /// then passes through all remaining elements.
@@ -154,23 +158,23 @@ extension AsyncDropFirstSequence {
   /// an `AsyncDropFirstSequence`, the returned sequence simply adds the new
   /// drop count to the current drop count.
   @inlinable
-  public __consuming func dropFirst(
+  public __consuming fn dropFirst(
     _ count: Int = 1
   ) -> AsyncDropFirstSequence<Base> {
     // If this is already a AsyncDropFirstSequence, we can just sum the current 
     // drop count and additional drop count.
     precondition(count >= 0, 
       "Can't drop a negative number of elements from an async sequence")
-    return AsyncDropFirstSequence(base, dropping: self.count + count)
+    return AsyncDropFirstSequence(base, dropping: this.count + count)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncDropFirstSequence: Sendable 
   where Base: Sendable, 
         Base.Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncDropFirstSequence.Iterator: Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable { }

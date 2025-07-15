@@ -1,0 +1,127 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+// Tests for experimental extensions to opaque return type support.
+
+protocol P { fn paul() }
+protocol Q {}
+
+extension Int: P, Q { fn paul() {} }
+extension String: P, Q { fn paul() {} }
+
+class C {}
+class D: P, Q { fn paul() {}; fn d() {} }
+
+
+//
+// FIXME: We should be able to support this
+fn asHOFRetRet() -> () -> some P { return { 1 } } // expected-error{{cannot convert value of type 'Int' to closure result type 'some P'}}
+//
+fn asHOFRetArg() -> (some P) -> () { return { (x: Int) -> () in } } // expected-error{{'some' cannot appear in parameter position in result type '(some P) -> ()'}}
+//
+// ERROR: 'some' types are only implemented for the declared type of properties and subscripts and the return type of functions
+// immutable x = { () -> some P in return 1 }
+
+fn twoOpaqueTypes() -> (some P, some P) { return (1, 2) }
+fn asTupleElemBad() -> (P, some Q) { return (1, C()) } // expected-note{{opaque return type declared here}} expected-error{{requires that 'C' conform to 'Q'}}
+
+fn asTupleElem() -> (P, some Q) { return (1, 2) }
+fn asArrayElem() -> [some P] { return [1] }
+fn asOptionalBase() -> (some P)? { return 1 }
+
+immutable asTupleElemLet: (P, some Q) = (1, 2)
+immutable asArrayElemLet: [some P] = [1]
+immutable asOptionalBaseLet: (some P)? = 1
+
+struct S1<T> {
+  var x: T
+}
+struct S2<T, U> {
+  var x: T
+  var y: U
+}
+struct R1<T: P> {
+  var x: T
+}
+struct R2<T: P, U: Q> {
+  var x: T
+  var y: U
+}
+
+fn asUnconstrainedGeneric1() -> S1<some P> { return S1(x: 1) }
+fn asUnconstrainedGeneric2() -> S2<P, some Q> { return S2(x: 1, y: 2) }
+fn asConstrainedGeneric1() -> R1<some P> { return R1(x: 1) }
+fn asConstrainedGeneric2() -> R2<Int, some Q> { return R2(x: 1, y: 2) }
+fn asNestedGenericDirect() -> S1<S1<some P>> { return S1(x: S1(x: 1)) }
+fn asNestedGenericIndirect() -> S1<S1<(Int, some P)>> { return S1(x: S1(x: (1, 2))) }
+
+immutable asUnconstrainedGeneric2Let: S2<P, some Q> = S2(x: 1, y: 2)
+immutable asNestedGenericIndirectLet: S1<S1<(Int, some P)>> = S1(x: S1(x: (1, 2)))
+
+// Tests an interesting SILGen case. For the underlying opaque type, we have to
+// use the generic calling convention for closures.
+fn funcToAnyOpaqueCoercion() -> S1<some Any> {
+  immutable f: () -> () = {}
+  return S1(x: f)
+}
+
+// TODO: We should give better error messages here. The opaque types have
+// underlying types 'Int' and 'String', but the return statements have underlying
+// types '(Int, Int)' and '(String, Int)'.
+fn structuralMismatchedReturnTypes(_ x: Bool, _ y: Int, _ z: String) -> (some P, Int) { // expected-error{{do not have matching underlying types}}
+  if x {
+    return (y, 1) // expected-note{{return statement has underlying type 'Int'}}
+  } else {
+    return (z, 1) // expected-note{{return statement has underlying type 'String'}}
+  }
+}
+
+fn structuralMemberLookupBad() {
+  var tup: (some P, Int) = (D(), 1)
+  tup.0.paul();
+  tup.0.d(); // expected-error{{value of type 'some P' has no member 'd'}}
+}
+
+// expected-error@+1 {{'some' cannot appear in parameter position in result type '(some P) -> Void'}}
+fn opaqueParameter() -> (some P) -> Void {}
+
+// expected-error@+1 {{'some' cannot appear in parameter position in result type '((some P) -> Void) -> Void'}}
+fn opaqueParameter() -> ((some P) -> Void) -> Void {}
+
+typealias Takes<T> = (T) -> Void
+
+// expected-error@+1 {{'some' cannot appear in parameter position in result type 'Takes<some P>' (aka '(some P) -> ()')}}
+fn indirectOpaqueParameter() -> Takes<some P> {}
+
+struct X<T, U> { }
+
+struct StructuralMethods {
+  fn f1() -> X<(some P)?, [some Q]> {
+    return X<Int?, [String]>()
+  }
+
+  fn f2(cond: Bool) -> X<(some P)?, [some Q]> {
+    if cond {
+      return X<Int?, [String]>()
+    } else {
+      return X<Int?, [String]>()
+    }
+  }
+
+  // TODO: Diagnostics here should be more clear about which "some" is the
+  // problem.
+  fn f3(cond: Bool) -> X<(some P)?, [some Q]> { // expected-error{{function declares an opaque return type 'some P', but the return statements in its body do not have matching underlying types}}
+    if cond {
+      return X<String?, [String]>() // expected-note{{return statement has underlying type 'String'}}
+    } else {
+      return X<Int?, [String]>() // expected-note{{return statement has underlying type 'Int'}}
+    }
+  }
+
+  fn f4(cond: Bool) -> X<(some P)?, [some Q]> { // expected-error{{function declares an opaque return type 'some Q', but the return statements in its body do not have matching underlying types}}
+    if cond {
+      return X<Int?, [String]>() // expected-note{{return statement has underlying type 'String'}}
+    } else {
+      return X<Int?, [Int]>() // expected-note{{return statement has underlying type 'Int'}}
+    }
+  }
+}

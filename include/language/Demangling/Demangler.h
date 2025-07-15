@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file is the compiler-private API of the demangler.
-// It should only be used within the swift compiler or runtime library, but not
+// It should only be used within the language compiler or runtime library, but not
 // by external tools which use the demangler library (like lldb).
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_DEMANGLER_H
-#define SWIFT_DEMANGLING_DEMANGLER_H
+#ifndef LANGUAGE_DEMANGLING_DEMANGLER_H
+#define LANGUAGE_DEMANGLING_DEMANGLER_H
 
 #include "language/Demangling/Demangle.h"
 #include "language/Demangling/ManglingFlavor.h"
@@ -29,11 +30,11 @@
 //#define NODE_FACTORY_DEBUGGING
 
 using namespace language::Demangle;
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace language {
 namespace Demangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 class CharVector;
   
@@ -256,12 +257,12 @@ public:
   ///
   /// The \p Text string must be already allocated with the Factory and therefore
   /// it is _not_ copied.
-  NodePointer createNodeWithAllocatedText(Node::Kind K, llvm::StringRef Text);
+  NodePointer createNodeWithAllocatedText(Node::Kind K, toolchain::StringRef Text);
 
   /// Creates a node of kind \p K with a \p Text payload.
   ///
   /// The \p Text string is copied.
-  NodePointer createNode(Node::Kind K, llvm::StringRef Text) {
+  NodePointer createNode(Node::Kind K, toolchain::StringRef Text) {
     return createNodeWithAllocatedText(K, Text.copy(*this));
   }
 
@@ -541,7 +542,7 @@ protected:
 
   NodePointer demangleMultiSubstitutions();
   NodePointer pushMultiSubstitutions(int RepeatCount, size_t SubstIdx);
-  NodePointer createSwiftType(Node::Kind typeKind, const char *name);
+  NodePointer createCodiraType(Node::Kind typeKind, const char *name);
   NodePointer demangleStandardSubstitution();
   NodePointer createStandardSubstitution(char Subst, bool SecondLevel);
   NodePointer demangleLocalIdentifier();
@@ -573,6 +574,8 @@ protected:
   NodePointer demangleImplParamConvention(Node::Kind ConvKind);
   NodePointer demangleImplResultConvention(Node::Kind ConvKind);
   NodePointer demangleImplParameterSending();
+  NodePointer demangleImplParameterIsolated();
+  NodePointer demangleImplParameterImplicitLeading();
   NodePointer demangleImplParameterResultDifferentiability();
   NodePointer demangleImplFunctionType();
   NodePointer demangleClangType();
@@ -698,8 +701,8 @@ public:
 
 NodePointer demangleOldSymbolAsNode(StringRef MangledName,
                                     NodeFactory &Factory);
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Demangle
 } // end namespace language
 
-#endif // SWIFT_DEMANGLING_DEMANGLER_H
+#endif // LANGUAGE_DEMANGLING_DEMANGLER_H

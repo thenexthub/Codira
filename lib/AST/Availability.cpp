@@ -1,4 +1,4 @@
-//===--- Availability.cpp - Swift Availability Structures -----------------===//
+//===--- Availability.cpp - Codira Availability Structures -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines data structures for API availability.
@@ -29,7 +30,7 @@
 // FIXME: [availability] Remove this when possible
 #include "language/AST/DiagnosticsParse.h"
 #include "language/AST/DiagnosticsSema.h"
-#include "language/AST/PlatformKind.h"
+#include "language/AST/PlatformKindUtils.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/AST/TypeWalker.h"
 #include "language/AST/Types.h"
@@ -40,7 +41,7 @@
 
 using namespace language;
 
-void VersionRange::Profile(llvm::FoldingSetNodeID &id) const {
+void VersionRange::Profile(toolchain::FoldingSetNodeID &id) const {
   id.AddBoolean(hasLowerEndpoint());
   if (!hasLowerEndpoint()) {
     id.AddBoolean(isAll());
@@ -80,9 +81,9 @@ namespace {
 struct InferredAvailability {
   AvailableAttr::Kind Kind = AvailableAttr::Kind::Default;
 
-  std::optional<llvm::VersionTuple> Introduced;
-  std::optional<llvm::VersionTuple> Deprecated;
-  std::optional<llvm::VersionTuple> Obsoleted;
+  std::optional<toolchain::VersionTuple> Introduced;
+  std::optional<toolchain::VersionTuple> Deprecated;
+  std::optional<toolchain::VersionTuple> Obsoleted;
 
   StringRef Message;
   StringRef Rename;
@@ -90,16 +91,16 @@ struct InferredAvailability {
 };
 
 /// The type of a function that merges two version tuples.
-typedef const llvm::VersionTuple &(*MergeFunction)(
-    const llvm::VersionTuple &, const llvm::VersionTuple &);
+typedef const toolchain::VersionTuple &(*MergeFunction)(
+    const toolchain::VersionTuple &, const toolchain::VersionTuple &);
 
 } // end anonymous namespace
 
 /// Apply a merge function to two optional versions, returning the result
 /// in Inferred.
 static bool
-mergeIntoInferredVersion(const std::optional<llvm::VersionTuple> &Version,
-                         std::optional<llvm::VersionTuple> &Inferred,
+mergeIntoInferredVersion(const std::optional<toolchain::VersionTuple> &Version,
+                         std::optional<toolchain::VersionTuple> &Inferred,
                          MergeFunction Merge) {
   if (Version.has_value()) {
     if (Inferred.has_value()) {
@@ -152,12 +153,12 @@ static AvailableAttr *createAvailableAttr(AvailabilityDomain Domain,
       Inferred.Rename.empty())
     return nullptr;
 
-  llvm::VersionTuple Introduced =
-      Inferred.Introduced.value_or(llvm::VersionTuple());
-  llvm::VersionTuple Deprecated =
-      Inferred.Deprecated.value_or(llvm::VersionTuple());
-  llvm::VersionTuple Obsoleted =
-      Inferred.Obsoleted.value_or(llvm::VersionTuple());
+  toolchain::VersionTuple Introduced =
+      Inferred.Introduced.value_or(toolchain::VersionTuple());
+  toolchain::VersionTuple Deprecated =
+      Inferred.Deprecated.value_or(toolchain::VersionTuple());
+  toolchain::VersionTuple Obsoleted =
+      Inferred.Obsoleted.value_or(toolchain::VersionTuple());
 
   return new (Context) AvailableAttr(
       SourceLoc(), SourceRange(), Domain, SourceLoc(), Inferred.Kind,
@@ -176,16 +177,16 @@ void AvailabilityInference::applyInferredAvailableAttrs(
            StableAvailabilityDomainComparator>
       Inferred;
   for (const Decl *D : InferredFromDecls) {
-    llvm::SmallVector<SemanticAvailableAttr, 8> MergedAttrs;
+    toolchain::SmallVector<SemanticAvailableAttr, 8> MergedAttrs;
 
     do {
-      llvm::SmallVector<SemanticAvailableAttr, 8> PendingAttrs;
+      toolchain::SmallVector<SemanticAvailableAttr, 8> PendingAttrs;
 
       for (auto AvAttr : D->getSemanticAvailableAttrs()) {
         // Skip an attribute from an outer declaration if it is for a platform
         // that was already handled implicitly by an attribute from an inner
         // declaration.
-        if (llvm::any_of(MergedAttrs,
+        if (toolchain::any_of(MergedAttrs,
                          [&AvAttr](SemanticAvailableAttr MergedAttr) {
                            return inheritsAvailabilityFromPlatform(
                                AvAttr.getPlatform(), MergedAttr.getPlatform());
@@ -274,11 +275,11 @@ getFallbackVersionMapping(const ASTContext &Ctx,
 
 static std::optional<clang::VersionTuple>
 getRemappedIntroducedVersionForFallbackPlatform(
-    const ASTContext &Ctx, const llvm::VersionTuple &Version) {
+    const ASTContext &Ctx, const toolchain::VersionTuple &Version) {
   const auto *Mapping = getFallbackVersionMapping(
       Ctx, clang::DarwinSDKInfo::OSEnvPair(
-               llvm::Triple::IOS, llvm::Triple::UnknownEnvironment,
-               llvm::Triple::XROS, llvm::Triple::UnknownEnvironment));
+               toolchain::Triple::IOS, toolchain::Triple::UnknownEnvironment,
+               toolchain::Triple::XROS, toolchain::Triple::UnknownEnvironment));
   if (!Mapping)
     return std::nullopt;
   return Mapping->mapIntroducedAvailabilityVersion(Version);
@@ -286,11 +287,11 @@ getRemappedIntroducedVersionForFallbackPlatform(
 
 static std::optional<clang::VersionTuple>
 getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
-    const ASTContext &Ctx, const llvm::VersionTuple &Version) {
+    const ASTContext &Ctx, const toolchain::VersionTuple &Version) {
   const auto *Mapping = getFallbackVersionMapping(
       Ctx, clang::DarwinSDKInfo::OSEnvPair(
-               llvm::Triple::IOS, llvm::Triple::UnknownEnvironment,
-               llvm::Triple::XROS, llvm::Triple::UnknownEnvironment));
+               toolchain::Triple::IOS, toolchain::Triple::UnknownEnvironment,
+               toolchain::Triple::XROS, toolchain::Triple::UnknownEnvironment));
   if (!Mapping)
     return std::nullopt;
   return Mapping->mapDeprecatedObsoletedAvailabilityVersion(Version);
@@ -298,86 +299,88 @@ getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
 
 bool AvailabilityInference::updateIntroducedAvailabilityDomainForFallback(
     const SemanticAvailableAttr &attr, const ASTContext &ctx,
-    AvailabilityDomain &domain, llvm::VersionTuple &platformVer) {
-  std::optional<llvm::VersionTuple> introducedVersion = attr.getIntroduced();
-  if (attr.getPlatform() == PlatformKind::iOS &&
-      introducedVersion.has_value() &&
-      isPlatformActive(PlatformKind::visionOS, ctx.LangOpts)) {
-    // We re-map the iOS introduced version to the corresponding visionOS version
-    auto potentiallyRemappedIntroducedVersion =
-        getRemappedIntroducedVersionForFallbackPlatform(ctx,
-                                                        *introducedVersion);
-    if (potentiallyRemappedIntroducedVersion.has_value()) {
-      domain = AvailabilityDomain::forPlatform(PlatformKind::visionOS);
-      platformVer = potentiallyRemappedIntroducedVersion.value();
-      return true;
-    }
+    AvailabilityDomain &domain, toolchain::VersionTuple &platformVer) {
+  std::optional<toolchain::VersionTuple> introducedVersion = attr.getIntroduced();
+  if (!introducedVersion.has_value())
+    return false;
+
+  bool hasRemap = false;
+  auto remappedDomain = attr.getDomain().getRemappedDomain(ctx, hasRemap);
+  if (!hasRemap)
+    return false;
+
+  auto potentiallyRemappedIntroducedVersion =
+      getRemappedIntroducedVersionForFallbackPlatform(ctx, *introducedVersion);
+  if (potentiallyRemappedIntroducedVersion.has_value()) {
+    domain = remappedDomain;
+    platformVer = potentiallyRemappedIntroducedVersion.value();
+    return true;
   }
   return false;
 }
 
 bool AvailabilityInference::updateDeprecatedAvailabilityDomainForFallback(
     const SemanticAvailableAttr &attr, const ASTContext &ctx,
-    AvailabilityDomain &domain, llvm::VersionTuple &platformVer) {
-  std::optional<llvm::VersionTuple> deprecatedVersion = attr.getDeprecated();
-  if (attr.getPlatform() == PlatformKind::iOS &&
-      deprecatedVersion.has_value() &&
-      isPlatformActive(PlatformKind::visionOS, ctx.LangOpts)) {
-    // We re-map the iOS deprecated version to the corresponding visionOS version
-    auto potentiallyRemappedDeprecatedVersion =
-        getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
-            ctx, *deprecatedVersion);
-    if (potentiallyRemappedDeprecatedVersion.has_value()) {
-      domain = AvailabilityDomain::forPlatform(PlatformKind::visionOS);
-      platformVer = potentiallyRemappedDeprecatedVersion.value();
-      return true;
-    }
+    AvailabilityDomain &domain, toolchain::VersionTuple &platformVer) {
+  std::optional<toolchain::VersionTuple> deprecatedVersion = attr.getDeprecated();
+  if (!deprecatedVersion.has_value())
+    return false;
+
+  bool hasRemap = false;
+  auto remappedDomain = attr.getDomain().getRemappedDomain(ctx, hasRemap);
+  if (!hasRemap)
+    return false;
+
+  auto potentiallyRemappedDeprecatedVersion =
+      getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
+          ctx, *deprecatedVersion);
+  if (potentiallyRemappedDeprecatedVersion.has_value()) {
+    domain = remappedDomain;
+    platformVer = potentiallyRemappedDeprecatedVersion.value();
+    return true;
   }
   return false;
 }
 
 bool AvailabilityInference::updateObsoletedAvailabilityDomainForFallback(
     const SemanticAvailableAttr &attr, const ASTContext &ctx,
-    AvailabilityDomain &domain, llvm::VersionTuple &platformVer) {
-  std::optional<llvm::VersionTuple> obsoletedVersion = attr.getObsoleted();
-  if (attr.getPlatform() == PlatformKind::iOS && obsoletedVersion.has_value() &&
-      isPlatformActive(PlatformKind::visionOS, ctx.LangOpts)) {
-    // We re-map the iOS obsoleted version to the corresponding visionOS version
-    auto potentiallyRemappedObsoletedVersion =
-        getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
-            ctx, *obsoletedVersion);
-    if (potentiallyRemappedObsoletedVersion.has_value()) {
-      domain = AvailabilityDomain::forPlatform(PlatformKind::visionOS);
-      platformVer = potentiallyRemappedObsoletedVersion.value();
-      return true;
-    }
+    AvailabilityDomain &domain, toolchain::VersionTuple &platformVer) {
+  std::optional<toolchain::VersionTuple> obsoletedVersion = attr.getObsoleted();
+  if (!obsoletedVersion.has_value())
+    return false;
+
+  bool hasRemap = false;
+  auto remappedDomain = attr.getDomain().getRemappedDomain(ctx, hasRemap);
+  if (!hasRemap)
+    return false;
+
+  auto potentiallyRemappedObsoletedVersion =
+      getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
+          ctx, *obsoletedVersion);
+  if (potentiallyRemappedObsoletedVersion.has_value()) {
+    domain = remappedDomain;
+    platformVer = potentiallyRemappedObsoletedVersion.value();
+    return true;
   }
   return false;
 }
 
-void AvailabilityInference::updateAvailabilityDomainForFallback(
-    const SemanticAvailableAttr &attr, const ASTContext &Ctx,
-    AvailabilityDomain &domain) {
-  if (attr.getPlatform() == PlatformKind::iOS &&
-      isPlatformActive(PlatformKind::visionOS, Ctx.LangOpts)) {
-    domain = AvailabilityDomain::forPlatform(PlatformKind::visionOS);
-  }
-}
-
 bool AvailabilityInference::updateBeforeAvailabilityDomainForFallback(
     const BackDeployedAttr *attr, const ASTContext &ctx,
-    AvailabilityDomain &domain, llvm::VersionTuple &platformVer) {
+    AvailabilityDomain &domain, toolchain::VersionTuple &platformVer) {
+  bool hasRemap = false;
+  auto remappedDomain =
+      attr->getAvailabilityDomain().getRemappedDomain(ctx, hasRemap);
+  if (!hasRemap)
+    return false;
+
   auto beforeVersion = attr->Version;
-  if (attr->Platform == PlatformKind::iOS &&
-      isPlatformActive(PlatformKind::visionOS, ctx.LangOpts)) {
-    // We re-map the iOS before version to the corresponding visionOS version
-    auto PotentiallyRemappedIntroducedVersion =
-        getRemappedIntroducedVersionForFallbackPlatform(ctx, beforeVersion);
-    if (PotentiallyRemappedIntroducedVersion.has_value()) {
-      domain = AvailabilityDomain::forPlatform(PlatformKind::visionOS);
-      platformVer = PotentiallyRemappedIntroducedVersion.value();
-      return true;
-    }
+  auto potentiallyRemappedIntroducedVersion =
+      getRemappedIntroducedVersionForFallbackPlatform(ctx, beforeVersion);
+  if (potentiallyRemappedIntroducedVersion.has_value()) {
+    domain = remappedDomain;
+    platformVer = potentiallyRemappedIntroducedVersion.value();
+    return true;
   }
   return false;
 }
@@ -521,10 +524,10 @@ std::optional<SemanticAvailableAttr> Decl::getNoAsyncAttr() const {
   return bestAttr;
 }
 
-bool Decl::isUnavailableInCurrentSwiftVersion() const {
-  llvm::VersionTuple vers = getASTContext().LangOpts.EffectiveLanguageVersion;
+bool Decl::isUnavailableInCurrentCodiraVersion() const {
+  toolchain::VersionTuple vers = getASTContext().LangOpts.EffectiveLanguageVersion;
   for (auto attr : getSemanticAvailableAttrs(/*includingInactive=*/false)) {
-    if (attr.isSwiftLanguageModeSpecific()) {
+    if (attr.isCodiraLanguageModeSpecific()) {
       auto introduced = attr.getIntroduced();
       if (introduced && *introduced > vers)
         return true;
@@ -551,21 +554,21 @@ std::optional<SemanticAvailableAttr> Decl::getUnavailableAttr() const {
 
 /// Returns the mutually exclusive root platform domains that must all be
 /// unavailable in order for a declaration to be unavailable at runtime.
-static llvm::SmallSetVector<AvailabilityDomain, 2>
+static toolchain::SmallSetVector<AvailabilityDomain, 2>
 getRootTargetDomains(const ASTContext &ctx) {
-  llvm::SmallSetVector<AvailabilityDomain, 2> domains;
+  toolchain::SmallSetVector<AvailabilityDomain, 2> domains;
 
   // Regardless of target platform, binaries built for Embedded do not require
   // compatibility.
   if (ctx.LangOpts.hasFeature(Feature::Embedded))
     return domains;
 
-  auto targetPlatform = swift::targetPlatform(ctx.LangOpts);
+  auto targetPlatform = language::targetPlatform(ctx.LangOpts);
   if (targetPlatform != PlatformKind::none)
     domains.insert(
         AvailabilityDomain::forPlatform(targetPlatform).getRootDomain());
 
-  auto targetVariantPlatform = swift::targetVariantPlatform(ctx.LangOpts);
+  auto targetVariantPlatform = language::targetVariantPlatform(ctx.LangOpts);
   if (targetVariantPlatform != PlatformKind::none)
     domains.insert(
         AvailabilityDomain::forPlatform(targetVariantPlatform).getRootDomain());
@@ -631,7 +634,7 @@ computeDeclRuntimeAvailability(const Decl *decl) {
       decl, AvailabilityContext::forInliningTarget(ctx), flags);
 
   // First, collect the unavailable domains from the constraints.
-  llvm::SmallVector<AvailabilityDomain, 8> unavailableDomains;
+  toolchain::SmallVector<AvailabilityDomain, 8> unavailableDomains;
   for (auto constraint : constraints) {
     if (constraintIndicatesRuntimeUnavailability(constraint, ctx))
       unavailableDomains.push_back(constraint.getDomain());
@@ -642,10 +645,10 @@ computeDeclRuntimeAvailability(const Decl *decl) {
   for (auto attr :
        decl->getSemanticAvailableAttrs(/*includingInactive=*/false)) {
     auto domain = attr.getDomain();
-    if (llvm::is_contained(unavailableDomains, domain))
+    if (toolchain::is_contained(unavailableDomains, domain))
       continue;
 
-    llvm::erase_if(unavailableDomains, [domain](auto unavailableDomain) {
+    toolchain::erase_if(unavailableDomains, [domain](auto unavailableDomain) {
       return unavailableDomain.contains(domain);
     });
   }
@@ -747,7 +750,7 @@ bool Decl::requiresUnavailableDeclABICompatibilityStubs() const {
 }
 
 AvailabilityRange AvailabilityInference::annotatedAvailableRangeForAttr(
-    const Decl *D, const SpecializeAttr *attr, ASTContext &ctx) {
+    const Decl *D, const AbstractSpecializeAttr *attr, ASTContext &ctx) {
   std::optional<SemanticAvailableAttr> bestAvailAttr;
 
   for (auto *availAttr : attr->getAvailableAttrs()) {
@@ -813,7 +816,7 @@ bool AvailabilityInference::isAvailableAsSPI(const Decl *D) {
 }
 
 std::optional<SemanticAvailableAttr>
-SemanticAvailableAttrRequest::evaluate(swift::Evaluator &evaluator,
+SemanticAvailableAttrRequest::evaluate(language::Evaluator &evaluator,
                                        const AvailableAttr *attr,
                                        const Decl *decl) const {
   if (attr->getDomainOrIdentifier().isDomain())
@@ -831,14 +834,27 @@ SemanticAvailableAttrRequest::evaluate(swift::Evaluator &evaluator,
   if (!domain)
     return std::nullopt;
 
-  auto checkVersion = [&](std::optional<llvm::VersionTuple> version,
+  auto checkVersion = [&](std::optional<toolchain::VersionTuple> version,
                           SourceRange sourceRange) {
-    if (version && !VersionRange::isValidVersion(*version)) {
+    if (!version)
+      return false;
+
+    if (!VersionRange::isValidVersion(*version)) {
       diags
           .diagnose(attrLoc, diag::availability_unsupported_version_number,
                     *version)
           .highlight(sourceRange);
       return true;
+    }
+
+    // Warn if the version is not a valid one for the domain. For example, macOS
+    // 17 will never exist.
+    if (domain->isVersioned() && !domain->isVersionValid(*version)) {
+      diags
+          .diagnose(attrLoc,
+                    diag::availability_invalid_version_number_for_domain,
+                    *version, *domain)
+          .highlight(sourceRange);
     }
 
     return false;
@@ -871,7 +887,7 @@ SemanticAvailableAttrRequest::evaluate(swift::Evaluator &evaluator,
     return std::nullopt;
   }
 
-  if (domain->isSwiftLanguage() || domain->isPackageDescription()) {
+  if (domain->isCodiraLanguage() || domain->isPackageDescription()) {
     switch (attr->getKind()) {
     case AvailableAttr::Kind::Deprecated:
       diags.diagnose(attrLoc,
@@ -910,19 +926,22 @@ SemanticAvailableAttrRequest::evaluate(swift::Evaluator &evaluator,
   return SemanticAvailableAttr(attr);
 }
 
-std::optional<llvm::VersionTuple> SemanticAvailableAttr::getIntroduced() const {
+std::optional<toolchain::VersionTuple> SemanticAvailableAttr::getIntroduced() const {
   if (auto version = attr->getRawIntroduced())
     return canonicalizePlatformVersion(getPlatform(), *version);
   return std::nullopt;
 }
 
-std::optional<AvailabilityRange>
-SemanticAvailableAttr::getIntroducedRange(const ASTContext &Ctx) const {
+std::optional<AvailabilityDomainAndRange>
+SemanticAvailableAttr::getIntroducedDomainAndRange(
+    const ASTContext &Ctx) const {
   auto *attr = getParsedAttr();
+  auto domain = getDomain();
+
   if (!attr->getRawIntroduced().has_value()) {
     // For versioned domains, an "introduced:" version is always required to
     // indicate introduction.
-    if (getDomain().isVersioned())
+    if (domain.isVersioned())
       return std::nullopt;
 
     // For version-less domains, an attribute that does not indicate some other
@@ -930,7 +949,8 @@ SemanticAvailableAttr::getIntroducedRange(const ASTContext &Ctx) const {
     // the decl is available in all versions of the domain.
     switch (attr->getKind()) {
     case AvailableAttr::Kind::Default:
-      return AvailabilityRange::alwaysAvailable();
+      return AvailabilityDomainAndRange(domain.getRemappedDomain(Ctx),
+                                        AvailabilityRange::alwaysAvailable());
     case AvailableAttr::Kind::Deprecated:
     case AvailableAttr::Kind::Unavailable:
     case AvailableAttr::Kind::NoAsync:
@@ -938,67 +958,72 @@ SemanticAvailableAttr::getIntroducedRange(const ASTContext &Ctx) const {
     }
   }
 
-  llvm::VersionTuple introducedVersion = getIntroduced().value();
-  AvailabilityDomain unusedDomain;
-  llvm::VersionTuple remappedVersion;
+  toolchain::VersionTuple introducedVersion = getIntroduced().value();
+  toolchain::VersionTuple remappedVersion;
   if (AvailabilityInference::updateIntroducedAvailabilityDomainForFallback(
-          *this, Ctx, unusedDomain, remappedVersion))
+          *this, Ctx, domain, remappedVersion))
     introducedVersion = remappedVersion;
 
-  return AvailabilityRange{introducedVersion};
+  return AvailabilityDomainAndRange(domain,
+                                    AvailabilityRange{introducedVersion});
 }
 
-std::optional<llvm::VersionTuple> SemanticAvailableAttr::getDeprecated() const {
+std::optional<toolchain::VersionTuple> SemanticAvailableAttr::getDeprecated() const {
   if (auto version = attr->getRawDeprecated())
     return canonicalizePlatformVersion(getPlatform(), *version);
   return std::nullopt;
 }
 
-std::optional<AvailabilityRange>
-SemanticAvailableAttr::getDeprecatedRange(const ASTContext &Ctx) const {
+std::optional<AvailabilityDomainAndRange>
+SemanticAvailableAttr::getDeprecatedDomainAndRange(
+    const ASTContext &Ctx) const {
   auto *attr = getParsedAttr();
+  AvailabilityDomain domain = getDomain();
+
   if (!attr->getRawDeprecated().has_value()) {
     // Regardless of the whether the domain supports versions or not, an
     // unconditional deprecation attribute indicates the decl is always
     // deprecated.
     if (isUnconditionallyDeprecated())
-      return AvailabilityRange::alwaysAvailable();
+      return AvailabilityDomainAndRange(domain.getRemappedDomain(Ctx),
+                                        AvailabilityRange::alwaysAvailable());
 
     return std::nullopt;
   }
 
-  llvm::VersionTuple deprecatedVersion = getDeprecated().value();
-  AvailabilityDomain unusedDomain;
-  llvm::VersionTuple remappedVersion;
+  toolchain::VersionTuple deprecatedVersion = getDeprecated().value();
+  toolchain::VersionTuple remappedVersion;
   if (AvailabilityInference::updateDeprecatedAvailabilityDomainForFallback(
-          *this, Ctx, unusedDomain, remappedVersion))
+          *this, Ctx, domain, remappedVersion))
     deprecatedVersion = remappedVersion;
 
-  return AvailabilityRange{deprecatedVersion};
+  return AvailabilityDomainAndRange(domain,
+                                    AvailabilityRange{deprecatedVersion});
 }
 
-std::optional<llvm::VersionTuple> SemanticAvailableAttr::getObsoleted() const {
+std::optional<toolchain::VersionTuple> SemanticAvailableAttr::getObsoleted() const {
   if (auto version = attr->getRawObsoleted())
     return canonicalizePlatformVersion(getPlatform(), *version);
   return std::nullopt;
 }
 
-std::optional<AvailabilityRange>
-SemanticAvailableAttr::getObsoletedRange(const ASTContext &Ctx) const {
+std::optional<AvailabilityDomainAndRange>
+SemanticAvailableAttr::getObsoletedDomainAndRange(const ASTContext &Ctx) const {
   auto *attr = getParsedAttr();
 
   // Obsoletion always requires a version.
   if (!attr->getRawObsoleted().has_value())
     return std::nullopt;
 
-  llvm::VersionTuple obsoletedVersion = getObsoleted().value();
-  AvailabilityDomain unusedDomain;
-  llvm::VersionTuple remappedVersion;
+  toolchain::VersionTuple obsoletedVersion = getObsoleted().value();
+  AvailabilityDomain domain = getDomain();
+  toolchain::VersionTuple remappedVersion;
   if (AvailabilityInference::updateObsoletedAvailabilityDomainForFallback(
-          *this, Ctx, unusedDomain, remappedVersion))
+          *this, Ctx, domain, remappedVersion))
     obsoletedVersion = remappedVersion;
 
-  return AvailabilityRange{obsoletedVersion};
+  return AvailabilityDomainAndRange(domain,
+                                    AvailabilityRange{obsoletedVersion});
 }
 
 namespace {
@@ -1024,11 +1049,11 @@ AvailabilityRange AvailabilityInference::inferForType(Type t) {
   return walker.AvailabilityInfo;
 }
 
-AvailabilityRange ASTContext::getSwiftFutureAvailability() const {
+AvailabilityRange ASTContext::getCodiraFutureAvailability() const {
   auto target = LangOpts.Target;
 
   auto getFutureAvailabilityRange = []() -> AvailabilityRange {
-    return AvailabilityRange(llvm::VersionTuple(99, 99, 0));
+    return AvailabilityRange(toolchain::VersionTuple(99, 99, 0));
   };
 
   if (target.isMacOSX()) {
@@ -1044,11 +1069,11 @@ AvailabilityRange ASTContext::getSwiftFutureAvailability() const {
   }
 }
 
-AvailabilityRange ASTContext::getSwiftAvailability(unsigned major,
+AvailabilityRange ASTContext::getCodiraAvailability(unsigned major,
                                                    unsigned minor) const {
   auto target = LangOpts.Target;
 
-  // Deal with special cases for Swift 5.3 and lower
+  // Deal with special cases for Codira 5.3 and lower
   if (major == 5 && minor <= 3) {
     if (target.getArchName() == "arm64e")
       return AvailabilityRange::alwaysAvailable();
@@ -1067,9 +1092,9 @@ AvailabilityRange ASTContext::getSwiftAvailability(unsigned major,
 #define END_MAJOR_VERSION(V) } break;
 #define PLATFORM(P, V)                                                         \
   if (IS_PLATFORM(P))                                                          \
-    return AvailabilityRange(VersionRange::allGTE(llvm::VersionTuple V));
+    return AvailabilityRange(VersionRange::allGTE(toolchain::VersionTuple V));
 #define IS_PLATFORM(P) PLATFORM_TEST_##P
-#define FUTURE                  return getSwiftFutureAvailability();
+#define FUTURE                  return getCodiraFutureAvailability();
 #define PLATFORM_TEST_macOS     target.isMacOSX()
 #define PLATFORM_TEST_iOS       target.isiOS()
 #define PLATFORM_TEST_watchOS   target.isWatchOS()
@@ -1094,12 +1119,12 @@ AvailabilityRange ASTContext::getSwiftAvailability(unsigned major,
 
   case 99:
     if (minor == 99)
-      return getSwiftFutureAvailability();
+      return getCodiraFutureAvailability();
     break;
   }
 
-  llvm::report_fatal_error(
-    Twine("Missing runtime version data for Swift ") +
+  toolchain::report_fatal_error(
+    Twine("Missing runtime version data for Codira ") +
     Twine(major) + Twine('.') + Twine(minor));
 }
 
@@ -1107,7 +1132,7 @@ bool ASTContext::supportsVersionedAvailability() const {
   return minimumAvailableOSVersionForTriple(LangOpts.Target).has_value();
 }
 
-bool swift::isExported(const Decl *D) {
+bool language::isExported(const Decl *D) {
   if (auto *VD = dyn_cast<ValueDecl>(D)) {
     return isExported(VD);
   }
@@ -1126,7 +1151,7 @@ bool swift::isExported(const Decl *D) {
   return true;
 }
 
-bool swift::isExported(const ValueDecl *VD) {
+bool language::isExported(const ValueDecl *VD) {
   if (VD->getAttrs().hasAttribute<ImplementationOnlyAttr>())
     return false;
   if (VD->isObjCMemberImplementation())
@@ -1147,7 +1172,7 @@ bool swift::isExported(const ValueDecl *VD) {
   return false;
 }
 
-bool swift::hasConformancesToPublicProtocols(const ExtensionDecl *ED) {
+bool language::hasConformancesToPublicProtocols(const ExtensionDecl *ED) {
   auto nominal = ED->getExtendedNominal();
   if (!nominal)
     return false;
@@ -1168,7 +1193,7 @@ bool swift::hasConformancesToPublicProtocols(const ExtensionDecl *ED) {
   return false;
 }
 
-bool swift::isExported(const ExtensionDecl *ED) {
+bool language::isExported(const ExtensionDecl *ED) {
   // An extension can only be exported if it extends an exported type.
   if (auto *NTD = ED->getExtendedNominal()) {
     if (!isExported(NTD))

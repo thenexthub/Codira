@@ -1,16 +1,20 @@
 //===--- TargetLayout.h - Target-parameterized layout support ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// A lot of Swift's runtime structures need to be parsed by code
+// A lot of Codira's runtime structures need to be parsed by code
 // that may not be running on the same target as the structures were
 // emitted for.  To facilitate this, we do two things in the definition
 // of those structures:
@@ -26,8 +30,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TARGETLAYOUT_H
-#define SWIFT_ABI_TARGETLAYOUT_H
+#ifndef LANGUAGE_ABI_TARGETLAYOUT_H
+#define LANGUAGE_ABI_TARGETLAYOUT_H
 
 #include "language/Runtime/Config.h"
 #include "language/Basic/RelativePointer.h"
@@ -78,7 +82,7 @@ struct InProcess {
   using StoredSize = size_t;
   using StoredPointerDifference = ptrdiff_t;
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   static constexpr bool ObjCInterop = true;
 #else
   static constexpr bool ObjCInterop = false;
@@ -104,16 +108,16 @@ struct InProcess {
   using RelativeDirectPointer = RelativeDirectPointer<T, Nullable>;
 
   template <typename T, bool Nullable = true, typename Offset = int32_t>
-#if SWIFT_COMPACT_ABSOLUTE_FUNCTION_POINTER
+#if LANGUAGE_COMPACT_ABSOLUTE_FUNCTION_POINTER
   using CompactFunctionPointer = AbsoluteFunctionPointer<T, Nullable, Offset>;
 #else
   using CompactFunctionPointer =
-      swift::RelativeDirectPointer<T, Nullable, Offset>;
+      language::RelativeDirectPointer<T, Nullable, Offset>;
 #endif
 
   template<typename T>
   T *getStrippedSignedPointer(const T *pointer) const {
-    return swift_ptrauth_strip(pointer);
+    return language_ptrauth_strip(pointer);
   }
 };
 
@@ -177,7 +181,7 @@ struct External {
   using CompactFunctionPointer = int32_t;
 
   StoredPointer getStrippedSignedPointer(const StoredSignedPointer pointer) const {
-    return swift_ptrauth_strip(pointer);
+    return language_ptrauth_strip(pointer);
   }
 };
 

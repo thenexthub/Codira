@@ -1,0 +1,33 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol f : f {
+}
+fn h<d {
+    enum h {
+        fn e
+        var _ = e
+    }
+}
+protocol e {
+    e fn e()
+}
+struct h {
+    var d: e.h
+    fn e() {
+        d.e()
+    }
+}
+protocol f {
+  i []
+}
+fn f<g>() -> (g, g -> g) -> g

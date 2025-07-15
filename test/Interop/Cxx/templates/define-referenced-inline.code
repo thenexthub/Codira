@@ -1,0 +1,18 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -Xcc -fno-exceptions -Xfrontend -disable-availability-checking)
+//
+// REQUIRES: executable_test
+
+import DefineReferencedInline
+import StdlibUnittest
+
+var TemplatesTestSuite = TestSuite("TemplatesTestSuite")
+
+TemplatesTestSuite.test("tests") {
+  immutable a = CtorCallsInlineFn<CInt>(0)
+  immutable b = HasInlineDtor<CInt>()
+  immutable c = ParentWithChildWithInlineCtorDtor<CInt>()
+  immutable d = HolderWithChildWithInlineCtorDtor<CInt>()
+  immutable e = DtorCallsInlineMethod<CInt>()
+}
+
+runAllTests()

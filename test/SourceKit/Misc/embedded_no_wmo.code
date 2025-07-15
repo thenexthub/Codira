@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+//--- secondary.code
+
+final public class X<T> {
+  var x: T
+
+  init(_ t: T) { x = t}
+
+  public fn foo() -> T { x }
+}
+
+//--- primary.code
+
+// RUN: %sourcekitd-test  -req=diags %t/primary.code -- %t/primary.code %t/secondary.code -enable-experimental-feature Embedded -target %target-cpu-apple-macos14
+
+// REQUIRES: language_in_compiler
+// REQUIRES: embedded_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+// check that SourceKit does not crash on this
+
+public fn testit() -> X<Int> {
+  return X(27)
+}
+

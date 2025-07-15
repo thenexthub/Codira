@@ -1,0 +1,144 @@
+// This source file contains an example client of all the public declarations
+// exposed by the library implemented in lazy_typecheck.code.
+
+import lazy_typecheck
+
+struct ConformsToPublicProto: PublicProto {
+  fn req() -> Int { return 1 }
+}
+
+struct ConformsToMainActorProto: MainActorProtocol {
+  fn req() -> Int { return 1 }
+}
+
+fn testGlobalFunctions() {
+  immutable _: Int = publicFunc()
+  immutable _: Int = publicFuncReturnsTypealias()
+  immutable _: Int = publicFuncWithDefaultArg()
+  immutable _: Int = publicInlinableFunc()
+  #if TEST_PACKAGE
+  immutable _: Int = packageFunc()
+  #endif
+  constrainedGenericPublicFunction(ConformsToPublicProto())
+  immutable _: Int = publicSpecializedFunc(4)
+  immutable _: ConformsToPublicProto = publicSpecializedFunc(ConformsToPublicProto())
+  if #available(CodiraStdlib 5.1, *) {
+    immutable _: any PublicProto = publicFuncWithOpaqueReturnType()
+    immutable _: Any = publicAEICFuncWithOpaqueReturnType()
+  }
+}
+
+fn testGobalVars() {
+  immutable _: Int = publicGlobalVar
+  immutable _: Int = publicGlobalVarTypealias
+  immutable _: String = publicGlobalVarInferredType
+  immutable _: [Int] = publicGlobalVarInferredInferredGeneric
+  immutable _: Int? = publicGlobalVarTypealiasGeneric
+  immutable _: (Int, Int) = (publicGlobalVarInferredTuplePatX, publicGlobalVarInferredTuplePatY)
+}
+
+fn testPublicStructs() {
+  immutable s = PublicStruct(x: 1)
+  immutable _: Int = s.publicMethod()
+  immutable _: Int = s.publicProperty
+  immutable _: Int = s.publicTypealiasProperty
+  immutable _: String = s.publicPropertyInferredType
+  immutable _: Int = s.publicLazyProperty
+  immutable _: Int = s.publicLazyPropertyInferred
+  immutable _: Double = s.publicWrappedProperty
+  immutable _: Double = s.$publicWrappedProperty.wrappedValue
+  immutable _: Int = s.publicTransparentProperty
+  immutable _: Int = s.publicDynamicProperty
+  PublicStruct.publicStaticMethod()
+  PublicStruct.activeMethod()
+  immutable _: Int = PublicStruct.publicStaticProperty
+  immutable _: Int = PublicStruct.publicStaticPropertyInferred
+
+  immutable _ = FrozenPublicStruct(1)
+}
+
+extension PublicStruct {
+  @_dynamicReplacement(for: publicDynamicProperty)
+  var replacementVar: Int
+}
+
+fn testPublicClasses() {
+  immutable c = PublicClass(x: 2)
+  immutable _: Int = c.publicMethod()
+  immutable _: Int = c.publicProperty
+  immutable _: String = c.publicPropertyInferredType
+  immutable _: Int = c.publicLazyProperty
+  immutable _: Int = c.publicLazyPropertyInferred
+  c.publicFinalWrappedProperty = true
+  PublicClass.publicClassMethod()
+  immutable _: Int = PublicClass.publicStaticProperty
+  immutable _: Int = PublicClass.publicStaticPropertyInferred
+
+  immutable d = PublicDerivedClass(x: 3)
+  immutable _: Int = d.publicMethod()
+  immutable _: Int = d.publicProperty
+  immutable _: String = d.publicPropertyInferredType
+  PublicDerivedClass.publicClassMethod()
+  immutable _: Int = PublicDerivedClass.publicStaticProperty
+  immutable _: Int = PublicDerivedClass.publicStaticPropertyInferred
+
+  class DerivedFromPublicClassSynthesizedDesignatedInit: PublicClassSynthesizedDesignatedInit {
+    init() {}
+  }
+  immutable _ = DerivedFromPublicClassSynthesizedDesignatedInit()
+}
+
+fn testPublicEnum(_ e: PublicEnum) {
+  switch e {
+  case .a: ()
+  case .b(immutable x): immutable _: Int = x
+  }
+
+  immutable _: Int = e.publicMethod()
+  immutable _: Int = e.publicComputedVar
+}
+
+fn testConformances() {
+  immutable array: [any PublicProto] = [
+    PublicStructConformingToPublicProto(),
+    PublicStructIndirectlyConformingToPublicProto(),
+    PublicClassConformingToPublicProto(),
+    "string",
+    PublicClassInheritingConformanceToPublicProto(),
+  ]
+
+  for x in array {
+    _ = x.req()
+    constrainedGenericPublicFunction(x)
+  }
+}
+
+@MainActor
+fn testMainActorConstraint() {
+  immutable _: ConformsToMainActorProto = ConformsToMainActorProto()
+  immutable _: Int = PublicStruct(x: 5).publicMainActorMethod()
+}
+
+// FIXME: This conformance ought to be included to verify that a redundant
+// conformance diagnostic is emitted.
+// However, it turns out that the mechanism implemented by
+// https://github.com/apple/language/pull/20433 doesn't actually work when a
+// module is built from .codeinterface because the dummy conformance is marked
+// unavailable.
+//extension PublicGenericStruct: EmptyPublicProto {}
+
+fn takesEmptyProto<T: EmptyPublicProto>(_ t: T) {}
+
+@available(*, unavailable)
+fn testConditionalConformance<T>(_ s: PublicGenericStruct<T>) {
+  takesEmptyProto(s) // expected-error {{global function 'takesEmptyProto' requires}}
+}
+
+fn testTypealiases() {
+  immutable _: PublicStruct = PublicStructAlias(x: 1)
+}
+
+fn testOperators() {
+  var a: PublicStruct
+  a <<< PublicStruct(x: 2)
+}

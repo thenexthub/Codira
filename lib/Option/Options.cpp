@@ -11,39 +11,40 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Option/Options.h"
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Option/OptTable.h"
-#include "llvm/Option/Option.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Option/OptTable.h"
+#include "toolchain/Option/Option.h"
 
 using namespace language::options;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 #define PREFIX(NAME, VALUE)                                                    \
-  constexpr llvm::StringLiteral NAME##_init[] = VALUE;                         \
-  constexpr llvm::ArrayRef<llvm::StringLiteral> NAME(                          \
+  constexpr toolchain::StringLiteral NAME##_init[] = VALUE;                         \
+  constexpr toolchain::ArrayRef<toolchain::StringLiteral> NAME(                          \
       NAME##_init, std::size(NAME##_init) - 1);
 #include "language/Option/Options.inc"
 #undef PREFIX
 
-static const llvm::opt::GenericOptTable::Info InfoTable[] = {
-#define OPTION(...) LLVM_CONSTRUCT_OPT_INFO(__VA_ARGS__),
+static const toolchain::opt::GenericOptTable::Info InfoTable[] = {
+#define OPTION(...) TOOLCHAIN_CONSTRUCT_OPT_INFO(__VA_ARGS__),
 #include "language/Option/Options.inc"
 #undef OPTION
 };
 
 namespace {
 
-class SwiftOptTable : public llvm::opt::GenericOptTable {
+class CodiraOptTable : public toolchain::opt::GenericOptTable {
 public:
-  SwiftOptTable() : GenericOptTable(InfoTable) {}
+  CodiraOptTable() : GenericOptTable(InfoTable) {}
 };
 
 } // end anonymous namespace
 
-std::unique_ptr<OptTable> swift::createSwiftOptTable() {
-  return std::unique_ptr<GenericOptTable>(new SwiftOptTable());
+std::unique_ptr<OptTable> language::createCodiraOptTable() {
+  return std::unique_ptr<GenericOptTable>(new CodiraOptTable());
 }

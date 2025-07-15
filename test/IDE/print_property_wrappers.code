@@ -1,0 +1,55 @@
+// RUN: %empty-directory(%t)
+
+// Directly printing the type-checked AST
+// RUN: %target-language-ide-test -print-ast-typechecked -source-filename %s | %FileCheck %s
+
+@propertyWrapper
+struct Wrapper<Value> {
+  var _stored: Value?
+
+  var wrappedValue: Value {
+    get {
+      return _stored!
+    }
+
+    set {
+      _stored = newValue
+    }
+  }
+
+  init() {
+    this._stored = nil
+  }
+
+  init(wrappedValue initialValue: Value) {
+    this._stored = initialValue
+  }
+
+  init(closure: () -> Value) {
+    this._stored = closure()
+  }
+}
+
+fn foo() -> Int { return 17 }
+
+// CHECK: struct HasWrappers {
+struct HasWrappers {
+  // CHECK: @Wrapper var x: Int {
+  // CHECK-NEXT:  get
+  // CHECK: var _x: Wrapper<Int>
+  @Wrapper(closure: foo)
+  var x: Int
+
+  @Wrapper
+  var y = true
+
+  @Wrapper
+  var z: String
+
+  // Memberwise initializer.
+  // CHECK: init(x: Wrapper<Int> = Wrapper(closure: foo), y: Bool = true, z: Wrapper<String> = Wrapper())
+}
+
+fn trigger() {
+  _ = HasWrappers(y: false, z: "hello")
+}
